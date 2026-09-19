@@ -22,10 +22,30 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls "$ANDROID_SDK_ROOT" || true
-          ls "$ANDROID_SDK_ROOT/platforms" || true
-          ls "$ANDROID_SDK_ROOT/build-tools" || true
-          command -v sdkmanager || true
+          echo "--- root ---"; ls "$ANDROID_SDK_ROOT" || true
+          echo "--- platforms ---"; ls "$ANDROID_SDK_ROOT/platforms" || true
+          echo "--- build-tools ---"; ls "$ANDROID_SDK_ROOT/build-tools" || true
+
+      - name: Ensure SDK components (android-34)
+        run: |
+          SDK="$ANDROID_SDK_ROOT"
+          if [ -z "$SDK" ]; then SDK="$ANDROID_HOME"; fi
+          SM=""
+          for c in \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/cmdline-tools/bin/sdkmanager" \
+            "$(command -v sdkmanager 2>/dev/null)"; do
+            if [ -n "$c" ] && [ -x "$c" ]; then SM="$c"; break; fi
+          done
+          echo "sdkmanager = $SM"
+          if [ -z "$SM" ]; then
+            echo "未找到 sdkmanager,尝试使用预装 SDK"
+            exit 0
+          fi
+          yes | "$SM" --licenses > /dev/null 2>&1 || true
+          "$SM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+          echo "--- after install: platforms ---"; ls "$SDK/platforms" || true
+          echo "--- after install: build-tools ---"; ls "$SDK/build-tools" || true
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -34,7 +54,17 @@ jobs:
 
       - name: Build debug APK
         working-directory: Game2048
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Show failure context
+        if: failure()
+        run: |
+          echo "########## 关键错误段 ##########"
+          grep -n -B 3 -A 30 -E "What went wrong|Caused by|FAILURE:|Execution failed|Failed to|Could not|error:" Game2048/build.log || true
+          echo "########## 日志末尾 120 行 ##########"
+          tail -n 120 Game2048/build.log || true
 
       - name: Upload APK
         if: success()
