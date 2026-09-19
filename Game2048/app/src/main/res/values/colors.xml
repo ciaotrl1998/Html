@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="game_bg">#FAF8EF</color>
+    <color name="tile_2048">#EDC22E</color>
+    <color name="board">#BBADA0</color>
+    <color name="text">#776E65</color>
+    <color name="text_muted">#9A8F84</color>
+    <color name="card">#FFFFFF</color>
+    <color name="accent">#8F7A66</color>
+</resources>

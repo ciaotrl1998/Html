@@ -1,0 +1,26 @@
+# 只上传 Game2048 工程与 .github 工作流,其余本地文件不上传
+
+# 本地游戏/模拟器相关(体积大,与打包无关)
+*.gp
+*.BIN
+*.bin
+*.srm
+*.sav
+*.state
+MD大航海时代2意志加强1.9F5正式版/
+奥德彪模拟器_GBA/
+奥德彪模拟器_GBA游戏生成Prompt.md
+
+# 含 Token 的本地脚本,绝不提交
+push.sh
+push.local.sh
+
+# 工具与私有目录
+.linecode/
+.idea/
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.DS_Store
