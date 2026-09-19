@@ -97,8 +97,7 @@ public class GamePlayerActivity extends AppCompatActivity {
     }
 
     private String preparePlayUrl(String url) {
-        if (url.startsWith("file:///android_asset/")
-                || url.startsWith("http://")
+        if (url.startsWith("http://")
                 || url.startsWith("https://")) {
             return url;
         }

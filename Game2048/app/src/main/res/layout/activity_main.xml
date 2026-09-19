@@ -65,6 +65,32 @@
             android:textSize="13sp" />
     </LinearLayout>
 
+    <Button
+        android:id="@+id/btnGrant"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="12dp"
+        android:backgroundTint="@color/tile_2048"
+        android:text="@string/grant_permission"
+        android:textColor="#3C3A32"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/crashView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="12dp"
+        android:background="@color/card"
+        android:padding="10dp"
+        android:textColor="#776E65"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/emptyView"
         android:layout_width="match_parent"

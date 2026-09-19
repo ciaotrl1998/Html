@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#3f6b8a" />
+  <title>奥德彪模拟器</title>
+  <style>
+    :root {
+      --ink: #2c2418;
+      --paper: #f6efe2;
+      --panel: #fff8ea;
+      --line: #d9c9a8;
+      --accent: #e0722f;
+      --gold: #d9a227;
+      --green: #3f8f5b;
+      --plate: #3f6b8a;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #21303c;
+      color: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      touch-action: none;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body { position: fixed; inset: 0; }
+
+    #app { position: absolute; inset: 0; }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen.hidden { display: none; }
+
+    /* ===================== 经营界面 ===================== */
+    #menu {
+      background:
+        radial-gradient(120% 60% at 50% 0%, #ffe9c2 0%, rgba(255,233,194,0) 60%),
+        linear-gradient(180deg, #f7f0e0 0%, #efe2c6 100%);
+      padding: calc(10px + var(--safe-top)) 12px calc(10px + var(--safe-bottom));
+    }
+
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--plate);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+    }
+
+    .topbar .title { display: flex; flex-direction: column; line-height: 1.15; }
+    .topbar .title b { font-size: 17px; letter-spacing: 0.02em; }
+    .topbar .title span { font-size: 11px; opacity: 0.85; }
+
+    .stats { display: flex; gap: 8px; }
+
+    .coin, .veh {
+      background: rgba(0,0,0,0.20);
+      border-radius: 9px;
+      padding: 4px 10px;
+      text-align: center;
+      min-width: 62px;
+    }
+    .coin .lbl, .veh .lbl {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+    .coin .val { font-size: 19px; font-weight: 800; color: #ffd868; line-height: 1.1; }
+    .veh .val { font-size: 13px; font-weight: 700; line-height: 1.4; }
+
+    .tabs {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 0 8px;
+    }
+
+    .tab {
+      appearance: none;
+      border: 2px solid var(--line);
+      background: var(--panel);
+      color: #8a7a5c;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 11px 0;
+      border-radius: 10px;
+    }
+
+    .tab.on {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.16);
+    }
+
+    .page {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      padding-bottom: 4px;
+    }
+    .page.hidden { display: none; }
+
+    .row {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      border: 2px solid var(--line);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--ink);
+      position: relative;
+    }
+
+    .row.sel { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(224,114,47,0.28); }
+    .row.locked { opacity: 0.6; }
+
+    .row .rname { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .row .rmeta { font-size: 12.5px; color: #8a7a5c; }
+
+    .tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 2px 7px;
+      color: #fff;
+      background: #9a8f84;
+    }
+    .tag.own { background: var(--green); }
+    .tag.use { background: var(--accent); }
+    .tag.lock { background: #9a8f84; }
+
+    .detail {
+      border: 2px dashed var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      background: rgba(255,255,255,0.55);
+    }
+    .detail b { color: var(--accent); }
+
+    .bottombar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .hint {
+      flex: 1 1 auto;
+      font-size: 12px;
+      color: #8a7a5c;
+      line-height: 1.4;
+    }
+
+    .bigbtn {
+      appearance: none;
+      border: 0;
+      background: var(--green);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      padding: 14px 22px;
+      border-radius: 12px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+      white-space: nowrap;
+    }
+    .bigbtn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+    .bigbtn:disabled { background: #b9b0a0; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+
+    .ghost {
+      appearance: none;
+      border: 2px solid var(--line);
+      background: var(--panel);
+      color: #8a7a5c;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 12px 14px;
+      border-radius: 12px;
+    }
+
+    /* ===================== 送货界面 ===================== */
+    #play { background: #000; }
+
+    #stage { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+
+    #hud {
+      position: absolute;
+      top: calc(6px + var(--safe-top));
+      left: 8px;
+      right: 8px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+      pointer-events: none;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 2px 3px rgba(0,0,0,0.6);
+    }
+
+    .hudbox {
+      background: rgba(20,28,36,0.5);
+      border-radius: 9px;
+      padding: 4px 9px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .hudbox .k { font-size: 9.5px; opacity: 0.8; letter-spacing: 0.1em; }
+    .hudbox .v { font-size: 15px; line-height: 1.15; }
+
+    #pausebtn {
+      pointer-events: auto;
+      appearance: none;
+      border: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      background: rgba(20,28,36,0.62);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .bars {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: calc(120px + var(--safe-bottom));
+      display: flex;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .bar { flex: 1 1 0; }
+    .bar .cap { font-size: 10px; color: #fff; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.7); margin-bottom: 3px; }
+    .bar .track {
+      height: 12px;
+      border-radius: 7px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.35);
+      overflow: hidden;
+    }
+    .bar .fill { height: 100%; width: 100%; border-radius: 6px; transition: width 90ms linear; }
+    #hpfill { background: linear-gradient(90deg,#ff5a4d,#ffb03a); }
+    #cargofill { background: linear-gradient(90deg,#4fb96b,#a9e07a); }
+
+    #controls {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(10px + var(--safe-bottom));
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 14px;
+      pointer-events: none;
+    }
+
+    .pad { display: grid; gap: 10px; pointer-events: auto; }
+    .pad.steer { grid-template-columns: 74px 74px; }
+    .pad.drive { grid-template-columns: 74px 74px; }
+
+    .kbtn {
+      appearance: none;
+      border: 2px solid rgba(255,255,255,0.5);
+      background: rgba(20,28,36,0.5);
+      color: #fff;
+      width: 74px;
+      height: 68px;
+      font-size: 26px;
+      font-weight: 800;
+      border-radius: 16px;
+      backdrop-filter: blur(2px);
+    }
+    .kbtn:active, .kbtn.on { background: rgba(224,114,47,0.85); border-color: #fff; }
+
+    /* ===================== 覆盖层 ===================== */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(18,24,30,0.74);
+      padding: 20px;
+      z-index: 5;
+    }
+    .overlay.hidden { display: none; }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--paper);
+      border-radius: 18px;
+      padding: 20px 18px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .card h2 { margin: 0 0 6px; font-size: 26px; }
+    .card .sub { margin: 0 0 14px; font-size: 13px; color: #8a7a5c; }
+
+    .lines { text-align: left; font-size: 14px; margin: 0 0 16px; }
+    .lines .li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+    .lines .li.total { font-weight: 800; color: var(--accent); border-bottom: 0; font-size: 16px; padding-top: 9px; }
+
+    .card .actions { display: flex; gap: 10px; }
+    .card .actions .bigbtn { flex: 1 1 0; padding: 14px 0; }
+
+    #toast {
+      position: absolute;
+      left: 50%;
+      bottom: calc(120px + var(--safe-bottom));
+      transform: translateX(-50%);
+      background: rgba(20,28,36,0.9);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 10px;
+      opacity: 0;
+      transition: opacity 180ms;
+      pointer-events: none;
+      z-index: 9;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= 经营界面 ================= -->
+  <section id="menu" class="screen">
+    <div class="topbar">
+      <div class="title">
+        <b>奥德彪模拟器</b>
+        <span id="subtitle">自行车送货经营</span>
+      </div>
+      <div class="stats">
+        <div class="coin">
+          <div class="lbl">金币</div>
+          <div class="val" id="coins">0</div>
+        </div>
+        <div class="veh">
+          <div class="lbl">车辆</div>
+          <div class="val" id="curveh">破旧自行车</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab on" data-act="tab" data-i="0">订单</button>
+      <button type="button" class="tab" data-act="tab" data-i="1">车辆</button>
+      <button type="button" class="tab" data-act="tab" data-i="2">升级</button>
+    </div>
+
+    <div class="page" id="page-orders"></div>
+    <div class="page hidden" id="page-vehicles"></div>
+    <div class="page hidden" id="page-upgrades"></div>
+
+    <div class="bottombar">
+      <div class="hint" id="menu-hint"></div>
+      <button type="button" class="ghost" data-act="reset">清档</button>
+      <button type="button" class="bigbtn" id="startbtn" data-act="start">出发</button>
+    </div>
+  </section>
+
+  <!-- ================= 送货界面 ================= -->
+  <section id="play" class="screen hidden">
+    <canvas id="stage"></canvas>
+
+    <div id="hud">
+      <div class="hudbox"><div class="k">TIME</div><div class="v" id="hud-time">0</div></div>
+      <div class="hudbox"><div class="k">距离</div><div class="v" id="hud-dist">0/0m</div></div>
+      <div class="hudbox"><div class="k">SPD</div><div class="v" id="hud-spd">0</div></div>
+      <button type="button" id="pausebtn">‖</button>
+    </div>
+
+    <div class="bars">
+      <div class="bar">
+        <div class="cap">耐久 HP</div>
+        <div class="track"><div class="fill" id="hpfill"></div></div>
+      </div>
+      <div class="bar">
+        <div class="cap">货物 CARGO</div>
+        <div class="track"><div class="fill" id="cargofill"></div></div>
+      </div>
+    </div>
+
+    <div id="controls">
+      <div class="pad steer">
+        <button type="button" class="kbtn" data-k="left">◀</button>
+        <button type="button" class="kbtn" data-k="right">▶</button>
+      </div>
+      <div class="pad drive">
+        <button type="button" class="kbtn" data-k="down">▼</button>
+        <button type="button" class="kbtn" data-k="up">▲</button>
+      </div>
+    </div>
+
+    <!-- 暂停 -->
+    <div id="pausemask" class="overlay hidden">
+      <div class="card">
+        <h2>已暂停</h2>
+        <p class="sub">任务数据已冻结</p>
+        <div class="actions">
+          <button type="button" class="ghost" id="abandonbtn">放弃订单</button>
+          <button type="button" class="bigbtn" id="resumebtn">继续</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 结算界面 ================= -->
+  <div id="resultmask" class="overlay hidden">
+    <div class="card">
+      <h2 id="res-title">送货完成</h2>
+      <p class="sub" id="res-sub"></p>
+      <div class="lines" id="res-lines"></div>
+      <div class="actions">
+        <button type="button" class="bigbtn" id="res-back">返回经营</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 常量
+   * ============================================================ */
+  var STATE = {
+    INIT: 'INIT',
+    MANAGEMENT: 'MANAGEMENT',
+    ORDER_SELECTED: 'ORDER_SELECTED',
+    DELIVERY: 'DELIVERY',
+    PAUSED: 'PAUSED',
+    RESULT: 'RESULT'
+  };
+
+  var SAVE_KEY = 'odebiao-save-v1';
+  var SAVE_MAGIC = 0x4F444259; // "ODBY"
+  var SAVE_VERSION = 1;
+
+  var W = 480, H = 320;            // 画布逻辑尺寸
+  var HORIZON = 84;                // 地平线 Y
+  var NEAR = 60;                   // 透视近端参数
+  var ZMAX = 1000;                 // 最远纵深
+  var ROAD_HALF = 230;             // 屏幕底部道路半宽
+  var PY = 250;                    // 玩家固定屏幕 Y
+  var COLLIDE_Z = 34;              // 碰撞判定纵深
+  var MAX_OBST = 12;               // 障碍对象池容量
+  var LOGIC_HZ = 60;               // 逻辑帧率
+
+  /* ============================================================
+   * 静态数据
+   * ============================================================ */
+  var VEHICLES = [
+    { id: 0, name: '破旧自行车', price: 0,    baseSpeed: 12, maxSpeed: 22, accel: 40, brake: 50, steering: 100, maxDurability: 100, stability: 80 },
+    { id: 1, name: '加固自行车', price: 500,  baseSpeed: 14, maxSpeed: 26, accel: 50, brake: 55, steering: 105, maxDurability: 140, stability: 100 },
+    { id: 2, name: '三轮车',     price: 1200, baseSpeed: 11, maxSpeed: 24, accel: 35, brake: 45, steering: 85,  maxDurability: 220, stability: 140 }
+  ];
+
+  // 升级索引: 0 速度 / 1 耐久 / 2 操控 / 3 稳定
+  var UPGRADES = [
+    { name: '速度', price: 100, effect: '基础速度 +1,最高速度 +2' },
+    { name: '耐久', price: 120, effect: '耐久上限 +20' },
+    { name: '操控', price: 150, effect: '转向灵敏度 +0.05' },
+    { name: '稳定', price: 130, effect: '载货稳定性 +0.10' }
+  ];
+
+  var ORDERS = [
+    { name: '香蕉送到村口',   cargo: '香蕉', color: '#f2c14e', distance: 800,  time: 80,  reward: 100, diff: 1 },
+    { name: '水桶送到集市',   cargo: '水桶', color: '#4d9de0', distance: 1200, time: 100, reward: 180, diff: 2 },
+    { name: '建材送到山坡工地', cargo: '建材', color: '#9aa0a6', distance: 1600, time: 120, reward: 260, diff: 3 }
+  ];
+
+  var OBSTACLES = [
+    { name: '石头',     dura: 10, cargo: 5,  shape: 'rock' },
+    { name: '木箱',     dura: 15, cargo: 8,  shape: 'crate' },
+    { name: '路障',     dura: 25, cargo: 12, shape: 'barrier' },
+    { name: '坑洞',     dura: 30, cargo: 18, shape: 'hole' },
+    { name: '移动推车', dura: 20, cargo: 10, shape: 'cart' }
+  ];
+
+  var DIFF = {
+    1: { baseInterval: 66, maxActive: 4, weights: [5, 3, 1, 1, 0], roadFactor: 1.00 },
+    2: { baseInterval: 52, maxActive: 6, weights: [4, 3, 2, 1, 1], roadFactor: 0.95 },
+    3: { baseInterval: 42, maxActive: 8, weights: [3, 3, 2, 2, 2], roadFactor: 0.90 }
+  };
+
+  /* ============================================================
+   * 工具函数
+   * ============================================================ */
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function clampInt(v, lo, hi, def) {
+    var n = parseInt(v, 10);
+    if (!isFinite(n)) return def;
+    return clamp(n, lo, hi);
+  }
+
+  /* ============================================================
+   * 存档
+   * ============================================================ */
+  var save = null;
+
+  function defaultSave() {
+    return {
+      magic: SAVE_MAGIC,
+      version: SAVE_VERSION,
+      coins: 100,
+      owned: 1,          // 位掩码,bit0 已拥有
+      current: 0,
+      upgrades: [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+    };
+  }
+
+  function sanitizeSave(raw) {
+    var s = defaultSave();
+    s.coins = clampInt(raw.coins, 0, 99999999, 100);
+    s.owned = clampInt(raw.owned, 1, 7, 1) | 1;
+    s.current = clampInt(raw.current, 0, 2, 0);
+    if (((s.owned >> s.current) & 1) === 0) s.current = 0;
+    if (raw.upgrades && raw.upgrades.length) {
+      for (var v = 0; v < 3; v++) {
+        for (var u = 0; u < 4; u++) {
+          var lv = (raw.upgrades[v] && raw.upgrades[v][u] != null) ? raw.upgrades[v][u] : 1;
+          s.upgrades[v][u] = clampInt(lv, 1, 5, 1);
+        }
+      }
+    }
+    return s;
+  }
+
+  function loadSave() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return defaultSave();
+      var data = JSON.parse(raw);
+      if (!data || data.magic !== SAVE_MAGIC) return defaultSave();
+      return sanitizeSave(data);
+    } catch (e) {
+      return defaultSave();
+    }
+  }
+
+  function storeSave() {
+    try {
+      save.magic = SAVE_MAGIC;
+      save.version = SAVE_VERSION;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    } catch (e) { /* 忽略写入失败 */ }
+  }
+
+  /* ============================================================
+   * 车辆属性计算(基础模板 + 升级增量,不修改模板)
+   * ============================================================ */
+  function stats(vid) {
+    var v = VEHICLES[vid];
+    var u = save.upgrades[vid];
+    return {
+      name: v.name,
+      baseSpeed: v.baseSpeed + (u[0] - 1),
+      maxSpeed: v.maxSpeed + 2 * (u[0] - 1),
+      accel: v.accel / 10,
+      brake: v.brake / 10,
+      steering: v.steering + 5 * (u[2] - 1),
+      maxDurability: v.maxDurability + 20 * (u[1] - 1),
+      stability: v.stability + 10 * (u[3] - 1)
+    };
+  }
+
+  /* ============================================================
+   * 全局状态
+   * ============================================================ */
+  var state = STATE.INIT;
+  var tab = 0;
+  var cursor = [0, 0, 0];
+  var selectedOrder = -1;
+  var D = null;                   // 当前任务数据
+
+  var input = { left: false, right: false, up: false, down: false };
+
+  /* ============================================================
+   * DOM 引用
+   * ============================================================ */
+  var menuEl = document.getElementById('menu');
+  var playEl = document.getElementById('play');
+  var canvas = document.getElementById('stage');
+  var ctx = canvas.getContext('2d');
+  var coinsEl = document.getElementById('coins');
+  var curvehEl = document.getElementById('curveh');
+  var pageOrders = document.getElementById('page-orders');
+  var pageVehicles = document.getElementById('page-vehicles');
+  var pageUpgrades = document.getElementById('page-upgrades');
+  var menuHint = document.getElementById('menu-hint');
+  var startBtn = document.getElementById('startbtn');
+  var toastEl = document.getElementById('toast');
+  var hudTime = document.getElementById('hud-time');
+  var hudDist = document.getElementById('hud-dist');
+  var hudSpd = document.getElementById('hud-spd');
+  var hpFill = document.getElementById('hpfill');
+  var cargoFill = document.getElementById('cargofill');
+  var pauseMask = document.getElementById('pausemask');
+  var resultMask = document.getElementById('resultmask');
+
+  /* ============================================================
+   * 提示条
+   * ============================================================ */
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 1400);
+  }
+
+  /* ============================================================
+   * 状态切换
+   * ============================================================ */
+  function setState(next) {
+    state = next;
+    menuEl.classList.toggle('hidden', !(state === STATE.MANAGEMENT || state === STATE.ORDER_SELECTED || state === STATE.INIT));
+    playEl.classList.toggle('hidden', !(state === STATE.DELIVERY || state === STATE.PAUSED));
+    pauseMask.classList.toggle('hidden', state !== STATE.PAUSED);
+    resultMask.classList.toggle('hidden', state !== STATE.RESULT);
+  }
+
+  /* ============================================================
+   * 经营界面渲染
+   * ============================================================ */
+  function renderMenu() {
+    coinsEl.textContent = String(save.coins);
+    curvehEl.textContent = VEHICLES[save.current].name;
+
+    var tabs = document.querySelectorAll('.tab');
+    for (var t = 0; t < tabs.length; t++) {
+      tabs[t].classList.toggle('on', Number(tabs[t].getAttribute('data-i')) === tab);
+    }
+
+    pageOrders.classList.toggle('hidden', tab !== 0);
+    pageVehicles.classList.toggle('hidden', tab !== 1);
+    pageUpgrades.classList.toggle('hidden', tab !== 2);
+
+    if (tab === 0) renderOrders();
+    else if (tab === 1) renderVehicles();
+    else renderUpgrades();
+
+    startBtn.disabled = selectedOrder < 0;
+    startBtn.textContent = selectedOrder < 0 ? '未选订单' : '出发';
+  }
+
+  function renderOrders() {
+    var html = '';
+    for (var i = 0; i < ORDERS.length; i++) {
+      var o = ORDERS[i];
+      var sel = (selectedOrder === i) ? ' sel' : '';
+      html += '<button type="button" class="row' + sel + '" data-act="order" data-i="' + i + '">'
+        + '<span class="rname">' + o.name + '<span class="tag">难度 ' + o.diff + '</span></span>'
+        + '<span class="rmeta">' + o.distance + ' 米 · 限时 ' + o.time + ' 秒 · 基础 ' + o.reward + ' 金币</span>'
+        + '</button>';
+    }
+    if (selectedOrder >= 0) {
+      var s = ORDERS[selectedOrder];
+      html += '<div class="detail">已选订单:<b>' + s.name + '</b><br>'
+        + '货物:' + s.cargo + '<br>'
+        + '距离:' + s.distance + ' 米,限时 ' + s.time + ' 秒<br>'
+        + '点右下角 <b>出发</b> 开始送货。</div>';
+    } else {
+      html += '<div class="detail">点一个订单选中它,再点右下角 <b>出发</b>。</div>';
+    }
+    pageOrders.innerHTML = html;
+    menuHint.textContent = '选订单 → 出发';
+  }
+
+  function renderVehicles() {
+    var html = '';
+    for (var i = 0; i < VEHICLES.length; i++) {
+      var v = VEHICLES[i];
+      var owned = ((save.owned >> i) & 1) === 1;
+      var using = (save.current === i);
+      var tag = using ? '<span class="tag use">使用中</span>'
+              : (owned ? '<span class="tag own">已拥有</span>' : '<span class="tag lock">' + v.price + ' 金币</span>');
+      var can = owned || save.coins >= v.price;
+      html += '<button type="button" class="row' + (can ? '' : ' locked') + '" data-act="vehicle" data-i="' + i + '">'
+        + '<span class="rname">' + v.name + tag + '</span>'
+        + '<span class="rmeta">速度 ' + v.baseSpeed + '~' + v.maxSpeed + ' · 耐久 ' + v.maxDurability
+        + ' · 操控 ' + (v.steering / 100).toFixed(2) + ' · 稳定 ' + (v.stability / 100).toFixed(2) + '</span>'
+        + '</button>';
+    }
+    pageVehicles.innerHTML = html;
+    menuHint.textContent = '点已拥有的车切换,点击未拥有的车购买';
+  }
+
+  function renderUpgrades() {
+    var vid = save.current;
+    var u = save.upgrades[vid];
+    var html = '<div class="detail">当前车辆:<b>' + VEHICLES[vid].name + '</b>(每项最高 5 级)</div>';
+    for (var i = 0; i < UPGRADES.length; i++) {
+      var lv = u[i];
+      var full = lv >= 5;
+      var price = UPGRADES[i].price * lv;
+      var can = !full && save.coins >= price;
+      html += '<button type="button" class="row' + (can ? '' : ' locked') + '" data-act="upgrade" data-i="' + i + '">'
+        + '<span class="rname">' + UPGRADES[i].name + ' <span class="tag">Lv ' + lv + '/5</span></span>'
+        + '<span class="rmeta">' + UPGRADES[i].effect + ' · ' + (full ? '已满级' : price + ' 金币') + '</span>'
+        + '</button>';
+    }
+    pageUpgrades.innerHTML = html;
+    menuHint.textContent = '升级只作用于当前车辆';
+  }
+
+  /* ============================================================
+   * 经营操作
+   * ============================================================ */
+  function buyOrSwitch(i) {
+    if (((save.owned >> i) & 1) === 1) {
+      save.current = i;
+      storeSave();
+      showToast('已切换为 ' + VEHICLES[i].name);
+      renderMenu();
+      return;
+    }
+    if (save.coins < VEHICLES[i].price) {
+      showToast('金币不足,需要 ' + VEHICLES[i].price);
+      return;
+    }
+    save.coins -= VEHICLES[i].price;
+    save.owned |= (1 << i);
+    save.current = i;
+    storeSave();
+    showToast('已购买 ' + VEHICLES[i].name);
+    renderMenu();
+  }
+
+  function doUpgrade(i) {
+    var vid = save.current;
+    var lv = save.upgrades[vid][i];
+    if (lv >= 5) { showToast('已满级'); return; }
+    var price = UPGRADES[i].price * lv;
+    if (save.coins < price) { showToast('金币不足,需要 ' + price); return; }
+    save.coins -= price;
+    save.upgrades[vid][i] = lv + 1;
+    storeSave();
+    showToast(UPGRADES[i].name + ' 升级到 Lv ' + (lv + 1));
+    renderMenu();
+  }
+
+  /* ============================================================
+   * 送货任务
+   * ============================================================ */
+  function startDelivery(orderIndex) {
+    var order = ORDERS[orderIndex];
+    var st = stats(save.current);
+    var diff = DIFF[order.diff];
+    var pool = [];
+    for (var i = 0; i < MAX_OBST; i++) {
+      pool.push({ active: false, type: 0, lat: 0, z: 0, latVel: 0, hit: false });
+    }
+    D = {
+      orderIndex: orderIndex,
+      order: order,
+      st: st,
+      roadFactor: diff.roadFactor,
+      playerLat: 0,
+      speed: st.baseSpeed,
+      target: st.baseSpeed,
+      distance: 0,
+      durability: st.maxDurability,
+      maxDurability: st.maxDurability,
+      cargo: 100,
+      framesLeft: order.time * LOGIC_HZ,
+      invincible: 0,
+      collisions: 0,
+      boost: [0, 0, 0],
+      brake: [0, 0, 0],
+      cdUp: 0,
+      cdDown: 0,
+      spawnTimer: diff.baseInterval,
+      obstacles: pool,
+      roadScroll: 0,
+      shake: 0,
+      flash: 0,
+      particles: [],
+      frame: 0,
+      resultApplied: false
+    };
+    resetInput();
+    setState(STATE.DELIVERY);
+  }
+
+  function resetInput() {
+    input.left = false; input.right = false; input.up = false; input.down = false;
+    var btns = document.querySelectorAll('.kbtn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('on');
+  }
+
+  function proj(z) {
+    var zz = z < 0 ? 0 : z;
+    var s = NEAR / (NEAR + zz);
+    return { s: s, y: HORIZON + (H - HORIZON) * s };
+  }
+
+  function roadHalfAtY(y) {
+    var s = (y - HORIZON) / (H - HORIZON);
+    return ROAD_HALF * s * D.roadFactor;
+  }
+
+  function stripeOn(y) {
+    var s = (y - HORIZON) / (H - HORIZON);
+    var z = NEAR / s - NEAR;
+    return (Math.floor((z + D.roadScroll) / 34) & 1) === 0;
+  }
+
+  function spawnInterval() {
+    var iv = DIFF[D.order.diff].baseInterval - Math.floor(D.speed / 8);
+    return iv < 22 ? 22 : iv;
+  }
+
+  function activeObstacles() {
+    var n = 0;
+    for (var i = 0; i < D.obstacles.length; i++) if (D.obstacles[i].active) n++;
+    return n;
+  }
+
+  function spawnObstacle() {
+    var cfg = DIFF[D.order.diff];
+    if (activeObstacles() >= cfg.maxActive) return;
+
+    var slot = null;
+    for (var i = 0; i < D.obstacles.length; i++) {
+      if (!D.obstacles[i].active) { slot = D.obstacles[i]; break; }
+    }
+    if (!slot) return; // 对象池满,安全跳过
+
+    // 按权重选类型
+    var w = cfg.weights;
+    var total = 0, k;
+    for (k = 0; k < w.length; k++) total += w[k];
+    if (total <= 0) return;
+    var r = Math.random() * total, type = 0;
+    for (k = 0; k < w.length; k++) {
+      r -= w[k];
+      if (r <= 0) { type = k; break; }
+    }
+
+    var lat = (Math.random() * 1.6 - 0.8); // -0.8 ~ 0.8
+
+    // 公平性:避免与同一深度带已有障碍完全重叠,留出通行区
+    for (k = 0; k < D.obstacles.length; k++) {
+      var o = D.obstacles[k];
+      if (o.active && Math.abs(o.z - ZMAX) < 90 && Math.abs(o.lat - lat) < 0.22) {
+        lat = clamp(lat + (lat >= 0 ? 0.3 : -0.3), -0.85, 0.85);
+      }
+    }
+
+    slot.active = true;
+    slot.type = type;
+    slot.hit = false;
+    slot.z = ZMAX * (0.95 + Math.random() * 0.05);
+    slot.lat = clamp(lat, -0.85, 0.85);
+    slot.latVel = (type === 4) ? (Math.random() < 0.5 ? -1 : 1) * (0.15 + Math.random() * 0.15) : 0;
+  }
+
+  function addBoost() {
+    for (var i = 0; i < 3; i++) {
+      if (D.boost[i] <= 0) { D.boost[i] = 60; return; }
+    }
+  }
+
+  function addBrake() {
+    for (var i = 0; i < 3; i++) {
+      if (D.brake[i] <= 0) { D.brake[i] = 60; return; }
+    }
+  }
+
+  function countActive(arr) {
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) if (arr[i] > 0) n++;
+    return n;
+  }
+
+  function spawnParticles(x, y) {
+    for (var i = 0; i < 10; i++) {
+      D.particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 5,
+        vy: -Math.random() * 4 - 1,
+        life: 20 + Math.floor(Math.random() * 12),
+        color: Math.random() < 0.5 ? '#ffd34d' : '#ff7a3c'
+      });
+    }
+    if (D.particles.length > 90) D.particles.splice(0, D.particles.length - 90);
+  }
+
+  function applyHit(o, sx, sy) {
+    var t = OBSTACLES[o.type];
+    var mult = 100;
+    if (D.speed > 25) mult = 160;
+    else if (D.speed > 20) mult = 130;
+
+    var duraDmg = Math.round(t.dura * mult / 100);
+    var cargoDmg = Math.round(t.cargo * mult / 100 * 100 / D.st.stability);
+
+    D.durability = Math.max(0, D.durability - duraDmg);
+    D.cargo = Math.max(0, D.cargo - cargoDmg);
+    D.collisions++;
+    D.invincible = 30;
+    D.speed = Math.max(D.st.baseSpeed * 0.4, D.speed * 0.7);
+    D.shake = 8;
+    D.flash = 6;
+    spawnParticles(sx, sy);
+    o.hit = true;
+    o.active = false;
+  }
+
+  function enterResult(outcome) {
+    if (D.resultApplied) return;
+    D.resultApplied = true;
+
+    var base = D.order.reward;
+    var reward = 0;
+    var lines = [];
+    var remainSec = Math.floor(D.framesLeft / LOGIC_HZ);
+
+    if (outcome === 'success') {
+      var cargoReward = Math.floor(base * D.cargo / 100);
+      var penalty = D.collisions * 5;
+      var fin = cargoReward + remainSec - penalty;
+      var minR = Math.floor(base * 30 / 100);
+      if (fin < minR) fin = minR;
+      reward = Math.max(0, fin);
+      lines = [
+        ['基础奖励', base],
+        ['货物奖励', cargoReward],
+        ['时间奖励', remainSec],
+        ['碰撞扣款', -penalty],
+        ['最终奖励', reward]
+      ];
+    } else if (outcome === 'fail') {
+      reward = Math.floor(base * 10 / 100 * D.cargo / 100);
+      reward = Math.max(0, reward);
+      lines = [
+        ['订单失败', 0],
+        ['残值奖励', reward]
+      ];
+    } else {
+      reward = 0;
+      lines = [['已放弃订单', 0]];
+    }
+
+    save.coins += reward;
+    storeSave();
+
+    var title = outcome === 'success' ? '送货完成!' : (outcome === 'fail' ? '任务失败' : '已放弃');
+    var sub = outcome === 'success' ? (D.order.name + ' · 用时 ' + (D.order.time - remainSec) + ' 秒')
+            : (outcome === 'fail' ? (D.order.name + ' · ' + failReasonText()) : (D.order.name));
+
+    document.getElementById('res-title').textContent = title;
+    document.getElementById('res-sub').textContent = sub;
+    var html = '';
+    for (var i = 0; i < lines.length; i++) {
+      var isTotal = (i === lines.length - 1);
+      html += '<div class="li' + (isTotal ? ' total' : '') + '"><span>' + lines[i][0] + '</span><span>'
+        + (isTotal ? '' : (lines[i][1] > 0 ? '+' : '')) + lines[i][1] + (isTotal ? ' 金币' : '') + '</span></div>';
+    }
+    document.getElementById('res-lines').innerHTML = html;
+
+    setState(STATE.RESULT);
+  }
+
+  function failReasonText() {
+    if (D.durability <= 0) return '耐久耗尽';
+    if (D.cargo <= 0) return '货物损毁';
+    return '时间耗尽';
+  }
+
+  /* ============================================================
+   * 逻辑更新(固定 60Hz)
+   * ============================================================ */
+  function tick() {
+    if (state !== STATE.DELIVERY) return;
+    D.frame++;
+
+    // ---- 横向转向 ----
+    var inX = (input.left ? -1 : 0) + (input.right ? 1 : 0);
+    var speedRatio = clamp(D.speed / D.st.maxSpeed, 0, 1);
+    var steerPenalty = 1 - speedRatio * 0.25;
+    if (inX !== 0) {
+      D.playerLat += inX * 0.018 * (D.st.steering / 100) * steerPenalty;
+    } else {
+      D.playerLat *= 0.992; // 轻微回正阻尼,不强制回到中央
+    }
+    D.playerLat = clamp(D.playerLat, -0.94, 0.94);
+
+    // ---- Buff 冷却与计时 ----
+    if (D.cdUp > 0) D.cdUp--;
+    if (D.cdDown > 0) D.cdDown--;
+    for (var i = 0; i < 3; i++) {
+      if (D.boost[i] > 0) D.boost[i]--;
+      if (D.brake[i] > 0) D.brake[i]--;
+    }
+    var boostN = countActive(D.boost);
+    var brakeN = countActive(D.brake);
+
+    // ---- 目标速度 ----
+    var tgt = D.st.baseSpeed * (1 + 0.2 * boostN - 0.2 * brakeN);
+    if (input.up) tgt = Math.max(tgt, D.st.baseSpeed * 1.2);     // 按住上键 = 基础油门
+    if (input.down) tgt = Math.min(tgt, D.st.baseSpeed * 0.6);   // 按住下键 = 制动
+    tgt = clamp(tgt, D.st.baseSpeed * 0.4, D.st.maxSpeed);
+    D.target = tgt;
+
+    // ---- 速度逼近 ----
+    var rate = D.speed < tgt ? D.st.accel : D.st.brake;
+    if (D.speed < tgt) D.speed = Math.min(tgt, D.speed + rate / LOGIC_HZ);
+    else D.speed = Math.max(tgt, D.speed - rate / LOGIC_HZ);
+
+    // ---- 距离与时间 ----
+    D.distance += D.speed / LOGIC_HZ;
+    if (D.framesLeft > 0) D.framesLeft--;
+
+    // ---- 计时器 ----
+    if (D.invincible > 0) D.invincible--;
+    if (D.shake > 0) D.shake--;
+    if (D.flash > 0) D.flash--;
+
+    D.roadScroll += D.speed * 1.6;
+
+    // ---- 粒子 ----
+    for (var p = D.particles.length - 1; p >= 0; p--) {
+      var pt = D.particles[p];
+      pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.25; pt.life--;
+      if (pt.life <= 0) D.particles.splice(p, 1);
+    }
+
+    // ---- 生成障碍 ----
+    D.spawnTimer--;
+    if (D.spawnTimer <= 0) {
+      spawnObstacle();
+      D.spawnTimer = spawnInterval();
+    }
+
+    // ---- 移动障碍 ----
+    for (var m = 0; m < D.obstacles.length; m++) {
+      var o = D.obstacles[m];
+      if (!o.active) continue;
+      o.z -= D.speed * 0.6; // 逼近速度略低于实际车速,给玩家足够反应时间
+      if (o.type === 4 && o.latVel !== 0) {
+        o.lat += o.latVel / LOGIC_HZ;
+        if (o.lat > 0.9) { o.lat = 0.9; o.latVel = -Math.abs(o.latVel); }
+        if (o.lat < -0.9) { o.lat = -0.9; o.latVel = Math.abs(o.latVel); }
+      }
+      if (o.z < -20) o.active = false;
+    }
+
+    // ---- 碰撞 ----
+    if (D.invincible <= 0) {
+      for (var c = 0; c < D.obstacles.length; c++) {
+        var ob = D.obstacles[c];
+        if (!ob.active || ob.hit) continue;
+        if (ob.z <= COLLIDE_Z && ob.z > -10) {
+          var halfObs = (ob.type === 4) ? 0.15 : 0.12;
+          var halfPlayer = (save.current === 2) ? 0.15 : 0.11;
+          if (Math.abs(ob.lat - D.playerLat) < halfObs + halfPlayer) {
+            var pr = proj(ob.z);
+            var hw = roadHalfAtY(pr.y);
+            var sx = W / 2 + ob.lat * hw;
+            applyHit(ob, sx, pr.y);
+            break; // 每帧最多一次伤害
+          }
+        }
+      }
+    }
+
+    // ---- 胜负判定:先到达,再判失败 ----
+    if (D.distance >= D.order.distance) { enterResult('success'); return; }
+    if (D.durability <= 0) { enterResult('fail'); return; }
+    if (D.cargo <= 0) { enterResult('fail'); return; }
+    if (D.framesLeft <= 0) { enterResult('fail'); return; }
+  }
+
+  /* ============================================================
+   * 渲染
+   * ============================================================ */
+  var view = { w: 0, h: 0, dpr: 0, m: null };
+
+  function fitCanvas() {
+    var cw = window.innerWidth;
+    var ch = window.innerHeight;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // 仅在尺寸变化时重设画布,避免每帧重建导致闪烁与性能损耗
+    if (cw !== view.w || ch !== view.h || dpr !== view.dpr) {
+      view.w = cw; view.h = ch; view.dpr = dpr;
+      // 后备缓冲按窗口实际尺寸分配,保证任何屏幕都清晰
+      canvas.width = Math.round(cw * dpr);
+      canvas.height = Math.round(ch * dpr);
+      canvas.style.width = cw + 'px';
+      canvas.style.height = ch + 'px';
+      // 逻辑 480x320 按 3:2 等比缩放并居中,多余部分留黑边
+      var scale = Math.min(cw / W, ch / H);
+      var offX = (cw - W * scale) / 2;
+      var offY = (ch - H * scale) / 2;
+      view.m = [scale * dpr, 0, 0, scale * dpr, offX * dpr, offY * dpr];
+      ctx.imageSmoothingEnabled = false;
+    }
+    // 清屏(含黑边区域,防止缩放后残留旧像素)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(view.m[0], view.m[1], view.m[2], view.m[3], view.m[4], view.m[5]);
+  }
+
+  function drawSky() {
+    var g = ctx.createLinearGradient(0, 0, 0, HORIZON);
+    g.addColorStop(0, '#5ea9e0');
+    g.addColorStop(1, '#bfe3f7');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, HORIZON + 1);
+  }
+
+  function drawGround() {
+    var g = ctx.createLinearGradient(0, HORIZON, 0, H);
+    g.addColorStop(0, '#7fae5a');
+    g.addColorStop(1, '#5e8f42');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, HORIZON, W, H - HORIZON);
+  }
+
+  function drawRoad() {
+    // 基础路面
+    var hb = ROAD_HALF * D.roadFactor;
+    ctx.fillStyle = '#7a6f64';
+    ctx.beginPath();
+    ctx.moveTo(W / 2, HORIZON);
+    ctx.lineTo(W / 2 + hb, H);
+    ctx.lineTo(W / 2 - hb, H);
+    ctx.closePath();
+    ctx.fill();
+
+    // 交替浅色条带 + 中央虚线
+    var y0 = HORIZON + 1;
+    var prevOn = stripeOn(y0);
+    for (var y = HORIZON + 2; y <= H; y++) {
+      var on = stripeOn(y);
+      if (on !== prevOn) {
+        paintBand(y0, y, prevOn);
+        y0 = y; prevOn = on;
+      }
+    }
+    paintBand(y0, H, prevOn);
+  }
+
+  function paintBand(ya, yb, on) {
+    if (!on) return;
+    var sa = (ya - HORIZON) / (H - HORIZON);
+    var sb = (yb - HORIZON) / (H - HORIZON);
+    var ha = ROAD_HALF * sa * D.roadFactor;
+    var hb = ROAD_HALF * sb * D.roadFactor;
+
+    ctx.fillStyle = '#8b8175';
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - ha, ya);
+    ctx.lineTo(W / 2 + ha, ya);
+    ctx.lineTo(W / 2 + hb, yb);
+    ctx.lineTo(W / 2 - hb, yb);
+    ctx.closePath();
+    ctx.fill();
+
+    var ca = Math.max(0.6, 2.4 * sa * D.roadFactor);
+    var cb = Math.max(0.6, 2.4 * sb * D.roadFactor);
+    ctx.fillStyle = '#efe7d3';
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - ca, ya);
+    ctx.lineTo(W / 2 + ca, ya);
+    ctx.lineTo(W / 2 + cb, yb);
+    ctx.lineTo(W / 2 - cb, yb);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawTree(x, y, s, side) {
+    var trunkH = 26 * s + 4;
+    var trunkW = 5 * s + 1.5;
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(x - trunkW / 2, y - trunkH, trunkW, trunkH);
+
+    var leafR = 15 * s + 4;
+    ctx.fillStyle = '#3f8f4a';
+    ctx.beginPath();
+    ctx.arc(x, y - trunkH - leafR * 0.7, leafR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#4fa85a';
+    ctx.beginPath();
+    ctx.arc(x - leafR * 0.4, y - trunkH - leafR, leafR * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawDecor() {
+    var spacing = 130;
+    var off = D.roadScroll % spacing;
+    for (var k = -1; k < 10; k++) {
+      var z = k * spacing - off;
+      if (z <= 2 || z > ZMAX) continue;
+      var pr = proj(z);
+      if (pr.y < HORIZON || pr.y > H) continue;
+      var half = ROAD_HALF * ((pr.y - HORIZON) / (H - HORIZON)) * D.roadFactor;
+      var side = (k % 2 === 0) ? -1 : 1;
+      var x = W / 2 + side * (half + (18 * pr.s + 8));
+      drawTree(x, pr.y, pr.s, side);
+    }
+  }
+
+  function drawObstacleShape(o, x, y, s) {
+    var size = 46 * s;
+    if (size < 4) return;
+    var half = size / 2;
+
+    if (o.type === 0) { // 石头
+      ctx.fillStyle = '#8d8577';
+      ctx.beginPath();
+      ctx.ellipse(x, y - half * 0.6, half, half * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#6f685c';
+      ctx.beginPath();
+      ctx.ellipse(x - half * 0.25, y - half * 0.4, half * 0.5, half * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (o.type === 1) { // 木箱
+      ctx.fillStyle = '#a9743f';
+      ctx.fillRect(x - half, y - size, size, size);
+      ctx.strokeStyle = '#7a5230';
+      ctx.lineWidth = Math.max(1, 2 * s);
+      ctx.beginPath();
+      ctx.moveTo(x - half, y - size); ctx.lineTo(x + half, y);
+      ctx.moveTo(x + half, y - size); ctx.lineTo(x - half, y);
+      ctx.stroke();
+    } else if (o.type === 2) { // 路障
+      ctx.fillStyle = '#e25822';
+      ctx.fillRect(x - half, y - size, size, size * 0.8);
+      ctx.fillStyle = '#f6f2ea';
+      var sw = size / 4;
+      ctx.fillRect(x - half + sw, y - size, sw, size * 0.8);
+      ctx.fillRect(x + half - sw * 2, y - size, sw, size * 0.8);
+    } else if (o.type === 3) { // 坑洞
+      ctx.fillStyle = '#3a332b';
+      ctx.beginPath();
+      ctx.ellipse(x, y, half, half * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#171310';
+      ctx.beginPath();
+      ctx.ellipse(x, y, half * 0.65, half * 0.32, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else { // 移动推车
+      ctx.fillStyle = '#7b6fa0';
+      ctx.fillRect(x - half, y - size, size, size * 0.7);
+      ctx.fillStyle = '#4a4163';
+      ctx.beginPath();
+      ctx.arc(x - half * 0.5, y, half * 0.28, 0, Math.PI * 2);
+      ctx.arc(x + half * 0.5, y, half * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawObstacles() {
+    for (var i = 0; i < D.obstacles.length; i++) {
+      var o = D.obstacles[i];
+      if (!o.active) continue;
+      var pr = proj(o.z);
+      if (pr.y < HORIZON - 2 || pr.y > H + 30) continue;
+      var hw = ROAD_HALF * ((pr.y - HORIZON) / (H - HORIZON)) * D.roadFactor;
+      var x = W / 2 + o.lat * hw;
+      drawObstacleShape(o, x, pr.y, pr.s);
+    }
+  }
+
+  function circle(cx, cy, r) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawPlayer() {
+    var s = (PY - HORIZON) / (H - HORIZON);
+    var half = ROAD_HALF * s * D.roadFactor;
+    var x = W / 2 + D.playerLat * half;
+
+    // 受伤闪烁
+    if (D.invincible > 0 && ((D.frame >> 2) & 1)) return;
+
+    // 影子
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(x, PY + 6, 34, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    var vid = save.current;
+
+    // 车轮
+    ctx.fillStyle = '#2b2b2b';
+    if (vid === 2) {
+      circle(x - 26, PY + 2, 9);
+      circle(x + 26, PY + 2, 9);
+      circle(x, PY + 3, 8);
+    } else {
+      circle(x - 13, PY + 2, 9);
+      circle(x + 13, PY + 2, 9);
+    }
+
+    // 货箱(位于身后,屏幕靠近底部)
+    ctx.fillStyle = D.order.color;
+    roundRect(x - 17, PY - 26, 34, 20, 5);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 车架
+    ctx.strokeStyle = '#3a3a3a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, PY - 6);
+    ctx.lineTo(x, PY - 32);
+    ctx.stroke();
+
+    // 骑手身体
+    ctx.fillStyle = '#e07a3f';
+    roundRect(x - 12, PY - 54, 24, 28, 7);
+    ctx.fill();
+
+    // 头 + 头盔
+    ctx.fillStyle = '#f0c69a';
+    circle(x, PY - 60, 8);
+    ctx.fillStyle = '#2f6fbf';
+    ctx.beginPath();
+    ctx.arc(x, PY - 62, 9, Math.PI, 0);
+    ctx.fill();
+  }
+
+  function drawParticles() {
+    for (var i = 0; i < D.particles.length; i++) {
+      var p = D.particles[i];
+      ctx.fillStyle = p.color;
+      var sz = Math.max(1.5, p.life / 6);
+      ctx.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
+    }
+  }
+
+  function render() {
+    if (!D) {
+      ctx.fillStyle = '#21303c';
+      ctx.fillRect(0, 0, W, H);
+      return;
+    }
+
+    fitCanvas();
+
+    ctx.save();
+    if (D.shake > 0) {
+      ctx.translate((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9);
+    }
+    drawSky();
+    drawGround();
+    drawRoad();
+    drawDecor();
+    drawObstacles();
+    drawPlayer();
+    drawParticles();
+    ctx.restore();
+
+    if (D.flash > 0) {
+      ctx.fillStyle = 'rgba(255,70,40,' + (D.flash / 6 * 0.35).toFixed(3) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // HUD
+    var hpPct = clamp(D.durability / D.maxDurability, 0, 1) * 100;
+    var cargoPct = clamp(D.cargo / 100, 0, 1) * 100;
+    hpFill.style.width = hpPct.toFixed(1) + '%';
+    cargoFill.style.width = cargoPct.toFixed(1) + '%';
+    hudTime.textContent = String(Math.max(0, Math.ceil(D.framesLeft / LOGIC_HZ)));
+    hudDist.textContent = Math.min(Math.floor(D.distance), D.order.distance) + '/' + D.order.distance + 'm';
+    hudSpd.textContent = String(Math.round(D.speed));
+  }
+
+  /* ============================================================
+   * 主循环(固定步长)
+   * ============================================================ */
+  var lastTs = 0;
+  var acc = 0;
+  var STEP = 1000 / LOGIC_HZ;
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!lastTs) lastTs = ts;
+    var dt = ts - lastTs;
+    lastTs = ts;
+    if (dt > 120) dt = 120;
+    acc += dt;
+    var guard = 0;
+    while (acc >= STEP && guard < 5) {
+      tick();
+      acc -= STEP;
+      guard++;
+    }
+    if (acc > 200) acc = 0;
+    if (state === STATE.DELIVERY || state === STATE.PAUSED) render();
+  }
+
+  /* ============================================================
+   * 输入:经营界面
+   * ============================================================ */
+  function menuClick(ev) {
+    var el = ev.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    var i = Number(el.getAttribute('data-i'));
+
+    if (act === 'tab') { tab = i; renderMenu(); return; }
+    if (act === 'order') { selectedOrder = i; renderMenu(); return; }
+    if (act === 'vehicle') { buyOrSwitch(i); return; }
+    if (act === 'upgrade') { doUpgrade(i); return; }
+    if (act === 'start') {
+      if (selectedOrder < 0) { showToast('先选择一个订单'); return; }
+      startDelivery(selectedOrder);
+      return;
+    }
+    if (act === 'reset') {
+      if (window.confirm('清除存档并重置为初始状态?')) {
+        save = defaultSave();
+        storeSave();
+        selectedOrder = -1;
+        cursor = [0, 0, 0];
+        showToast('存档已重置');
+        renderMenu();
+      }
+      return;
+    }
+  }
+
+  /* ============================================================
+   * 输入:送货界面
+   * ============================================================ */
+  function pressKey(k) {
+    if (state !== STATE.DELIVERY || !D) return;
+    if (k === 'left') input.left = true;
+    else if (k === 'right') input.right = true;
+    else if (k === 'up') {
+      input.up = true;
+      if (D.cdUp <= 0 && countActive(D.boost) < 3) { addBoost(); D.cdUp = 12; }
+    } else if (k === 'down') {
+      input.down = true;
+      if (D.cdDown <= 0 && countActive(D.brake) < 3) { addBrake(); D.cdDown = 12; }
+    }
+  }
+
+  function releaseKey(k) {
+    if (k === 'left') input.left = false;
+    else if (k === 'right') input.right = false;
+    else if (k === 'up') input.up = false;
+    else if (k === 'down') input.down = false;
+  }
+
+  function bindPad() {
+    var btns = document.querySelectorAll('.kbtn');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        var k = btn.getAttribute('data-k');
+        btn.addEventListener('pointerdown', function (e) {
+          e.preventDefault();
+          btn.classList.add('on');
+          pressKey(k);
+        });
+        var up = function (e) {
+          if (e) e.preventDefault();
+          btn.classList.remove('on');
+          releaseKey(k);
+        };
+        btn.addEventListener('pointerup', up);
+        btn.addEventListener('pointercancel', up);
+        btn.addEventListener('pointerleave', up);
+      })(btns[i]);
+    }
+  }
+
+  function pauseGame() {
+    if (state !== STATE.DELIVERY) return;
+    resetInput();
+    setState(STATE.PAUSED);
+  }
+
+  function resumeGame() {
+    if (state !== STATE.PAUSED) return;
+    resetInput();
+    setState(STATE.DELIVERY);
+  }
+
+  /* ============================================================
+   * 键盘(桌面调试)
+   * ============================================================ */
+  function keyDown(e) {
+    var k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') { pressKey('left'); e.preventDefault(); }
+    else if (k === 'ArrowRight' || k === 'd' || k === 'D') { pressKey('right'); e.preventDefault(); }
+    else if (k === 'ArrowUp' || k === 'w' || k === 'W') { pressKey('up'); e.preventDefault(); }
+    else if (k === 'ArrowDown' || k === 's' || k === 'S') { pressKey('down'); e.preventDefault(); }
+    else if (k === 'p' || k === 'P' || k === 'Escape') {
+      if (state === STATE.DELIVERY) pauseGame();
+      else if (state === STATE.PAUSED) resumeGame();
+    }
+  }
+
+  function keyUp(e) {
+    var k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') releaseKey('left');
+    else if (k === 'ArrowRight' || k === 'd' || k === 'D') releaseKey('right');
+    else if (k === 'ArrowUp' || k === 'w' || k === 'W') releaseKey('up');
+    else if (k === 'ArrowDown' || k === 's' || k === 'S') releaseKey('down');
+  }
+
+  /* ============================================================
+   * 初始化
+   * ============================================================ */
+  function init() {
+    save = loadSave();
+    storeSave(); // 确保首次即落盘
+    setState(STATE.MANAGEMENT);
+    renderMenu();
+
+    menuEl.addEventListener('click', menuClick);
+
+    document.getElementById('pausebtn').addEventListener('click', pauseGame);
+    document.getElementById('resumebtn').addEventListener('click', resumeGame);
+    document.getElementById('abandonbtn').addEventListener('click', function () {
+      if (state === STATE.PAUSED && D) enterResult('abandon');
+    });
+    document.getElementById('res-back').addEventListener('click', function () {
+      D = null;
+      resetInput();
+      selectedOrder = -1;
+      setState(STATE.MANAGEMENT);
+      renderMenu();
+    });
+
+    bindPad();
+    window.addEventListener('keydown', keyDown);
+    window.addEventListener('keyup', keyUp);
+    window.addEventListener('resize', function () {
+      if (state === STATE.DELIVERY || state === STATE.PAUSED) render();
+    });
+    window.addEventListener('blur', function () { resetInput(); });
+
+    // 阻止页面滚动/缩放,但放行经营页内可滚动区域的正常滚动
+    document.addEventListener('touchmove', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.page')) return;
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    requestAnimationFrame(loop);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

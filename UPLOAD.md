@@ -58,8 +58,10 @@ Game2048/app/proguard-rules.pro
 Game2048/app/src/main/AndroidManifest.xml
 ```
 
-**Java 源码(5 个)**
+**Java 源码(7 个)**
 ```
+Game2048/app/src/main/java/cn/linecode/game2048/CrashLog.java
+Game2048/app/src/main/java/cn/linecode/game2048/GameApp.java
 Game2048/app/src/main/java/cn/linecode/game2048/GameEntry.java
 Game2048/app/src/main/java/cn/linecode/game2048/GameListAdapter.java
 Game2048/app/src/main/java/cn/linecode/game2048/GamePlayerActivity.java
@@ -67,7 +69,7 @@ Game2048/app/src/main/java/cn/linecode/game2048/HtmlGameScanner.java
 Game2048/app/src/main/java/cn/linecode/game2048/MainActivity.java
 ```
 
-**资源文件(7 个)**
+**资源文件(8 个)**
 ```
 Game2048/app/src/main/res/drawable/bg_game_card.xml
 Game2048/app/src/main/res/drawable/bg_game_icon.xml
@@ -77,11 +79,6 @@ Game2048/app/src/main/res/layout/item_game.xml
 Game2048/app/src/main/res/values/colors.xml
 Game2048/app/src/main/res/values/strings.xml
 Game2048/app/src/main/res/values/themes.xml
-```
-
-**内置的游戏页(1 个)**
-```
-Game2048/app/src/main/assets/index.html
 ```
 
 内容直接打开本机 `模拟器游戏/Game2048/` 下对应文件复制即可。

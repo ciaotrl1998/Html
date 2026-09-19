@@ -3,10 +3,10 @@
     <string name="app_name">HTML游戏盒</string>
     <string name="pick_folder">选择游戏目录</string>
     <string name="refresh">刷新</string>
-    <string name="empty_hint">点右上角选择游戏目录,会自动扫描其中的 .html / .htm。未选择前可先玩内置 2048。</string>
+    <string name="empty_hint">点右上角“选择游戏目录”,会自动扫描其中的 .html / .htm。</string>
     <string name="need_permission">需要文件访问权限才能读取游戏目录</string>
-    <string name="grant_permission">授权全部文件访问</string>
-    <string name="builtin">内置</string>
+    <string name="grant_permission">授予全部文件访问权限(Android 11+ 必需)</string>
     <string name="scan_failed">扫描目录失败</string>
+    <string name="scanning">正在扫描目录...</string>
     <string name="no_html">该目录下没有找到 .html 游戏</string>
 </resources>
