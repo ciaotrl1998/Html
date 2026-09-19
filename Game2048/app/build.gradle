@@ -32,3 +32,10 @@ dependencies {
     implementation "androidx.activity:activity:1.8.2"
     implementation "androidx.documentfile:documentfile:1.0.1"
 }
+
+// Kotlin 1.8 起 jdk7/jdk8 的类已并入 kotlin-stdlib,
+// 旧版 kotlin-stdlib-jdk7/jdk8 会与新 stdlib 产生 Duplicate class, 故排除。
+configurations.configureEach {
+    exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+    exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+}
