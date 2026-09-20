@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">HTML游戏盒</string>
+    <string name="app_name">HTMLBOX</string>
     <string name="pick_folder">选择游戏目录</string>
     <string name="refresh">刷新</string>
     <string name="empty_hint">选择游戏目录后,将自动扫描单文件 HTML 和包含 index.html 的游戏文件夹。</string>

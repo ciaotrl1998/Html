@@ -21,9 +21,25 @@ android {
         }
     }
 
+    sourceSets {
+        main.res.srcDir "$buildDir/generated/res/htmlboxIcon"
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+def prepareHtmlBoxIcon = tasks.register("prepareHtmlBoxIcon", Copy) {
+    from rootProject.file("HTMLBOX_icon.jpg")
+    into layout.buildDirectory.dir("generated/res/htmlboxIcon/drawable")
+    rename { "htmlbox_icon.jpg" }
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith("merge") && task.name.endsWith("Resources")) {
+        task.dependsOn prepareHtmlBoxIcon
     }
 }
 
