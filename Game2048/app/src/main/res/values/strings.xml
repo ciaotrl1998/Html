@@ -7,6 +7,11 @@
     <string name="need_permission">需要文件访问权限才能读取游戏目录</string>
     <string name="grant_permission">授予全部文件访问权限(Android 11+ 必需)</string>
     <string name="scan_failed">扫描目录失败</string>
+    <string name="picker_up">上级</string>
+    <string name="picker_choose">选择当前文件夹</string>
+    <string name="picker_empty">此文件夹为空,可进入子文件夹,或点选其中的 html / zip 文件。</string>
+    <string name="picker_need_permission">无法读取该文件夹。请点击下方按钮授予“所有文件访问权限”,或进入有权限的位置。</string>
+    <string name="picker_read_failed">无法读取该文件夹内容,请返回上级或改选其他位置。</string>
     <string name="scanning">正在扫描目录...</string>
     <string name="no_html">未找到 HTML 游戏或包含 index.html 的游戏文件夹</string>
 </resources>

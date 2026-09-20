@@ -33,6 +33,14 @@
         </activity>
 
         <activity
+            android:name=".FolderPickerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:theme="@style/Theme.HtmlGames"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+
+        <activity
             android:name=".GamePlayerActivity"
             android:exported="false"
             android:screenOrientation="portrait"

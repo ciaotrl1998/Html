@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +29,7 @@ public class GamePlayerActivity extends AppCompatActivity {
     public static final String EXTRA_GAME_TITLE = "game_title";
     public static final String EXTRA_LIBRARY_URI = "library_uri";
     public static final String EXTRA_PACKAGE_PATH = "package_path";
+    public static final String EXTRA_ARCHIVE_ENTRY = "archive_entry";
 
     private static final int MAX_PACKAGE_DEPTH = 12;
     private static final int MAX_PACKAGE_FILES = 5000;
@@ -47,6 +49,7 @@ public class GamePlayerActivity extends AppCompatActivity {
         String title = getIntent().getStringExtra(EXTRA_GAME_TITLE);
         String libraryUri = getIntent().getStringExtra(EXTRA_LIBRARY_URI);
         String packagePath = getIntent().getStringExtra(EXTRA_PACKAGE_PATH);
+        String archiveEntry = getIntent().getStringExtra(EXTRA_ARCHIVE_ENTRY);
         if (title != null) {
             setTitle(title);
         }
@@ -101,6 +104,12 @@ public class GamePlayerActivity extends AppCompatActivity {
 
         setContentView(webView);
 
+        // zip 压缩包:先在后台解压,再加载包内入口 HTML。
+        if (archiveEntry != null && !archiveEntry.trim().isEmpty()) {
+            loadArchiveInBackground(url, archiveEntry);
+            return;
+        }
+
         String playable = HtmlGameScanner.playableUrl(url);
         boolean needsPackageCopy = packagePath != null
                 && libraryUri != null && libraryUri.startsWith("content://")
@@ -140,6 +149,69 @@ public class GamePlayerActivity extends AppCompatActivity {
     private void showLoadErrorAndFinish() {
         Toast.makeText(this, "无法打开该游戏文件或资源包", Toast.LENGTH_LONG).show();
         finish();
+    }
+
+    /** 解压 zip 到缓存目录后加载包内入口 HTML。 */
+    private void loadArchiveInBackground(String url, String entryName) {
+        packageExecutor.execute(() -> {
+            File entry = extractArchiveToCache(url, entryName);
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || webView == null) {
+                    return;
+                }
+                if (entry == null) {
+                    showLoadErrorAndFinish();
+                    return;
+                }
+                webView.loadUrl(Uri.fromFile(entry).toString());
+            });
+        });
+    }
+
+    private File extractArchiveToCache(String url, String entryName) {
+        try {
+            File cacheRoot = new File(getCacheDir(), "html-game-archives");
+            if (!cacheRoot.exists() && !cacheRoot.mkdirs()) {
+                return null;
+            }
+            File targetDir = new File(cacheRoot, "zip-" + Integer.toHexString(url.hashCode()));
+            deleteTree(targetDir);
+            if (!targetDir.mkdirs()) {
+                return null;
+            }
+
+            boolean ok;
+            File zipFile = HtmlGameScanner.resolveToFile(url);
+            if (zipFile != null && zipFile.isFile()) {
+                ok = ZipGames.extract(zipFile, targetDir);
+            } else {
+                // content:// 或无法解析为本地路径:改用内容解析器流式解压。
+                InputStream in = null;
+                try {
+                    in = getContentResolver().openInputStream(Uri.parse(url));
+                    ok = ZipGames.extract(in, targetDir);
+                } finally {
+                    if (in != null) {
+                        try {
+                            in.close();
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
+            }
+            if (!ok) {
+                deleteTree(targetDir);
+                return null;
+            }
+
+            File entry = new File(targetDir, entryName);
+            return isInside(targetDir, entry) && entry.isFile() ? entry : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private String preparePlayUrl(String url) {

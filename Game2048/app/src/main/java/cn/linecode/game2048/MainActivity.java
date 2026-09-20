@@ -58,8 +58,10 @@ public class MainActivity extends AppCompatActivity {
     // 仅在首次因缺少“所有文件访问权限”导致空结果时自动跳转授权页一次
     private boolean autoPermissionLaunched = false;
 
-    private final ActivityResultLauncher<Uri> folderPicker =
-            registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), this::onFolderPicked);
+    // 改用应用内目录浏览器,不再调用系统 SAF 选择器。
+    private final ActivityResultLauncher<Intent> folderPicker =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    result -> onFolderPicked(result.getResultCode(), result.getData()));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,8 +94,12 @@ public class MainActivity extends AppCompatActivity {
                             prefs.getString(KEY_FOLDER_URI, null));
                     intent.putExtra(GamePlayerActivity.EXTRA_PACKAGE_PATH, game.packagePath);
                 }
+                if (game.isArchive()) {
+                    intent.putExtra(GamePlayerActivity.EXTRA_ARCHIVE_ENTRY, game.archiveEntry);
+                }
                 if ((url != null && url.startsWith("content://"))
-                        || game.packagePath != null) {
+                        || game.packagePath != null
+                        || game.isArchive()) {
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 }
                 startActivity(intent);
@@ -101,15 +107,25 @@ public class MainActivity extends AppCompatActivity {
         });
 
         folderButton.setOnClickListener(v -> pickFolder());
-        findViewById(R.id.btnRefresh).setOnClickListener(v -> reloadGames());
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> {
+            Toast.makeText(this, "正在刷新...", Toast.LENGTH_SHORT).show();
+            performScan();
+        });
 
         CrashLog.clear(this);
+        loadCachedOrScan();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        reloadGames();
+        // 不再自动刷新目录:列表保持上次结果,仅“刷新”按钮或重新选择目录时才重新扫描。
+        // 唯一例外:刚从系统设置授予“所有文件访问权限”返回且列表仍为空时,补扫一次。
+        if (autoPermissionLaunched && games.isEmpty()
+                && !HtmlGameScanner.needsAllFilesAccess(this)) {
+            autoPermissionLaunched = false;
+            performScan();
+        }
     }
 
     @Override
@@ -122,59 +138,72 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void pickFolder() {
-        Uri initial = null;
+        Intent intent = new Intent(this, FolderPickerActivity.class);
         String saved = prefs.getString(KEY_FOLDER_URI, null);
-        if (saved != null && saved.startsWith("content://")) {
-            try {
-                initial = Uri.parse(saved);
-            } catch (Exception ignored) {
-            }
+        if (saved != null && !saved.trim().isEmpty()) {
+            intent.putExtra(FolderPickerActivity.EXTRA_START_PATH, saved);
         }
         try {
-            folderPicker.launch(initial);
+            folderPicker.launch(intent);
         } catch (Exception e) {
-            Toast.makeText(this, "无法打开目录选择器", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "无法打开目录选择界面", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void onFolderPicked(Uri uri) {
-        if (uri == null) {
-            showDiagnostics("目录选择被取消或未返回有效地址。请重试,并选择“使用此文件夹/允许访问”。", false);
+    private void onFolderPicked(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null) {
             return;
         }
-        String uriString = uri.toString();
-        if (uriString.trim().isEmpty()) {
+        String path = data.getStringExtra(FolderPickerActivity.EXTRA_SELECTED_PATH);
+        if (path == null || path.trim().isEmpty()) {
             showDiagnostics("目录选择返回了空地址,请重新选择。", false);
             return;
-        }
-
-        // 尝试长期持有该目录的读取权限;失败也不影响本次扫描,只是重启后可能需要重新授权。
-        try {
-            getContentResolver().takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Throwable ignored) {
         }
 
         // 用 commit() 同步落盘,避免进程被系统回收时异步写入丢失,导致“选了却像没选”。
         boolean saved;
         try {
-            saved = prefs.edit().putString(KEY_FOLDER_URI, uriString).commit();
+            saved = prefs.edit().putString(KEY_FOLDER_URI, path).commit();
         } catch (Throwable t) {
             saved = false;
         }
         String verify = prefs.getString(KEY_FOLDER_URI, null);
-        if (!saved || verify == null || !uriString.equals(verify)) {
-            showDiagnostics("目录地址保存失败:\n" + uriString
+        if (!saved || verify == null || !path.equals(verify)) {
+            showDiagnostics("目录地址保存失败:\n" + path
                     + "\n\n请重试;若持续失败,请在系统设置中为本应用开启存储权限。");
             return;
         }
 
         Toast.makeText(this, "已选择游戏目录", Toast.LENGTH_SHORT).show();
-        reloadGames();
+        performScan();
+    }
+
+    /** 启动时优先展示缓存,无缓存才扫描一次,避免每次启动/返回都自动刷新目录。 */
+    private void loadCachedOrScan() {
+        GameCache.Snapshot snapshot = GameCache.load(this);
+        if (snapshot != null && snapshot.games != null && !snapshot.games.isEmpty()) {
+            games.clear();
+            games.addAll(snapshot.games);
+            adapter.notifyDataSetChanged();
+            String folderUri = snapshot.folderUri;
+            if (folderUri == null || folderUri.trim().isEmpty()) {
+                folderUri = prefs.getString(KEY_FOLDER_URI, null);
+            }
+            String base = HtmlGameScanner.treeDisplayName(this, folderUri);
+            if (base == null || base.trim().isEmpty()) {
+                base = getString(R.string.pick_folder);
+            }
+            folderButton.setText(base + " (" + games.size() + ")");
+            hideDiagnostics();
+            // 明确提示来自缓存,便于确认“退出后仍保留”已生效。
+            Toast.makeText(this, "已加载缓存:" + games.size() + " 个游戏", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        performScan();
     }
 
     /** 重新扫描目录。扫描在后台线程执行,避免大目录阻塞主线程导致闪退/ANR。 */
-    private void reloadGames() {
+    private void performScan() {
         String savedUri = prefs.getString(KEY_FOLDER_URI, null);
         final int generation = ++scanGeneration;
 
@@ -220,6 +249,8 @@ public class MainActivity extends AppCompatActivity {
                     });
                     return;
                 }
+                // 后台线程写入缓存,避免主线程做文件 I/O;失败不影响使用。
+                GameCache.save(getApplicationContext(), finalUri, outcome.games);
                 mainHandler.post(new Runnable() {
                     @Override
                     public void run() {

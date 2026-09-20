@@ -33,9 +33,6 @@ public final class HtmlGameScanner {
     private static final int MAX_DEPTH = 4;
     private static final int MAX_ENTRIES = 3000;
     private static final int MAX_ICON_HTML_BYTES = 64 * 1024;
-    private static final String[] PACKAGE_ICON_NAMES = {
-            "icon.png", "favicon.png", "favicon.ico"
-    };
     private static final String[] SINGLE_ICON_EXTENSIONS = {
             ".png", ".jpg", ".jpeg", ".webp", ".ico"
     };
@@ -102,15 +99,27 @@ public final class HtmlGameScanner {
         // 2) 文件系统扫描
         try {
             if (dir != null && dir.isFile()) {
-                // 用户直接选中了单个 HTML 文件(而非文件夹),也应当能加入列表。
+                // 用户直接选中了单个 HTML 或 zip 文件(而非文件夹),也应当能加入列表。
                 if (isHtml(dir.getName())) {
                     games.add(new GameEntry(
                             displayName(dir.getName()),
                             dir.getName(),
                             Uri.fromFile(dir).toString(),
                             null,
-                            safeFindFileIcon(dir, dir.getParentFile(), true)
+                            safeFindFileIcon(dir, dir.getParentFile())
                     ));
+                } else if (ZipGames.isZip(dir.getName())) {
+                    String zipEntry = ZipGames.findEntry(dir);
+                    if (zipEntry != null) {
+                        games.add(new GameEntry(
+                                displayName(dir.getName()),
+                                dir.getName() + " / " + zipEntry,
+                                Uri.fromFile(dir).toString(),
+                                null,
+                                null,
+                                zipEntry
+                        ));
+                    }
                 }
             } else if (dir != null && dir.isDirectory() && dir.canRead()) {
                 scanFileTree(context, dir, games);
@@ -130,7 +139,7 @@ public final class HtmlGameScanner {
                 log.append("SAF root=").append(root == null ? "null" : root.getName())
                         .append(" isDir=").append(root != null && root.isDirectory()).append('\n');
                 if (root != null && root.isFile()) {
-                    // 选中的是单个 HTML 文件。
+                    // 选中的是单个 HTML 或 zip 文件。
                     String docName = root.getName();
                     if (docName != null && isHtml(docName)) {
                         games.add(new GameEntry(
@@ -138,8 +147,20 @@ public final class HtmlGameScanner {
                                 docName,
                                 playableDocumentUrl(root),
                                 null,
-                                safeFindDocumentIcon(context, root, root.getParentFile(), true)
+                                safeFindDocumentIcon(context, root, root.getParentFile())
                         ));
+                    } else if (docName != null && ZipGames.isZip(docName)) {
+                        String zipEntry = findDocumentZipEntry(context, root);
+                        if (zipEntry != null) {
+                            games.add(new GameEntry(
+                                    displayName(docName),
+                                    docName + " / " + zipEntry,
+                                    playableDocumentUrl(root),
+                                    null,
+                                    null,
+                                    zipEntry
+                            ));
+                        }
                     }
                 } else if (root != null && root.isDirectory()) {
                     try {
@@ -361,7 +382,7 @@ public final class HtmlGameScanner {
                         subtitle,
                         Uri.fromFile(packageIndex).toString(),
                         packagePath,
-                        safeFindFileIcon(packageIndex, current, false)
+                        safeFindFileIcon(packageIndex, current)
                 ));
                 if (!current.equals(root)) {
                     continue;
@@ -390,8 +411,21 @@ public final class HtmlGameScanner {
                                 relativePath(root, child),
                                 Uri.fromFile(child).toString(),
                                 null,
-                                safeFindFileIcon(child, child.getParentFile(), true)
+                                safeFindFileIcon(child, child.getParentFile())
                         ));
+                    } else if (ZipGames.isZip(name)) {
+                        // 压缩包内只要含 html 就识别为一个游戏。
+                        String zipEntry = ZipGames.findEntry(child);
+                        if (zipEntry != null) {
+                            games.add(new GameEntry(
+                                    displayName(name),
+                                    relativePath(root, child) + " / " + zipEntry,
+                                    Uri.fromFile(child).toString(),
+                                    null,
+                                    null,
+                                    zipEntry
+                            ));
+                        }
                     }
                 } catch (Throwable ignored) {
                     // 单个条目失败不影响整体
@@ -437,7 +471,7 @@ public final class HtmlGameScanner {
                         subtitle,
                         playableDocumentUrl(packageIndex),
                         currentPath,
-                        safeFindDocumentIcon(context, packageIndex, current, false)
+                        safeFindDocumentIcon(context, packageIndex, current)
                 ));
                 if (!currentPath.isEmpty()) {
                     continue;
@@ -467,8 +501,21 @@ public final class HtmlGameScanner {
                                 rootName + " / " + childPath,
                                 playableDocumentUrl(child),
                                 null,
-                                safeFindDocumentIcon(context, child, current, true)
+                                safeFindDocumentIcon(context, child, current)
                         ));
+                    } else if (ZipGames.isZip(name)) {
+                        // 压缩包内只要含 html 就识别为一个游戏。
+                        String zipEntry = findDocumentZipEntry(context, child);
+                        if (zipEntry != null) {
+                            games.add(new GameEntry(
+                                    displayName(name),
+                                    rootName + " / " + childPath + " / " + zipEntry,
+                                    playableDocumentUrl(child),
+                                    null,
+                                    null,
+                                    zipEntry
+                            ));
+                        }
                     }
                 } catch (Throwable ignored) {
                 }
@@ -476,24 +523,50 @@ public final class HtmlGameScanner {
         }
     }
 
-    private static String safeFindFileIcon(File html, File baseDir, boolean singleFile) {
+    /** 打开 SAF 文档对应的 zip 流,找出包内入口 HTML 相对路径;失败返回 null。 */
+    private static String findDocumentZipEntry(Context context, DocumentFile zip) {
+        if (context == null || zip == null) {
+            return null;
+        }
+        InputStream in = null;
         try {
-            return findFileIcon(html, baseDir, singleFile);
+            in = context.getContentResolver().openInputStream(zip.getUri());
+            return ZipGames.findEntry(in);
+        } catch (Throwable ignored) {
+            return null;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+    }
+
+    private static String safeFindFileIcon(File html, File baseDir) {
+        try {
+            return findFileIcon(html, baseDir);
         } catch (Throwable ignored) {
             return null;
         }
     }
 
     private static String safeFindDocumentIcon(Context context, DocumentFile html,
-                                               DocumentFile baseDir, boolean singleFile) {
+                                               DocumentFile baseDir) {
         try {
-            return findDocumentIcon(context, html, baseDir, singleFile);
+            return findDocumentIcon(context, html, baseDir);
         } catch (Throwable ignored) {
             return null;
         }
     }
 
-    private static String findFileIcon(File html, File baseDir, boolean singleFile) {
+    /**
+     * 先看 HTML 内是否用 &lt;link rel="...icon..."&gt; 显式声明图标;
+     * 未声明时,回退到目录下与 HTML 同名的 png(如 2048.html -&gt; 2048.png)。
+     * 两者都没有则返回 null,由列表使用首字母占位。
+     */
+    private static String findFileIcon(File html, File baseDir) {
         if (html == null || baseDir == null) {
             return null;
         }
@@ -503,24 +576,19 @@ public final class HtmlGameScanner {
                 return new FileInputStream(html);
             }
         });
-        File icon = null;
         for (String declared : declaredIcons) {
-            icon = resolveFileIcon(baseDir, declared);
+            File icon = resolveFileIcon(baseDir, declared);
             if (icon != null) {
-                break;
+                return Uri.fromFile(icon).toString();
             }
         }
-        if (icon == null) {
-            icon = findNamedFile(baseDir, PACKAGE_ICON_NAMES);
-        }
-        if (icon == null && singleFile) {
-            icon = findSameNameFile(baseDir, displayName(html.getName()));
-        }
-        return icon == null ? null : Uri.fromFile(icon).toString();
+        File sameName = findSameNamePng(baseDir, displayName(html.getName()));
+        return sameName == null ? null : Uri.fromFile(sameName).toString();
     }
 
+    /** 与 findFileIcon 同理:link 声明优先,同名 png 兜底。 */
     private static String findDocumentIcon(Context context, DocumentFile html,
-                                           DocumentFile baseDir, boolean singleFile) {
+                                           DocumentFile baseDir) {
         if (context == null || html == null || baseDir == null) {
             return null;
         }
@@ -530,20 +598,45 @@ public final class HtmlGameScanner {
                 return context.getContentResolver().openInputStream(html.getUri());
             }
         });
-        DocumentFile icon = null;
         for (String declared : declaredIcons) {
-            icon = resolveDocumentIcon(baseDir, declared);
+            DocumentFile icon = resolveDocumentIcon(baseDir, declared);
             if (icon != null) {
-                break;
+                return icon.getUri().toString();
             }
         }
-        if (icon == null) {
-            icon = findNamedDocument(baseDir, PACKAGE_ICON_NAMES);
+        DocumentFile sameName = findSameNamePngDocument(baseDir, displayName(html.getName()));
+        return sameName == null ? null : sameName.getUri().toString();
+    }
+
+    /** 目录下与 HTML 同名的 png 文件;直接构造路径,不遍历目录。 */
+    private static File findSameNamePng(File directory, String stem) {
+        if (directory == null || stem == null || stem.isEmpty()) {
+            return null;
         }
-        if (icon == null && singleFile) {
-            icon = findSameNameDocument(baseDir, displayName(html.getName()));
+        try {
+            File candidate = new File(directory, stem + ".png");
+            return candidate.isFile() && isInsideDirectory(directory, candidate) ? candidate : null;
+        } catch (Throwable ignored) {
+            return null;
         }
-        return icon == null ? null : icon.getUri().toString();
+    }
+
+    private static DocumentFile findSameNamePngDocument(DocumentFile directory, String stem) {
+        if (directory == null || stem == null || stem.isEmpty()) {
+            return null;
+        }
+        DocumentFile candidate = findDocumentChild(directory, stem + ".png");
+        return candidate != null && candidate.isFile() ? candidate : null;
+    }
+
+    private static boolean isInsideDirectory(File directory, File child) {
+        try {
+            String directoryPath = directory.getCanonicalPath();
+            String childPath = child.getCanonicalPath();
+            return childPath.startsWith(directoryPath + File.separator);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static List<String> readDeclaredIcons(InputStreamOpener opener) {
@@ -655,63 +748,6 @@ public final class HtmlGameScanner {
             current = next;
         }
         return current != null && current.isFile() ? current : null;
-    }
-
-    private static File findNamedFile(File directory, String[] names) {
-        File[] children = directory.listFiles();
-        if (children == null) {
-            return null;
-        }
-        for (String name : names) {
-            for (File child : children) {
-                if (child.isFile() && name.equalsIgnoreCase(child.getName())
-                        && isInsideDirectory(directory, child)) {
-                    return child;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static boolean isInsideDirectory(File directory, File child) {
-        try {
-            String directoryPath = directory.getCanonicalPath();
-            String childPath = child.getCanonicalPath();
-            return childPath.startsWith(directoryPath + File.separator);
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    private static DocumentFile findNamedDocument(DocumentFile directory, String[] names) {
-        try {
-            DocumentFile[] children = directory.listFiles();
-            for (String name : names) {
-                for (DocumentFile child : children) {
-                    if (child.isFile() && name.equalsIgnoreCase(child.getName())) {
-                        return child;
-                    }
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
-    private static File findSameNameFile(File directory, String stem) {
-        String[] names = new String[SINGLE_ICON_EXTENSIONS.length];
-        for (int i = 0; i < SINGLE_ICON_EXTENSIONS.length; i++) {
-            names[i] = stem + SINGLE_ICON_EXTENSIONS[i];
-        }
-        return findNamedFile(directory, names);
-    }
-
-    private static DocumentFile findSameNameDocument(DocumentFile directory, String stem) {
-        String[] names = new String[SINGLE_ICON_EXTENSIONS.length];
-        for (int i = 0; i < SINGLE_ICON_EXTENSIONS.length; i++) {
-            names[i] = stem + SINGLE_ICON_EXTENSIONS[i];
-        }
-        return findNamedDocument(directory, names);
     }
 
     private static DocumentFile findDocumentChild(DocumentFile directory, String name) {
