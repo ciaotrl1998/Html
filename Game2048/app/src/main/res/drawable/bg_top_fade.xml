@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 列表顶部渐变底板:顶部为背景色(不透明,盖住上移内容),向下渐隐为透明,默认状态不遮挡列表。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="#000E1D35"
+        android:startColor="#FF0E1D35"
+        android:type="linear" />
+</shape>

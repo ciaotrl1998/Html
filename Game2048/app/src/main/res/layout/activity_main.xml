@@ -38,21 +38,38 @@
             android:src="@drawable/ic_refresh" />
     </LinearLayout>
 
-    <GridView
-        android:id="@+id/gameList"
+    <!-- 列表区域:标题固定不参与滚动;列表可弹性拖动,顶部渐变底板盖住上移内容,避免压到标题。 -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="14dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:drawSelectorOnTop="true"
-        android:horizontalSpacing="10dp"
-        android:listSelector="@drawable/bg_card_press"
-        android:numColumns="3"
-        android:overScrollMode="never"
-        android:paddingBottom="14dp"
-        android:scrollbars="none"
-        android:verticalSpacing="12dp" />
+        android:clipChildren="true">
+
+        <cn.linecode.game2048.BounceGridView
+            android:id="@+id/gameList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:drawSelectorOnTop="true"
+            android:horizontalSpacing="10dp"
+            android:listSelector="@drawable/bg_card_press"
+            android:numColumns="3"
+            android:overScrollMode="never"
+            android:paddingTop="@dimen/list_top_fade"
+            android:paddingBottom="14dp"
+            android:scrollbars="none"
+            android:verticalSpacing="12dp" />
+
+        <View
+            android:id="@+id/listTopFade"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/list_top_fade"
+            android:layout_gravity="top"
+            android:background="@drawable/bg_top_fade"
+            android:clickable="false"
+            android:focusable="false" />
+    </FrameLayout>
 
     <ScrollView
         android:id="@+id/diagnosticPanel"

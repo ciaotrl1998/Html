@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 游戏列表顶部渐变底板高度,同时作为列表的 paddingTop,保证默认状态不遮挡首行。 -->
+    <dimen name="list_top_fade">24dp</dimen>
+</resources>

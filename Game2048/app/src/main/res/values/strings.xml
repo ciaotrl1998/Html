@@ -19,4 +19,5 @@
     <string name="picker_read_failed">无法读取该文件夹内容,请返回上级或改选其他位置。</string>
     <string name="scanning">正在扫描目录...</string>
     <string name="no_html">未找到 HTML 游戏或包含 index.html 的游戏文件夹</string>
+    <string name="press_again_to_exit">再按一次退出游戏</string>
 </resources>

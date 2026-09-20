@@ -35,8 +35,14 @@ public class GamePlayerActivity extends AppCompatActivity {
     private static final int MAX_PACKAGE_FILES = 5000;
     private static final long MAX_PACKAGE_BYTES = 256L * 1024L * 1024L;
 
+    /** 连按两次退出的有效间隔:两次触发间隔小于该值才真正退出,防止误触。 */
+    private static final long EXIT_CONFIRM_INTERVAL_MS = 2000L;
+
     private WebView webView;
     private final ExecutorService packageExecutor = Executors.newSingleThreadExecutor();
+
+    // 上一次触发退出的时间;0 表示尚未触发过。
+    private long lastExitTriggerTime = 0L;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -480,7 +486,16 @@ public class GamePlayerActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        finish();
+        // 连按两次(返回键或返回手势)才真正退出,第二次需在时间窗内,避免游戏中误触退出。
+        long now = System.currentTimeMillis();
+        if (lastExitTriggerTime != 0L
+                && now - lastExitTriggerTime <= EXIT_CONFIRM_INTERVAL_MS) {
+            lastExitTriggerTime = 0L;
+            super.onBackPressed();
+            return;
+        }
+        lastExitTriggerTime = now;
+        Toast.makeText(this, R.string.press_again_to_exit, Toast.LENGTH_SHORT).show();
     }
 
     @Override
