@@ -79,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnRefresh).setOnClickListener(v -> reloadGames());
 
         CrashLog.clear(this);
-        reloadGames();
     }
 
     @Override

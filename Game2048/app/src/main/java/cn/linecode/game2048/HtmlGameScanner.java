@@ -55,14 +55,16 @@ public final class HtmlGameScanner {
         }
 
         try {
-            File dir = resolveToFile(folderUri);
-            if (dir != null && dir.isDirectory() && dir.canRead()) {
-                scanFileTree(context, dir, games);
-            } else if (folderUri.startsWith("content://")) {
+            if (folderUri.startsWith("content://")) {
                 DocumentFile root = DocumentFile.fromTreeUri(context, Uri.parse(folderUri));
                 if (root != null && root.isDirectory()) {
                     String rootName = root.getName() == null ? "游戏目录" : root.getName();
                     scanDocumentTree(context, root, rootName, games);
+                }
+            } else {
+                File dir = resolveToFile(folderUri);
+                if (dir != null && dir.isDirectory() && dir.canRead()) {
+                    scanFileTree(context, dir, games);
                 }
             }
         } catch (Throwable ignored) {
@@ -122,7 +124,8 @@ public final class HtmlGameScanner {
         if (rawUrl == null || rawUrl.isEmpty()) {
             return rawUrl;
         }
-        if (rawUrl.startsWith("file://") || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+        if (rawUrl.startsWith("content://") || rawUrl.startsWith("file://")
+                || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
             return rawUrl;
         }
         try {
@@ -239,7 +242,7 @@ public final class HtmlGameScanner {
                         subtitle,
                         Uri.fromFile(packageIndex).toString(),
                         packagePath,
-                        findFileIcon(packageIndex, current, false)
+                        safeFindFileIcon(packageIndex, current, false)
                 ));
                 if (!current.equals(root)) {
                     continue;
@@ -268,7 +271,7 @@ public final class HtmlGameScanner {
                                 relativePath(root, child),
                                 Uri.fromFile(child).toString(),
                                 null,
-                                findFileIcon(child, child.getParentFile(), true)
+                                safeFindFileIcon(child, child.getParentFile(), true)
                         ));
                     }
                 } catch (Throwable ignored) {
@@ -315,7 +318,7 @@ public final class HtmlGameScanner {
                         subtitle,
                         playableDocumentUrl(packageIndex),
                         currentPath,
-                        findDocumentIcon(context, packageIndex, current, false)
+                        safeFindDocumentIcon(context, packageIndex, current, false)
                 ));
                 if (!currentPath.isEmpty()) {
                     continue;
@@ -345,12 +348,29 @@ public final class HtmlGameScanner {
                                 rootName + " / " + childPath,
                                 playableDocumentUrl(child),
                                 null,
-                                findDocumentIcon(context, child, current, true)
+                                safeFindDocumentIcon(context, child, current, true)
                         ));
                     }
                 } catch (Throwable ignored) {
                 }
             }
+        }
+    }
+
+    private static String safeFindFileIcon(File html, File baseDir, boolean singleFile) {
+        try {
+            return findFileIcon(html, baseDir, singleFile);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String safeFindDocumentIcon(Context context, DocumentFile html,
+                                               DocumentFile baseDir, boolean singleFile) {
+        try {
+            return findDocumentIcon(context, html, baseDir, singleFile);
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 
@@ -626,12 +646,7 @@ public final class HtmlGameScanner {
     }
 
     private static String playableDocumentUrl(DocumentFile document) {
-        String url = document.getUri().toString();
-        File file = resolveToFile(url);
-        if (file != null && file.isFile()) {
-            return Uri.fromFile(file).toString();
-        }
-        return url;
+        return document.getUri().toString();
     }
 
     private static boolean isHtml(String name) {
