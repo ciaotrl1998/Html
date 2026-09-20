@@ -6,12 +6,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,10 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS = "html_game_box";
     private static final String KEY_FOLDER_URI = "folder_uri";
 
-    private TextView folderPathView;
-    private TextView emptyView;
-    private TextView crashView;
-    private Button grantButton;
+    private Button folderButton;
     private ListView gameListView;
     private GameListAdapter adapter;
     private final List<GameEntry> games = new ArrayList<>();
@@ -51,10 +46,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        folderPathView = findViewById(R.id.folderPath);
-        emptyView = findViewById(R.id.emptyView);
-        crashView = findViewById(R.id.crashView);
-        grantButton = findViewById(R.id.btnGrant);
+        folderButton = findViewById(R.id.btnPick);
         gameListView = findViewById(R.id.gameList);
 
         adapter = new GameListAdapter(this, games);
@@ -83,57 +75,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.btnPick).setOnClickListener(v -> pickFolder());
+        folderButton.setOnClickListener(v -> pickFolder());
         findViewById(R.id.btnRefresh).setOnClickListener(v -> reloadGames());
-        grantButton.setOnClickListener(v -> openAllFilesAccessSettings());
 
-        showLastCrashIfAny();
-        updatePermissionUi();
+        CrashLog.clear(this);
         reloadGames();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        updatePermissionUi();
         reloadGames();
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         scanExecutor.shutdownNow();
-    }
-
-    /** 展示上次崩溃的简短堆栈,便于定位闪退原因(读取后即清除)。 */
-    private void showLastCrashIfAny() {
-        String crash = CrashLog.read(this);
-        if (crash == null || crash.isEmpty()) {
-            crashView.setVisibility(View.GONE);
-            return;
+        if (adapter != null) {
+            adapter.shutdown();
         }
-        crashView.setText("上次崩溃日志:\n" + crash);
-        crashView.setVisibility(View.VISIBLE);
-        CrashLog.clear(this);
-    }
-
-    private void updatePermissionUi() {
-        boolean need = HtmlGameScanner.needsAllFilesAccess(this);
-        grantButton.setVisibility(need ? View.VISIBLE : View.GONE);
-    }
-
-    private void openAllFilesAccessSettings() {
-        try {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-            intent.setData(Uri.parse("package:" + getPackageName()));
-            startActivity(intent);
-        } catch (Exception e) {
-            try {
-                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-            } catch (Exception e2) {
-                Toast.makeText(this, "无法打开权限设置,请手动到系统设置中授予", Toast.LENGTH_LONG).show();
-            }
-        }
+        super.onDestroy();
     }
 
     private void pickFolder() {
@@ -183,16 +144,14 @@ public class MainActivity extends AppCompatActivity {
         games.clear();
 
         if (savedUri == null || savedUri.isEmpty()) {
-            folderPathView.setText("未选择目录,点右上角选择");
-            emptyView.setText(R.string.empty_hint);
-            emptyView.setVisibility(View.VISIBLE);
+            folderButton.setText(R.string.pick_folder);
             adapter.notifyDataSetChanged();
             return;
         }
 
-        folderPathView.setText(HtmlGameScanner.treeDisplayName(this, savedUri));
-        emptyView.setText(R.string.scanning);
-        emptyView.setVisibility(View.VISIBLE);
+        String folderName = HtmlGameScanner.treeDisplayName(this, savedUri);
+        folderButton.setText(folderName == null || folderName.trim().isEmpty()
+                ? getString(R.string.pick_folder) : folderName);
         adapter.notifyDataSetChanged();
 
         final String finalUri = savedUri;
@@ -206,11 +165,11 @@ public class MainActivity extends AppCompatActivity {
                     mainHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            if (generation != scanGeneration) {
+                            if (generation != scanGeneration || isFinishing() || isDestroyed()) {
                                 return;
                             }
-                            emptyView.setText(R.string.scan_failed);
-                            emptyView.setVisibility(View.VISIBLE);
+                            Toast.makeText(MainActivity.this, R.string.scan_failed,
+                                    Toast.LENGTH_SHORT).show();
                         }
                     });
                     return;
@@ -219,16 +178,14 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         // 已有更新的扫描发起,丢弃本次结果
-                        if (generation != scanGeneration) {
+                        if (generation != scanGeneration || isFinishing() || isDestroyed()) {
                             return;
                         }
                         games.addAll(scanned);
                         adapter.notifyDataSetChanged();
                         if (scanned.isEmpty()) {
-                            emptyView.setText(R.string.no_html);
-                            emptyView.setVisibility(View.VISIBLE);
-                        } else {
-                            emptyView.setVisibility(View.GONE);
+                            Toast.makeText(MainActivity.this, R.string.no_html,
+                                    Toast.LENGTH_SHORT).show();
                         }
                     }
                 });

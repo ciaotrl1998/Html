@@ -56,8 +56,8 @@ public class GamePlayerActivity extends AppCompatActivity {
         }
 
         webView = new WebView(this);
-        // HTML 尚未绘制时保持黑色底色,避免进入游戏时闪出旧版米色背景。
-        webView.setBackgroundColor(0xFF0F0F10);
+        // HTML 尚未绘制时使用与应用一致的浅灰底色,游戏页面加载后仍使用自身样式。
+        webView.setBackgroundColor(0xFFF2F3F5);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);

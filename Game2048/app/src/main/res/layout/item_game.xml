@@ -1,30 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="72dp"
+    android:layout_height="68dp"
     android:background="@drawable/bg_game_card"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingLeft="14dp"
-    android:paddingTop="10dp"
-    android:paddingRight="14dp"
-    android:paddingBottom="10dp">
+    android:paddingRight="12dp">
 
-    <TextView
-        android:id="@+id/icon"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:background="@drawable/bg_game_icon"
-        android:gravity="center"
-        android:text="H"
-        android:textColor="@color/text"
-        android:textSize="17sp"
-        android:textStyle="bold" />
+    <FrameLayout
+        android:layout_width="42dp"
+        android:layout_height="42dp">
+
+        <ImageView
+            android:id="@+id/iconImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_game_icon"
+            android:clipToOutline="true"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/iconText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_game_icon"
+            android:gravity="center"
+            android:text="H"
+            android:textColor="@color/text"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="14dp"
+        android:layout_marginLeft="13dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -42,7 +54,7 @@
             android:id="@+id/subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="middle"
             android:singleLine="true"
             android:textColor="@color/text_muted"
@@ -50,10 +62,10 @@
     </LinearLayout>
 
     <TextView
-        android:layout_width="28dp"
-        android:layout_height="28dp"
+        android:layout_width="24dp"
+        android:layout_height="32dp"
         android:gravity="center"
         android:text="›"
         android:textColor="@color/text_muted"
-        android:textSize="26sp" />
+        android:textSize="24sp" />
 </LinearLayout>
