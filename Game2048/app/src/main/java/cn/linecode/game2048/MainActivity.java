@@ -70,7 +70,13 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(MainActivity.this, GamePlayerActivity.class);
                 intent.putExtra(GamePlayerActivity.EXTRA_GAME_URL, url);
                 intent.putExtra(GamePlayerActivity.EXTRA_GAME_TITLE, game.title);
-                if (url != null && url.startsWith("content://")) {
+                if (game.packagePath != null) {
+                    intent.putExtra(GamePlayerActivity.EXTRA_LIBRARY_URI,
+                            prefs.getString(KEY_FOLDER_URI, null));
+                    intent.putExtra(GamePlayerActivity.EXTRA_PACKAGE_PATH, game.packagePath);
+                }
+                if ((url != null && url.startsWith("content://"))
+                        || game.packagePath != null) {
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 }
                 startActivity(intent);

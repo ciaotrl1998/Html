@@ -199,11 +199,31 @@ public final class HtmlGameScanner {
                 continue;
             }
 
+            // 含 index.html 的目录视为游戏包。根目录仍继续扫描其他独立游戏。
+            File packageIndex = findFileIndex(children);
+            if (packageIndex != null) {
+                String packagePath = current.equals(root) ? "" : relativePath(root, current);
+                String subtitle = packagePath.isEmpty()
+                        ? "index.html" : packagePath + " / index.html";
+                games.add(new GameEntry(
+                        current.getName(),
+                        subtitle,
+                        Uri.fromFile(packageIndex).toString(),
+                        packagePath
+                ));
+                if (!current.equals(root)) {
+                    continue;
+                }
+            }
+
             for (File child : children) {
                 if (games.size() >= MAX_ENTRIES) {
                     return;
                 }
                 try {
+                    if (packageIndex != null && child.equals(packageIndex)) {
+                        continue;
+                    }
                     String name = child.getName();
                     if (child.isDirectory()) {
                         if (name.startsWith(".")) {
@@ -228,12 +248,13 @@ public final class HtmlGameScanner {
 
     private static void scanDocumentTree(DocumentFile root, String rootName, List<GameEntry> games) {
         ArrayDeque<Object[]> stack = new ArrayDeque<>();
-        stack.push(new Object[]{root, 0});
+        stack.push(new Object[]{root, 0, ""});
 
         while (!stack.isEmpty() && games.size() < MAX_ENTRIES) {
             Object[] item = stack.pop();
             DocumentFile current = (DocumentFile) item[0];
             int depth = (Integer) item[1];
+            String currentPath = (String) item[2];
 
             DocumentFile[] children;
             try {
@@ -248,35 +269,86 @@ public final class HtmlGameScanner {
                 continue;
             }
 
+            DocumentFile packageIndex = findDocumentIndex(children);
+            if (packageIndex != null) {
+                String title = current.getName();
+                if (title == null || title.isEmpty()) {
+                    title = currentPath.isEmpty() ? rootName : currentPath;
+                }
+                String subtitle = currentPath.isEmpty()
+                        ? "index.html" : currentPath + " / index.html";
+                games.add(new GameEntry(
+                        title,
+                        subtitle,
+                        playableDocumentUrl(packageIndex),
+                        currentPath
+                ));
+                if (!currentPath.isEmpty()) {
+                    continue;
+                }
+            }
+
             for (DocumentFile child : children) {
                 if (games.size() >= MAX_ENTRIES) {
                     return;
                 }
                 try {
-                    String name = child.getName();
-                    if (name != null && name.startsWith(".")) {
+                    if (packageIndex != null && child.getUri().equals(packageIndex.getUri())) {
                         continue;
                     }
+                    String name = child.getName();
+                    if (name == null || name.startsWith(".")) {
+                        continue;
+                    }
+                    String childPath = currentPath.isEmpty() ? name : currentPath + "/" + name;
                     if (child.isDirectory()) {
                         if (depth < MAX_DEPTH) {
-                            stack.push(new Object[]{child, depth + 1});
+                            stack.push(new Object[]{child, depth + 1, childPath});
                         }
                     } else if (isHtml(name)) {
-                        String url = child.getUri().toString();
-                        File file = resolveToFile(url);
-                        if (file != null && file.isFile()) {
-                            url = Uri.fromFile(file).toString();
-                        }
                         games.add(new GameEntry(
                                 displayName(name),
-                                rootName + " / " + name,
-                                url
+                                rootName + " / " + childPath,
+                                playableDocumentUrl(child)
                         ));
                     }
                 } catch (Throwable ignored) {
                 }
             }
         }
+    }
+
+    private static File findFileIndex(File[] children) {
+        for (File child : children) {
+            try {
+                if (child.isFile() && "index.html".equalsIgnoreCase(child.getName())) {
+                    return child;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static DocumentFile findDocumentIndex(DocumentFile[] children) {
+        for (DocumentFile child : children) {
+            try {
+                if (child.isFile() && "index.html".equalsIgnoreCase(child.getName())) {
+                    return child;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static String playableDocumentUrl(DocumentFile document) {
+        String url = document.getUri().toString();
+        File file = resolveToFile(url);
+        if (file != null && file.isFile()) {
+            return Uri.fromFile(file).toString();
+        }
+        return url;
     }
 
     private static boolean isHtml(String name) {
