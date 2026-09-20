@@ -3,9 +3,12 @@ package cn.linecode.game2048;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -18,6 +21,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -27,10 +31,20 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS = "html_game_box";
     private static final String KEY_FOLDER_URI = "folder_uri";
 
+    // 未选择目录但已具备“所有文件访问权限”时,自动尝试扫描这些常见游戏目录,
+    // 避免因系统目录选择器在某些 ROM 上不可用而导致列表始终为空。
+    private static final String[] DEFAULT_SCAN_DIR_NAMES = {
+            "模拟器游戏",
+            "Games",
+            "games",
+            "Download",
+    };
+
     private Button folderButton;
     private ListView gameListView;
     private ScrollView diagnosticPanel;
     private TextView diagnosticText;
+    private Button grantButton;
     private GameListAdapter adapter;
     private final List<GameEntry> games = new ArrayList<>();
     private SharedPreferences prefs;
@@ -54,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
         gameListView = findViewById(R.id.gameList);
         diagnosticPanel = findViewById(R.id.diagnosticPanel);
         diagnosticText = findViewById(R.id.diagnosticText);
+        grantButton = findViewById(R.id.btnGrant);
+        grantButton.setOnClickListener(v -> requestAllFilesAccess());
 
         adapter = new GameListAdapter(this, games);
         gameListView.setAdapter(adapter);
@@ -120,47 +136,68 @@ public class MainActivity extends AppCompatActivity {
 
     private void onFolderPicked(Uri uri) {
         if (uri == null) {
+            showDiagnostics("目录选择被取消或未返回有效地址。请重试,并选择“使用此文件夹/允许访问”。", false);
             return;
         }
+        String uriString = uri.toString();
+        if (uriString.trim().isEmpty()) {
+            showDiagnostics("目录选择返回了空地址,请重新选择。", false);
+            return;
+        }
+
+        // 尝试长期持有该目录的读取权限;失败也不影响本次扫描,只是重启后可能需要重新授权。
         try {
             getContentResolver().takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-            );
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (Throwable ignored) {
-            try {
-                getContentResolver().takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                );
-            } catch (Throwable ignoredAgain) {
-            }
         }
-        prefs.edit().putString(KEY_FOLDER_URI, uri.toString()).apply();
+
+        // 用 commit() 同步落盘,避免进程被系统回收时异步写入丢失,导致“选了却像没选”。
+        boolean saved;
+        try {
+            saved = prefs.edit().putString(KEY_FOLDER_URI, uriString).commit();
+        } catch (Throwable t) {
+            saved = false;
+        }
+        String verify = prefs.getString(KEY_FOLDER_URI, null);
+        if (!saved || verify == null || !uriString.equals(verify)) {
+            showDiagnostics("目录地址保存失败:\n" + uriString
+                    + "\n\n请重试;若持续失败,请在系统设置中为本应用开启存储权限。");
+            return;
+        }
+
         Toast.makeText(this, "已选择游戏目录", Toast.LENGTH_SHORT).show();
         reloadGames();
     }
 
     /** 重新扫描目录。扫描在后台线程执行,避免大目录阻塞主线程导致闪退/ANR。 */
     private void reloadGames() {
-        final String savedUri = prefs.getString(KEY_FOLDER_URI, null);
+        String savedUri = prefs.getString(KEY_FOLDER_URI, null);
         final int generation = ++scanGeneration;
 
         games.clear();
 
-        if (savedUri == null || savedUri.isEmpty()) {
+        // 未选择目录时:若已具备“所有文件访问权限”,自动扫描常见游戏目录,
+        // 避免系统目录选择器在部分设备上不可用时列表始终为空。
+        if (savedUri == null || savedUri.trim().isEmpty()) {
+            File auto = findDefaultScanDir();
+            if (auto != null) {
+                savedUri = auto.getAbsolutePath();
+            }
+        }
+
+        if (savedUri == null || savedUri.trim().isEmpty()) {
             folderButton.setText(R.string.pick_folder);
             adapter.notifyDataSetChanged();
-            showDiagnostics("尚未选择游戏目录。请点击左侧按钮,选择一个存放 HTML 游戏的文件夹。");
+            showDiagnostics(buildNoFolderHint(), true);
             return;
         }
 
-        String folderName = HtmlGameScanner.treeDisplayName(this, savedUri);
+        final String finalUri = savedUri;
+        String folderName = HtmlGameScanner.treeDisplayName(this, finalUri);
         folderButton.setText(folderName == null || folderName.trim().isEmpty()
                 ? getString(R.string.pick_folder) : folderName);
         adapter.notifyDataSetChanged();
-
-        final String finalUri = savedUri;
         scanExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -208,16 +245,75 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showDiagnostics(String message) {
+        showDiagnostics(message, false);
+    }
+
+    private void showDiagnostics(String message, boolean allowGrant) {
         if (diagnosticText == null || diagnosticPanel == null) {
             return;
         }
         diagnosticText.setText(message);
         diagnosticPanel.setVisibility(View.VISIBLE);
+        if (grantButton != null) {
+            boolean show = allowGrant && HtmlGameScanner.needsAllFilesAccess(this);
+            grantButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void hideDiagnostics() {
         if (diagnosticPanel != null) {
             diagnosticPanel.setVisibility(View.GONE);
+        }
+    }
+
+    /** 在常见位置中挑选第一个存在的目录,作为未手动选择时的默认扫描目标。 */
+    private File findDefaultScanDir() {
+        File base;
+        try {
+            base = Environment.getExternalStorageDirectory();
+        } catch (Throwable t) {
+            return null;
+        }
+        if (base == null) {
+            return null;
+        }
+        for (String name : DEFAULT_SCAN_DIR_NAMES) {
+            try {
+                File dir = new File(base, name);
+                if (dir.isDirectory() && dir.canRead()) {
+                    return dir;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
+    }
+
+    private String buildNoFolderHint() {
+        if (HtmlGameScanner.needsAllFilesAccess(this)) {
+            return "尚未选择游戏目录。\n\n"
+                    + "本应用尚未获得“所有文件访问权限”,直接读取存储中的 HTML 可能失败。\n"
+                    + "可点击下方按钮授予权限,或点击左上角按钮用目录选择器授权具体文件夹。";
+        }
+        return "尚未选择游戏目录。请点击左上角按钮,选择一个存放 HTML 游戏的文件夹。";
+    }
+
+    /** 引导用户到系统设置授予“所有文件访问权限”(Android 11+)。 */
+    private void requestAllFilesAccess() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Toast.makeText(this, "当前系统无需该权限", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (Throwable e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            } catch (Throwable e2) {
+                Toast.makeText(this, "无法打开权限设置页面", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }

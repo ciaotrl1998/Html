@@ -99,7 +99,18 @@ public final class HtmlGameScanner {
 
         // 2) 文件系统扫描
         try {
-            if (dir != null && dir.isDirectory() && dir.canRead()) {
+            if (dir != null && dir.isFile()) {
+                // 用户直接选中了单个 HTML 文件(而非文件夹),也应当能加入列表。
+                if (isHtml(dir.getName())) {
+                    games.add(new GameEntry(
+                            displayName(dir.getName()),
+                            dir.getName(),
+                            Uri.fromFile(dir).toString(),
+                            null,
+                            safeFindFileIcon(dir, dir.getParentFile(), true)
+                    ));
+                }
+            } else if (dir != null && dir.isDirectory() && dir.canRead()) {
                 scanFileTree(context, dir, games);
             }
         } catch (Throwable t) {
@@ -111,9 +122,24 @@ public final class HtmlGameScanner {
         if (games.isEmpty() && contentUri) {
             try {
                 DocumentFile root = DocumentFile.fromTreeUri(context, Uri.parse(folderUri));
+                if (root == null) {
+                    root = DocumentFile.fromSingleUri(context, Uri.parse(folderUri));
+                }
                 log.append("SAF root=").append(root == null ? "null" : root.getName())
                         .append(" isDir=").append(root != null && root.isDirectory()).append('\n');
-                if (root != null && root.isDirectory()) {
+                if (root != null && root.isFile()) {
+                    // 选中的是单个 HTML 文件。
+                    String docName = root.getName();
+                    if (docName != null && isHtml(docName)) {
+                        games.add(new GameEntry(
+                                displayName(docName),
+                                docName,
+                                playableDocumentUrl(root),
+                                null,
+                                safeFindDocumentIcon(context, root, root.getParentFile(), true)
+                        ));
+                    }
+                } else if (root != null && root.isDirectory()) {
                     try {
                         DocumentFile[] kids = root.listFiles();
                         log.append("SAF listFiles=")
