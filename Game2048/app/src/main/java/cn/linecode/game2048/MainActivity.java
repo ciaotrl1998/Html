@@ -10,6 +10,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Button folderButton;
     private ListView gameListView;
+    private ScrollView diagnosticPanel;
+    private TextView diagnosticText;
     private GameListAdapter adapter;
     private final List<GameEntry> games = new ArrayList<>();
     private SharedPreferences prefs;
@@ -48,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         folderButton = findViewById(R.id.btnPick);
         gameListView = findViewById(R.id.gameList);
+        diagnosticPanel = findViewById(R.id.diagnosticPanel);
+        diagnosticText = findViewById(R.id.diagnosticText);
 
         adapter = new GameListAdapter(this, games);
         gameListView.setAdapter(adapter);
@@ -145,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedUri == null || savedUri.isEmpty()) {
             folderButton.setText(R.string.pick_folder);
             adapter.notifyDataSetChanged();
+            showDiagnostics("尚未选择游戏目录。请点击左侧按钮,选择一个存放 HTML 游戏的文件夹。");
             return;
         }
 
@@ -157,9 +164,10 @@ public class MainActivity extends AppCompatActivity {
         scanExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                final List<GameEntry> scanned;
+                final HtmlGameScanner.ScanOutcome outcome;
                 try {
-                    scanned = HtmlGameScanner.scan(getApplicationContext(), finalUri);
+                    outcome = HtmlGameScanner.scanWithDiagnostics(
+                            getApplicationContext(), finalUri);
                 } catch (Throwable t) {
                     mainHandler.post(new Runnable() {
                         @Override
@@ -167,8 +175,7 @@ public class MainActivity extends AppCompatActivity {
                             if (generation != scanGeneration || isFinishing() || isDestroyed()) {
                                 return;
                             }
-                            Toast.makeText(MainActivity.this, R.string.scan_failed,
-                                    Toast.LENGTH_SHORT).show();
+                            showDiagnostics("扫描异常:" + t);
                         }
                     });
                     return;
@@ -180,17 +187,37 @@ public class MainActivity extends AppCompatActivity {
                         if (generation != scanGeneration || isFinishing() || isDestroyed()) {
                             return;
                         }
-                        games.addAll(scanned);
+                        games.addAll(outcome.games);
                         adapter.notifyDataSetChanged();
-                        if (scanned.isEmpty()) {
-                            String target = HtmlGameScanner.describeTarget(finalUri);
-                            Toast.makeText(MainActivity.this,
-                                    getString(R.string.no_html) + "\n" + target,
-                                    Toast.LENGTH_LONG).show();
+
+                        String base = HtmlGameScanner.treeDisplayName(MainActivity.this, finalUri);
+                        if (base == null || base.trim().isEmpty()) {
+                            base = getString(R.string.pick_folder);
+                        }
+                        folderButton.setText(base + " (" + outcome.games.size() + ")");
+
+                        if (outcome.games.isEmpty()) {
+                            showDiagnostics(outcome.diagnostics);
+                        } else {
+                            hideDiagnostics();
                         }
                     }
                 });
             }
         });
+    }
+
+    private void showDiagnostics(String message) {
+        if (diagnosticText == null || diagnosticPanel == null) {
+            return;
+        }
+        diagnosticText.setText(message);
+        diagnosticPanel.setVisibility(View.VISIBLE);
+    }
+
+    private void hideDiagnostics() {
+        if (diagnosticPanel != null) {
+            diagnosticPanel.setVisibility(View.GONE);
+        }
     }
 }

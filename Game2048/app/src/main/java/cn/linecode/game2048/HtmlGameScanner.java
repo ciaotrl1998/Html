@@ -49,35 +49,85 @@ public final class HtmlGameScanner {
     private HtmlGameScanner() {}
 
     public static List<GameEntry> scan(Context context, String folderUri) {
+        return scanWithDiagnostics(context, folderUri).games;
+    }
+
+    /** 扫描结果 + 诊断信息,便于在界面直接显示扫描过程,定位“扫不到游戏”的原因。 */
+    public static final class ScanOutcome {
+        public final List<GameEntry> games;
+        public final String diagnostics;
+
+        ScanOutcome(List<GameEntry> games, String diagnostics) {
+            this.games = games;
+            this.diagnostics = diagnostics;
+        }
+    }
+
+    public static ScanOutcome scanWithDiagnostics(Context context, String folderUri) {
         List<GameEntry> games = new ArrayList<>();
+        StringBuilder log = new StringBuilder();
+
         if (folderUri == null || folderUri.trim().isEmpty()) {
-            return games;
+            log.append("目录地址为空:尚未选择或保存失败\n");
+            return new ScanOutcome(games, log.toString());
         }
 
+        log.append("URI: ").append(folderUri).append('\n');
         boolean contentUri = folderUri.startsWith("content://");
 
-        // 1) 优先文件系统扫描。已授予“所有文件访问权限”时这条路径最可靠,
-        //    产生的 file:// 地址在 WebView 中兼容性也最好。
+        // 1) 文件系统路径诊断
+        File dir = null;
         try {
-            File dir = resolveToFile(folderUri);
+            dir = resolveToFile(folderUri);
+        } catch (Throwable t) {
+            log.append("解析路径异常: ").append(t).append('\n');
+        }
+        if (dir != null) {
+            log.append("路径: ").append(dir.getAbsolutePath()).append('\n');
+            log.append("exists=").append(dir.exists())
+                    .append(" isDir=").append(dir.isDirectory())
+                    .append(" canRead=").append(dir.canRead()).append('\n');
+            try {
+                File[] fs = dir.listFiles();
+                log.append("listFiles=").append(fs == null ? "null" : String.valueOf(fs.length)).append('\n');
+            } catch (Throwable t) {
+                log.append("listFiles 异常: ").append(t).append('\n');
+            }
+        } else {
+            log.append("路径: 无法解析为本地文件路径\n");
+        }
+
+        // 2) 文件系统扫描
+        try {
             if (dir != null && dir.isDirectory() && dir.canRead()) {
                 scanFileTree(context, dir, games);
             }
-        } catch (Throwable ignored) {
-            // 该路径失败时继续尝试下一条,不影响已收集结果
+        } catch (Throwable t) {
+            log.append("文件扫描异常: ").append(t).append('\n');
         }
+        log.append("文件扫描结果: ").append(games.size()).append('\n');
 
-        // 2) 文件系统没扫到内容时,回退到 SAF 文档扫描。
-        //    分区存储下 File 可能“可读”却列出空目录,此时必须靠 SAF 兜底。
+        // 3) SAF 兜底扫描
         if (games.isEmpty() && contentUri) {
             try {
                 DocumentFile root = DocumentFile.fromTreeUri(context, Uri.parse(folderUri));
+                log.append("SAF root=").append(root == null ? "null" : root.getName())
+                        .append(" isDir=").append(root != null && root.isDirectory()).append('\n');
                 if (root != null && root.isDirectory()) {
+                    try {
+                        DocumentFile[] kids = root.listFiles();
+                        log.append("SAF listFiles=")
+                                .append(kids == null ? "null" : String.valueOf(kids.length)).append('\n');
+                    } catch (Throwable t) {
+                        log.append("SAF listFiles 异常: ").append(t).append('\n');
+                    }
                     String rootName = root.getName() == null ? "游戏目录" : root.getName();
                     scanDocumentTree(context, root, rootName, games);
                 }
-            } catch (Throwable ignored) {
+            } catch (Throwable t) {
+                log.append("SAF 异常: ").append(t).append('\n');
             }
+            log.append("SAF 扫描结果: ").append(games.size()).append('\n');
         }
 
         try {
@@ -89,7 +139,9 @@ public final class HtmlGameScanner {
             });
         } catch (Throwable ignored) {
         }
-        return games;
+
+        log.append("最终数量: ").append(games.size()).append('\n');
+        return new ScanOutcome(games, log.toString());
     }
 
     public static String treeDisplayName(Context context, String folderUri) {
