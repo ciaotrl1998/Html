@@ -71,7 +71,8 @@
         android:clipToPadding="false"
         android:divider="@android:color/transparent"
         android:dividerHeight="8dp"
-        android:listSelector="@android:color/transparent"
+        android:drawSelectorOnTop="true"
+        android:listSelector="@drawable/bg_card_press"
         android:overScrollMode="never"
         android:scrollbars="none" />
 
