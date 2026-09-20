@@ -38,7 +38,11 @@ def prepareHtmlBoxIcon = tasks.register("prepareHtmlBoxIcon", Copy) {
 }
 
 tasks.configureEach { task ->
-    if (task.name.startsWith("merge") && task.name.endsWith("Resources")) {
+    boolean mapsSourceSets = task.name.startsWith("map")
+            && task.name.endsWith("SourceSetPaths")
+    boolean mergesResources = task.name.startsWith("merge")
+            && task.name.endsWith("Resources")
+    if (mapsSourceSets || mergesResources) {
         task.dependsOn prepareHtmlBoxIcon
     }
 }
