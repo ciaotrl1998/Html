@@ -55,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
     // 每次重新扫描递增,用于丢弃过期的后台扫描结果,避免列表出现重复项
     private int scanGeneration = 0;
 
+    // 仅在首次因缺少“所有文件访问权限”导致空结果时自动跳转授权页一次
+    private boolean autoPermissionLaunched = false;
+
     private final ActivityResultLauncher<Uri> folderPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), this::onFolderPicked);
 
@@ -234,7 +237,17 @@ public class MainActivity extends AppCompatActivity {
                         folderButton.setText(base + " (" + outcome.games.size() + ")");
 
                         if (outcome.games.isEmpty()) {
-                            showDiagnostics(outcome.diagnostics);
+                            showDiagnostics(outcome.diagnostics, true);
+                            // 首次因缺少“所有文件访问权限”而扫不到文件时,自动跳转授权页,
+                            // 避免用户反复看到空列表却不知道要去哪里开启权限。
+                            if (HtmlGameScanner.needsAllFilesAccess(MainActivity.this)
+                                    && !autoPermissionLaunched) {
+                                autoPermissionLaunched = true;
+                                Toast.makeText(MainActivity.this,
+                                        "需要授予“所有文件访问权限”才能读取 HTML 文件",
+                                        Toast.LENGTH_LONG).show();
+                                requestAllFilesAccess();
+                            }
                         } else {
                             hideDiagnostics();
                         }

@@ -74,6 +74,8 @@ public final class HtmlGameScanner {
 
         log.append("URI: ").append(folderUri).append('\n');
         boolean contentUri = folderUri.startsWith("content://");
+        boolean hasAllFilesAccess = !needsAllFilesAccess(context);
+        log.append("全部文件访问权限=").append(hasAllFilesAccess).append('\n');
 
         // 1) 文件系统路径诊断
         File dir = null;
@@ -164,6 +166,12 @@ public final class HtmlGameScanner {
                 }
             });
         } catch (Throwable ignored) {
+        }
+
+        if (games.isEmpty() && !hasAllFilesAccess && dir != null && dir.isDirectory()) {
+            log.append("\n未找到游戏,且本应用缺少“所有文件访问权限”。\n");
+            log.append("系统可能只列出了子文件夹而隐藏了 .html 文件(常见现象:listFiles 数量少于实际)。\n");
+            log.append("请点击下方按钮授予全部文件访问权限后重试。\n");
         }
 
         log.append("最终数量: ").append(games.size()).append('\n');
