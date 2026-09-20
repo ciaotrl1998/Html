@@ -8,7 +8,12 @@
     <string name="grant_permission">授予全部文件访问权限(Android 11+ 必需)</string>
     <string name="scan_failed">扫描目录失败</string>
     <string name="picker_up">上级</string>
+    <string name="picker_go">前往</string>
     <string name="picker_choose">选择当前文件夹</string>
+    <string name="picker_path_hint">输入路径后回车前往</string>
+    <string name="picker_path_invalid_empty">请输入路径</string>
+    <string name="picker_path_invalid">路径不存在或无法访问:\n%s</string>
+    <string name="picker_file_not_game">已跳到该文件所在目录(不是 html / zip,未选中):\n%s</string>
     <string name="picker_empty">此文件夹为空,可进入子文件夹,或点选其中的 html / zip 文件。</string>
     <string name="picker_need_permission">无法读取该文件夹。请点击下方按钮授予“所有文件访问权限”,或进入有权限的位置。</string>
     <string name="picker_read_failed">无法读取该文件夹内容,请返回上级或改选其他位置。</string>

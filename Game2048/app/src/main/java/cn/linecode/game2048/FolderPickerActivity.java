@@ -7,8 +7,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,9 +35,10 @@ public class FolderPickerActivity extends AppCompatActivity {
     public static final String EXTRA_SELECTED_PATH = "selected_path";
 
     private Button upButton;
+    private Button goButton;
     private Button chooseButton;
     private Button grantButton;
-    private TextView pathText;
+    private EditText pathText;
     private TextView noticeText;
     private ListView listView;
 
@@ -49,11 +52,13 @@ public class FolderPickerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_folder_picker);
 
         upButton = findViewById(R.id.pickerUp);
+        goButton = findViewById(R.id.pickerGo);
         chooseButton = findViewById(R.id.pickerChoose);
         grantButton = findViewById(R.id.pickerGrant);
         pathText = findViewById(R.id.pickerPath);
         noticeText = findViewById(R.id.pickerNotice);
         listView = findViewById(R.id.pickerList);
+        pathText.setHint(R.string.picker_path_hint);
 
         adapter = new FolderListAdapter(this, entries);
         listView.setAdapter(adapter);
@@ -74,6 +79,15 @@ public class FolderPickerActivity extends AppCompatActivity {
         });
 
         upButton.setOnClickListener(v -> navigateUp());
+        goButton.setOnClickListener(v -> navigateToInput());
+        pathText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO
+                    || actionId == EditorInfo.IME_ACTION_DONE) {
+                navigateToInput();
+                return true;
+            }
+            return false;
+        });
         chooseButton.setOnClickListener(v -> {
             if (currentDir != null) {
                 returnPath(currentDir.getAbsolutePath());
@@ -183,6 +197,63 @@ public class FolderPickerActivity extends AppCompatActivity {
         }
         loadDirectory(parent);
         return true;
+    }
+
+    /**
+     * 处理地址栏输入:支持绝对路径,也支持 ~ 表示外部存储根目录。
+     * - 目录:直接进入;
+     * - 可识别的游戏文件(html / zip):直接选中并返回;
+     * - 其他文件:跳到其所在目录并提示未选中;
+     * - 不存在:提示错误,保持当前目录不变。
+     */
+    private void navigateToInput() {
+        String raw = pathText.getText() == null ? "" : pathText.getText().toString().trim();
+        if (raw.isEmpty()) {
+            Toast.makeText(this, R.string.picker_path_invalid_empty, Toast.LENGTH_SHORT).show();
+            pathText.setText(currentDir == null ? "" : currentDir.getAbsolutePath());
+            return;
+        }
+
+        String normalized = normalizeInputPath(raw);
+        File target = new File(normalized);
+
+        if (target.isDirectory()) {
+            loadDirectory(target);
+            return;
+        }
+        if (target.isFile()) {
+            if (isSelectableFile(target.getName())) {
+                returnPath(target.getAbsolutePath());
+            } else {
+                File parent = target.getParentFile();
+                if (parent != null && parent.isDirectory()) {
+                    loadDirectory(parent);
+                    showNotice(getString(R.string.picker_file_not_game, target.getAbsolutePath()));
+                } else {
+                    showNotice(getString(R.string.picker_path_invalid, normalized));
+                }
+            }
+            return;
+        }
+
+        // 不存在:提示并还原地址栏为当前目录。
+        showNotice(getString(R.string.picker_path_invalid, normalized));
+        pathText.setText(currentDir == null ? "" : currentDir.getAbsolutePath());
+    }
+
+    /** 归一化用户输入的路径:去首尾空白、把 ~ 展开为外部存储根目录。 */
+    private String normalizeInputPath(String raw) {
+        String value = raw.trim();
+        if (value.equals("~") || value.startsWith("~/")) {
+            try {
+                File base = Environment.getExternalStorageDirectory();
+                if (base != null) {
+                    value = base.getAbsolutePath() + value.substring(1);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return value;
     }
 
     private void returnPath(String path) {
