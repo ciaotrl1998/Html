@@ -183,8 +183,10 @@ public class MainActivity extends AppCompatActivity {
                         games.addAll(scanned);
                         adapter.notifyDataSetChanged();
                         if (scanned.isEmpty()) {
-                            Toast.makeText(MainActivity.this, R.string.no_html,
-                                    Toast.LENGTH_SHORT).show();
+                            String target = HtmlGameScanner.describeTarget(finalUri);
+                            Toast.makeText(MainActivity.this,
+                                    getString(R.string.no_html) + "\n" + target,
+                                    Toast.LENGTH_LONG).show();
                         }
                     }
                 });

@@ -54,21 +54,30 @@ public final class HtmlGameScanner {
             return games;
         }
 
+        boolean contentUri = folderUri.startsWith("content://");
+
+        // 1) 优先文件系统扫描。已授予“所有文件访问权限”时这条路径最可靠,
+        //    产生的 file:// 地址在 WebView 中兼容性也最好。
         try {
-            if (folderUri.startsWith("content://")) {
+            File dir = resolveToFile(folderUri);
+            if (dir != null && dir.isDirectory() && dir.canRead()) {
+                scanFileTree(context, dir, games);
+            }
+        } catch (Throwable ignored) {
+            // 该路径失败时继续尝试下一条,不影响已收集结果
+        }
+
+        // 2) 文件系统没扫到内容时,回退到 SAF 文档扫描。
+        //    分区存储下 File 可能“可读”却列出空目录,此时必须靠 SAF 兜底。
+        if (games.isEmpty() && contentUri) {
+            try {
                 DocumentFile root = DocumentFile.fromTreeUri(context, Uri.parse(folderUri));
                 if (root != null && root.isDirectory()) {
                     String rootName = root.getName() == null ? "游戏目录" : root.getName();
                     scanDocumentTree(context, root, rootName, games);
                 }
-            } else {
-                File dir = resolveToFile(folderUri);
-                if (dir != null && dir.isDirectory() && dir.canRead()) {
-                    scanFileTree(context, dir, games);
-                }
+            } catch (Throwable ignored) {
             }
-        } catch (Throwable ignored) {
-            // 扫描中的任何异常都不应让应用崩溃,返回已收集到的部分结果
         }
 
         try {
@@ -190,8 +199,17 @@ public final class HtmlGameScanner {
     }
 
     private static File fileFromDocumentId(String docId) {
-        if (docId == null || !docId.contains(":")) {
+        if (docId == null || docId.isEmpty()) {
             return null;
+        }
+        // 形如 raw:/storage/emulated/0/xxx,部分 provider(如下载目录)使用该形式。
+        if (docId.startsWith("raw:")) {
+            String rawPath = docId.substring("raw:".length());
+            return rawPath.isEmpty() ? null : new File(rawPath);
+        }
+        if (!docId.contains(":")) {
+            // 少数 provider 直接返回绝对路径。
+            return docId.startsWith("/") ? new File(docId) : null;
         }
         String[] parts = docId.split(":", 2);
         String type = parts[0];
@@ -199,6 +217,8 @@ public final class HtmlGameScanner {
         File root;
         if ("primary".equalsIgnoreCase(type)) {
             root = Environment.getExternalStorageDirectory();
+        } else if (type.startsWith("/")) {
+            root = new File(type);
         } else {
             root = new File("/storage/" + type);
         }
@@ -206,6 +226,19 @@ public final class HtmlGameScanner {
             return root;
         }
         return new File(root, rel);
+    }
+
+    /** 诊断用:把已保存的目录地址转换为可读的本地绝对路径,无法解析时返回 SAF 提示。 */
+    public static String describeTarget(String folderUri) {
+        try {
+            File dir = resolveToFile(folderUri);
+            if (dir != null) {
+                return dir.getAbsolutePath();
+            }
+        } catch (Throwable ignored) {
+        }
+        return folderUri != null && folderUri.startsWith("content://")
+                ? "SAF 文档目录" : String.valueOf(folderUri);
     }
 
     /** 迭代式扫描,避免递归栈溢出;并对每个条目单独容错。 */
