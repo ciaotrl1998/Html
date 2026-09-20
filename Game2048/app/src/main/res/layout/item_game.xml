@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="68dp"
+    android:layout_height="wrap_content"
     android:background="@drawable/bg_game_card"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingLeft="14dp"
-    android:paddingRight="12dp">
+    android:orientation="vertical"
+    android:paddingLeft="8dp"
+    android:paddingTop="8dp"
+    android:paddingRight="8dp"
+    android:paddingBottom="10dp">
 
-    <FrameLayout
-        android:layout_width="42dp"
-        android:layout_height="42dp">
+    <cn.linecode.game2048.SquareFrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/iconImage"
@@ -29,43 +30,28 @@
             android:gravity="center"
             android:text="H"
             android:textColor="@color/text"
-            android:textSize="16sp"
+            android:textSize="26sp"
             android:textStyle="bold" />
-    </FrameLayout>
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="13dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/subtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="middle"
-            android:singleLine="true"
-            android:textColor="@color/text_muted"
-            android:textSize="12sp" />
-    </LinearLayout>
+    </cn.linecode.game2048.SquareFrameLayout>
 
     <TextView
-        android:layout_width="24dp"
-        android:layout_height="32dp"
-        android:gravity="center"
-        android:text="›"
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
         android:textColor="@color/text_muted"
-        android:textSize="24sp" />
+        android:textSize="11sp" />
 </LinearLayout>

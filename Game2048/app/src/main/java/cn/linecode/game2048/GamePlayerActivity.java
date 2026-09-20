@@ -59,8 +59,8 @@ public class GamePlayerActivity extends AppCompatActivity {
         }
 
         webView = new WebView(this);
-        // HTML 尚未绘制时使用与应用一致的浅灰底色,游戏页面加载后仍使用自身样式。
-        webView.setBackgroundColor(0xFFF2F3F5);
+        // HTML 尚未绘制时使用与应用一致的深色底色,游戏页面加载后仍使用自身样式。
+        webView.setBackgroundColor(0xFF0B0E1A);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);

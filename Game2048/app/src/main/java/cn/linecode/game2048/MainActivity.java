@@ -12,7 +12,7 @@ import android.provider.Settings;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListView;
+import android.widget.GridView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,8 +40,8 @@ public class MainActivity extends AppCompatActivity {
             "Download",
     };
 
-    private Button folderButton;
-    private ListView gameListView;
+    private TextView folderButton;
+    private GridView gameListView;
     private ScrollView diagnosticPanel;
     private TextView diagnosticText;
     private Button grantButton;
