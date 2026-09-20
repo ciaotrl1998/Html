@@ -10,8 +10,8 @@ android {
         applicationId "cn.linecode.game2048"
         minSdk 24
         targetSdk 34
-        versionCode 12
-        versionName "2.1"
+        versionCode 13
+        versionName "2.2"
     }
 
     buildTypes {
@@ -32,6 +32,7 @@ android {
 }
 
 def prepareHtmlBoxIcon = tasks.register("prepareHtmlBoxIcon", Copy) {
+    // 应用图标来源,在工程根目录(Game2048/)下直接替换本文件即可换图标。
     from rootProject.file("HTMLBOX_icon.jpg")
     into layout.buildDirectory.dir("generated/res/htmlboxIcon/drawable")
     rename { "htmlbox_icon.jpg" }
