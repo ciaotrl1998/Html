@@ -245,19 +245,6 @@
     .hudbox .k { font-size: 9.5px; opacity: 0.8; letter-spacing: 0.1em; }
     .hudbox .v { font-size: 15px; line-height: 1.15; }
 
-    #pausebtn {
-      pointer-events: auto;
-      appearance: none;
-      border: 0;
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
-      background: rgba(20,28,36,0.62);
-      color: #fff;
-      font-size: 17px;
-      font-weight: 800;
-    }
-
     .bars {
       position: absolute;
       left: 10px;
@@ -280,35 +267,27 @@
     #hpfill { background: linear-gradient(90deg,#ff5a4d,#ffb03a); }
     #cargofill { background: linear-gradient(90deg,#4fb96b,#a9e07a); }
 
-    #controls {
+    /* 手势操作提示浮层 */
+    #gHint {
       position: absolute;
-      left: 0;
-      right: 0;
-      bottom: calc(10px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(150px + var(--safe-bottom));
       display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      padding: 0 14px;
-      pointer-events: none;
-    }
-
-    .pad { display: grid; gap: 10px; pointer-events: auto; }
-    .pad.steer { grid-template-columns: 74px 74px; }
-    .pad.drive { grid-template-columns: 74px 74px; }
-
-    .kbtn {
-      appearance: none;
-      border: 2px solid rgba(255,255,255,0.5);
-      background: rgba(20,28,36,0.5);
+      gap: 14px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(20,28,36,0.55);
       color: #fff;
-      width: 74px;
-      height: 68px;
-      font-size: 26px;
-      font-weight: 800;
-      border-radius: 16px;
-      backdrop-filter: blur(2px);
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+      white-space: nowrap;
+      transition: opacity 400ms;
     }
-    .kbtn:active, .kbtn.on { background: rgba(224,114,47,0.85); border-color: #fff; }
+    #gHint .gi { display: flex; align-items: center; gap: 4px; }
+    #gHint .gi i { font-style: normal; font-size: 15px; }
+    #gHint.dim { opacity: 0.28; }
 
     /* ===================== 覆盖层 ===================== */
     .overlay {
@@ -409,7 +388,6 @@
       <div class="hudbox"><div class="k">TIME</div><div class="v" id="hud-time">0</div></div>
       <div class="hudbox"><div class="k">距离</div><div class="v" id="hud-dist">0/0m</div></div>
       <div class="hudbox"><div class="k">SPD</div><div class="v" id="hud-spd">0</div></div>
-      <button type="button" id="pausebtn">‖</button>
     </div>
 
     <div class="bars">
@@ -423,15 +401,11 @@
       </div>
     </div>
 
-    <div id="controls">
-      <div class="pad steer">
-        <button type="button" class="kbtn" data-k="left">◀</button>
-        <button type="button" class="kbtn" data-k="right">▶</button>
-      </div>
-      <div class="pad drive">
-        <button type="button" class="kbtn" data-k="down">▼</button>
-        <button type="button" class="kbtn" data-k="up">▲</button>
-      </div>
+    <div id="gHint">
+      <span class="gi"><i>↔</i>左右滑动转向</span>
+      <span class="gi"><i>↑</i>上滑加速</span>
+      <span class="gi"><i>↓</i>下滑刹车</span>
+      <span class="gi"><i>✌</i>双指暂停</span>
     </div>
 
     <!-- 暂停 -->
@@ -619,7 +593,8 @@
   var selectedOrder = -1;
   var D = null;                   // 当前任务数据
 
-  var input = { left: false, right: false, up: false, down: false };
+  // 纯手势输入:active=手指按下并控制转向,targetLat=目标横向位置(-0.94~0.94)
+  var input = { active: false, targetLat: 0 };
 
   /* ============================================================
    * DOM 引用
@@ -643,6 +618,7 @@
   var cargoFill = document.getElementById('cargofill');
   var pauseMask = document.getElementById('pausemask');
   var resultMask = document.getElementById('resultmask');
+  var gHintEl = document.getElementById('gHint');
 
   /* ============================================================
    * 提示条
@@ -827,12 +803,22 @@
     };
     resetInput();
     setState(STATE.DELIVERY);
+    showGestureHint();
+  }
+
+  var gHintTimer = null;
+  function showGestureHint() {
+    if (!gHintEl) return;
+    gHintEl.classList.remove('dim');
+    if (gHintTimer) clearTimeout(gHintTimer);
+    gHintTimer = setTimeout(function () { gHintEl.classList.add('dim'); }, 3200);
   }
 
   function resetInput() {
-    input.left = false; input.right = false; input.up = false; input.down = false;
-    var btns = document.querySelectorAll('.kbtn');
-    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('on');
+    input.active = false;
+    input.targetLat = 0;
+    G.active = {};
+    G.steerId = null;
   }
 
   function proj(z) {
@@ -1022,14 +1008,15 @@
     if (state !== STATE.DELIVERY) return;
     D.frame++;
 
-    // ---- 横向转向 ----
-    var inX = (input.left ? -1 : 0) + (input.right ? 1 : 0);
+    // ---- 横向转向(手势:滑杆位置映射 + 转向灵敏度限速) ----
     var speedRatio = clamp(D.speed / D.st.maxSpeed, 0, 1);
     var steerPenalty = 1 - speedRatio * 0.25;
-    if (inX !== 0) {
-      D.playerLat += inX * 0.018 * (D.st.steering / 100) * steerPenalty;
+    if (input.active) {
+      var latDiff = input.targetLat - D.playerLat;
+      var latStep = 0.028 * (D.st.steering / 100) * steerPenalty;
+      D.playerLat += clamp(latDiff, -latStep, latStep);
     } else {
-      D.playerLat *= 0.992; // 轻微回正阻尼,不强制回到中央
+      D.playerLat *= 0.992; // 松手后轻微回正阻尼,不强制回到中央
     }
     D.playerLat = clamp(D.playerLat, -0.94, 0.94);
 
@@ -1043,10 +1030,8 @@
     var boostN = countActive(D.boost);
     var brakeN = countActive(D.brake);
 
-    // ---- 目标速度 ----
+    // ---- 目标速度(手势上滑/下滑通过 boost/brake 叠加生效) ----
     var tgt = D.st.baseSpeed * (1 + 0.2 * boostN - 0.2 * brakeN);
-    if (input.up) tgt = Math.max(tgt, D.st.baseSpeed * 1.2);     // 按住上键 = 基础油门
-    if (input.down) tgt = Math.min(tgt, D.st.baseSpeed * 0.6);   // 按住下键 = 制动
     tgt = clamp(tgt, D.st.baseSpeed * 0.4, D.st.maxSpeed);
     D.target = tgt;
 
@@ -1494,46 +1479,90 @@
   /* ============================================================
    * 输入:送货界面
    * ============================================================ */
-  function pressKey(k) {
+  // 手势状态:active 记录每根手指起点,steerId 为当前负责转向的手指
+  var G = { active: {}, steerId: null };
+  var SWIPE_DIST = 42;   // 判定上下滑动的最小垂直距离(px)
+  var SWIPE_TIME = 420;  // 判定滑动的最长时间(ms)
+
+  // 把屏幕横向坐标映射为道路横向位置(-0.94 左 ~ 0.94 右)
+  function gameXToLat(x) {
+    var vw = window.innerWidth || 1;
+    return clamp(((x / vw) * 2 - 1) * 0.94, -0.94, 0.94);
+  }
+
+  function ptrCount() {
+    var n = 0;
+    for (var k in G.active) if (G.active.hasOwnProperty(k)) n++;
+    return n;
+  }
+
+  function gestureDown(e) {
     if (state !== STATE.DELIVERY || !D) return;
-    if (k === 'left') input.left = true;
-    else if (k === 'right') input.right = true;
-    else if (k === 'up') {
-      input.up = true;
-      if (D.cdUp <= 0 && countActive(D.boost) < 3) { addBoost(); D.cdUp = 12; }
-    } else if (k === 'down') {
-      input.down = true;
-      if (D.cdDown <= 0 && countActive(D.brake) < 3) { addBrake(); D.cdDown = 12; }
+    e.preventDefault();
+    if (e.target && e.target.setPointerCapture) {
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* 忽略捕获失败 */ }
+    }
+    G.active[e.pointerId] = { sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, t: Date.now() };
+
+    // 双指按下 = 暂停
+    if (ptrCount() >= 2) { pauseGame(); return; }
+
+    // 首指负责转向,按下即设定目标横向位置
+    if (G.steerId == null) {
+      G.steerId = e.pointerId;
+      input.active = true;
+      input.targetLat = gameXToLat(e.clientX);
     }
   }
 
-  function releaseKey(k) {
-    if (k === 'left') input.left = false;
-    else if (k === 'right') input.right = false;
-    else if (k === 'up') input.up = false;
-    else if (k === 'down') input.down = false;
+  function gestureMove(e) {
+    if (state !== STATE.DELIVERY || !D) return;
+    var p = G.active[e.pointerId];
+    if (!p) return;
+    e.preventDefault();
+    p.x = e.clientX; p.y = e.clientY;
+    if (e.pointerId === G.steerId) input.targetLat = gameXToLat(e.clientX);
   }
 
-  function bindPad() {
-    var btns = document.querySelectorAll('.kbtn');
-    for (var i = 0; i < btns.length; i++) {
-      (function (btn) {
-        var k = btn.getAttribute('data-k');
-        btn.addEventListener('pointerdown', function (e) {
-          e.preventDefault();
-          btn.classList.add('on');
-          pressKey(k);
-        });
-        var up = function (e) {
-          if (e) e.preventDefault();
-          btn.classList.remove('on');
-          releaseKey(k);
-        };
-        btn.addEventListener('pointerup', up);
-        btn.addEventListener('pointercancel', up);
-        btn.addEventListener('pointerleave', up);
-      })(btns[i]);
+  function gestureUp(e) {
+    var p = G.active[e.pointerId];
+    delete G.active[e.pointerId];
+
+    if (e.pointerId === G.steerId) {
+      G.steerId = null;
+      input.active = false;
+      // 若仍有其它手指按着,交给它继续转向
+      for (var k in G.active) {
+        if (G.active.hasOwnProperty(k)) {
+          G.steerId = Number(k);
+          input.active = true;
+          input.targetLat = gameXToLat(G.active[k].x);
+          break;
+        }
+      }
     }
+
+    if (!p || state !== STATE.DELIVERY || !D) return;
+
+    // 上滑加速 / 下滑刹车
+    var dx = p.x - p.sx;
+    var dy = p.y - p.sy;
+    var dt = Date.now() - p.t;
+    if (dt <= SWIPE_TIME && Math.abs(dy) >= SWIPE_DIST && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      if (dy < 0) {
+        if (D.cdUp <= 0 && countActive(D.boost) < 3) { addBoost(); D.cdUp = 12; }
+      } else {
+        if (D.cdDown <= 0 && countActive(D.brake) < 3) { addBrake(); D.cdDown = 12; }
+      }
+    }
+  }
+
+  function bindGestures() {
+    if (!playEl) return;
+    playEl.addEventListener('pointerdown', gestureDown, { passive: false });
+    playEl.addEventListener('pointermove', gestureMove, { passive: false });
+    playEl.addEventListener('pointerup', gestureUp);
+    playEl.addEventListener('pointercancel', gestureUp);
   }
 
   function pauseGame() {
@@ -1549,29 +1578,6 @@
   }
 
   /* ============================================================
-   * 键盘(桌面调试)
-   * ============================================================ */
-  function keyDown(e) {
-    var k = e.key;
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') { pressKey('left'); e.preventDefault(); }
-    else if (k === 'ArrowRight' || k === 'd' || k === 'D') { pressKey('right'); e.preventDefault(); }
-    else if (k === 'ArrowUp' || k === 'w' || k === 'W') { pressKey('up'); e.preventDefault(); }
-    else if (k === 'ArrowDown' || k === 's' || k === 'S') { pressKey('down'); e.preventDefault(); }
-    else if (k === 'p' || k === 'P' || k === 'Escape') {
-      if (state === STATE.DELIVERY) pauseGame();
-      else if (state === STATE.PAUSED) resumeGame();
-    }
-  }
-
-  function keyUp(e) {
-    var k = e.key;
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') releaseKey('left');
-    else if (k === 'ArrowRight' || k === 'd' || k === 'D') releaseKey('right');
-    else if (k === 'ArrowUp' || k === 'w' || k === 'W') releaseKey('up');
-    else if (k === 'ArrowDown' || k === 's' || k === 'S') releaseKey('down');
-  }
-
-  /* ============================================================
    * 初始化
    * ============================================================ */
   function init() {
@@ -1582,7 +1588,6 @@
 
     menuEl.addEventListener('click', menuClick);
 
-    document.getElementById('pausebtn').addEventListener('click', pauseGame);
     document.getElementById('resumebtn').addEventListener('click', resumeGame);
     document.getElementById('abandonbtn').addEventListener('click', function () {
       if (state === STATE.PAUSED && D) enterResult('abandon');
@@ -1595,9 +1600,7 @@
       renderMenu();
     });
 
-    bindPad();
-    window.addEventListener('keydown', keyDown);
-    window.addEventListener('keyup', keyUp);
+    bindGestures();
     window.addEventListener('resize', function () {
       if (state === STATE.DELIVERY || state === STATE.PAUSED) render();
     });

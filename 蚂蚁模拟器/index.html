@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>蚁穴 · Ant Colony Demo (3D)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body {
+    width:100%; height:100%; overflow:hidden; background:#05070a;
+    display:grid; place-items:center;
+  }
+  #app {
+    position:relative; width:min(100vw,520px); height:100vh; height:100dvh;
+    overflow:hidden; background:#05070a; box-shadow:0 0 40px #000b;
+  }
+  canvas { display:block; position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  #hud, #feedctrl, #zctrl, #tip, #info { visibility:hidden; }
+  #app.playing #hud, #app.playing #feedctrl, #app.playing #zctrl,
+  #app.playing #tip, #app.playing #info { visibility:visible; }
+  #hud {
+    position:absolute; left:0; right:0; top:0;
+    padding:calc(8px + env(safe-area-inset-top)) 9px 10px;
+    display:flex; flex-wrap:wrap; gap:7px; align-items:center;
+    font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:#e8dcc8; background:linear-gradient(#000c,#0000); pointer-events:none; z-index:10;
+  }
+  #hud b { color:#f5c97a; font-weight:600; }
+  #hud > span:not(.btns) {
+    padding:5px 7px; border-radius:7px; background:rgba(13,16,20,.58);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  #timectrl {
+    width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px; pointer-events:auto;
+  }
+  #hud button {
+    min-height:44px; padding:8px 7px;
+    font:600 14px system-ui,sans-serif; color:#e8dcc8; background:#2a2419e6;
+    border:1px solid #6d592f; border-radius:9px; cursor:pointer;
+  }
+  #hud button:active { background:#5a4a2a; }
+  #feedctrl {
+    position:absolute; left:calc(10px + env(safe-area-inset-left)); top:50%;
+    transform:translateY(-50%); width:96px; display:grid; grid-template-columns:1fr;
+    gap:8px; z-index:12;
+  }
+  #feedctrl button {
+    min-height:48px; padding:8px 6px; border:1px solid rgba(132,105,52,.75);
+    border-radius:11px; background:rgba(42,36,25,.72); color:#f1e4c9;
+    font:600 14px system-ui,sans-serif; backdrop-filter:blur(4px);
+  }
+  #feedctrl button:active { background:rgba(109,89,47,.9); }
+  #info {
+    position:absolute; left:10px; bottom:calc(10px + env(safe-area-inset-bottom)); padding:9px 12px;
+    font:14px/1.5 ui-monospace,Consolas,monospace; color:#cfe8ff;
+    background:#000c; border:1px solid #36536b; border-radius:9px;
+    pointer-events:none; white-space:pre; display:none;
+  }
+  #tip {
+    position:absolute; right:84px; bottom:calc(10px + env(safe-area-inset-bottom));
+    font:13px/1.4 system-ui,sans-serif; color:#a8b0ba; pointer-events:none; text-align:right;
+  }
+  #zctrl {
+    position:absolute; right:calc(12px + env(safe-area-inset-right)); left:auto;
+    top:50%; transform:translateY(-50%);
+    display:flex; gap:10px; flex-direction:column; z-index:12;
+  }
+  #zctrl button {
+    width:60px; height:60px; font:700 27px system-ui,sans-serif; color:#fff;
+    background:rgba(25,30,38,.52); border:1px solid rgba(225,230,240,.38);
+    border-radius:15px; cursor:pointer; opacity:.68; backdrop-filter:blur(4px);
+  }
+  #zctrl button:active { background:rgba(95,105,120,.72); opacity:.95; }
+  #start {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 40%, #1b2430, #05070a 70%);
+    font:16px system-ui,-apple-system,"Segoe UI",sans-serif; color:#e8dcc8; z-index:30;
+  }
+  #start .panel { width:min(94%,460px); padding:24px 18px; }
+  #start h1 { font-size:32px; letter-spacing:7px; text-align:center; color:#f5c97a; }
+  #start .sub { text-align:center; color:#9aa5b1; font-size:14px; margin:7px 0 20px; }
+  #start p { font-size:14px; color:#b7c0ca; margin:16px 0 9px; }
+  .cards { display:flex; flex-direction:column; gap:8px; }
+  .card {
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    min-height:62px; padding:12px 14px; border:1px solid #33404f; border-radius:10px;
+    background:#151b22; cursor:pointer;
+  }
+  .card.sel { border-color:#f5c97a; background:#241d10; }
+  .card .nm { font-weight:600; color:#e8dcc8; }
+  .card .ds { font-size:13px; color:#9aa5b1; margin-top:3px; }
+  .swatch { width:18px; height:18px; border-radius:4px; flex:none; }
+  .counts { display:flex; gap:8px; }
+  .counts button {
+    flex:1; min-height:48px; font:15px system-ui,sans-serif; color:#e8dcc8; background:#151b22;
+    border:1px solid #33404f; border-radius:9px; padding:11px 0; cursor:pointer;
+  }
+  .counts button.sel { border-color:#f5c97a; background:#241d10; color:#f5c97a; }
+  #begin {
+    width:100%; min-height:52px; margin-top:20px; padding:13px 0; font:700 17px system-ui,sans-serif;
+    color:#1a1207; background:#f5c97a; border:0; border-radius:8px; cursor:pointer;
+    font-weight:700; letter-spacing:2px;
+  }
+  #begin:active { background:#d8a94f; }
+  @media (orientation:landscape) {
+    #app { width:min(56.25vh,100vw); height:100vh; }
+  }
+  @media (max-width:520px) {
+    #tip { right:84px; max-width:68%; }
+  }
+  @media (max-width:360px) {
+    #hud { font-size:13px; gap:5px; }
+    #hud button { min-height:42px; font-size:13px; }
+    #zctrl button { width:56px; height:56px; }
+    #feedctrl { width:88px; }
+    #feedctrl button { min-height:44px; font-size:13px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <span>糖 <b id="s-sugar">-</b> 蛋白 <b id="s-protein">-</b></span>
+  <span>工蚁 <b id="s-work">-</b></span>
+  <span>育幼 <b id="s-brood">-</b></span>
+  <span>巢温 <b id="s-temp">-</b></span>
+  <span>深度 <b id="s-z">-</b></span>
+  <span>天数 <b id="s-day">-</b></span>
+  <span id="timectrl">
+    <button id="btn-pause">暂停</button>
+    <button id="btn-speed">x1</button>
+  </span>
+</div>
+
+<div id="feedctrl">
+  <button id="btn-drop">投糖</button>
+  <button id="btn-scatter">撒食关</button>
+  <button id="btn-amt">每次 ×3</button>
+  <button id="btn-freq">间隔 3s</button>
+</div>
+
+<div id="info"></div>
+<div id="tip">单指拖动 · 双指缩放 · 左侧按钮切层<br>轻点地面投放食物（从天空落下，不会掉进巢穴）</div>
+<div id="zctrl">
+  <button id="z-up">▲</button>
+  <button id="z-dn">▼</button>
+</div>
+
+<div id="start">
+  <div class="panel">
+    <h1>蚁穴</h1>
+    <div class="sub">像素地下蚁巢模拟 · 3D 体素版</div>
+    <p>选择你的蚁后</p>
+    <div id="queens" class="cards"></div>
+    <p>初始工蚁数量</p>
+    <div id="counts" class="counts"></div>
+    <button id="begin">开始挖巢</button>
+  </div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   蚁穴模拟 Demo —— 3D 体素世界 / 俯视角 / 逐层查看
+   坐标: x(0..WX-1) y(0..WY-1) 水平; z(0..WZ-1) 深度, 0=最上层
+   索引: i = (z*WY + y)*WX + x
+   ========================================================= */
+
+const WX = 100, WY = 100, WZ = 100;
+const N = WX * WY * WZ;
+const WXY = WX * WY;
+const REVEAL_R = 4;                    // 空气周围点亮的半径
+const idx = (x, y, z) => (z * WY + y) * WX + x;
+const inb = (x, y, z) => x >= 0 && x < WX && y >= 0 && y < WY && z >= 0 && z < WZ;
+
+const M_SKY = 0, M_AIR = 1, M_HUMUS = 2, M_SAND = 3, M_CLAY = 4, M_GRAVEL = 5, M_ROCK = 6, M_WATER = 7;
+const MAT_NAME = ['天空', '巢道', '腐殖土', '沙土', '黏土', '砾石', '岩层', '地下水'];
+const BASE = {
+  [M_HUMUS]:  [86, 58, 34],
+  [M_SAND]:   [150, 126, 80],
+  [M_CLAY]:   [116, 80, 56],
+  [M_GRAVEL]: [104, 100, 96],
+  [M_ROCK]:   [78, 78, 84]
+};
+const DIRS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+
+// ---------- 世界数据 ----------
+const mat = new Uint8Array(N);
+const moist = new Float32Array(N);
+const temp = new Float32Array(N);
+const oxy = new Float32Array(N);
+const surfArr = new Uint8Array(WXY);   // 每列地表高度
+
+// 活跃区（巢道及其相邻土），只模拟这里的环境
+const activeFlag = new Uint8Array(N);
+const activeList = new Int32Array(N);
+let activeLen = 0;
+
+// 已探索掩码：空气周围一定范围内可见，其余为纯黑（矮人要塞式）
+const seen = new Uint8Array(N);
+
+// 光照场：-1 表示未计算（回退到按深度估算）
+const light = new Float32Array(N).fill(-1);
+let lightDirty = false;
+
+// 流场：到地表 / 到蚁后 / 到最近已知食物 / 到挖掘前沿 / 到育幼室 / 到粮仓
+const surfField = new Uint16Array(N);
+const nestField = new Uint16Array(N);
+const foodField = new Uint16Array(N);
+const digField = new Uint16Array(N);
+const nurseryField = new Uint16Array(N);
+const granaryField = new Uint16Array(N);
+const bfsQ = new Int32Array(N);
+const planFlag = new Uint8Array(N);   // 该格是否在挖掘计划中
+
+// 信息素轨迹：觅食者带着食物返巢时沿途释放，会随时间挥发
+const phero = new Float32Array(N);
+const pheroFlag = new Uint8Array(N);
+const pheroList = [];
+function depositPhero(i, amt) {
+  if (pheroFlag[i] === 0) { pheroFlag[i] = 1; pheroList.push(i); }
+  phero[i] = Math.min(4, phero[i] + amt);
+}
+function evaporatePhero() {
+  for (let k = 0; k < pheroList.length; k++) {
+    const i = pheroList[k];
+    phero[i] *= 0.99;
+    if (phero[i] < 0.01) {
+      phero[i] = 0; pheroFlag[i] = 0;
+      pheroList[k] = pheroList[pheroList.length - 1];
+      pheroList.pop(); k--;
+    }
+  }
+}
+
+// 食物：玩家投放，未发现(known=false)时只有侦察蚁碰到才会被登记
+let foodDirty = true;
+let dropType = 'sugar';    // 当前投放类型：sugar(糖) / protein(蛋白)
+
+function hasKnownFood() {
+  for (const f of colony.foods) if (f.known && f.amount > 0) return true;
+  return false;
+}
+function nearestFoodTo(a, knownOnly) {
+  let best = null, bd = 1e9;
+  for (const f of colony.foods) {
+    if (knownOnly && !f.known) continue;
+    if (f.amount <= 0) continue;
+    const d = (f.x - a.x) ** 2 + (f.y - a.y) ** 2 + (f.z - a.z) ** 2;
+    if (d < bd) { bd = d; best = f; }
+  }
+  return best;
+}
+// 从上往下的射线：落到最后一个"天空格"（地表），不会掉进巢穴
+function raycastSurface(x, y) {
+  if (x < 0 || x >= WX || y < 0 || y >= WY) return -1;
+  let z = 0;
+  while (z + 1 < WZ && mat[idx(x, y, z + 1)] === M_SKY) z++;
+  return passable(idx(x, y, z)) ? z : -1;
+}
+function dropFood(px, py) {
+  const g = screenToGrid(px, py);
+  const x = Math.floor(g.x), y = Math.floor(g.y);
+  const z = raycastSurface(x, y);
+  if (z < 0) return;
+  colony.foods.push({ x, y, z, type: dropType, amount: 20, known: false });
+  foodDirty = true;
+}
+
+// 随机撒食（开关开启后按频率在整个地图地表随机投放）
+let scatterOn = false, scatterIdx = 1;
+const SCATTER_AMTS = [1, 3, 5, 10];
+const SCATTER_FREQ = [20, 60, 120, 240];          // 单位：sim tick（20/s）
+const SCATTER_FREQ_LABEL = ['1s', '3s', '6s', '12s'];
+let freqIdx = 1, scatterCd = 0;
+
+function scatterFood() {
+  const amt = SCATTER_AMTS[scatterIdx];
+  for (let n = 0; n < amt; n++) {
+    const x = 1 + ((Math.random() * (WX - 2)) | 0);
+    const y = 1 + ((Math.random() * (WY - 2)) | 0);
+    const z = raycastSurface(x, y);
+    if (z < 0) continue;
+    colony.foods.push({ x, y, z, type: Math.random() < 0.5 ? 'sugar' : 'protein', amount: 20, known: false });
+  }
+  foodDirty = true;
+}
+
+function computeFoodField() {
+  foodField.fill(65535);
+  let head = 0, tail = 0;
+  for (const f of colony.foods) {
+    if (!f.known || f.amount <= 0) continue;
+    const s = idx(f.x, f.y, f.z);
+    if (foodField[s] === 65535 && passable(s)) { foodField[s] = 0; bfsQ[tail++] = s; }
+  }
+  while (head < tail) {
+    const cur = bfsQ[head++];
+    const nd = foodField[cur] + 1;
+    const x = cur % WX, y = ((cur / WX) | 0) % WY, z = (cur / WXY) | 0;
+    if (x > 0) { const n = cur - 1; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+    if (x < WX - 1) { const n = cur + 1; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+    if (y > 0) { const n = cur - WX; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+    if (y < WY - 1) { const n = cur + WX; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+    if (z > 0) { const n = cur - WXY; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+    if (z < WZ - 1) { const n = cur + WXY; if (foodField[n] === 65535 && passable(n)) { foodField[n] = nd; bfsQ[tail++] = n; } }
+  }
+}
+
+const airCount = new Uint16Array(WZ);  // 每层巢道数（深度条用）
+
+let dayLight = 1;
+let worldReady = false;
+let camZ = 0;
+
+const colony = {
+  started: false, paused: false, speed: 1, ticks: 0,
+  sugar: 90, protein: 120,       // 碳水化合物（成虫）/ 蛋白质（幼虫、蚁后）
+  queen: null, workers: [], broods: [],
+  foods: [],                     // 玩家投放的食物，不再自动生成
+  jobCount: [0, 0, 0],           // 当前各工种人数：育幼/挖掘/觅食
+  nest: null,                    // 巢穴规划状态
+  chambers: [],                  // 已规划的巢室 {x,y,z,type,r,cells}
+  digPlan: [],                   // 待挖格子队列
+  hasNursery: false, hasGranary: false,
+  nestDirty: true
+};
+
+// =========================================================
+// 世界生成
+// =========================================================
+function val3(x, y, z, s) {
+  return Math.sin(x * 0.09 + s) + Math.sin(y * 0.11 + s * 1.3) + Math.sin(z * 0.07 + s * 0.7)
+    + Math.sin((x + z) * 0.05 + s * 2.1) + Math.sin((y - z) * 0.08 + s * 1.9);
+}
+
+function genWorld() {
+  for (let y = 0; y < WY; y++) {
+    for (let x = 0; x < WX; x++) {
+      let v = Math.sin(x * 0.09 + 1.7) + Math.sin(y * 0.11 + 4.2)
+        + Math.sin((x + y) * 0.05 + 2.1) + Math.sin((x - y) * 0.13 + 3.1);
+      let s = Math.round(9 + v * 1.6);
+      surfArr[y * WX + x] = Math.max(3, Math.min(18, s));
+    }
+  }
+  const seed = Math.random() * 10;
+  for (let z = 0; z < WZ; z++) {
+    for (let y = 0; y < WY; y++) {
+      for (let x = 0; x < WX; x++) {
+        const i = idx(x, y, z);
+        const s = surfArr[y * WX + x];
+        if (z < s) { mat[i] = M_SKY; oxy[i] = 1; moist[i] = 0; temp[i] = 18; continue; }
+        const d = z - s;
+        const n = (val3(x, y, z, seed) + 5) / 10;   // 0..1
+        let m;
+        if (d < 1) m = M_HUMUS;
+        else if (d < 5) m = n < 0.5 ? M_HUMUS : M_SAND;
+        else if (d < 14) m = n < 0.45 ? M_SAND : M_CLAY;
+        else if (d < 30) m = n < 0.6 ? M_CLAY : M_GRAVEL;
+        else if (d < 55) m = n < 0.5 ? M_GRAVEL : M_ROCK;
+        else m = M_ROCK;
+        const raw = val3(x, y, z, seed);
+        if (d > 18 && raw > 3.3) m = M_AIR;                 // 天然溶洞
+        else if (d > 8 && raw < -3.2) m = M_ROCK;           // 岩石团块
+        if (d > 45 && z > 60 && raw > 2.9) m = M_WATER;     // 地下水囊
+        mat[i] = m;
+        let mo = 0.6 - d * 0.012;
+        if (z > 70) mo += 0.4;
+        moist[i] = Math.max(0, Math.min(1, mo));
+        temp[i] = Math.min(46, 18 + d * 0.3);
+        oxy[i] = m === M_AIR ? 0.9 : (m === M_WATER ? 0.05 : 0.08);
+      }
+    }
+  }
+  // 初始可见：地表以上的天空 + 地表附近数层土壤
+  for (let y = 0; y < WY; y++) {
+    for (let x = 0; x < WX; x++) {
+      const s = surfArr[y * WX + x];
+      for (let z = 0; z < s; z++) seen[idx(x, y, z)] = 1;
+      const zmax = Math.min(WZ, s + REVEAL_R);
+      for (let z = s; z < zmax; z++) seen[idx(x, y, z)] = 1;
+    }
+  }
+  worldReady = true;
+}
+
+const passable = i => { const m = mat[i]; return m === M_AIR || m === M_SKY; };
+const diggable = i => { const m = mat[i]; return m !== M_SKY && m !== M_AIR && m !== M_WATER; };
+const clamp255 = v => v < 0 ? 0 : v > 255 ? 255 : v;
+
+function activate(i) {
+  if (!activeFlag[i]) { activeFlag[i] = 1; if (activeLen < N) activeList[activeLen++] = i; }
+}
+function activateAround(i) {
+  activate(i);
+  const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
+  for (const d of DIRS) {
+    const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+    if (inb(nx, ny, nz)) activate(idx(nx, ny, nz));
+  }
+}
+function revealAround(x, y, z, r) {
+  for (let dz = -r; dz <= r; dz++) {
+    const nz = z + dz; if (nz < 0 || nz >= WZ) continue;
+    for (let dy = -r; dy <= r; dy++) {
+      const ny = y + dy; if (ny < 0 || ny >= WY) continue;
+      for (let dx = -r; dx <= r; dx++) {
+        const nx = x + dx; if (nx < 0 || nx >= WX) continue;
+        if (dx * dx + dy * dy + dz * dz <= r * r) seen[idx(nx, ny, nz)] = 1;
+      }
+    }
+  }
+}
+
+function setAir(i) {
+  mat[i] = M_AIR;
+  oxy[i] = Math.max(oxy[i], 0.4);
+  const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
+  if (airCount[z] < 65535) airCount[z]++;
+  activateAround(i);
+  revealAround(x, y, z, REVEAL_R);
+  lightDirty = true;
+}
+
+// 开挖创始竖井与巢室
+function carveFounding(qx, qy) {
+  const s = surfArr[qy * WX + qx];
+  const qz = s + 6;
+  for (let z = s; z <= qz + 1; z++) setAir(idx(qx, qy, z));
+  for (let dx = -3; dx <= 3; dx++)
+    for (let dy = -3; dy <= 3; dy++)
+      for (let dz = -1; dz <= 1; dz++) {
+        const x = qx + dx, y = qy + dy, z = qz + dz;
+        if (inb(x, y, z)) setAir(idx(x, y, z));
+      }
+  return { x: qx, y: qy, z: qz };
+}
+
+// =========================================================
+// 流场计算
+// =========================================================
+function computeSurfaceField() {
+  surfField.fill(65535);
+  let head = 0, tail = 0;
+  for (let i = 0; i < N; i++) if (mat[i] === M_SKY) { surfField[i] = 0; bfsQ[tail++] = i; }
+  while (head < tail) {
+    const cur = bfsQ[head++];
+    const nd = surfField[cur] + 1;
+    if (nd > 30000) continue;
+    const x = cur % WX, y = ((cur / WX) | 0) % WY, z = (cur / WXY) | 0;
+    if (x > 0) { const n = cur - 1; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+    if (x < WX - 1) { const n = cur + 1; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+    if (y > 0) { const n = cur - WX; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+    if (y < WY - 1) { const n = cur + WX; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+    if (z > 0) { const n = cur - WXY; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+    if (z < WZ - 1) { const n = cur + WXY; if (surfField[n] === 65535 && passable(n)) { surfField[n] = nd; bfsQ[tail++] = n; } }
+  }
+}
+
+function computeNestField() {
+  nestField.fill(65535);
+  const q = colony.queen;
+  if (!q) return;
+  const s = idx(Math.round(q.x), Math.round(q.y), Math.round(q.z));
+  if (!passable(s)) return;
+  let head = 0, tail = 0;
+  nestField[s] = 0; bfsQ[tail++] = s;
+  while (head < tail) {
+    const cur = bfsQ[head++];
+    const nd = nestField[cur] + 1;
+    const x = cur % WX, y = ((cur / WX) | 0) % WY, z = (cur / WXY) | 0;
+    if (x > 0) { const n = cur - 1; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+    if (x < WX - 1) { const n = cur + 1; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+    if (y > 0) { const n = cur - WX; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+    if (y < WY - 1) { const n = cur + WX; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+    if (z > 0) { const n = cur - WXY; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+    if (z < WZ - 1) { const n = cur + WXY; if (nestField[n] === 65535 && passable(n)) { nestField[n] = nd; bfsQ[tail++] = n; } }
+  }
+}
+
+// =========================================================
+// 光照：天空可见度（开孔大小） + 沿空腔衰减传播
+// =========================================================
+const LIGHT_RAYS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+const RAY_STEPS = 45;       // 射线最多走多少格
+const RAY_ATTEN = 0.93;     // 每走一格的光衰减
+const AIR_DECAY = 0.85;     // 光在巢道中传播每格衰减
+const LIGHT_DEPTH = 18;     // 无光照时的按深度估算范围
+const AIR_A_LIT = 0.05;     // 受光空气不透明度 5%
+const AIR_A_UNLIT = 0.10;   // 无光空气不透明度 10%
+const UNLIT_AIR = [0, 0, 0];        // 无光空气：纯黑
+const LIT_AIR = [150, 170, 196];    // 受光空气：灰蓝
+
+// 从 (x,y,z) 向斜上方锥形采样，返回 0~1 的天空可见度
+function skyVis(x, y, z) {
+  let sum = 0;
+  for (let r = 0; r < LIGHT_RAYS.length; r++) {
+    const rx = LIGHT_RAYS[r][0], ry = LIGHT_RAYS[r][1];
+    let xx = x, yy = y, mul = 1, hit = 0;
+    for (let s = 0; s < RAY_STEPS; s++) {
+      xx += rx; yy += ry;
+      const zz = z - 1 - s;
+      if (zz < 0) { hit = mul; break; }                 // 冲出世界顶部：见天
+      if (xx < 0 || xx >= WX || yy < 0 || yy >= WY) break;
+      const mm = mat[idx(xx, yy, zz)];
+      if (mm === M_SKY) { hit = mul; break; }           // 见到天空
+      if (mm !== M_AIR) break;                          // 被土石挡住
+      mul *= RAY_ATTEN;
+    }
+    sum += hit;
+  }
+  return sum / LIGHT_RAYS.length;
+}
+
+function computeLight() {
+  // 只给巢道算光；土石保持"未计算"，渲染时回退到按深度估算，避免出现光晕断层
+  light.fill(-1);
+  const q = [];
+  for (let k = 0; k < activeLen; k++) {
+    const i = activeList[k];
+    if (mat[i] !== M_AIR) continue;
+    const v = skyVis(i % WX, ((i / WX) | 0) % WY, (i / WXY) | 0);
+    light[i] = v;
+    if (v > 0.01) q.push(i);
+  }
+  // 光只沿巢道传播
+  let head = 0;
+  while (head < q.length) {
+    const cur = q[head++];
+    const lc = light[cur];
+    if (lc < 0.01) continue;
+    const x = cur % WX, y = ((cur / WX) | 0) % WY, z = (cur / WXY) | 0;
+    for (const d of DIRS) {
+      const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+      if (!inb(nx, ny, nz)) continue;
+      const n = idx(nx, ny, nz);
+      if (mat[n] !== M_AIR || !seen[n]) continue;
+      const v = lc * AIR_DECAY;
+      if (v > light[n] + 0.005) { light[n] = v; q.push(n); }
+    }
+  }
+}
+
+// =========================================================
+// 环境模拟（只跑活跃区）
+// =========================================================
+function envTick() {
+  const surfaceT = 8 + (0.5 + 0.5 * Math.sin(colony.ticks * 0.004)) * 18;
+  for (let k = 0; k < activeLen; k++) {
+    const i = activeList[k];
+    const m = mat[i];
+    if (m === M_SKY) continue;
+    let coef;
+    if (m === M_AIR) coef = 0.45;
+    else if (m === M_WATER) coef = 0.35;
+    else if (m === M_ROCK) coef = 0.006;
+    else coef = 0.04;
+    const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
+    let sm = 0, st = 0, so = 0, c = 0;
+    if (x > 0) { const n = i - 1; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    if (x < WX - 1) { const n = i + 1; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    if (y > 0) { const n = i - WX; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    if (y < WY - 1) { const n = i + WX; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    if (z > 0) { const n = i - WXY; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    if (z < WZ - 1) { const n = i + WXY; sm += moist[n]; st += temp[n]; so += oxy[n]; c++; }
+    const inv = 1 / c;
+    moist[i] += coef * (sm * inv - moist[i]);
+    temp[i] += coef * (st * inv - temp[i]);
+    oxy[i] += coef * (so * inv - oxy[i]);
+
+    if (m === M_AIR) {
+      if (surfField[i] !== 65535) oxy[i] += (1 - oxy[i]) * 0.12;
+      else oxy[i] -= 0.004;
+    } else if (m === M_WATER) oxy[i] = Math.min(oxy[i], 0.08);
+    if (z <= surfArr[y * WX + x] + 1) temp[i] += (surfaceT - temp[i]) * 0.05;
+
+    if (moist[i] < 0) moist[i] = 0; else if (moist[i] > 1) moist[i] = 1;
+    if (oxy[i] < 0) oxy[i] = 0; else if (oxy[i] > 1) oxy[i] = 1;
+    if (temp[i] < 0) temp[i] = 0;
+  }
+}
+
+// =========================================================
+// 移动（流场下降 / 局部贪心）
+// =========================================================
+function stepTo(a, tx, ty, tz) {
+  const dx = tx - a.x, dy = ty - a.y, dz = tz - a.z;
+  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const speed = a.speed * (0.45 + 0.55 * (a.energy === undefined ? 1 : a.energy));
+  if (d <= speed || d < 0.001) { a.x = tx; a.y = ty; a.z = tz; return true; }
+  a.x += dx / d * speed; a.y += dy / d * speed; a.z += dz / d * speed;
+  // 记录朝向（用于画嘴里的东西 / 精灵旋转）
+  if (Math.abs(dx) >= Math.abs(dy)) { if (dx > 0.001) a.fx = 1; else if (dx < -0.001) a.fx = -1; a.fy = 0; }
+  else if (Math.abs(dy) > 0.001) { a.fx = 0; a.fy = dy > 0 ? 1 : -1; }
+  if (Math.abs(dx) > 1e-4 || Math.abs(dy) > 1e-4) a.ang = Math.atan2(dy, dx);
+  return false;
+}
+
+function navigate(a, field) {
+  const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+  if (!inb(cx, cy, cz)) return false;
+  const here = field[idx(cx, cy, cz)];
+  let bv = here, bx = cx, by = cy, bz = cz;
+  for (const d of DIRS) {
+    const nx = cx + d[0], ny = cy + d[1], nz = cz + d[2];
+    if (!inb(nx, ny, nz)) continue;
+    const v = field[idx(nx, ny, nz)];
+    if (v < bv) { bv = v; bx = nx; by = ny; bz = nz; }
+  }
+  if (bv >= here) return false;
+  stepTo(a, bx, by, bz);
+  return true;
+}
+
+function stepToward(a, tx, ty, tz) {
+  const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+  let bd = (cx - tx) * (cx - tx) + (cy - ty) * (cy - ty) + (cz - tz) * (cz - tz);
+  let bx = cx, by = cy, bz = cz;
+  for (const d of DIRS) {
+    const nx = cx + d[0], ny = cy + d[1], nz = cz + d[2];
+    if (!inb(nx, ny, nz) || !passable(idx(nx, ny, nz))) continue;
+    const dd = (nx - tx) * (nx - tx) + (ny - ty) * (ny - ty) + (nz - tz) * (nz - tz);
+    if (dd < bd) { bd = dd; bx = nx; by = ny; bz = nz; }
+  }
+  if (bx === cx && by === cy && bz === cz) return false;
+  stepTo(a, bx, by, bz);
+  return true;
+}
+
+function wander(a) {
+  const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+  const d = DIRS[(Math.random() * 6) | 0];
+  const nx = cx + d[0], ny = cy + d[1], nz = cz + d[2];
+  if (inb(nx, ny, nz) && passable(idx(nx, ny, nz))) stepTo(a, nx, ny, nz);
+  else { a.state = 'IDLE'; a.cd = 6; }
+}
+
+// 追向目标；卡住则退回巢心/随机走，并累计 wait
+function chase(a, tx, ty, tz) {
+  if (stepToward(a, tx, ty, tz)) { a.wait = 0; return; }
+  if (!navigate(a, nestField)) wander(a);
+  a.wait = (a.wait || 0) + 1;
+}
+
+// 进度检测：距离长时间不减小就判定为卡住（返回 true）
+function noProgress(a, d) {
+  if (a.lastD === undefined || d < a.lastD - 0.05) { a.lastD = d; a.stuck = 0; }
+  else a.stuck = (a.stuck || 0) + 1;
+  return a.stuck > 80;
+}
+
+const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+
+// =========================================================
+// 巢穴规划：垂直主井 + 按深度分层的水平巢室
+// =========================================================
+function bfsFrom(starts, field) {
+  field.fill(65535);
+  let head = 0, tail = 0;
+  for (let k = 0; k < starts.length; k++) {
+    const c = starts[k];
+    if (field[c] === 65535 && passable(c)) { field[c] = 0; bfsQ[tail++] = c; }
+  }
+  while (head < tail) {
+    const cur = bfsQ[head++];
+    const nd = field[cur] + 1;
+    const x = cur % WX, y = ((cur / WX) | 0) % WY, z = (cur / WXY) | 0;
+    if (x > 0) { const n = cur - 1; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+    if (x < WX - 1) { const n = cur + 1; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+    if (y > 0) { const n = cur - WX; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+    if (y < WY - 1) { const n = cur + WX; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+    if (z > 0) { const n = cur - WXY; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+    if (z < WZ - 1) { const n = cur + WXY; if (field[n] === 65535 && passable(n)) { field[n] = nd; bfsQ[tail++] = n; } }
+  }
+}
+
+function addPlan(i) { if (planFlag[i]) return; planFlag[i] = 1; colony.digPlan.push(i); }
+function removePlan(i) { if (!planFlag[i]) return; planFlag[i] = 0; const k = colony.digPlan.indexOf(i); if (k >= 0) colony.digPlan.splice(k, 1); }
+
+const CHAMBER_CYCLE = ['nursery', 'granary', 'nursery', 'nursery', 'granary'];
+
+function registerChamber(cx, cy, z, type, r, cells) {
+  colony.chambers.push({ x: cx, y: cy, z, type, r, cells });
+  colony.nestDirty = true;
+}
+
+function initNest(entrance) {
+  colony.nest = {
+    x: entrance.x, y: entrance.y, z0: entrance.z,
+    nextZ: entrance.z + 1,
+    nextChamberZ: entrance.z + 6,
+    chamberIdx: 0,
+    pending: null,
+    maxDepth: Math.min(WZ - 4, entrance.z + 70)
+  };
+  // 创始巢室登记为育幼室
+  const cells = [];
+  for (let dz = -1; dz <= 1; dz++) {
+    const z = entrance.z + dz;
+    for (let dx = -3; dx <= 3; dx++) for (let dy = -3; dy <= 3; dy++) {
+      const x = entrance.x + dx, y = entrance.y + dy;
+      if (inb(x, y, z)) cells.push(idx(x, y, z));
+    }
+  }
+  registerChamber(entrance.x, entrance.y, entrance.z, 'nursery', 3, cells);
+}
+
+function readyChamberCount(type) {
+  let count = 0;
+  for (const ch of colony.chambers) {
+    if (ch.type !== type) continue;
+    let open = 0;
+    for (const c of ch.cells) if (passable(c)) open++;
+    if (open >= ch.cells.length * 0.6) count++;
+  }
+  return count;
+}
+
+function needsExpansion() {
+  let volume = 0;
+  for (let z = 0; z < WZ; z++) volume += airCount[z];
+  const population = colony.workers.length + colony.broods.length;
+  const requiredVolume = 150 + population * 2.5;
+  const nurseryNeed = Math.max(1, Math.ceil(colony.broods.length / 20));
+  const granaryNeed = Math.max(1, Math.ceil((colony.sugar + colony.protein) / 300));
+  return volume < requiredVolume || readyChamberCount('nursery') < nurseryNeed || readyChamberCount('granary') < granaryNeed;
+}
+
+// 按计划持续生成待挖格子：主井向下，到指定深度掏水平巢室
+function ensureNestPlan() {
+  const nest = colony.nest;
+  if (!nest || !needsExpansion()) return;
+  let guard = 0;
+  while (colony.digPlan.length < 30 && guard++ < 300) {
+    if (nest.pending) {
+      const p = nest.pending;
+      while (p.i < p.cells.length) {
+        const c = p.cells[p.i++];
+        if (diggable(c)) { addPlan(c); break; }
+      }
+      if (p.i >= p.cells.length) {
+        registerChamber(p.cx, p.cy, p.z, p.type, p.r, p.cells);
+        nest.pending = null;
+      }
+      continue;
+    }
+    if (nest.nextZ >= nest.maxDepth) break;
+    if (nest.nextZ >= nest.nextChamberZ) {
+      const r = Math.min(5, 2 + Math.floor(colony.workers.length / 25));
+      const cells = [];
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dy * dy > r * r) continue;
+        const x = nest.x + dx, y = nest.y + dy, z = nest.nextZ;
+        if (inb(x, y, z)) cells.push(idx(x, y, z));
+      }
+      nest.pending = {
+        cx: nest.x, cy: nest.y, z: nest.nextZ, r,
+        type: CHAMBER_CYCLE[nest.chamberIdx % CHAMBER_CYCLE.length],
+        cells, i: 0
+      };
+      nest.chamberIdx++;
+      nest.nextChamberZ = nest.nextZ + 7 + nest.chamberIdx * 2;
+      continue;
+    }
+    const z = nest.nextZ;
+    if (diggable(idx(nest.x, nest.y, z))) addPlan(idx(nest.x, nest.y, z));
+    nest.nextZ++;
+  }
+}
+
+function cleanupPlan() {
+  for (let k = colony.digPlan.length - 1; k >= 0; k--) {
+    const i = colony.digPlan[k];
+    if (!diggable(i)) { planFlag[i] = 0; colony.digPlan.splice(k, 1); }
+  }
+}
+
+function chamberCellsOf(type) {
+  const out = [];
+  for (const ch of colony.chambers) {
+    if (type && ch.type !== type) continue;
+    for (const c of ch.cells) out.push(c);
+  }
+  return out;
+}
+
+let nurseryTargets = [];
+function nurseryScore(i) {
+  return Math.abs(temp[i] - 27) / 8
+    + Math.abs(moist[i] - 0.68) * 2
+    + Math.max(0, 0.55 - oxy[i]) * 3;
+}
+function refreshNurseryTargets() {
+  const ranked = [];
+  for (const i of chamberCellsOf('nursery')) if (passable(i)) ranked.push({ i, score: nurseryScore(i) });
+  ranked.sort((a, b) => a.score - b.score);
+  nurseryTargets = ranked.slice(0, 12);
+}
+function broodNeedsMove(b) {
+  if (!b.placed) return true;
+  if ((b.moveCd || 0) > 0 || !nurseryTargets.length) return false;
+  const x = Math.round(b.x), y = Math.round(b.y), z = Math.round(b.z);
+  if (!inb(x, y, z)) return true;
+  return nurseryScore(idx(x, y, z)) > nurseryTargets[0].score + 0.35;
+}
+
+function computeNestFields() {
+  const nCells = chamberCellsOf('nursery').filter(passable);
+  colony.hasNursery = nCells.length > 0;
+  refreshNurseryTargets();
+  bfsFrom(nurseryTargets.length ? nurseryTargets.map(t => t.i) : nCells, nurseryField);
+  const gCells = chamberCellsOf('granary').filter(passable);
+  colony.hasGranary = gCells.length > 0;
+  bfsFrom(gCells, granaryField);
+  // 挖掘前沿流场：从"与计划格相邻的空气格"出发
+  const seeds = [];
+  for (const i of colony.digPlan) {
+    const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
+    for (const d of DIRS) {
+      const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+      if (inb(nx, ny, nz)) { const k = idx(nx, ny, nz); if (passable(k)) seeds.push(k); }
+    }
+  }
+  bfsFrom(seeds, digField);
+}
+
+function adjacentPlanCell(a) {
+  const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+  for (const d of DIRS) {
+    const nx = cx + d[0], ny = cy + d[1], nz = cz + d[2];
+    if (!inb(nx, ny, nz)) continue;
+    const n = idx(nx, ny, nz);
+    if (planFlag[n] && diggable(n)) return n;
+  }
+  return -1;
+}
+
+const fieldD = (i, field) => { const v = field[i]; return v === 65535 ? 1e9 : v; };
+
+// =========================================================
+// 蚁群行为
+// =========================================================
+function spawnWorker(x, y, z, age0) {
+  if (colony.workers.length >= 200) return;
+  colony.workers.push({
+    x, y, z, state: 'IDLE', cd: Math.random() * 20 | 0,
+    carry: null, drop: null, target: null, foodTarget: null, surfTarget: null,
+    digCell: -1, digT: 0, wait: 0, age: age0 || 0, energy: 0.65 + Math.random() * 0.35,
+    speed: 0.22, fx: 1, fy: 0, ang: 0
+  });
+}
+
+// 年龄分工（temporal polyethism）：巢内育幼 -> 挖掘扩建 -> 外出觅食
+const NURSE_AGE = 600, FORAGER_AGE = 1600;
+function casteOf(a) { return a.age < NURSE_AGE ? 0 : a.age < FORAGER_AGE ? 1 : 2; }
+
+function randomSurfaceSpot(a) {
+  const cx = Math.round(a.x), cy = Math.round(a.y);
+  for (let t = 0; t < 24; t++) {
+    const x = (cx + (Math.random() - 0.5) * 26) | 0;
+    const y = (cy + (Math.random() - 0.5) * 26) | 0;
+    if (x < 1 || x >= WX - 1 || y < 1 || y >= WY - 1) continue;
+    const z = surfArr[y * WX + x] - 1;
+    if (z >= 0 && passable(idx(x, y, z))) return { x, y, z };
+  }
+  return null;
+}
+
+function nearestBrood(a, pred) {
+  let best = null, bd = 1e9;
+  for (const b of colony.broods) {
+    if (!pred(b)) continue;
+    const d = (b.x - a.x) ** 2 + (b.y - a.y) ** 2 + (b.z - a.z) ** 2;
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+
+function nurserySpot() {
+  // 优先从温度/湿度/含氧最合适的一组育幼格中选择
+  if (nurseryTargets.length) {
+    const c = nurseryTargets[(Math.random() * nurseryTargets.length) | 0].i;
+    return { x: c % WX, y: ((c / WX) | 0) % WY, z: (c / WXY) | 0 };
+  }
+  const q = colony.queen;
+  for (let t = 0; t < 40; t++) {
+    const x = Math.round(q.x + (Math.random() - 0.5) * 8);
+    const y = Math.round(q.y + (Math.random() - 0.5) * 8);
+    const z = Math.round(q.z + (Math.random() - 0.5) * 4);
+    if (inb(x, y, z) && passable(idx(x, y, z))) return { x, y, z };
+  }
+  return { x: Math.round(q.x), y: Math.round(q.y), z: Math.round(q.z) };
+}
+
+function hardness(m) {
+  return m === M_HUMUS ? 16 : m === M_SAND ? 26 : m === M_CLAY ? 50 : m === M_GRAVEL ? 85 : 160;
+}
+
+const nearQueen = a => {
+  const q = colony.queen;
+  return Math.hypot(a.x - q.x, a.y - q.y, a.z - q.z) < 3;
+};
+const atSurface = a => {
+  const i = idx(Math.round(a.x), Math.round(a.y), Math.round(a.z));
+  return inb(Math.round(a.x), Math.round(a.y), Math.round(a.z)) && mat[i] === M_SKY;
+};
+
+function decide(a) {
+  a.cd = 4;
+  if (a.energy < 0.22) { a.state = 'REST_RETURN'; return; }
+  const total = colony.workers.length || 1;
+  const jc = colony.jobCount;
+  // 年龄决定基础分工，再按群体需求再分配（保证始终有人挖洞、有人觅食）
+  let job = casteOf(a);
+  if (job === 2 && jc[1] < total * 0.4) job = 1;        // 觅食者过多 -> 补挖掘
+  else if (job === 1 && jc[2] < total * 0.25) job = 2;  // 挖掘者过多 -> 补觅食
+  a.job = job;
+
+  const stressed = colony.sugar + colony.protein < 40;  // 缺食时全员支援觅食
+  const nest = colony.nest;
+  const nestDone = nest && !nest.pending && nest.nextZ >= nest.maxDepth && colony.digPlan.length === 0;
+  if (job === 1 && (nestDone || !needsExpansion())) job = 2; // 空间充足时暂停施工
+  if (job === 0) {
+    // 年轻工蚁：巢内育幼，闲着就帮忙挖
+    if (colony.broods.length) {
+      const b = nearestBrood(a, br => br.alive && !br.carried && !br.busy && broodNeedsMove(br));
+      if (b) { b.busy = true; a.target = b; a.wait = 0; a.state = 'FETCH'; return; }
+    }
+    if (colony.protein > 4) {
+      const l = nearestBrood(a, br => br.alive && br.stage === 1 && !br.carried && !br.busy && br.fed < 0.35);
+      if (l) { l.busy = true; a.target = l; a.wait = 0; a.state = 'FEED'; return; }
+    }
+    a.state = 'GOTO_DIG';
+    return;
+  }
+  if (job === 2 || stressed) {
+    if (hasKnownFood()) { a.state = 'GOTO_FOOD'; a.foodTarget = null; return; }
+    a.state = 'SCOUT_OUT'; return;
+  }
+  a.state = 'GOTO_DIG';
+}
+
+// 统计当前工种人数（按 a.job，缺省用年龄阶段）
+function recountJobs() {
+  const jc = colony.jobCount;
+  jc[0] = jc[1] = jc[2] = 0;
+  for (let k = 0; k < colony.workers.length; k++) {
+    const a = colony.workers[k];
+    jc[a.job === undefined ? casteOf(a) : a.job]++;
+  }
+}
+
+function updateWorker(a) {
+  a.age++;
+  if (a.cd > 0) a.cd--;
+  if (a.state !== 'REST') {
+    let drain = 0.00018;
+    if (a.state === 'DIG' || a.state === 'HAUL_OUT') drain = 0.0005;
+    else if (a.state === 'SEARCH' || a.state === 'GOTO_FOOD' || a.state === 'CARRY_FOOD') drain = 0.00038;
+    a.energy = Math.max(0, a.energy - drain);
+  }
+  switch (a.state) {
+    case 'IDLE':
+      if (a.cd <= 0) decide(a);
+      break;
+
+    case 'REST_RETURN':
+      if (nearQueen(a)) { a.state = 'REST'; }
+      else if (!navigate(a, nestField)) wander(a);
+      break;
+
+    case 'REST':
+      if (colony.sugar > 0) { colony.sugar = Math.max(0, colony.sugar - 0.003); a.energy = Math.min(1, a.energy + 0.006); }
+      else a.energy = Math.min(1, a.energy + 0.0005);
+      if (a.energy >= 0.95) { a.state = 'IDLE'; a.cd = 8; }
+      break;
+
+    case 'GOTO_DIG': {
+      if (!needsExpansion()) { a.state = 'IDLE'; a.cd = 15; a.wait = 0; break; }
+      // 到挖掘前沿，挖身边的计划格
+      const near = adjacentPlanCell(a);
+      if (near >= 0) { a.digCell = near; a.digT = 0; a.wait = 0; a.state = 'DIG'; break; }
+      a.wait = (a.wait || 0) + 1;
+      if (a.wait > 220) { a.state = 'IDLE'; a.cd = 10; a.wait = 0; break; }
+      if (!navigate(a, digField)) wander(a);
+      break;
+    }
+
+    case 'DIG': {
+      const i = a.digCell;
+      if (i < 0 || !diggable(i)) { removePlan(i); a.digCell = -1; a.state = 'GOTO_DIG'; break; }
+      const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
+      if (Math.hypot(a.x - x, a.y - y, a.z - z) > 1.6) {
+        if (!stepToward(a, x, y, z)) { a.digCell = -1; a.state = 'GOTO_DIG'; }
+        break;
+      }
+      a.digT++;
+      if (a.digT >= hardness(mat[i])) {
+        const dugMat = mat[i];          // 记录被挖土壤的材质
+        setAir(i);
+        removePlan(i);
+        a.carry = { type: 'soil', mat: dugMat };
+        a.digCell = -1;
+        a.state = 'HAUL_OUT';
+      }
+      break;
+    }
+
+    case 'HAUL_OUT':
+      if (atSurface(a)) { a.carry = null; a.state = 'HAUL_IN'; }
+      else if (!navigate(a, surfField)) wander(a);
+      break;
+
+    case 'HAUL_IN':
+      if (nearQueen(a)) { a.state = 'IDLE'; a.cd = 8; }
+      else if (!navigate(a, nestField)) wander(a);
+      break;
+
+    case 'SCOUT_OUT':
+      if (atSurface(a)) { a.state = 'SEARCH'; a.surfTarget = null; }
+      else if (!navigate(a, surfField)) wander(a);
+      break;
+
+    case 'SEARCH': {
+      if (!atSurface(a)) { a.state = 'SCOUT_OUT'; break; }
+      // 撞见脚边的未知食物 -> 发现并登记（招募开始）
+      const uf = nearestFoodTo(a, false);
+      if (uf && !uf.known && Math.hypot(uf.x - a.x, uf.y - a.y, uf.z - a.z) < 1.8) {
+        uf.known = true; foodDirty = true;
+      }
+      if (hasKnownFood()) { a.state = 'GOTO_FOOD'; a.foodTarget = null; a.wait = 0; break; }
+      // 地表随机搜寻
+      if (!a.surfTarget || a.wait > 60) { a.surfTarget = randomSurfaceSpot(a); a.wait = 0; }
+      if (a.surfTarget && stepToward(a, a.surfTarget.x, a.surfTarget.y, a.surfTarget.z)) { a.wait = 0; }
+      else { wander(a); a.wait += 2; }
+      break;
+    }
+
+    case 'GOTO_FOOD': {
+      // 只要到达任意已知食物旁就取食（避免"目标"与"流场"指向不同食物而原地打转）
+      const eat = nearestFoodTo(a, true);
+      if (eat && Math.hypot(eat.x - a.x, eat.y - a.y, eat.z - a.z) < 1.6) {
+        const take = Math.min(2, eat.amount);
+        eat.amount -= take;
+        a.carry = { type: 'food', foodType: eat.type, amount: take };
+        if (eat.amount <= 0) { colony.foods.splice(colony.foods.indexOf(eat), 1); foodDirty = true; }
+        a.foodTarget = null; a.wait = 0; a.stuck = 0;
+        a.state = 'CARRY_FOOD';
+        break;
+      }
+      if (!hasKnownFood()) { a.state = 'SEARCH'; break; }
+      if (!navigate(a, foodField)) {
+        const f = nearestFoodTo(a, true);
+        if (!f || !stepToward(a, f.x, f.y, f.z)) wander(a);
+      }
+      break;
+    }
+
+    case 'CARRY_FOOD': {
+      // 携带食物返巢：优先送到粮仓，途中释放信息素
+      const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+      const ci = inb(cx, cy, cz) ? idx(cx, cy, cz) : -1;
+      if (ci >= 0) depositPhero(ci, 0.5);
+      const useGranary = colony.hasGranary;
+      const arrived = ci >= 0 && (useGranary ? granaryField[ci] === 0 : nearQueen(a));
+      if (arrived) {
+        const c = a.carry;
+        if (c) { if (c.foodType === 'protein') colony.protein += c.amount; else colony.sugar += c.amount; }
+        a.carry = null; a.state = 'IDLE'; a.cd = 6; a.lastD = undefined; a.stuck = 0;
+      } else {
+        const field = useGranary ? granaryField : nestField;
+        const d0 = ci >= 0 ? fieldD(ci, field) : 1e9;
+        if (!navigate(a, field)) wander(a);
+        if (noProgress(a, d0)) {   // 回不去就交由群体共享（口对口传递）
+          const c = a.carry;
+          if (c) { if (c.foodType === 'protein') colony.protein += c.amount; else colony.sugar += c.amount; }
+          a.carry = null; a.state = 'IDLE'; a.cd = 6; a.lastD = undefined; a.stuck = 0;
+        }
+      }
+      break;
+    }
+
+    case 'FETCH': {
+      const b = a.target;
+      if (!b || !b.alive || b.carried) { if (b) b.busy = false; a.target = null; a.state = 'IDLE'; break; }
+      const d = dist3(a, b);
+      if (d < 1.3) {
+        b.carried = true; b.busy = false;
+        a.carry = b; a.drop = nurserySpot(); a.target = null;
+        a.state = 'CARRY'; a.wait = 0; a.lastD = undefined; a.stuck = 0; break;
+      }
+      if (d > 2.5) { if (colony.hasNursery) navigate(a, nurseryField); else navigate(a, nestField); }
+      else chase(a, b.x, b.y, b.z);
+      if (noProgress(a, d)) { b.busy = false; a.target = null; a.state = 'IDLE'; a.cd = 6; a.lastD = undefined; a.stuck = 0; }
+      break;
+    }
+
+    case 'CARRY': {
+      const b = a.carry;
+      if (!b) { a.state = 'IDLE'; break; }
+      const cx = Math.round(a.x), cy = Math.round(a.y), cz = Math.round(a.z);
+      const ci = inb(cx, cy, cz) ? idx(cx, cy, cz) : -1;
+      // 送到育幼室
+      if (colony.hasNursery && ci >= 0 && nurseryField[ci] === 0) {
+        b.x = a.x; b.y = a.y; b.z = a.z; b.carried = false; b.placed = true; b.busy = false; b.moveCd = 300;
+        a.carry = null; a.drop = null; a.state = 'IDLE'; a.cd = 8; a.lastD = undefined; a.stuck = 0;
+        break;
+      }
+      if (colony.hasNursery) {
+        const d0 = ci >= 0 ? fieldD(ci, nurseryField) : 1e9;
+        if (!navigate(a, nurseryField)) wander(a);
+        if (noProgress(a, d0)) {
+          b.x = a.x; b.y = a.y; b.z = a.z; b.carried = false; b.placed = true; b.busy = false; b.moveCd = 300;
+          a.carry = null; a.drop = null; a.state = 'IDLE'; a.cd = 8; a.lastD = undefined; a.stuck = 0;
+        }
+        break;
+      }
+      const d = a.drop;
+      if (!d) { a.state = 'IDLE'; break; }
+      const dd = Math.hypot(d.x - a.x, d.y - a.y, d.z - a.z);
+      if (dd < 1.3) {
+        b.x = a.x; b.y = a.y; b.z = a.z; b.carried = false; b.placed = true; b.busy = false; b.moveCd = 300;
+        a.carry = null; a.drop = null; a.state = 'IDLE'; a.cd = 8; a.wait = 0; a.lastD = undefined; a.stuck = 0;
+        break;
+      }
+      chase(a, d.x, d.y, d.z);
+      if (noProgress(a, dd)) {
+        b.x = a.x; b.y = a.y; b.z = a.z; b.carried = false; b.placed = true; b.busy = false; b.moveCd = 300;
+        a.carry = null; a.drop = null; a.state = 'IDLE'; a.cd = 8; a.lastD = undefined; a.stuck = 0;
+      }
+      break;
+    }
+
+    case 'FEED': {
+      const b = a.target;
+      if (!b || !b.alive || b.carried) { if (b) b.busy = false; a.target = null; a.state = 'IDLE'; break; }
+      const d = dist3(a, b);
+      if (d < 1.3) {
+        const amt = Math.min(colony.protein, 4);
+        colony.protein -= amt;
+        b.fed = Math.min(1, b.fed + amt * 0.22);
+        b.busy = false;
+        a.target = null; a.state = 'IDLE'; a.cd = 12; a.wait = 0; a.lastD = undefined; a.stuck = 0; break;
+      }
+      if (d > 2.5) { if (colony.hasNursery) navigate(a, nurseryField); else navigate(a, nestField); }
+      else chase(a, b.x, b.y, b.z);
+      if (noProgress(a, d)) { b.busy = false; a.target = null; a.state = 'IDLE'; a.cd = 6; a.lastD = undefined; a.stuck = 0; }
+      break;
+    }
+
+    case 'WANDER':
+      wander(a);
+      break;
+  }
+}
+
+function queenTemp() {
+  const q = colony.queen;
+  const i = idx(Math.round(q.x), Math.round(q.y), Math.round(q.z));
+  return temp[i] || 20;
+}
+
+function updateQueen() {
+  const q = colony.queen;
+  if (q.cd > 0) q.cd--;
+  const tf = Math.max(0.3, Math.min(1.4, 1 - Math.abs(queenTemp() - 24) / 16));
+  if (q.cd <= 0 && colony.sugar >= 2 && colony.protein >= q.eggCost && colony.broods.length < 140) {
+    colony.sugar -= 2;
+    colony.protein -= q.eggCost;
+    let ex = q.x, ey = q.y, ez = q.z;
+    for (let t = 0; t < 8; t++) {
+      const x = Math.round(q.x + (Math.random() - 0.5) * 4);
+      const y = Math.round(q.y + (Math.random() - 0.5) * 4);
+      const z = Math.round(q.z + (Math.random() - 0.5) * 2);
+      if (inb(x, y, z) && passable(idx(x, y, z))) { ex = x; ey = y; ez = z; break; }
+    }
+    colony.broods.push({ x: ex, y: ey, z: ez, stage: 0, t: 0, fed: 0, placed: false, carried: false, alive: true, moveCd: 0 });
+    q.cd = Math.round(q.layInterval / tf);
+  }
+}
+
+function updateBroods() {
+  const tf = Math.max(0.3, Math.min(1.4, 1 - Math.abs(queenTemp() - 24) / 16));
+  for (let k = colony.broods.length - 1; k >= 0; k--) {
+    const b = colony.broods[k];
+    if ((b.moveCd || 0) > 0) b.moveCd--;
+    if (b.carried) continue;
+    b.t += tf;
+    if (b.stage === 0) {
+      if (b.t > 260) { b.stage = 1; b.t = 0; b.fed = 0.4; }
+    } else if (b.stage === 1) {
+      b.fed = Math.max(0, b.fed - 0.0012);
+      if (b.fed > 0 && colony.protein > 0.1) { colony.protein -= 0.04; b.t += 0.6; }
+      if (b.t > 360) { b.stage = 2; b.t = 0; }
+    } else if (b.t > 340) {
+      spawnWorker(b.x, b.y, b.z);
+      colony.broods.splice(k, 1);
+    }
+  }
+}
+
+let fieldsCd = 0;
+function simTick() {
+  colony.ticks++;
+  if (colony.ticks % 4 === 0) envTick();
+  if (fieldsCd-- <= 0) { computeSurfaceField(); computeNestField(); fieldsCd = 150; }
+  if (lightDirty && colony.ticks % 15 === 0) { computeLight(); lightDirty = false; }
+  if (foodDirty && colony.ticks % 10 === 0) { computeFoodField(); foodDirty = false; }
+  if (colony.ticks % 5 === 0) evaporatePhero();
+  if (colony.ticks % 60 === 0) recountJobs();
+  if (colony.ticks % 20 === 0) { ensureNestPlan(); cleanupPlan(); }
+  if (colony.ticks % 45 === 0) computeNestFields();
+  if (scatterOn) { if (scatterCd-- <= 0) { scatterFood(); scatterCd = SCATTER_FREQ[freqIdx]; } }
+  updateQueen();
+  for (let i = 0; i < colony.workers.length; i++) updateWorker(colony.workers[i]);
+  updateBroods();
+}
+
+// =========================================================
+// 渲染
+// =========================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const app = document.getElementById('app');
+let cw = 0, ch = 0;
+
+const off = document.createElement('canvas');
+off.width = WX; off.height = WY;
+const offCtx = off.getContext('2d');
+const img = offCtx.createImageData(WX, WY);
+
+const cam = { x: 0, y: 0, scale: 6 };
+
+function resize() {
+  cw = canvas.width = Math.max(1, Math.floor(app.clientWidth || window.innerWidth));
+  ch = canvas.height = Math.max(1, Math.floor(app.clientHeight || window.innerHeight));
+  clampCam();
+}
+window.addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(app);
+
+function clampCam() {
+  cam.x = Math.max(-6, Math.min(WX - cw / cam.scale + 6, cam.x));
+  cam.y = Math.max(-6, Math.min(WY - ch / cam.scale + 6, cam.y));
+}
+
+function render() {
+  if (!worldReady) { ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, cw, ch); return; }
+  const d = img.data;
+  const MAXD = 28;                        // 最多透视的层数
+  const bgR = 10, bgG = 12, bgB = 16;     // 空气尽头的暗色雾霭
+  for (let y = 0; y < WY; y++) {
+    const rowBase = y * WX;
+    for (let x = 0; x < WX; x++) {
+      // 从前到后透明叠加：空气半透明，土石不透明
+      let r = 0, g = 0, b = 0, T = 1;
+      const zEnd = Math.min(WZ, camZ + MAXD);
+      for (let z = camZ; z < zEnd; z++) {
+        const i = z * WXY + rowBase + x;
+        let cr, cg, cb, a;
+        if (!seen[i]) {
+          cr = 0; cg = 0; cb = 0; a = 1;      // 未探索：纯黑，且不透光
+        } else {
+          const m = mat[i];
+          // 光照：当前层不受遮罩/无光变暗；深层按开孔光照（没有则回退按深度）
+          let lit;
+          if (z === camZ) lit = 1;
+          else if (m === M_SKY) lit = dayLight;
+          else if (light[i] >= 0) lit = light[i] * (0.2 + 0.8 * dayLight);
+          else lit = Math.max(0, 1 - (z - surfArr[rowBase + x]) / LIGHT_DEPTH);
+          if (m === M_SKY || m === M_AIR) {
+            cr = UNLIT_AIR[0] + (LIT_AIR[0] - UNLIT_AIR[0]) * lit;
+            cg = UNLIT_AIR[1] + (LIT_AIR[1] - UNLIT_AIR[1]) * lit;
+            cb = UNLIT_AIR[2] + (LIT_AIR[2] - UNLIT_AIR[2]) * lit;
+            // 信息素轨迹：偏绿，随浓度增强
+            const ph = phero[i];
+            if (ph > 0.02) {
+              const t = Math.min(0.5, ph * 0.3);
+              cr += (110 - cr) * t; cg += (205 - cg) * t; cb += (95 - cb) * t;
+              a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit + t * 0.35;
+            } else {
+              a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit;
+            }
+          } else if (m === M_WATER) {
+            const k = 0.3 + 0.7 * lit;
+            cr = 46 * k; cg = 100 * k; cb = 156 * k; a = 0.72;
+          } else {
+            const c = BASE[m] || [100, 80, 60];
+            const shade = (1 - moist[i] * 0.42) * (1 - z * 0.0016);
+            const tw = (temp[i] - 12) / 22;
+            const bright = 0.35 + 0.65 * lit;   // 无光处很暗
+            cr = c[0] * shade * (1 + (tw - 0.5) * 0.3) * bright;
+            cg = c[1] * shade * bright;
+            cb = c[2] * shade * (1 - (tw - 0.5) * 0.4) * bright;
+            a = 1;
+          }
+        }
+        const w = a * T;
+        r += cr * w; g += cg * w; b += cb * w;
+        T *= (1 - a);
+        if (T < 0.02) break;
+      }
+      r += bgR * T; g += bgG * T; b += bgB * T;
+      const o = (rowBase + x) * 4;
+      d[o] = clamp255(r); d[o + 1] = clamp255(g); d[o + 2] = clamp255(b); d[o + 3] = 255;
+    }
+  }
+  offCtx.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#05070a';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.drawImage(off, -cam.x * cam.scale, -cam.y * cam.scale, WX * cam.scale, WY * cam.scale);
+  drawEntities();
+  drawAnts();
+  drawDepthBar();
+}
+
+// 计算实体在相机视角下的：可见性、上方空气透过率 T、本地光照明暗 sh
+function entityView(x, y, z) {
+  const zr = Math.round(z);
+  if (zr < camZ) return null;                       // 在相机层之上
+  const xi = Math.round(x), yi = Math.round(y);
+  if (!inb(xi, yi, zr)) return null;
+  const col = yi * WX + xi;
+  let T = 1;
+  for (let zz = camZ; zz < zr; zz++) {
+    const mm = mat[idx(xi, yi, zz)];
+    if (mm !== M_AIR && mm !== M_SKY) return null;  // 被土石遮挡
+    const dz = zz - surfArr[col];
+    const lv = light[idx(xi, yi, zz)];
+    const lit = (lv >= 0 ? lv : Math.max(0, 1 - dz / LIGHT_DEPTH)) * (0.2 + 0.8 * dayLight);
+    T *= 1 - (AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit);
+    if (T < 0.05) break;
+  }
+  const lvA = light[idx(xi, yi, zr)];
+  const litA = (lvA >= 0 ? lvA : Math.max(0, 1 - (zr - surfArr[col]) / LIGHT_DEPTH)) * (0.2 + 0.8 * dayLight);
+  // 当前层的实体不受遮罩影响，全亮显示
+  const sh = zr === camZ ? 1 : 0.2 + 0.8 * litA;
+  return { T: Math.max(0.3, T), sh };
+}
+
+const shadeRGB = (rgb, sh) => `rgb(${(rgb[0] * sh) | 0},${(rgb[1] * sh) | 0},${(rgb[2] * sh) | 0})`;
+
+function drawEntities() {
+  const s = cam.scale;
+  const tx = gx => (gx - cam.x + 0.5) * s;
+  const ty = gy => (gy - cam.y + 0.5) * s;
+  // 玩家投放的食物
+  for (const f of colony.foods) {
+    const v = entityView(f.x, f.y, f.z);
+    if (!v) continue;
+    const sz = Math.max(2, s * (0.4 + Math.min(0.6, f.amount / 14)));
+    ctx.globalAlpha = v.T;
+    ctx.fillStyle = shadeRGB(f.type === 'protein' ? [200, 90, 70] : [245, 225, 130], v.sh);
+    ctx.fillRect(tx(f.x) - sz / 2, ty(f.y) - sz / 2, sz, sz);
+  }
+  // 卵 / 幼虫 / 蛹
+  for (const b of colony.broods) {
+    const v = entityView(b.x, b.y, b.z);
+    if (!v) continue;
+    const base = b.stage === 0 ? [244, 233, 205] : b.stage === 1 ? [230, 211, 138] : [201, 168, 106];
+    const sz = b.stage === 1 ? s * 0.95 : s * 0.65;
+    ctx.globalAlpha = v.T;
+    ctx.fillStyle = shadeRGB(base, v.sh);
+    ctx.fillRect(tx(b.x) - sz / 2, ty(b.y) - sz / 2, sz, sz);
+  }
+  // 蚁后
+  const q = colony.queen;
+  if (q) {
+    const v = entityView(q.x, q.y, q.z);
+    if (v) {
+      const qs = s * 1.7;
+      ctx.globalAlpha = v.T;
+      ctx.fillStyle = shadeRGB(q.rgb, v.sh);
+      ctx.fillRect(tx(q.x) - qs / 2, ty(q.y) - qs / 2, qs, qs);
+      ctx.fillStyle = '#00000044';
+      ctx.fillRect(tx(q.x) - qs / 2, ty(q.y) + qs * 0.15, qs, qs * 0.35);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function carryRGB(c) {
+  if (c.type === 'soil') {
+    const col = BASE[c.mat] || [138, 106, 68];
+    return `rgb(${col[0]},${col[1]},${col[2]})`;
+  }
+  return '#ffffff';
+}
+
+// 工蚁：像素点，按上方空气叠加与本地光照变暗
+function drawAnts() {
+  const s = cam.scale;
+  const sz = s * 0.85;
+  for (let k = 0; k < colony.workers.length; k++) {
+    const a = colony.workers[k];
+    const v = entityView(a.x, a.y, a.z);
+    if (!v) continue;
+    const px = (a.x - cam.x + 0.5) * s;
+    const py = (a.y - cam.y + 0.5) * s;
+    ctx.globalAlpha = v.T;
+    ctx.fillStyle = shadeRGB([232, 129, 31], v.sh);
+    ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+    if (a.carry) {
+      const cs = Math.max(1, s * 0.5);
+      ctx.fillStyle = carryRGB(a.carry);
+      ctx.fillRect(px + a.fx * s * 0.55 - cs / 2, py + a.fy * s * 0.55 - cs / 2, cs, cs);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+const depthBar = { x: 0, y: 40, w: 14, h: 0 };
+const hudPanel = document.getElementById('hud');
+const zControls = document.getElementById('zctrl');
+function drawDepthBar() {
+  depthBar.x = cw - 24;
+  depthBar.y = Math.max(16, hudPanel.offsetHeight + 10);
+  const appRect = app.getBoundingClientRect();
+  const zRect = zControls.getBoundingClientRect();
+  const beforeButtons = zRect.top - appRect.top - depthBar.y - 12;
+  depthBar.h = Math.max(60, Math.min(180, ch * 0.22, beforeButtons));
+  const x = depthBar.x, y = depthBar.y, w = depthBar.w, h = depthBar.h;
+  const rowH = h / WZ;
+  ctx.fillStyle = '#000a';
+  ctx.fillRect(x - 3, y - 6, w + 6, h + 12);
+  let maxAir = 1;
+  for (let z = 0; z < WZ; z++) if (airCount[z] > maxAir) maxAir = airCount[z];
+  for (let z = 0; z < WZ; z++) {
+    const t = airCount[z] / maxAir;
+    ctx.fillStyle = airCount[z] === 0 ? '#20242a' : `rgb(${90 + t * 130},${60 + t * 70},${30 + t * 30})`;
+    ctx.fillRect(x, y + z * rowH, w, Math.max(1, rowH));
+  }
+  ctx.fillStyle = '#f5c97a';
+  ctx.fillRect(x - 3, y + camZ * rowH, w + 6, Math.max(2, rowH));
+  ctx.fillStyle = '#cfe8ff';
+  ctx.font = '11px ui-monospace,Consolas,monospace';
+  ctx.fillText('z' + camZ, x - 2, y - 10);
+  ctx.fillText('100', x - 2, y + h + 14);
+}
+
+// =========================================================
+// HUD / 交互
+// =========================================================
+const elSugar = document.getElementById('s-sugar');
+const elProtein = document.getElementById('s-protein');
+const elWork = document.getElementById('s-work');
+const elBrood = document.getElementById('s-brood');
+const elTemp = document.getElementById('s-temp');
+const elZ = document.getElementById('s-z');
+const elDay = document.getElementById('s-day');
+const elInfo = document.getElementById('info');
+
+function updateHUD() {
+  if (!colony.started) return;
+  let e = 0, l = 0, p = 0;
+  for (const b of colony.broods) { if (b.stage === 0) e++; else if (b.stage === 1) l++; else p++; }
+  elSugar.textContent = Math.round(colony.sugar);
+  elProtein.textContent = Math.round(colony.protein);
+  elWork.textContent = colony.workers.length;
+  elBrood.textContent = e + '/' + l + '/' + p;
+  elTemp.textContent = queenTemp().toFixed(1) + '℃';
+  elZ.textContent = camZ + ' / ' + WZ;
+  elDay.textContent = ((colony.ticks / 1200) | 0) + 1;
+}
+
+function screenToGrid(px, py) {
+  return { x: px / cam.scale + cam.x, y: py / cam.scale + cam.y };
+}
+
+function inspect(px, py) {
+  if (!worldReady) return;
+  const g = screenToGrid(px, py);
+  const x = Math.floor(g.x), y = Math.floor(g.y);
+  if (!inb(x, y, camZ)) { elInfo.style.display = 'none'; return; }
+  const i = idx(x, y, camZ);
+  elInfo.style.display = 'block';
+  elInfo.textContent =
+    `(${x}, ${y}, ${camZ})\n` +
+    `材质 ${MAT_NAME[mat[i]]}\n` +
+    `湿度 ${(moist[i] * 100).toFixed(0)}%\n` +
+    `温度 ${temp[i].toFixed(1)}℃\n` +
+    `含氧 ${(oxy[i] * 100).toFixed(0)}%`;
+}
+
+function setZ(z) { camZ = Math.max(0, Math.min(WZ - 1, z)); }
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'w' || k === 'arrowup') { setZ(camZ - 1); e.preventDefault(); }
+  else if (k === 's' || k === 'arrowdown') { setZ(camZ + 1); e.preventDefault(); }
+});
+document.getElementById('z-up').onclick = () => setZ(camZ - 1);
+document.getElementById('z-dn').onclick = () => setZ(camZ + 1);
+
+// 指针交互
+const pointers = new Map();
+let dragging = false, lastX = 0, lastY = 0, tap = null;
+let pinchDist = 0, pinchX = 0, pinchY = 0;
+const ptr = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+function pinchGesture() {
+  const p = [...pointers.values()];
+  return {
+    dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y),
+    x: (p[0].x + p[1].x) * 0.5,
+    y: (p[0].y + p[1].y) * 0.5
+  };
+}
+function onDepthBar(p) {
+  return p.x >= depthBar.x - 6 && p.x <= depthBar.x + depthBar.w + 6 &&
+    p.y >= depthBar.y - 10 && p.y <= depthBar.y + depthBar.h + 10;
+}
+function zoomAt(factor, px, py) {
+  const before = screenToGrid(px, py);
+  cam.scale = Math.max(2, Math.min(24, cam.scale * factor));
+  const after = screenToGrid(px, py);
+  cam.x += before.x - after.x;
+  cam.y += before.y - after.y;
+  clampCam();
+}
+
+canvas.addEventListener('pointerdown', e => {
+  const p = ptr(e);
+  if (onDepthBar(p)) return;   // 右侧深度条仅作指示，切层只用左侧按钮
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, p);
+  if (pointers.size === 1) { dragging = true; lastX = p.x; lastY = p.y; tap = { x: p.x, y: p.y, t: performance.now(), moved: false }; }
+  else if (pointers.size === 2) {
+    dragging = false; tap = null;
+    const g = pinchGesture();
+    pinchDist = g.dist; pinchX = g.x; pinchY = g.y;
+  } else { dragging = false; tap = null; }
+});
+canvas.addEventListener('pointermove', e => {
+  const p = ptr(e);
+  if (!pointers.has(e.pointerId)) { inspect(p.x, p.y); return; }
+  pointers.set(e.pointerId, p);
+  if (tap && Math.abs(p.x - tap.x) + Math.abs(p.y - tap.y) > 8) tap.moved = true;
+  if (pointers.size === 1 && dragging) {
+    cam.x -= (p.x - lastX) / cam.scale;
+    cam.y -= (p.y - lastY) / cam.scale;
+    lastX = p.x; lastY = p.y; clampCam();
+  } else if (pointers.size === 2) {
+    const g = pinchGesture();
+    if (pinchDist > 0 && g.dist > 0) {
+      cam.x -= (g.x - pinchX) / cam.scale;
+      cam.y -= (g.y - pinchY) / cam.scale;
+      const factor = Math.max(0.85, Math.min(1.15, g.dist / pinchDist));
+      zoomAt(factor, g.x, g.y);
+    }
+    pinchDist = g.dist; pinchX = g.x; pinchY = g.y;
+    tap = null;
+  }
+});
+function endPtr(e) {
+  const wasSingle = pointers.size === 1;
+  pointers.delete(e.pointerId);
+  if (pointers.size === 1) {
+    const p = [...pointers.values()][0];
+    dragging = true; lastX = p.x; lastY = p.y;
+  } else if (!pointers.size) dragging = false;
+  if (pointers.size < 2) pinchDist = 0;
+  // 短按（非拖拽）-> 从天空投放食物
+  if (e.type === 'pointerup' && wasSingle && tap && !tap.moved && (performance.now() - tap.t) < 300 && colony.started) {
+    dropFood(tap.x, tap.y);
+  }
+  tap = null;
+}
+canvas.addEventListener('pointerup', endPtr);
+canvas.addEventListener('pointercancel', endPtr);
+
+// =========================================================
+// 开始界面
+// =========================================================
+const QUEENS = [
+  { name: '快产蚁后', desc: '产卵快、食量小，开局爆兵', layInterval: 85, eggCost: 8, color: '#c98a4b' },
+  { name: '巨力蚁后', desc: '体型大、储食多、更耐环境波动', layInterval: 170, eggCost: 14, color: '#8a4b2a' },
+  { name: '均衡蚁后', desc: '各项均衡，适合新手观察', layInterval: 120, eggCost: 11, color: '#b0603a' }
+];
+let selQueen = 0, selWorkers = 15;
+
+const queensEl = document.getElementById('queens');
+QUEENS.forEach((q, i) => {
+  const d = document.createElement('div');
+  d.className = 'card' + (i === selQueen ? ' sel' : '');
+  d.innerHTML = `<div><div class="nm">${q.name}</div><div class="ds">${q.desc}</div></div>`;
+  const sw = document.createElement('div');
+  sw.className = 'swatch'; sw.style.background = q.color;
+  d.appendChild(sw);
+  d.onclick = () => { selQueen = i; [...queensEl.children].forEach((c, j) => c.classList.toggle('sel', j === i)); };
+  queensEl.appendChild(d);
+});
+
+const countsEl = document.getElementById('counts');
+[5, 15, 30].forEach(n => {
+  const b = document.createElement('button');
+  b.textContent = n + ' 只';
+  if (n === selWorkers) b.classList.add('sel');
+  b.onclick = () => { selWorkers = n; [...countsEl.children].forEach(c => c.classList.toggle('sel', c === b)); };
+  countsEl.appendChild(b);
+});
+
+const btnPause = document.getElementById('btn-pause');
+const btnSpeed = document.getElementById('btn-speed');
+btnPause.onclick = () => { colony.paused = !colony.paused; btnPause.textContent = colony.paused ? '继续' : '暂停'; };
+const SPEEDS = [1, 2, 4];
+let speedIdx = 0;
+btnSpeed.onclick = () => { speedIdx = (speedIdx + 1) % SPEEDS.length; colony.speed = SPEEDS[speedIdx]; btnSpeed.textContent = 'x' + colony.speed; };
+
+const btnDrop = document.getElementById('btn-drop');
+btnDrop.onclick = () => {
+  dropType = dropType === 'sugar' ? 'protein' : 'sugar';
+  btnDrop.textContent = dropType === 'sugar' ? '投糖' : '投蛋白';
+};
+
+const btnScatter = document.getElementById('btn-scatter');
+const btnAmt = document.getElementById('btn-amt');
+const btnFreq = document.getElementById('btn-freq');
+btnScatter.onclick = () => {
+  scatterOn = !scatterOn;
+  scatterCd = 0;
+  btnScatter.textContent = scatterOn ? '撒食开' : '撒食关';
+};
+btnAmt.onclick = () => { scatterIdx = (scatterIdx + 1) % SCATTER_AMTS.length; btnAmt.textContent = '每次 ×' + SCATTER_AMTS[scatterIdx]; };
+btnFreq.onclick = () => { freqIdx = (freqIdx + 1) % SCATTER_FREQ.length; btnFreq.textContent = '间隔 ' + SCATTER_FREQ_LABEL[freqIdx]; };
+
+// =========================================================
+// 初始化与主循环
+// =========================================================
+function startGame() {
+  const qd = QUEENS[selQueen];
+  genWorld();
+  const qx = 50, qy = 50;
+  const c = carveFounding(qx, qy);
+  initNest(c);
+  const qrgb = [parseInt(qd.color.slice(1, 3), 16), parseInt(qd.color.slice(3, 5), 16), parseInt(qd.color.slice(5, 7), 16)];
+  colony.queen = { x: c.x, y: c.y, z: c.z, cd: 60, color: qd.color, rgb: qrgb, eggCost: qd.eggCost, layInterval: qd.layInterval };
+  colony.sugar = 90;
+  colony.protein = 120;
+  colony.foods = [];
+  colony.workers = [];
+  colony.broods = [];
+  colony.ticks = 0;
+  for (let i = 0; i < selWorkers; i++) {
+    // 初始工蚁给出不同年龄，保证一开始就有觅食者
+    spawnWorker(c.x + (Math.random() - 0.5) * 4, c.y + (Math.random() - 0.5) * 4, c.z + (Math.random() - 0.5) * 2,
+      Math.random() * 2600);
+  }
+  computeSurfaceField();
+  computeNestField();
+  computeFoodField();
+  foodDirty = false;
+  ensureNestPlan();
+  computeNestFields();
+  recountJobs();
+  computeLight();
+  lightDirty = false;
+  fieldsCd = 150;
+  camZ = c.z;
+  cam.scale = Math.max(3, Math.min(cw, ch) / 70);
+  cam.x = c.x - cw / cam.scale / 2;
+  cam.y = c.y - ch / cam.scale / 2;
+  clampCam();
+  colony.started = true;
+  app.classList.add('playing');
+  document.getElementById('start').style.display = 'none';
+}
+document.getElementById('begin').onclick = startGame;
+
+resize();
+
+let last = performance.now(), acc = 0;
+const STEP = 1 / 20;
+function loop(now) {
+  requestAnimationFrame(loop);
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.25) dt = 0.25;
+  if (colony.started && !colony.paused) {
+    acc += dt * colony.speed;
+    let guard = 0;
+    while (acc >= STEP && guard < 12) { simTick(); acc -= STEP; guard++; }
+    if (guard >= 12) acc = 0;
+  }
+  render();
+  updateHUD();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
