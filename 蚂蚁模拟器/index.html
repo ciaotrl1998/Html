@@ -407,6 +407,29 @@ function genWorld() {
 
 const passable = i => { const m = mat[i]; return m === M_AIR || m === M_SKY; };
 const diggable = i => { const m = mat[i]; return m !== M_SKY && m !== M_AIR && m !== M_WATER; };
+
+// 蚂蚁不能悬空：脚下有土石（地面）或四周有土石（墙壁）才算有支撑
+function hasFooting(xi, yi, zi) {
+  if (xi < 0 || xi >= WX || yi < 0 || yi >= WY || zi < 0 || zi >= WZ) return true;
+  if (mat[idx(xi, yi, zi)] === M_SKY) return true;   // 地表开阔层，视为站在地面上
+  if (zi + 1 >= WZ || !passable(idx(xi, yi, zi + 1))) return true;
+  if (xi > 0 && !passable(idx(xi - 1, yi, zi))) return true;
+  if (xi < WX - 1 && !passable(idx(xi + 1, yi, zi))) return true;
+  if (yi > 0 && !passable(idx(xi, yi - 1, zi))) return true;
+  if (yi < WY - 1 && !passable(idx(xi, yi + 1, zi))) return true;
+  return false;
+}
+
+// 悬空时向下掉落，直到踩到地面或贴住墙壁；正在竖直攀爬（沿墙上下）时不落
+function applyGravity(a) {
+  if (Math.abs(a.mvz || 0) > 0.5) return;
+  const xi = Math.round(a.x), yi = Math.round(a.y), zi = Math.round(a.z);
+  if (hasFooting(xi, yi, zi)) return;
+  const nz = Math.min(WZ - 1, zi + 1);
+  if (!passable(idx(xi, yi, nz))) return;
+  const stepD = a.speed * 1.8;
+  a.z = (nz - a.z <= stepD) ? nz : a.z + stepD;
+}
 const clamp255 = v => v < 0 ? 0 : v > 255 ? 255 : v;
 
 function activate(i) {
@@ -508,8 +531,10 @@ const AIR_DECAY = 0.85;     // 光在巢道中传播每格衰减
 const LIGHT_DEPTH = 18;     // 无光照时的按深度估算范围
 const AIR_A_LIT = 0.05;     // 受光空气不透明度 5%
 const AIR_A_UNLIT = 0.10;   // 无光空气不透明度 10%
-const UNLIT_AIR = [0, 0, 0];        // 无光空气：纯黑
+const UNLIT_AIR = [44, 50, 58];     // 无光空气：暗灰（不再纯黑）
 const LIT_AIR = [150, 170, 196];    // 受光空气：灰蓝
+const FOG_RGB = [226, 230, 234];    // 深层渐变的灰白色
+const DEPTH_FOG = 22;               // 从当前层往下多少格完全变成灰白
 
 // 从 (x,y,z) 向斜上方锥形采样，返回 0~1 的天空可见度
 function skyVis(x, y, z) {
@@ -607,7 +632,8 @@ function stepTo(a, tx, ty, tz) {
   const dx = tx - a.x, dy = ty - a.y, dz = tz - a.z;
   const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
   const speed = a.speed * (0.45 + 0.55 * (a.energy === undefined ? 1 : a.energy));
-  if (d <= speed || d < 0.001) { a.x = tx; a.y = ty; a.z = tz; return true; }
+  if (d <= speed || d < 0.001) { a.x = tx; a.y = ty; a.z = tz; a.mvz = 0; return true; }
+  a.mvz = dz / d;
   a.x += dx / d * speed; a.y += dy / d * speed; a.z += dz / d * speed;
   // 记录朝向（用于画嘴里的东西 / 精灵旋转）
   if (Math.abs(dx) >= Math.abs(dy)) { if (dx > 0.001) a.fx = 1; else if (dx < -0.001) a.fx = -1; a.fy = 0; }
@@ -862,7 +888,7 @@ const fieldD = (i, field) => { const v = field[i]; return v === 65535 ? 1e9 : v;
 // =========================================================
 function spawnWorker(x, y, z, age0) {
   if (colony.workers.length >= 200) return;
-  const soldier = Math.random() < 0.14;
+  const soldier = colony.workers.length === 0 || Math.random() < 0.14;
   colony.workers.push({
     x, y, z, state: 'IDLE', cd: Math.random() * 20 | 0,
     carry: null, drop: null, target: null, foodTarget: null, surfTarget: null,
@@ -1027,6 +1053,7 @@ function recountJobs() {
 function updateWorker(a) {
   a.age++;
   if (a.cd > 0) a.cd--;
+  a.mvz = 0;
   if (a.state !== 'REST') {
     let drain = 0.00018;
     if (a.state === 'DIG' || a.state === 'HAUL_OUT') drain = 0.0005;
@@ -1247,6 +1274,7 @@ function updateWorker(a) {
       wander(a);
       break;
   }
+  applyGravity(a);
 }
 
 function queenTemp() {
@@ -1343,59 +1371,62 @@ function render() {
   if (!worldReady) { ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, cw, ch); return; }
   const d = img.data;
   const MAXD = 28;                        // 最多透视的层数
-  const bgR = 10, bgG = 12, bgB = 16;     // 空气尽头的暗色雾霭
   for (let y = 0; y < WY; y++) {
     const rowBase = y * WX;
     for (let x = 0; x < WX; x++) {
-      // 从前到后透明叠加：空气半透明，土石不透明
+      // 从前到后透明叠加：空气半透明，土石不透明；越深层越接近灰白
       let r = 0, g = 0, b = 0, T = 1;
       const zEnd = Math.min(WZ, camZ + MAXD);
       for (let z = camZ; z < zEnd; z++) {
         const i = z * WXY + rowBase + x;
+        const m = mat[i];
+        // 光照：当前层不受遮罩/无光变暗；深层按开孔光照（没有则回退按深度）
+        let lit;
+        if (z === camZ) lit = 1;
+        else if (m === M_SKY) lit = dayLight;
+        else if (light[i] >= 0) lit = light[i] * (0.2 + 0.8 * dayLight);
+        else lit = Math.max(0, 1 - (z - surfArr[rowBase + x]) / LIGHT_DEPTH);
         let cr, cg, cb, a;
-        if (!seen[i]) {
-          cr = 0; cg = 0; cb = 0; a = 1;      // 未探索：纯黑，且不透光
-        } else {
-          const m = mat[i];
-          // 光照：当前层不受遮罩/无光变暗；深层按开孔光照（没有则回退按深度）
-          let lit;
-          if (z === camZ) lit = 1;
-          else if (m === M_SKY) lit = dayLight;
-          else if (light[i] >= 0) lit = light[i] * (0.2 + 0.8 * dayLight);
-          else lit = Math.max(0, 1 - (z - surfArr[rowBase + x]) / LIGHT_DEPTH);
-          if (m === M_SKY || m === M_AIR) {
-            cr = UNLIT_AIR[0] + (LIT_AIR[0] - UNLIT_AIR[0]) * lit;
-            cg = UNLIT_AIR[1] + (LIT_AIR[1] - UNLIT_AIR[1]) * lit;
-            cb = UNLIT_AIR[2] + (LIT_AIR[2] - UNLIT_AIR[2]) * lit;
-            // 信息素轨迹：偏绿，随浓度增强
-            const ph = phero[i];
-            if (ph > 0.02) {
-              const t = Math.min(0.5, ph * 0.3);
-              cr += (110 - cr) * t; cg += (205 - cg) * t; cb += (95 - cb) * t;
-              a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit + t * 0.35;
-            } else {
-              a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit;
-            }
-          } else if (m === M_WATER) {
-            const k = 0.3 + 0.7 * lit;
-            cr = 46 * k; cg = 100 * k; cb = 156 * k; a = 0.72;
+        if (m === M_SKY || m === M_AIR) {
+          cr = UNLIT_AIR[0] + (LIT_AIR[0] - UNLIT_AIR[0]) * lit;
+          cg = UNLIT_AIR[1] + (LIT_AIR[1] - UNLIT_AIR[1]) * lit;
+          cb = UNLIT_AIR[2] + (LIT_AIR[2] - UNLIT_AIR[2]) * lit;
+          // 信息素轨迹：偏绿，随浓度增强
+          const ph = phero[i];
+          if (ph > 0.02) {
+            const t = Math.min(0.5, ph * 0.3);
+            cr += (110 - cr) * t; cg += (205 - cg) * t; cb += (95 - cb) * t;
+            a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit + t * 0.35;
           } else {
-            const c = BASE[m] || [100, 80, 60];
-            const shade = (1 - moist[i] * 0.42) * (1 - z * 0.0016);
-            const tw = (temp[i] - 12) / 22;
-            const bright = 0.35 + 0.65 * lit;   // 无光处很暗
-            cr = c[0] * shade * (1 + (tw - 0.5) * 0.3) * bright;
-            cg = c[1] * shade * bright;
-            cb = c[2] * shade * (1 - (tw - 0.5) * 0.4) * bright;
-            a = 1;
+            a = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit;
           }
+        } else if (m === M_WATER) {
+          const k = 0.3 + 0.7 * lit;
+          cr = 46 * k; cg = 100 * k; cb = 156 * k; a = 0.72;
+        } else {
+          const c = BASE[m] || [100, 80, 60];
+          const shade = (1 - moist[i] * 0.42) * (1 - z * 0.0016);
+          const tw = (temp[i] - 12) / 22;
+          const bright = 0.35 + 0.65 * lit;   // 无光处很暗
+          cr = c[0] * shade * (1 + (tw - 0.5) * 0.3) * bright;
+          cg = c[1] * shade * bright;
+          cb = c[2] * shade * (1 - (tw - 0.5) * 0.4) * bright;
+          a = 1;
+        }
+        // 深度渐变：从当前层往下逐渐褪成灰白（取代原来的未探索纯黑）
+        const ft = Math.min(1, (z - camZ) / DEPTH_FOG);
+        if (ft > 0) {
+          cr += (FOG_RGB[0] - cr) * ft;
+          cg += (FOG_RGB[1] - cg) * ft;
+          cb += (FOG_RGB[2] - cb) * ft;
+          a += (1 - a) * ft * 0.5;
         }
         const w = a * T;
         r += cr * w; g += cg * w; b += cb * w;
         T *= (1 - a);
         if (T < 0.02) break;
       }
-      r += bgR * T; g += bgG * T; b += bgB * T;
+      r += FOG_RGB[0] * T; g += FOG_RGB[1] * T; b += FOG_RGB[2] * T;
       const o = (rowBase + x) * 4;
       d[o] = clamp255(r); d[o + 1] = clamp255(g); d[o + 2] = clamp255(b); d[o + 3] = 255;
     }
@@ -1410,7 +1441,7 @@ function render() {
   drawDepthBar();
 }
 
-// 计算实体在相机视角下的：可见性、上方空气透过率 T、本地光照明暗 sh
+// 计算实体在相机视角下的：可见性、上方空气透过率 T、本地光照明暗 sh、深度灰白 fg
 function entityView(x, y, z) {
   const zr = Math.round(z);
   if (zr < camZ) return null;                       // 在相机层之上
@@ -1424,17 +1455,28 @@ function entityView(x, y, z) {
     const dz = zz - surfArr[col];
     const lv = light[idx(xi, yi, zz)];
     const lit = (lv >= 0 ? lv : Math.max(0, 1 - dz / LIGHT_DEPTH)) * (0.2 + 0.8 * dayLight);
-    T *= 1 - (AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit);
+    let aAir = AIR_A_UNLIT + (AIR_A_LIT - AIR_A_UNLIT) * lit;
+    aAir += (1 - aAir) * Math.min(1, (zz - camZ) / DEPTH_FOG) * 0.5;
+    T *= 1 - aAir;
     if (T < 0.05) break;
   }
   const lvA = light[idx(xi, yi, zr)];
   const litA = (lvA >= 0 ? lvA : Math.max(0, 1 - (zr - surfArr[col]) / LIGHT_DEPTH)) * (0.2 + 0.8 * dayLight);
   // 当前层的实体不受遮罩影响，全亮显示
   const sh = zr === camZ ? 1 : 0.2 + 0.8 * litA;
-  return { T: Math.max(0.3, T), sh };
+  const fg = Math.min(1, (zr - camZ) / DEPTH_FOG);
+  return { T: Math.max(0.3, T), sh, fg };
 }
 
-const shadeRGB = (rgb, sh) => `rgb(${(rgb[0] * sh) | 0},${(rgb[1] * sh) | 0},${(rgb[2] * sh) | 0})`;
+function shadeRGB(rgb, sh, fg) {
+  let r = rgb[0] * sh, g = rgb[1] * sh, b = rgb[2] * sh;
+  if (fg) {
+    r += (FOG_RGB[0] - r) * fg;
+    g += (FOG_RGB[1] - g) * fg;
+    b += (FOG_RGB[2] - b) * fg;
+  }
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
+}
 
 function drawEntities() {
   const s = cam.scale;
@@ -1446,7 +1488,7 @@ function drawEntities() {
     if (!v) continue;
     const sz = Math.max(2, s * (0.4 + Math.min(0.6, f.amount / 14)));
     ctx.globalAlpha = v.T;
-    ctx.fillStyle = shadeRGB(f.type === 'protein' ? [200, 90, 70] : [245, 225, 130], v.sh);
+    ctx.fillStyle = shadeRGB(f.type === 'protein' ? [200, 90, 70] : [245, 225, 130], v.sh, v.fg);
     ctx.fillRect(tx(f.x) - sz / 2, ty(f.y) - sz / 2, sz, sz);
   }
   // 卵 / 幼虫 / 蛹
@@ -1456,7 +1498,7 @@ function drawEntities() {
     const base = b.stage === 0 ? [244, 233, 205] : b.stage === 1 ? [230, 211, 138] : [201, 168, 106];
     const sz = b.stage === 1 ? s * 0.95 : s * 0.65;
     ctx.globalAlpha = v.T;
-    ctx.fillStyle = shadeRGB(base, v.sh);
+    ctx.fillStyle = shadeRGB(base, v.sh, v.fg);
     ctx.fillRect(tx(b.x) - sz / 2, ty(b.y) - sz / 2, sz, sz);
   }
   // 蚁后
@@ -1466,7 +1508,7 @@ function drawEntities() {
     if (v) {
       const qs = s * 1.7;
       ctx.globalAlpha = v.T;
-      ctx.fillStyle = shadeRGB(q.rgb, v.sh);
+      ctx.fillStyle = shadeRGB(q.rgb, v.sh, v.fg);
       ctx.fillRect(tx(q.x) - qs / 2, ty(q.y) - qs / 2, qs, qs);
       ctx.fillStyle = '#00000044';
       ctx.fillRect(tx(q.x) - qs / 2, ty(q.y) + qs * 0.15, qs, qs * 0.35);
@@ -1494,7 +1536,7 @@ function drawAnts() {
     const py = (a.y - cam.y + 0.5) * s;
     const sz = s * (a.soldier ? 1.25 : 0.85);
     ctx.globalAlpha = v.T;
-    ctx.fillStyle = shadeRGB(a.soldier ? [198, 74, 42] : [232, 129, 31], v.sh);
+    ctx.fillStyle = shadeRGB(a.soldier ? [198, 74, 42] : [232, 129, 31], v.sh, v.fg);
     ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
     if (a.carry) {
       const cs = Math.max(1, s * 0.5);
@@ -1729,7 +1771,7 @@ function startGame() {
   const c = carveFounding(qx, qy);
   initNest(c);
   const qrgb = [parseInt(qd.color.slice(1, 3), 16), parseInt(qd.color.slice(3, 5), 16), parseInt(qd.color.slice(5, 7), 16)];
-  colony.queen = { x: c.x, y: c.y, z: c.z, cd: 60, color: qd.color, rgb: qrgb, eggCost: qd.eggCost, layInterval: qd.layInterval };
+  colony.queen = { x: c.x, y: c.y, z: c.z + 1, cd: 60, color: qd.color, rgb: qrgb, eggCost: qd.eggCost, layInterval: qd.layInterval };
   colony.sugar = 90;
   colony.protein = 120;
   colony.foods = [];
