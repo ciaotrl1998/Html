@@ -20,35 +20,35 @@
   #app.playing #tip, #app.playing #info { visibility:visible; }
   #hud {
     position:absolute; left:0; right:0; top:0;
-    padding:calc(8px + env(safe-area-inset-top)) 9px 10px;
-    display:flex; flex-wrap:wrap; gap:7px; align-items:center;
-    font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:calc(6px + env(safe-area-inset-top)) 8px 8px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:6px;
+    font:12px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;
     color:#e8dcc8; background:linear-gradient(#000c,#0000); pointer-events:none; z-index:10;
   }
   #hud b { color:#f5c97a; font-weight:600; }
-  #hud > span:not(.btns) {
-    padding:5px 7px; border-radius:7px; background:rgba(13,16,20,.58);
+  #stats {
+    max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    padding:4px 8px; border-radius:7px; background:rgba(13,16,20,.58);
     border:1px solid rgba(255,255,255,.08);
   }
   #timectrl {
-    width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:7px; pointer-events:auto;
+    display:flex; gap:6px; pointer-events:auto;
   }
   #hud button {
-    min-height:44px; padding:8px 7px;
-    font:600 14px system-ui,sans-serif; color:#e8dcc8; background:#2a2419e6;
-    border:1px solid #6d592f; border-radius:9px; cursor:pointer;
+    min-height:28px; padding:4px 12px;
+    font:600 12px system-ui,sans-serif; color:#e8dcc8; background:#2a2419e6;
+    border:1px solid #6d592f; border-radius:7px; cursor:pointer;
   }
   #hud button:active { background:#5a4a2a; }
   #feedctrl {
-    position:absolute; left:calc(10px + env(safe-area-inset-left)); top:50%;
-    transform:translateY(-50%); width:96px; display:grid; grid-template-columns:1fr;
-    gap:8px; z-index:12;
+    position:absolute; left:calc(8px + env(safe-area-inset-left)); top:50%;
+    transform:translateY(-50%); width:72px; display:grid; grid-template-columns:1fr;
+    gap:6px; z-index:12;
   }
   #feedctrl button {
-    min-height:48px; padding:8px 6px; border:1px solid rgba(132,105,52,.75);
-    border-radius:11px; background:rgba(42,36,25,.72); color:#f1e4c9;
-    font:600 14px system-ui,sans-serif; backdrop-filter:blur(4px);
+    min-height:32px; padding:4px 6px; border:1px solid rgba(132,105,52,.75);
+    border-radius:9px; background:rgba(42,36,25,.72); color:#f1e4c9;
+    font:600 12px system-ui,sans-serif; backdrop-filter:blur(4px);
   }
   #feedctrl button:active { background:rgba(109,89,47,.9); }
   #info {
@@ -110,11 +110,11 @@
     #tip { right:84px; max-width:68%; }
   }
   @media (max-width:360px) {
-    #hud { font-size:13px; gap:5px; }
-    #hud button { min-height:42px; font-size:13px; }
+    #hud { font-size:11px; }
+    #hud button { min-height:26px; padding:3px 10px; font-size:11px; }
     #zctrl button { width:56px; height:56px; }
-    #feedctrl { width:88px; }
-    #feedctrl button { min-height:44px; font-size:13px; }
+    #feedctrl { width:64px; }
+    #feedctrl button { min-height:30px; font-size:11px; }
   }
 </style>
 </head>
@@ -123,12 +123,7 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <span>糖 <b id="s-sugar">-</b> 蛋白 <b id="s-protein">-</b></span>
-  <span>工蚁 <b id="s-work">-</b></span>
-  <span>育幼 <b id="s-brood">-</b></span>
-  <span>巢温 <b id="s-temp">-</b></span>
-  <span>深度 <b id="s-z">-</b></span>
-  <span>天数 <b id="s-day">-</b></span>
+  <span id="stats">糖 <b id="s-sugar">-</b> 蛋白 <b id="s-protein">-</b> · 工蚁 <b id="s-work">-</b> · 育幼 <b id="s-brood">-</b> · 巢温 <b id="s-temp">-</b> · 深度 <b id="s-z">-</b> · 天数 <b id="s-day">-</b></span>
   <span id="timectrl">
     <button id="btn-pause">暂停</button>
     <button id="btn-speed">x1</button>
