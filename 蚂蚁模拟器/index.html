@@ -30,10 +30,24 @@
     max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     padding:4px 8px; border-radius:7px; background:rgba(13,16,20,.58);
     border:1px solid rgba(255,255,255,.08);
+    display:flex; align-items:baseline; gap:9px;
+    font-variant-numeric:tabular-nums;
   }
+  #stats i { font-style:normal; display:flex; align-items:baseline; gap:3px; }
+  #stats b { display:inline-block; text-align:left; }
+  #s-sugar, #s-protein { min-width:3ch; }
+  #s-work, #s-soldier { min-width:2.5ch; }
+  #s-brood { min-width:5ch; }
+  #s-temp { min-width:5.5ch; }
   #timectrl {
-    display:flex; gap:6px; pointer-events:auto;
+    display:flex; gap:6px; align-items:center; pointer-events:auto;
   }
+  #dayhud {
+    padding:4px 8px; border-radius:7px; background:rgba(13,16,20,.58);
+    border:1px solid rgba(255,255,255,.08); margin-right:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  #dayhud b { display:inline-block; min-width:2ch; }
   #hud button {
     min-height:28px; padding:4px 12px;
     font:600 12px system-ui,sans-serif; color:#e8dcc8; background:#2a2419e6;
@@ -123,8 +137,16 @@
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <span id="stats">糖 <b id="s-sugar">-</b> 蛋白 <b id="s-protein">-</b> · 工蚁 <b id="s-work">-</b> · 育幼 <b id="s-brood">-</b> · 巢温 <b id="s-temp">-</b> · 深度 <b id="s-z">-</b> · 天数 <b id="s-day">-</b></span>
+  <span id="stats">
+    <i>糖 <b id="s-sugar">-</b></i>
+    <i>蛋白 <b id="s-protein">-</b></i>
+    <i>工蚁 <b id="s-work">-</b></i>
+    <i>育幼 <b id="s-brood">-</b></i>
+    <i>巢温 <b id="s-temp">-</b></i>
+    <i>兵蚁 <b id="s-soldier">-</b></i>
+  </span>
   <span id="timectrl">
+    <span id="dayhud">天数 <b id="s-day">-</b></span>
     <button id="btn-pause">暂停</button>
     <button id="btn-speed">x1</button>
   </span>
@@ -166,10 +188,9 @@
    索引: i = (z*WY + y)*WX + x
    ========================================================= */
 
-const WX = 100, WY = 100, WZ = 100;
+const WX = 150, WY = 150, WZ = 100;
 const N = WX * WY * WZ;
 const WXY = WX * WY;
-const REVEAL_R = 4;                    // 空气周围点亮的半径
 const idx = (x, y, z) => (z * WY + y) * WX + x;
 const inb = (x, y, z) => x >= 0 && x < WX && y >= 0 && y < WY && z >= 0 && z < WZ;
 
@@ -196,7 +217,7 @@ const activeFlag = new Uint8Array(N);
 const activeList = new Int32Array(N);
 let activeLen = 0;
 
-// 已探索掩码：空气周围一定范围内可见，其余为纯黑（矮人要塞式）
+// 已探索掩码：挖开处及其同一层紧邻一圈（3x3）可见，其余为纯黑（矮人要塞式）
 const seen = new Uint8Array(N);
 
 // 光照场：-1 表示未计算（回退到按深度估算）
@@ -318,7 +339,8 @@ const colony = {
   sugar: 90, protein: 120,       // 碳水化合物（成虫）/ 蛋白质（幼虫、蚁后）
   queen: null, workers: [], broods: [],
   foods: [],                     // 玩家投放的食物，不再自动生成
-  jobCount: [0, 0, 0],           // 当前各工种人数：育幼/挖掘/觅食
+  jobCount: [0, 0, 0, 0],        // 当前各工种人数：育幼/挖掘/觅食/兵蚁
+  jobTargets: [0.15, 0.3, 0.4, 0.15],   // 各工种的期望占比
   nest: null,                    // 巢穴规划状态
   chambers: [],                  // 已规划的巢室 {x,y,z,type,r,cells}
   digPlan: [],                   // 待挖格子队列
@@ -351,7 +373,8 @@ function genWorld() {
         const s = surfArr[y * WX + x];
         if (z < s) { mat[i] = M_SKY; oxy[i] = 1; moist[i] = 0; temp[i] = 18; continue; }
         const d = z - s;
-        const n = (val3(x, y, z, seed) + 5) / 10;   // 0..1
+        const raw = val3(x, y, z, seed);
+        const n = (raw + 5) / 10;   // 0..1
         let m;
         if (d < 1) m = M_HUMUS;
         else if (d < 5) m = n < 0.5 ? M_HUMUS : M_SAND;
@@ -359,7 +382,6 @@ function genWorld() {
         else if (d < 30) m = n < 0.6 ? M_CLAY : M_GRAVEL;
         else if (d < 55) m = n < 0.5 ? M_GRAVEL : M_ROCK;
         else m = M_ROCK;
-        const raw = val3(x, y, z, seed);
         if (d > 18 && raw > 3.3) m = M_AIR;                 // 天然溶洞
         else if (d > 8 && raw < -3.2) m = M_ROCK;           // 岩石团块
         if (d > 45 && z > 60 && raw > 2.9) m = M_WATER;     // 地下水囊
@@ -372,13 +394,12 @@ function genWorld() {
       }
     }
   }
-  // 初始可见：地表以上的天空 + 地表附近数层土壤
+  // 初始可见：地表以上的天空 + 地表那一层土壤（不再向下多揭示）
   for (let y = 0; y < WY; y++) {
     for (let x = 0; x < WX; x++) {
       const s = surfArr[y * WX + x];
       for (let z = 0; z < s; z++) seen[idx(x, y, z)] = 1;
-      const zmax = Math.min(WZ, s + REVEAL_R);
-      for (let z = s; z < zmax; z++) seen[idx(x, y, z)] = 1;
+      seen[idx(x, y, s)] = 1;
     }
   }
   worldReady = true;
@@ -399,15 +420,14 @@ function activateAround(i) {
     if (inb(nx, ny, nz)) activate(idx(nx, ny, nz));
   }
 }
-function revealAround(x, y, z, r) {
-  for (let dz = -r; dz <= r; dz++) {
-    const nz = z + dz; if (nz < 0 || nz >= WZ) continue;
-    for (let dy = -r; dy <= r; dy++) {
-      const ny = y + dy; if (ny < 0 || ny >= WY) continue;
-      for (let dx = -r; dx <= r; dx++) {
-        const nx = x + dx; if (nx < 0 || nx >= WX) continue;
-        if (dx * dx + dy * dy + dz * dz <= r * r) seen[idx(nx, ny, nz)] = 1;
-      }
+// 只揭示同一水平层内紧邻一圈（3x3），上下层不因相邻而被点亮
+function revealAround(x, y, z) {
+  if (z < 0 || z >= WZ) return;
+  for (let dy = -1; dy <= 1; dy++) {
+    const ny = y + dy; if (ny < 0 || ny >= WY) continue;
+    for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx; if (nx < 0 || nx >= WX) continue;
+      seen[idx(nx, ny, z)] = 1;
     }
   }
 }
@@ -418,7 +438,7 @@ function setAir(i) {
   const x = i % WX, y = ((i / WX) | 0) % WY, z = (i / WXY) | 0;
   if (airCount[z] < 65535) airCount[z]++;
   activateAround(i);
-  revealAround(x, y, z, REVEAL_R);
+  revealAround(x, y, z);
   lightDirty = true;
 }
 
@@ -842,17 +862,56 @@ const fieldD = (i, field) => { const v = field[i]; return v === 65535 ? 1e9 : v;
 // =========================================================
 function spawnWorker(x, y, z, age0) {
   if (colony.workers.length >= 200) return;
+  const soldier = Math.random() < 0.14;
   colony.workers.push({
     x, y, z, state: 'IDLE', cd: Math.random() * 20 | 0,
     carry: null, drop: null, target: null, foodTarget: null, surfTarget: null,
     digCell: -1, digT: 0, wait: 0, age: age0 || 0, energy: 0.65 + Math.random() * 0.35,
-    speed: 0.22, fx: 1, fy: 0, ang: 0
+    speed: soldier ? 0.26 : 0.22, soldier, job: undefined, jobTTL: 0, patrol: 0,
+    fx: 1, fy: 0, ang: 0
   });
 }
 
 // 年龄分工（temporal polyethism）：巢内育幼 -> 挖掘扩建 -> 外出觅食
 const NURSE_AGE = 600, FORAGER_AGE = 1600;
+const JOB_NURSE = 0, JOB_DIG = 1, JOB_FORAGE = 2, JOB_GUARD = 3;
 function casteOf(a) { return a.age < NURSE_AGE ? 0 : a.age < FORAGER_AGE ? 1 : 2; }
+
+// 根据群体需求计算各工种的期望占比（保证同时有人育幼、挖掘、觅食、巡逻）
+function updateJobTargets() {
+  const total = colony.workers.length || 1;
+  let soldiers = 0;
+  for (let k = 0; k < colony.workers.length; k++) if (colony.workers[k].soldier) soldiers++;
+  const gShare = soldiers / total;
+  const rest = 1 - gShare;
+  const brood = colony.broods.length;
+  const wN = brood ? Math.min(0.45, 0.15 + brood / 90) : 0.12;
+  const wF = (colony.sugar + colony.protein < 60 || hasKnownFood()) ? 0.42 : 0.30;
+  const wD = needsExpansion() ? 0.38 : 0.06;
+  const ws = wN + wF + wD;
+  const t = colony.jobTargets;
+  t[JOB_NURSE] = rest * wN / ws;
+  t[JOB_DIG] = rest * wD / ws;
+  t[JOB_FORAGE] = rest * wF / ws;
+  t[JOB_GUARD] = gShare;
+}
+
+// 按"缺口最大"原则分配工种，并用年龄偏好 + 随机扰动避免一窝蜂
+function chooseJob(a) {
+  if (a.soldier) return JOB_GUARD;
+  const total = colony.workers.length || 1;
+  const jc = colony.jobCount;
+  const t = colony.jobTargets;
+  const age = casteOf(a);
+  const bias = age === 0 ? [1.6, 0.7, 0.5] : age === 1 ? [0.8, 1.6, 0.9] : [0.45, 0.9, 1.6];
+  let best = JOB_FORAGE, bs = -1e9;
+  for (let j = 0; j < 3; j++) {
+    const need = t[j] * total - jc[j];
+    const sc = need + bias[j] * 0.8 + Math.random() * 1.2;
+    if (sc > bs) { bs = sc; best = j; }
+  }
+  return best;
+}
 
 function randomSurfaceSpot(a) {
   const cx = Math.round(a.x), cy = Math.round(a.y);
@@ -864,6 +923,21 @@ function randomSurfaceSpot(a) {
     if (z >= 0 && passable(idx(x, y, z))) return { x, y, z };
   }
   return null;
+}
+
+// 兵蚁巡逻点：巢口附近的地表
+function patrolSpot(a) {
+  const nest = colony.nest;
+  if (nest) {
+    for (let t = 0; t < 24; t++) {
+      const x = (nest.x + (Math.random() - 0.5) * 26) | 0;
+      const y = (nest.y + (Math.random() - 0.5) * 26) | 0;
+      if (x < 1 || x >= WX - 1 || y < 1 || y >= WY - 1) continue;
+      const z = surfArr[y * WX + x] - 1;
+      if (z >= 0 && passable(idx(x, y, z))) return { x, y, z };
+    }
+  }
+  return randomSurfaceSpot(a);
 }
 
 function nearestBrood(a, pred) {
@@ -908,19 +982,16 @@ const atSurface = a => {
 function decide(a) {
   a.cd = 4;
   if (a.energy < 0.22) { a.state = 'REST_RETURN'; return; }
-  const total = colony.workers.length || 1;
-  const jc = colony.jobCount;
-  // 年龄决定基础分工，再按群体需求再分配（保证始终有人挖洞、有人觅食）
-  let job = casteOf(a);
-  if (job === 2 && jc[1] < total * 0.4) job = 1;        // 觅食者过多 -> 补挖掘
-  else if (job === 1 && jc[2] < total * 0.25) job = 2;  // 挖掘者过多 -> 补觅食
-  a.job = job;
-
-  const stressed = colony.sugar + colony.protein < 40;  // 缺食时全员支援觅食
-  const nest = colony.nest;
-  const nestDone = nest && !nest.pending && nest.nextZ >= nest.maxDepth && colony.digPlan.length === 0;
-  if (job === 1 && (nestDone || !needsExpansion())) job = 2; // 空间充足时暂停施工
-  if (job === 0) {
+  // 兵蚁：只巡逻警戒，不参与育幼/挖掘/觅食
+  if (a.soldier) { a.job = JOB_GUARD; a.state = 'PATROL_OUT'; return; }
+  // 保留当前工种一段时间，偶尔或到期后按缺口重新分配
+  if (a.job === undefined || a.job === JOB_GUARD || !(a.jobTTL > 0) || Math.random() < 0.08) {
+    a.job = chooseJob(a);
+    a.jobTTL = 150 + (Math.random() * 300 | 0);
+  }
+  a.jobTTL--;
+  const job = a.job;
+  if (job === JOB_NURSE) {
     // 年轻工蚁：巢内育幼，闲着就帮忙挖
     if (colony.broods.length) {
       const b = nearestBrood(a, br => br.alive && !br.carried && !br.busy && broodNeedsMove(br));
@@ -933,19 +1004,22 @@ function decide(a) {
     a.state = 'GOTO_DIG';
     return;
   }
-  if (job === 2 || stressed) {
-    if (hasKnownFood()) { a.state = 'GOTO_FOOD'; a.foodTarget = null; return; }
-    a.state = 'SCOUT_OUT'; return;
+  if (job === JOB_DIG) {
+    if (colony.digPlan.length === 0 && !needsExpansion()) { a.job = JOB_FORAGE; a.state = 'SCOUT_OUT'; return; }
+    a.state = 'GOTO_DIG';
+    return;
   }
-  a.state = 'GOTO_DIG';
+  if (hasKnownFood()) { a.state = 'GOTO_FOOD'; a.foodTarget = null; return; }
+  a.state = 'SCOUT_OUT';
 }
 
-// 统计当前工种人数（按 a.job，缺省用年龄阶段）
+// 统计当前工种人数（缺省按年龄阶段估算）
 function recountJobs() {
   const jc = colony.jobCount;
-  jc[0] = jc[1] = jc[2] = 0;
+  jc[0] = jc[1] = jc[2] = jc[3] = 0;
   for (let k = 0; k < colony.workers.length; k++) {
     const a = colony.workers[k];
+    if (a.soldier) { a.job = JOB_GUARD; jc[JOB_GUARD]++; continue; }
     jc[a.job === undefined ? casteOf(a) : a.job]++;
   }
 }
@@ -957,6 +1031,7 @@ function updateWorker(a) {
     let drain = 0.00018;
     if (a.state === 'DIG' || a.state === 'HAUL_OUT') drain = 0.0005;
     else if (a.state === 'SEARCH' || a.state === 'GOTO_FOOD' || a.state === 'CARRY_FOOD') drain = 0.00038;
+    else if (a.state === 'PATROL_OUT' || a.state === 'PATROL') drain = 0.00034;
     a.energy = Math.max(0, a.energy - drain);
   }
   switch (a.state) {
@@ -1035,6 +1110,26 @@ function updateWorker(a) {
       else { wander(a); a.wait += 2; }
       break;
     }
+
+    case 'PATROL_OUT':
+      if (atSurface(a)) { a.state = 'PATROL'; a.surfTarget = null; a.patrol = 80 + (Math.random() * 200 | 0); }
+      else if (!navigate(a, surfField)) wander(a);
+      break;
+
+    case 'PATROL': {
+      if (!atSurface(a)) { a.state = 'PATROL_OUT'; break; }
+      if ((a.patrol = (a.patrol || 0) - 1) <= 0) { a.state = 'PATROL_IN'; a.wait = 0; break; }
+      // 在巢口附近来回巡视
+      if (!a.surfTarget || a.wait > 60) { a.surfTarget = patrolSpot(a); a.wait = 0; }
+      if (a.surfTarget && stepToward(a, a.surfTarget.x, a.surfTarget.y, a.surfTarget.z)) a.wait = 0;
+      else { wander(a); a.wait += 2; }
+      break;
+    }
+
+    case 'PATROL_IN':
+      if (nearQueen(a)) { a.state = 'IDLE'; a.cd = 40 + (Math.random() * 120 | 0); }
+      else if (!navigate(a, nestField)) wander(a);
+      break;
 
     case 'GOTO_FOOD': {
       // 只要到达任意已知食物旁就取食（避免"目标"与"流场"指向不同食物而原地打转）
@@ -1207,7 +1302,7 @@ function simTick() {
   if (lightDirty && colony.ticks % 15 === 0) { computeLight(); lightDirty = false; }
   if (foodDirty && colony.ticks % 10 === 0) { computeFoodField(); foodDirty = false; }
   if (colony.ticks % 5 === 0) evaporatePhero();
-  if (colony.ticks % 60 === 0) recountJobs();
+  if (colony.ticks % 30 === 0) { updateJobTargets(); recountJobs(); }
   if (colony.ticks % 20 === 0) { ensureNestPlan(); cleanupPlan(); }
   if (colony.ticks % 45 === 0) computeNestFields();
   if (scatterOn) { if (scatterCd-- <= 0) { scatterFood(); scatterCd = SCATTER_FREQ[freqIdx]; } }
@@ -1391,15 +1486,15 @@ function carryRGB(c) {
 // 工蚁：像素点，按上方空气叠加与本地光照变暗
 function drawAnts() {
   const s = cam.scale;
-  const sz = s * 0.85;
   for (let k = 0; k < colony.workers.length; k++) {
     const a = colony.workers[k];
     const v = entityView(a.x, a.y, a.z);
     if (!v) continue;
     const px = (a.x - cam.x + 0.5) * s;
     const py = (a.y - cam.y + 0.5) * s;
+    const sz = s * (a.soldier ? 1.25 : 0.85);
     ctx.globalAlpha = v.T;
-    ctx.fillStyle = shadeRGB([232, 129, 31], v.sh);
+    ctx.fillStyle = shadeRGB(a.soldier ? [198, 74, 42] : [232, 129, 31], v.sh);
     ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
     if (a.carry) {
       const cs = Math.max(1, s * 0.5);
@@ -1436,7 +1531,7 @@ function drawDepthBar() {
   ctx.fillStyle = '#cfe8ff';
   ctx.font = '11px ui-monospace,Consolas,monospace';
   ctx.fillText('z' + camZ, x - 2, y - 10);
-  ctx.fillText('100', x - 2, y + h + 14);
+  ctx.fillText(String(WZ), x - 2, y + h + 14);
 }
 
 // =========================================================
@@ -1447,20 +1542,21 @@ const elProtein = document.getElementById('s-protein');
 const elWork = document.getElementById('s-work');
 const elBrood = document.getElementById('s-brood');
 const elTemp = document.getElementById('s-temp');
-const elZ = document.getElementById('s-z');
+const elSoldier = document.getElementById('s-soldier');
 const elDay = document.getElementById('s-day');
 const elInfo = document.getElementById('info');
 
 function updateHUD() {
   if (!colony.started) return;
-  let e = 0, l = 0, p = 0;
+  let e = 0, l = 0, p = 0, soldiers = 0;
   for (const b of colony.broods) { if (b.stage === 0) e++; else if (b.stage === 1) l++; else p++; }
+  for (const a of colony.workers) if (a.soldier) soldiers++;
   elSugar.textContent = Math.round(colony.sugar);
   elProtein.textContent = Math.round(colony.protein);
-  elWork.textContent = colony.workers.length;
+  elWork.textContent = colony.workers.length - soldiers;
   elBrood.textContent = e + '/' + l + '/' + p;
   elTemp.textContent = queenTemp().toFixed(1) + '℃';
-  elZ.textContent = camZ + ' / ' + WZ;
+  elSoldier.textContent = soldiers;
   elDay.textContent = ((colony.ticks / 1200) | 0) + 1;
 }
 
@@ -1651,6 +1747,7 @@ function startGame() {
   foodDirty = false;
   ensureNestPlan();
   computeNestFields();
+  updateJobTargets();
   recountJobs();
   computeLight();
   lightDirty = false;
