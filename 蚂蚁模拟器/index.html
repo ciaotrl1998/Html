@@ -1403,8 +1403,17 @@ function render() {
         } else if (m === M_WATER) {
           const k = 0.3 + 0.7 * lit;
           cr = 46 * k; cg = 100 * k; cb = 156 * k; a = 0.72;
+        } else if (z === surfArr[rowBase + x] || (z > 0 && passable(idx(x, y, z - 1)))) {
+          // 表层土石：地表那一层 + 地下空腔底部的地面，显示本来的材质颜色（按受光地面处理）
+          const c = BASE[m] || [100, 80, 60];
+          const shade = (1 - moist[i] * 0.42) * (1 - z * 0.0016);
+          const tw = (temp[i] - 12) / 22;
+          cr = c[0] * shade * (1 + (tw - 0.5) * 0.3);
+          cg = c[1] * shade;
+          cb = c[2] * shade * (1 - (tw - 0.5) * 0.4);
+          a = 1;
         } else {
-          cr = 0; cg = 0; cb = 0; a = 1;      // 土石：一律纯黑，没有空间就是黑的
+          cr = 0; cg = 0; cb = 0; a = 1;      // 被土石包住的深层：没有空间就是黑的
         }
         // 深度渐变只作用于空腔和水：从当前层往下逐渐褪成灰白
         if (m === M_SKY || m === M_AIR || m === M_WATER) {
