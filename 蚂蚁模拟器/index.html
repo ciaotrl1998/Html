@@ -465,14 +465,16 @@ function setAir(i) {
   lightDirty = true;
 }
 
-// 开挖创始竖井与巢室
+// 开挖创始竖井与巢室（球形空腔）
+const FOUNDING_R = 3;
 function carveFounding(qx, qy) {
   const s = surfArr[qy * WX + qx];
   const qz = s + 6;
-  for (let z = s; z <= qz + 1; z++) setAir(idx(qx, qy, z));
-  for (let dx = -3; dx <= 3; dx++)
-    for (let dy = -3; dy <= 3; dy++)
-      for (let dz = -1; dz <= 1; dz++) {
+  for (let z = s; z <= qz; z++) setAir(idx(qx, qy, z));
+  for (let dz = -FOUNDING_R; dz <= FOUNDING_R; dz++)
+    for (let dy = -FOUNDING_R; dy <= FOUNDING_R; dy++)
+      for (let dx = -FOUNDING_R; dx <= FOUNDING_R; dx++) {
+        if (dx * dx + dy * dy + dz * dz > FOUNDING_R * FOUNDING_R) continue;
         const x = qx + dx, y = qy + dy, z = qz + dz;
         if (inb(x, y, z)) setAir(idx(x, y, z));
       }
@@ -739,16 +741,16 @@ function initNest(entrance) {
     pending: null,
     maxDepth: Math.min(WZ - 4, entrance.z + 70)
   };
-  // 创始巢室登记为育幼室
+  // 创始巢室登记为育幼室（与开挖的球形空腔一致）
   const cells = [];
-  for (let dz = -1; dz <= 1; dz++) {
-    const z = entrance.z + dz;
-    for (let dx = -3; dx <= 3; dx++) for (let dy = -3; dy <= 3; dy++) {
-      const x = entrance.x + dx, y = entrance.y + dy;
-      if (inb(x, y, z)) cells.push(idx(x, y, z));
-    }
-  }
-  registerChamber(entrance.x, entrance.y, entrance.z, 'nursery', 3, cells);
+  for (let dz = -FOUNDING_R; dz <= FOUNDING_R; dz++)
+    for (let dy = -FOUNDING_R; dy <= FOUNDING_R; dy++)
+      for (let dx = -FOUNDING_R; dx <= FOUNDING_R; dx++) {
+        if (dx * dx + dy * dy + dz * dz > FOUNDING_R * FOUNDING_R) continue;
+        const x = entrance.x + dx, y = entrance.y + dy, z = entrance.z + dz;
+        if (inb(x, y, z)) cells.push(idx(x, y, z));
+      }
+  registerChamber(entrance.x, entrance.y, entrance.z, 'nursery', FOUNDING_R, cells);
 }
 
 function readyChamberCount(type) {
@@ -794,18 +796,20 @@ function ensureNestPlan() {
     if (nest.nextZ >= nest.nextChamberZ) {
       const r = Math.min(5, 2 + Math.floor(colony.workers.length / 25));
       const cells = [];
-      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > r * r) continue;
-        const x = nest.x + dx, y = nest.y + dy, z = nest.nextZ;
-        if (inb(x, y, z)) cells.push(idx(x, y, z));
-      }
+      for (let dz = -r; dz <= r; dz++)
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            if (dx * dx + dy * dy + dz * dz > r * r) continue;
+            const x = nest.x + dx, y = nest.y + dy, z = nest.nextZ + dz;
+            if (inb(x, y, z)) cells.push(idx(x, y, z));
+          }
       nest.pending = {
         cx: nest.x, cy: nest.y, z: nest.nextZ, r,
         type: CHAMBER_CYCLE[nest.chamberIdx % CHAMBER_CYCLE.length],
         cells, i: 0
       };
       nest.chamberIdx++;
-      nest.nextChamberZ = nest.nextZ + 7 + nest.chamberIdx * 2;
+      nest.nextChamberZ = nest.nextZ + 2 * r + 4 + nest.chamberIdx * 2;
       continue;
     }
     const z = nest.nextZ;
@@ -951,6 +955,51 @@ function randomSurfaceSpot(a) {
   return null;
 }
 
+// 地表堆放点：巢口附近 1~4 格、还没有蚂蚁站着的天空格
+function dumpSpot() {
+  const nest = colony.nest;
+  if (!nest) return null;
+  for (let t = 0; t < 30; t++) {
+    const dx = (Math.random() * 7 | 0) - 3;
+    const dy = (Math.random() * 7 | 0) - 3;
+    const ad = Math.abs(dx) + Math.abs(dy);
+    if (ad < 1 || ad > 4) continue;
+    const x = nest.x + dx, y = nest.y + dy;
+    if (x < 1 || x >= WX - 1 || y < 1 || y >= WY - 1) continue;
+    const z = raycastSurface(x, y);
+    if (z <= 0 || mat[idx(x, y, z)] !== M_SKY) continue;
+    let busy = false;
+    for (const w of colony.workers) {
+      if (Math.abs(w.x - x) < 1 && Math.abs(w.y - y) < 1) { busy = true; break; }
+    }
+    if (busy) continue;
+    return { x, y, z };
+  }
+  return null;
+}
+
+// 把蚂蚁嘴里的土块放到堆放点：该格由天空变成土块，地表抬高 1 格
+function placeSoilBlock(a) {
+  const d = a.dump;
+  if (!d) return false;
+  const i = idx(d.x, d.y, d.z);
+  if (mat[i] !== M_SKY) return false;
+  // 蚂蚁先让开一格，别把自己埋进土块里
+  if (Math.round(a.x) === d.x && Math.round(a.y) === d.y && Math.round(a.z) === d.z) {
+    const dir = DIRS[(Math.random() * 4) | 0];
+    const nx = d.x + dir[0], ny = d.y + dir[1];
+    if (inb(nx, ny, d.z) && passable(idx(nx, ny, d.z))) { a.x = nx; a.y = ny; }
+    else return false;
+  }
+  const m = a.carry && a.carry.type === 'soil' ? a.carry.mat : M_HUMUS;
+  mat[i] = m;
+  const col = d.y * WX + d.x;
+  if (surfArr[col] > d.z) surfArr[col] = d.z;
+  activate(i);
+  lightDirty = true;
+  return true;
+}
+
 // 兵蚁巡逻点：巢口附近的地表
 function patrolSpot(a) {
   const nest = colony.nest;
@@ -992,8 +1041,9 @@ function nurserySpot() {
   return { x: Math.round(q.x), y: Math.round(q.y), z: Math.round(q.z) };
 }
 
+// 挖掘一格所需 tick 数（20 tick/s）：腐殖土约 0.5s，越硬越久
 function hardness(m) {
-  return m === M_HUMUS ? 16 : m === M_SAND ? 26 : m === M_CLAY ? 50 : m === M_GRAVEL ? 85 : 160;
+  return m === M_HUMUS ? 10 : m === M_SAND ? 16 : m === M_CLAY ? 30 : m === M_GRAVEL ? 55 : 110;
 }
 
 const nearQueen = a => {
@@ -1057,7 +1107,7 @@ function updateWorker(a) {
   if (a.state !== 'REST') {
     let drain = 0.00018;
     if (a.state === 'DIG' || a.state === 'HAUL_OUT') drain = 0.0005;
-    else if (a.state === 'SEARCH' || a.state === 'GOTO_FOOD' || a.state === 'CARRY_FOOD') drain = 0.00038;
+    else if (a.state === 'SEARCH' || a.state === 'GOTO_FOOD' || a.state === 'CARRY_FOOD' || a.state === 'HARVEST') drain = 0.00038;
     else if (a.state === 'PATROL_OUT' || a.state === 'PATROL') drain = 0.00034;
     a.energy = Math.max(0, a.energy - drain);
   }
@@ -1108,10 +1158,24 @@ function updateWorker(a) {
       break;
     }
 
-    case 'HAUL_OUT':
-      if (atSurface(a)) { a.carry = null; a.state = 'HAUL_IN'; }
-      else if (!navigate(a, surfField)) wander(a);
+    case 'HAUL_OUT': {
+      if (!atSurface(a)) { if (!navigate(a, surfField)) wander(a); break; }
+      // 到地表后把嘴里的土块叼到巢口附近的堆放点，放下后该处地形抬高 1 格
+      if (!a.dump || mat[idx(a.dump.x, a.dump.y, a.dump.z)] !== M_SKY) { a.dump = dumpSpot(); a.dumpT = 0; }
+      if (!a.dump) { a.carry = null; a.state = 'HAUL_IN'; break; }
+      if (Math.hypot(a.dump.x - a.x, a.dump.y - a.y) < 1.2) {
+        placeSoilBlock(a);
+        a.dump = null; a.carry = null;
+        a.state = 'HAUL_IN';
+        break;
+      }
+      a.dumpT = (a.dumpT || 0) + 1;
+      if (!stepToward(a, a.dump.x, a.dump.y, a.dump.z) || a.dumpT > 180) {
+        a.dump = null; a.carry = null;   // 送不到就丢掉，回去继续干活
+        a.state = 'HAUL_IN';
+      }
       break;
+    }
 
     case 'HAUL_IN':
       if (nearQueen(a)) { a.state = 'IDLE'; a.cd = 8; }
@@ -1159,15 +1223,11 @@ function updateWorker(a) {
       break;
 
     case 'GOTO_FOOD': {
-      // 只要到达任意已知食物旁就取食（避免"目标"与"流场"指向不同食物而原地打转）
+      // 只要到达任意已知食物旁就开始采食（避免"目标"与"流场"指向不同食物而原地打转）
       const eat = nearestFoodTo(a, true);
       if (eat && Math.hypot(eat.x - a.x, eat.y - a.y, eat.z - a.z) < 1.6) {
-        const take = Math.min(2, eat.amount);
-        eat.amount -= take;
-        a.carry = { type: 'food', foodType: eat.type, amount: take };
-        if (eat.amount <= 0) { colony.foods.splice(colony.foods.indexOf(eat), 1); foodDirty = true; }
-        a.foodTarget = null; a.wait = 0; a.stuck = 0;
-        a.state = 'CARRY_FOOD';
+        a.target = eat; a.harvestT = 20;   // 采食需要时间：约 1 秒
+        a.state = 'HARVEST';
         break;
       }
       if (!hasKnownFood()) { a.state = 'SEARCH'; break; }
@@ -1175,6 +1235,20 @@ function updateWorker(a) {
         const f = nearestFoodTo(a, true);
         if (!f || !stepToward(a, f.x, f.y, f.z)) wander(a);
       }
+      break;
+    }
+
+    case 'HARVEST': {
+      const f = a.target;
+      if (!f || f.amount <= 0 || colony.foods.indexOf(f) < 0) { a.target = null; a.state = 'GOTO_FOOD'; break; }
+      if (Math.hypot(f.x - a.x, f.y - a.y, f.z - a.z) > 1.8) { a.target = null; a.state = 'GOTO_FOOD'; break; }
+      if (--a.harvestT > 0) break;
+      const take = Math.min(2, f.amount);
+      f.amount -= take;
+      a.carry = { type: 'food', foodType: f.type, amount: take };
+      if (f.amount <= 0) { colony.foods.splice(colony.foods.indexOf(f), 1); foodDirty = true; }
+      a.target = null; a.foodTarget = null; a.wait = 0; a.stuck = 0;
+      a.state = 'CARRY_FOOD';
       break;
     }
 
@@ -1285,6 +1359,13 @@ function queenTemp() {
 
 function updateQueen() {
   const q = colony.queen;
+  // 蚁后不悬空：脚下被挖空时落到新的地面
+  for (let g = 0; g < 8; g++) {
+    const qx = Math.round(q.x), qy = Math.round(q.y), qz = Math.round(q.z);
+    if (!inb(qx, qy, qz) || qz + 1 >= WZ) break;
+    if (!passable(idx(qx, qy, qz + 1))) break;
+    q.z += 1;
+  }
   if (q.cd > 0) q.cd--;
   const tf = Math.max(0.3, Math.min(1.4, 1 - Math.abs(queenTemp() - 24) / 16));
   if (q.cd <= 0 && colony.sugar >= 2 && colony.protein >= q.eggCost && colony.broods.length < 140) {
@@ -1775,7 +1856,7 @@ function startGame() {
   const c = carveFounding(qx, qy);
   initNest(c);
   const qrgb = [parseInt(qd.color.slice(1, 3), 16), parseInt(qd.color.slice(3, 5), 16), parseInt(qd.color.slice(5, 7), 16)];
-  colony.queen = { x: c.x, y: c.y, z: c.z + 1, cd: 60, color: qd.color, rgb: qrgb, eggCost: qd.eggCost, layInterval: qd.layInterval };
+  colony.queen = { x: c.x + 1, y: c.y, z: c.z + 2, cd: 60, color: qd.color, rgb: qrgb, eggCost: qd.eggCost, layInterval: qd.layInterval };
   colony.sugar = 90;
   colony.protein = 120;
   colony.foods = [];
