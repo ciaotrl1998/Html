@@ -209,19 +209,22 @@
     return { ok: true, post: post };
   }
 
-  function addBuilding(type, x, y, level) {
+  function addBuilding(type, x, y, level, complete) {
     var d = C.BUILD[type];
     var w = d.size[0], h = d.size[1];
+    var bt = complete ? 0 : (C.BUILD_TIME[type] || 0);
     var b = {
       id: World.nextId++, type: type, x: x, y: y, w: w, h: h,
       level: level || 1,
       input: {}, out: {}, reservedIn: {}, reservedOut: {},
       batch: null, rr: 0,
       post: computePost(x, y, w, h),
-      incomeAcc: 0
+      incomeAcc: 0,
+      constructing: bt > 0,
+      buildProgress: 0,
+      buildTime: bt
     };
     World.buildings.push(b);
-    if (d.buildable) World.stats.builds++;
     return b;
   }
 
@@ -440,7 +443,7 @@
     for (bi = 0; bi < World.buildings.length; bi++) {
       var b = World.buildings[bi];
       var d = C.BUILD[b.type];
-      if (!d.buildable) continue;
+      if (!d.buildable || b.constructing) continue;
       var workers = hasWorkers(b);
       var rs = getRecipes(b);
       if (workers) {
@@ -470,7 +473,7 @@
         if (av <= 0) continue;
         for (di = 0; di < World.buildings.length && av > 0; di++) {
           var dst = World.buildings[di];
-          if (dst.id === b.id) continue;
+          if (dst.id === b.id || dst.constructing) continue;
           if (!hasWorkers(dst)) continue;
           if (!accepts(dst, og)) continue;
           var target = needFor(dst, og);
@@ -688,6 +691,7 @@
     for (var i = 0; i < World.buildings.length; i++) {
       var b = World.buildings[i];
       if (b.type === 'manor' || b.type === 'market' || !C.BUILD[b.type].buildable) continue;
+      if (b.constructing) continue;
       var workers = [];
       for (var j = 0; j < World.villagers.length; j++) if (World.villagers[j].assigned === b.id) workers.push(World.villagers[j]);
       var want = wantsProducer(b);
@@ -726,7 +730,7 @@
         }
         continue;
       }
-      if (b.type === 'market') continue;
+      if (b.type === 'market' || b.constructing) continue;
       var attending = false;
       for (var j = 0; j < World.villagers.length; j++) {
         if (World.villagers[j].assigned === b.id && World.villagers[j].state === 'post') { attending = true; break; }
@@ -793,6 +797,8 @@
     rentTick(dt);
     World.taskTimer -= dt;
     if (World.taskTimer <= 0) { updateTasks(); World.taskTimer = 0.3; }
+    constructionTick(dt);
+    autoAssignTick(dt);
     producerTick();
     for (var i = 0; i < World.villagers.length; i++) villagerTick(World.villagers[i], dt);
     productionTick(dt);
@@ -837,10 +843,26 @@
     var chk = canPlace(type, x, y, -1);
     if (!chk.ok) return { ok: false, msg: chk.msg };
     payCost(d.cost);
-    var b = addBuilding(type, x, y, 1);
-    checkUnlocks();
+    var b = addBuilding(type, x, y, 1, false);
     if (root.SFX) root.SFX('build');
     return { ok: true, building: b };
+  }
+
+  function constructionTick(dt) {
+    for (var i = 0; i < World.buildings.length; i++) {
+      var b = World.buildings[i];
+      if (!b.constructing) continue;
+      b.buildProgress += dt;
+      if (b.buildProgress >= b.buildTime) {
+        b.constructing = false;
+        b.buildProgress = b.buildTime;
+        World.stats.builds++;
+        spawnFx(b.x + b.w / 2, b.y + b.h / 2, '建成', '#e8cd82');
+        toast(C.BUILD[b.type].name + ' 建成');
+        checkUnlocks();
+        if (root.SFX) root.SFX('upgrade');
+      }
+    }
   }
 
   function rerouteBuilding(id) {
@@ -968,7 +990,8 @@
     var name = C.VILLAGER.names[(World.hired + World.nextId) % C.VILLAGER.names.length];
     var v = {
       id: World.nextId++, name: name, x: px, y: py, path: null,
-      assigned: null, state: 'idle', taskId: null, carry: null, postId: null, bob: Math.random() * Math.PI * 2
+      assigned: null, state: 'idle', taskId: null, carry: null, postId: null,
+      bob: Math.random() * Math.PI * 2, unassignedSince: World.time
     };
     World.villagers.push(v);
     return v;
@@ -984,12 +1007,23 @@
     return { ok: true };
   }
 
+  function attachVillager(v, bid, target) {
+    v.assigned = bid;
+    v.state = 'idle';
+    v.postId = null;
+    v.path = null;
+    v.unassignedSince = undefined;
+    if (bid === 'market') goTo(v, World.marketDrop.x, World.marketDrop.y);
+    else if (target) goTo(v, target.x, target.y);
+  }
+
   function assignTo(bid) {
     var target;
     if (bid === 'market') target = World.marketDrop;
     else {
       var b = byId(bid);
       if (!b) return { ok: false, msg: '无效建筑' };
+      if (b.constructing) return { ok: false, msg: '建筑还在建造中' };
       target = b.post;
     }
     var best = null, bd = 1e9;
@@ -1000,13 +1034,29 @@
       if (d < bd) { bd = d; best = v; }
     }
     if (!best) return { ok: false, msg: '没有空闲村民' };
-    best.assigned = bid;
-    best.state = 'idle';
-    best.postId = null;
-    best.path = null;
-    if (bid === 'market') goTo(best, World.marketDrop.x, World.marketDrop.y);
-    else goTo(best, target.x, target.y);
+    attachVillager(best, bid, target);
     return { ok: true, villager: best };
+  }
+
+  var autoAssignAcc = 0;
+  function autoAssignTick(dt) {
+    autoAssignAcc += dt;
+    if (autoAssignAcc < 0.6) return;
+    autoAssignAcc = 0;
+    for (var i = 0; i < World.buildings.length; i++) {
+      var b = World.buildings[i];
+      if (!C.BUILD[b.type].buildable || b.constructing) continue;
+      if (assignedCount(b.id) > 0) continue;
+      var best = null, bd = 1e9;
+      for (var j = 0; j < World.villagers.length; j++) {
+        var v = World.villagers[j];
+        if (v.assigned) continue;
+        if (v.unassignedSince !== undefined && World.time - v.unassignedSince < 2) continue;
+        var d = distTiles(v.x, v.y, b.post.x, b.post.y);
+        if (d < bd) { bd = d; best = v; }
+      }
+      if (best) attachVillager(best, b.id, b.post);
+    }
   }
 
   function unassignFrom(bid) {
@@ -1017,6 +1067,7 @@
       v.state = 'idle';
       v.path = null;
       v.postId = null;
+      v.unassignedSince = World.time;
       return { ok: true, villager: v };
     }
     return { ok: false, msg: '没有可撤回的村民' };
@@ -1057,6 +1108,7 @@
   function getStatus(b) {
     if (b.type === 'manor') return { text: '被动收入中', icon: '利', color: '#c9a04e' };
     if (b.type === 'market') return { text: World.villagers.some(function (v) { return v.assigned === 'market'; }) ? '市场运转中' : '无人指派', icon: '市', color: '#7fa8b8' };
+    if (b.constructing) return { text: '建造中', icon: '建', color: '#b8892f' };
     var workers = assignedCount(b.id);
     if (!workers) return { text: '无人指派', icon: '闲', color: '#a89a80' };
     if (b.batch) return { text: '生产中', icon: '工', color: '#7fa8b8' };
@@ -1133,7 +1185,7 @@
     World.totalEarned = 0;
     World.stats = { sales: 0, batches: 0, builds: 0 };
     makeDecor();
-    addBuilding('manor', C.MAP.manorAt.x, C.MAP.manorAt.y, 1);
+    addBuilding('manor', C.MAP.manorAt.x, C.MAP.manorAt.y, 1, true);
     spawnVillager();
     spawnVillager();
     checkUnlocks();
@@ -1183,6 +1235,19 @@
       var v = World.villagers[i];
       if (v.bob === undefined) v.bob = Math.random() * Math.PI * 2;
       if (v.path === undefined) v.path = null;
+      if (v.unassignedSince === undefined && !v.assigned) v.unassignedSince = World.time;
+    }
+    for (i = 0; i < World.buildings.length; i++) {
+      var b = World.buildings[i];
+      if (b.constructing === undefined) b.constructing = false;
+      if (b.buildProgress === undefined) b.buildProgress = 0;
+      if (b.buildTime === undefined) b.buildTime = C.BUILD_TIME[b.type] || 0;
+      if (!b.reservedIn) b.reservedIn = {};
+      if (!b.reservedOut) b.reservedOut = {};
+      if (b.incomeAcc === undefined) b.incomeAcc = 0;
+      if (b.rr === undefined) b.rr = 0;
+      if (!b.input) b.input = {};
+      if (!b.out) b.out = {};
     }
     return true;
   };

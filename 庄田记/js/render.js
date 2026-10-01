@@ -100,10 +100,16 @@
     var c = Render.canvas;
     var w = c.clientWidth || c.parentElement.clientWidth;
     var h = c.clientHeight || c.parentElement.clientHeight;
+    var changed = Math.abs(w - Render.lastW) > 2 || Math.abs(h - Render.lastH) > 2;
+    Render.lastW = w;
+    Render.lastH = h;
     Render.dpr = window.devicePixelRatio || 1;
     c.width = Math.max(1, Math.round(w * Render.dpr));
     c.height = Math.max(1, Math.round(h * Render.dpr));
-    Render.fit();
+    if (changed) {
+      if (!Render.cameraTouched) Render.fit();
+      else clampCam();
+    }
   }
 
   Render.fit = function () {
@@ -115,6 +121,19 @@
     Render.cam.s = s;
     Render.cam.x = (mw - w / s) / 2;
     Render.cam.y = (mh - h / s) / 2;
+    Render.cameraTouched = false;
+  };
+
+  Render.getCam = function () {
+    return { x: Render.cam.x, y: Render.cam.y, s: Render.cam.s, touched: !!Render.cameraTouched };
+  };
+  Render.setCam = function (cam) {
+    if (!cam || typeof cam.s !== 'number' || !isFinite(cam.s)) return;
+    Render.cam.s = clamp(cam.s, 0.4, 2.6);
+    Render.cam.x = cam.x;
+    Render.cam.y = cam.y;
+    Render.cameraTouched = !!cam.touched;
+    clampCam();
   };
 
   function clampCam() {
@@ -169,6 +188,7 @@
 
   function zoomAt(px, py, factor) {
     var before = Render.screenToWorld(px, py);
+    Render.cameraTouched = true;
     Render.cam.s = clamp(Render.cam.s * factor, 0.4, 2.6);
     var after = Render.screenToWorld(px, py);
     Render.cam.x += before.x - after.x;

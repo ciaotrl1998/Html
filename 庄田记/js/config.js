@@ -182,6 +182,10 @@
       chicken: '鸡', duck: '鸭', rabbit: '兔', compost: '肥',
       pickling: '腌', textile: '纺', dyeing: '染', market: '市'
     },
+    BUILD_TIME: {
+      lumber: 6, quarry: 6, workshop: 8, farm: 6, chicken: 8, duck: 10,
+      rabbit: 9, compost: 7, pickling: 10, textile: 12, dyeing: 14
+    },
     UNLOCK: {
       lumber: [], quarry: [], workshop: [], farm: [],
       chicken: ['quarry'], duck: ['lumber'], rabbit: ['workshop'],
@@ -201,7 +205,7 @@
       hireStep: 12
     },
     VILLAGER: {
-      carry: [5, 7, 9, 12, 15],
+      carry: [5, 6, 7, 8, 9],
       speed: [1, 1.15, 1.3, 1.45, 1.6],
       upgrade: UP(60, 6),
       baseSpeed: 4.0,
