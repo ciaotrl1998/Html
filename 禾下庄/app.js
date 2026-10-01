@@ -6,6 +6,8 @@ let game,tab='build',selected=null,placing=null,moving=null,preview=null,toastUn
 try{const saved=JSON.parse(localStorage.getItem(STORAGE));game=saved&&saved.version===1?new Game(saved.state):new Game();}catch{game=new Game();}
 const canvas=$('map'),ctx=canvas.getContext('2d');
 let width=0,height=0,baseTile=1,uiTime=0,saveTime=0,last=0,mapZoom=1,mapPanX=0,mapPanY=0,pinch=null;
+function syncViewport(){const height=window.visualViewport?.height||window.innerHeight;document.documentElement.style.setProperty('--viewport-height',`${height}px`);}
+syncViewport();window.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('resize',syncViewport);
 const iconCache=new Map();
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');toastUntil=performance.now()+2600;}
 function showDragGhost(type,x,y){const ghost=$('drag-ghost');ghost.hidden=false;ghost.style.left=x+'px';ghost.style.top=y+'px';$('drag-ghost-icon').innerHTML=icon(type);$('drag-ghost-name').textContent=TYPES[type].name;}
