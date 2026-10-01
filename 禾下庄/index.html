@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#183f32">
+  <title>禾下庄 · 经营试玩</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="game.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="game-shell">
+    <section class="rent-strip" aria-label="租金">
+      <div class="rent-current"><span>本轮租金</span><strong id="rent-amount">180</strong><i class="coin small"></i></div>
+      <div class="countdown"><span id="rent-label">距收租</span><strong id="timer">01:00</strong></div>
+      <div class="rent-progress"><span id="rent-progress"></span></div>
+    </section>
+    <section class="resource-strip" aria-label="资源信息">
+      <div class="resource-strip-left"><span class="top-resource"><i class="coin"></i><strong id="gold">320</strong></span><span class="top-resource"><i class="material"></i><strong id="materials">0</strong></span></div>
+      <span class="top-people" id="population">村民 2 · 空闲 2</span>
+    </section>
+    <section class="world" id="world">
+      <canvas id="map" aria-label="田庄格子地图，点击建筑管理，选择建筑后点击空地建造"></canvas>
+      <div id="placement" class="placement" hidden><span id="placement-text"></span><button id="cancel-placement" aria-label="取消放置">取消</button></div>
+      <div id="drag-ghost" class="drag-ghost" hidden><span id="drag-ghost-icon"></span><strong id="drag-ghost-name"></strong></div>
+      <div id="toast" class="toast" role="status"></div>
+      <button id="market-select" class="market-label"><span>集市</span><small id="market-workers">无人专职</small></button>
+    </section>
+    <section class="management">
+      <div id="panel" class="panel"></div>
+      <nav class="tabs" aria-label="经营面板">
+        <button data-tab="build" class="active">建造</button><button data-tab="workers">村民 <span id="worker-count">2</span></button><button data-tab="land">地契</button>
+      </nav>
+    </section>
+  </main>
+  <dialog id="dialog"><div id="dialog-body"></div></dialog>
+</body>
+</html>

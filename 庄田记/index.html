@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2b1c0e">
+<title>庄田记 · 古风经营</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="stat"><span class="seal gold">金</span><span id="goldVal">0</span></div>
+    <div class="stat"><span class="seal clay">材</span><span id="matVal">0</span></div>
+    <div class="stat rentStat"><span class="seal red">租</span><b id="rentVal">0</b><i id="rentTime">3:00</i></div>
+    <div class="tools">
+      <button id="btnBuyLand" class="tool buyland">买地</button>
+      <button id="btnHelp" class="tool" title="帮助">帮</button>
+      <button id="btnPause" class="tool" title="暂停">停</button>
+      <button id="btnSpeed" class="tool" title="速度">1×</button>
+      <button id="btnSound" class="tool" title="声音">音</button>
+      <button id="btnMenu" class="tool" title="菜单">单</button>
+    </div>
+  </header>
+  <div id="overdueBar" class="hidden"></div>
+  <main id="stage">
+    <canvas id="game"></canvas>
+  </main>
+  <footer id="bottom">
+    <div id="actions" class="bar">
+      <button id="btnBuild" class="act"><span class="actSeal">建</span>建造</button>
+      <button id="btnHire" class="act"><span class="actSeal">雇</span>雇佣<i id="hireCost"></i></button>
+      <button id="btnVillagers" class="act"><span class="actSeal">民</span>村民</button>
+    </div>
+    <div id="placeBar" class="bar hidden">
+      <div id="placeInfo"></div>
+      <button id="btnPlaceConfirm" class="act primary">确认</button>
+      <button id="btnPlaceCancel" class="act">取消</button>
+    </div>
+    <div id="sheets">
+      <div id="buildMenu" class="sheet hidden"></div>
+      <div id="villagePanel" class="sheet hidden"></div>
+      <div id="buildPanel" class="sheet hidden"></div>
+    </div>
+  </footer>
+  <div id="toasts"></div>
+  <div id="modal" class="hidden"><div class="modalBox" id="modalBox"></div></div>
+</div>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
