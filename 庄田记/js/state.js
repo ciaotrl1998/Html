@@ -11,7 +11,6 @@
     plot: C.MAP.plot,
     market: C.MAP.market,
     buildings: [],
-    store: {},
     gold: 0,
     material: 0,
     rentIndex: 0,
@@ -78,7 +77,8 @@
     var b = {
       id: World.nextId++, type: type, x: x, y: y, w: w, h: h,
       level: level || 1,
-      mode: 'store',
+      mode: 'supply',
+      input: {},
       batch: null, rr: 0,
       incomeAcc: 0,
       constructing: bt > 0,
@@ -122,72 +122,138 @@
     return rs[(b.rr || 0) % rs.length];
   }
 
+  function stockSatisfies(b, r) {
+    if (r.mixedTotal) {
+      var tot = 0;
+      for (var mg = 0; mg < r.mixedGoods.length; mg++) tot += b.input[r.mixedGoods[mg]] || 0;
+      return tot >= r.mixedTotal;
+    }
+    for (var gk in r.in) if ((b.input[gk] || 0) < r.in[gk]) return false;
+    return true;
+  }
+
   function chooseRecipe(b, dry) {
     var rs = getRecipes(b);
     if (!rs.length) return null;
     var start = b.rr || 0;
+    var fallback = null;
     for (var k = 0; k < rs.length; k++) {
       var idx = (start + k) % rs.length;
       var r = rs[idx];
-      var ok = true;
-      if (r.mixedTotal) {
-        var tot = 0;
-        for (var mg = 0; mg < r.mixedGoods.length; mg++) tot += World.store[r.mixedGoods[mg]] || 0;
-        if (tot < r.mixedTotal) ok = false;
-      } else {
-        for (var gk in r.in) if ((World.store[gk] || 0) < r.in[gk]) { ok = false; break; }
+      if (!stockSatisfies(b, r)) continue;
+      var hasInput = r.mixedTotal ? r.mixedTotal > 0 : sumObj(r.in) > 0;
+      if (!hasInput) {
+        if (!fallback) fallback = { idx: idx, r: r };
+        continue;
       }
-      if (ok) {
-        if (!dry) b.rr = (idx + 1) % rs.length;
-        return { idx: idx, r: r };
-      }
+      if (!dry) b.rr = (idx + 1) % rs.length;
+      return { idx: idx, r: r };
+    }
+    if (fallback) {
+      if (!dry) b.rr = (fallback.idx + 1) % rs.length;
+      return fallback;
     }
     return null;
   }
 
-  function consumeInputs(r) {
+  function consumeStock(b, r) {
     if (r.mixedTotal) {
       var need = r.mixedTotal;
-      var order = r.mixedGoods.slice().sort(function (a, b) {
-        return (World.store[b] || 0) - (World.store[a] || 0);
+      var order = r.mixedGoods.slice().sort(function (a, b2) {
+        return (b.input[b2] || 0) - (b.input[a] || 0);
       });
       for (var i = 0; i < order.length && need > 0; i++) {
         var good = order[i];
-        var take = Math.min(need, World.store[good] || 0);
-        if (take > 0) { World.store[good] -= take; need -= take; }
+        var take = Math.min(need, b.input[good] || 0);
+        if (take > 0) { b.input[good] -= take; need -= take; }
       }
       return;
     }
-    for (var k in r.in) World.store[k] = Math.max(0, (World.store[k] || 0) - r.in[k]);
+    for (var k in r.in) b.input[k] = Math.max(0, (b.input[k] || 0) - r.in[k]);
+  }
+
+  function adjacent(a, b) {
+    var dx = Math.max(b.x - (a.x + a.w - 1), a.x - (b.x + b.w - 1));
+    var dy = Math.max(b.y - (a.y + a.h - 1), a.y - (b.y + b.h - 1));
+    if (dx > 1 || dy > 1) return false;
+    if (dx <= 0 && dy <= 0) return false;
+    return true;
+  }
+
+  function acceptsGood(b, g) {
+    var rs = getRecipes(b);
+    for (var i = 0; i < rs.length; i++) {
+      if (rs[i].mixedGoods && rs[i].mixedGoods.indexOf(g) >= 0) return true;
+      if (rs[i].in[g]) return true;
+    }
+    return false;
+  }
+
+  function inputRoom(b, g) {
+    var rs = getRecipes(b);
+    for (var i = 0; i < rs.length; i++) {
+      var r = rs[i];
+      if (r.mixedGoods && r.mixedGoods.indexOf(g) >= 0) {
+        var tot = 0;
+        for (var mg = 0; mg < r.mixedGoods.length; mg++) tot += b.input[r.mixedGoods[mg]] || 0;
+        return Math.max(0, r.mixedTotal - tot);
+      }
+      if (r.in[g]) return Math.max(0, r.in[g] - (b.input[g] || 0));
+    }
+    return 0;
+  }
+
+  function suppliersOf(b, g) {
+    var out = [];
+    for (var i = 0; i < World.buildings.length; i++) {
+      var c = World.buildings[i];
+      if (c.id === b.id || c.constructing) continue;
+      if (!adjacent(c, b)) continue;
+      var rs = getRecipes(c);
+      for (var j = 0; j < rs.length; j++) {
+        if ((rs[j].out[g] || 0) > 0) { out.push(c); break; }
+      }
+    }
+    return out;
   }
 
   function startBatch(b, pick) {
-    consumeInputs(pick.r);
+    consumeStock(b, pick.r);
     b.batch = { out: pick.r.out, material: pick.r.material || 0, cycle: pick.r.cycle, progress: 0 };
   }
 
   function completeBatch(b) {
     var bat = b.batch;
     b.batch = null;
-    var g, gain = 0, i = 0;
-    if (b.mode === 'sell') {
-      for (g in bat.out) gain += (G[g].sell || 0) * bat.out[g];
-    } else {
-      for (g in bat.out) {
-        World.store[g] = (World.store[g] || 0) + bat.out[g];
-        spawnFx(b.x + b.w / 2, b.y + b.h / 2 - i * 0.6, '+' + bat.out[g] + ' ' + G[g].name, G[g].color);
-        i++;
+    var g, gain = 0;
+    for (g in bat.out) {
+      var left = bat.out[g];
+      if (b.mode !== 'sell') {
+        for (var i = 0; i < World.buildings.length && left > 0; i++) {
+          var c = World.buildings[i];
+          if (c.id === b.id || c.constructing) continue;
+          if (!C.BUILD[c.type].buildable) continue;
+          if (!adjacent(b, c)) continue;
+          if (!acceptsGood(c, g)) continue;
+          var room = inputRoom(c, g);
+          if (room <= 0) continue;
+          var take = Math.min(left, room);
+          c.input[g] = (c.input[g] || 0) + take;
+          left -= take;
+          spawnFx(c.x + c.w / 2, c.y + c.h / 2, '+' + take + G[g].name, G[g].color);
+        }
       }
+      if (left > 0) gain += left * (G[g].sell || 0);
     }
     if (bat.material) {
       World.material += bat.material;
-      spawnFx(b.x + b.w / 2, b.y + b.h / 2 - i * 0.6, '+' + bat.material + ' 材料', '#c9e36a');
+      spawnFx(b.x + b.w / 2, b.y + b.h / 2, '+' + bat.material + '材料', '#c9e36a');
     }
     if (gain > 0) {
       World.gold += gain;
       World.totalEarned += gain;
       World.stats.sold++;
-      spawnFx(b.x + b.w / 2, b.y + b.h / 2, '+' + Math.round(gain), '#e8cd82');
+      spawnFx(b.x + b.w / 2, b.y + b.h / 2 - 0.7, '+' + Math.round(gain) + '金', '#e8cd82');
       if (root.SFX) root.SFX('sale');
     }
     World.stats.batches++;
@@ -465,23 +531,6 @@
     return { ok: true };
   }
 
-  function sellGood(good) {
-    var qty = World.store[good] || 0;
-    if (qty <= 0) return { ok: false, msg: '仓库中没有' + G[good].name };
-    var gain = (G[good].sell || 0) * qty;
-    World.gold += gain;
-    World.totalEarned += gain;
-    World.stats.sold++;
-    World.store[good] = 0;
-    return { ok: true, gain: gain, qty: qty };
-  }
-
-  function storeValue() {
-    var v = 0;
-    for (var g in World.store) v += (World.store[g] || 0) * (G[g].sell || 0);
-    return v;
-  }
-
   function spawnFx(x, y, text, color) {
     World.fx.push({ x: x, y: y, text: text, color: color || '#ffe08a', life: 1.3 });
   }
@@ -505,7 +554,6 @@
 
   World.reset = function () {
     World.buildings = [];
-    World.store = {};
     World.fx = [];
     World.toasts = [];
     World.gold = C.RENT.initialGold;
@@ -532,7 +580,6 @@
   World.serialize = function () {
     return {
       buildings: World.buildings,
-      store: World.store,
       gold: World.gold, material: World.material,
       rentIndex: World.rentIndex, rentTimer: World.rentTimer, overdue: World.overdue, missedBefore: World.missedBefore,
       unlocked: World.unlocked, time: World.time, victory: World.victory, gameOver: World.gameOver,
@@ -543,7 +590,6 @@
   World.load = function (s) {
     if (!s || !s.buildings || !s.buildings.length) return false;
     World.buildings = s.buildings;
-    World.store = s.store || {};
     World.gold = s.gold || 0;
     World.material = s.material || 0;
     World.rentIndex = s.rentIndex || 0;
@@ -570,7 +616,8 @@
       if (b.buildTime === undefined) b.buildTime = C.BUILD_TIME[b.type] || 0;
       if (b.incomeAcc === undefined) b.incomeAcc = 0;
       if (b.rr === undefined) b.rr = 0;
-      if (b.mode === undefined) b.mode = 'store';
+      if (!b.input) b.input = {};
+      if (b.mode !== 'sell') b.mode = 'supply';
     }
     return true;
   };
@@ -591,8 +638,10 @@
   World.getYield = getYield;
   World.canSell = canSell;
   World.setMode = setMode;
-  World.sellGood = sellGood;
-  World.storeValue = storeValue;
+  World.adjacent = adjacent;
+  World.acceptsGood = acceptsGood;
+  World.inputRoom = inputRoom;
+  World.suppliersOf = suppliersOf;
   World.sumObj = sumObj;
   World.spawnFx = spawnFx;
   World.toast = toast;

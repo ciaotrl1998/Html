@@ -12,7 +12,7 @@
   var UI = {
     selectedId: null,
     panelSig: '',
-    storeSig: '',
+    deedSig: '',
     rentWarned: null,
     dragBuild: null,
     dragMove: null
@@ -90,19 +90,19 @@
 
   function showOnly(which) {
     el.buildMenu.classList.toggle('hidden', which !== 'build');
-    el.storePanel.classList.toggle('hidden', which !== 'store');
+    el.deedPanel.classList.toggle('hidden', which !== 'deed');
     el.buildPanel.classList.toggle('hidden', which !== 'building');
     syncTabs();
   }
 
   function syncTabs() {
     el.tabBuild.classList.toggle('active', !el.buildMenu.classList.contains('hidden'));
-    el.tabStore.classList.toggle('active', !el.storePanel.classList.contains('hidden'));
+    el.tabDeed.classList.toggle('active', !el.deedPanel.classList.contains('hidden'));
   }
 
   function sheetReserve() {
     var h = 0;
-    [el.buildPanel, el.buildMenu, el.storePanel].forEach(function (p) {
+    [el.buildPanel, el.buildMenu, el.deedPanel].forEach(function (p) {
       if (!p.classList.contains('hidden')) h = Math.max(h, p.offsetHeight);
     });
     return h + 16;
@@ -228,8 +228,19 @@
     el.buildMenu.appendChild(grid);
     var hint = document.createElement('div');
     hint.className = 'menuHint';
-    hint.textContent = '按住建筑拖到地图空地建造 · 建成后立即生产 · 在建筑面板切换入库或出售';
+    hint.textContent = '按住建筑拖到地图空地建造 · 原料只在相邻建筑间输送，富余自动卖出';
     el.buildMenu.appendChild(hint);
+  }
+
+  function capText(b, g) {
+    var cap = 0;
+    var rs = World.getRecipes(b);
+    for (var i = 0; i < rs.length; i++) {
+      var r = rs[i];
+      if (r.mixedGoods && r.mixedGoods.indexOf(g) >= 0) cap = Math.max(cap, r.mixedTotal);
+      else if (r.in[g]) cap = Math.max(cap, r.in[g]);
+    }
+    return cap;
   }
 
   function recipeHTML(b) {
@@ -238,41 +249,38 @@
     var r = World.pickDisplayRecipe(b, rs);
     var g;
     var inp = [];
+    var missing = [];
     if (r.mixedTotal) {
-      var total = 0;
-      var names = [];
+      var tot = 0;
       for (var i = 0; i < r.mixedGoods.length; i++) {
-        var mg = r.mixedGoods[i];
-        var mv = Math.floor(World.store[mg] || 0);
-        total += mv;
-        names.push(G[mg].name + mv);
+        tot += Math.floor(b.input[r.mixedGoods[i]] || 0);
       }
-      inp.push('<span class="stok ' + (total >= r.mixedTotal ? 'ok' : 'bad') + '">' + r.mixedGoods.map(function (x) { return G[x].name; }).join('/') + ' ' + r.mixedTotal + '（' + names.join(' · ') + '）</span>');
+      inp.push('<span class="stok ' + (tot >= r.mixedTotal ? 'ok' : 'bad') + '">' + r.mixedGoods.map(function (x) { return G[x].name; }).join('/') + ' ' + r.mixedTotal + '（' + tot + '/' + r.mixedTotal + '）</span>');
+      if (tot < r.mixedTotal) missing.push(r.mixedGoods[0]);
     } else {
       for (g in r.in) {
-        var have = Math.floor(World.store[g] || 0);
-        inp.push('<span class="stok ' + (have >= r.in[g] ? 'ok' : 'bad') + '">' + G[g].name + ' ' + r.in[g] + '（' + have + '）</span>');
+        var have = Math.floor(b.input[g] || 0);
+        var cap = capText(b, g);
+        inp.push('<span class="stok ' + (have >= r.in[g] ? 'ok' : 'bad') + '">' + G[g].name + ' ' + r.in[g] + '（' + have + '/' + cap + '）</span>');
+        if (have < r.in[g]) missing.push(g);
       }
       if (!inp.length) inp.push('<span class="stok ok">无需原料</span>');
     }
     var outs = [];
-    for (g in r.out) {
-      outs.push(G[g].name + ' ' + r.out[g] + '（' + Math.floor(World.store[g] || 0) + '）');
-    }
+    for (g in r.out) outs.push(G[g].name + ' ' + r.out[g]);
     if (r.material) outs.push('材料 ' + r.material + '（' + Math.floor(World.material) + '）');
-    return inp.join(' ') + ' <b class="arrow">→</b> ' + outs.join('、');
+    var html = inp.join(' ') + ' <b class="arrow">→</b> ' + outs.join('、');
+    var noSource = [];
+    for (i = 0; i < missing.length; i++) {
+      if (World.suppliersOf(b, missing[i]).length === 0 && noSource.indexOf(G[missing[i]].name) < 0) noSource.push(G[missing[i]].name);
+    }
+    if (noSource.length) html += '<div class="stockNote">缺少相邻的 ' + noSource.join('、') + ' 来源</div>';
+    return html;
   }
 
   function toggleLabel(b) {
-    if (!World.canSell(b)) return '材料入库（不可出售）';
-    return b.mode === 'sell' ? '直接卖出 ⇄' : '存进仓库 ⇄';
-  }
-
-  function statusText(b) {
-    var st = World.getStatus(b);
-    if (b.constructing) return '建造中';
-    if (b.batch) return b.mode === 'sell' ? '生产并出售' : '生产中';
-    return st.text;
+    if (!World.canSell(b)) return '材料不可出售';
+    return b.mode === 'sell' ? '直接卖出 ⇄' : '供给下游 ⇄';
   }
 
   function renderBuildPanel(force) {
@@ -284,7 +292,6 @@
     UI.panelSig = sig;
     var isMarket = b.type === 'market';
     var isManor = b.type === 'manor';
-    var st = World.getStatus(b);
     var y = World.getYield(b);
     var isSell = !isManor && b.mode === 'sell' && World.canSell(b);
     var yieldText = y ? (isSell && y.sellText ? y.sellText : y.storeText) : '';
@@ -293,11 +300,10 @@
     if (b.level > 1 && !isMarket) html += '<span class="pLv">' + b.level + ' 级</span>';
     if (yieldText) html += '<span class="pYield' + (isManor || isSell ? ' gold' : '') + '" data-ref="yield">' + yieldText + '</span>';
     if (d.buildable) html += '<button class="pfDemolish" data-action="demolish">拆除</button>';
-    html += '<span class="pStatus"><i class="statusDot" style="background:' + st.color + '"></i><b>' + statusText(b) + '</b></span>';
     html += '</div>';
 
     if (isMarket) {
-      html += '<div class="pfFlow">市场已改为自动收购模式：在建筑面板开启「直接卖出」后，产物会立即换成金币收入。</div>';
+      html += '<div class="pfFlow">市场自动收购各地余料：建筑把上下游都送不出去的物料直接卖成金币。</div>';
       el.buildPanel.innerHTML = html;
       return;
     }
@@ -331,9 +337,6 @@
   function updateBuildPanelDynamic() {
     var b = getSelected();
     if (!b || el.buildPanel.classList.contains('hidden')) return;
-    var st = World.getStatus(b);
-    var statusEl = el.buildPanel.querySelector('.pStatus');
-    if (statusEl) statusEl.innerHTML = '<i class="statusDot" style="background:' + st.color + '"></i><b>' + statusText(b) + '</b>';
     var y = World.getYield(b);
     var yieldEl = el.buildPanel.querySelector('[data-ref="yield"]');
     if (yieldEl && y) {
@@ -346,62 +349,43 @@
     if (recEl && b.type !== 'manor' && b.type !== 'market') recEl.innerHTML = recipeHTML(b);
   }
 
-  function renderStorePanel(force) {
-    var goods = [];
-    for (var g in World.store) if ((World.store[g] || 0) > 0) goods.push(g);
-    var sig = goods.join(',') + '|' + World.material;
-    if (!force && sig === UI.storeSig) return;
-    UI.storeSig = sig;
+  function renderDeedPanel(force) {
+    var price = C.RENT.landPrice;
+    var pct = Math.min(100, Math.floor(World.gold / price * 100));
+    var afford = World.gold >= price && !World.overdue && !World.victory;
+    var sig = [World.victory ? 1 : 0, pct, World.overdue ? 1 : 0].join(':');
+    if (!force && sig === UI.deedSig) return;
+    UI.deedSig = sig;
     var html = '';
-    html += '<div class="pHead"><span class="pSeal">仓</span><span class="pName">仓库</span>';
-    html += '<span class="pStatus"><i class="statusDot" style="background:#c9a04e"></i>总估值 ' + Math.round(World.storeValue()) + ' 金</span>';
+    html += '<div class="pHead"><span class="pSeal">契</span><span class="pName">地契</span>';
+    html += '<span class="pStatus"><i class="statusDot" style="background:' + (World.victory ? '#5e8a5a' : '#c9a04e') + '"></i>' + (World.victory ? '已买下' : '未买下') + '</span>';
     html += '<button class="pClose" data-action="close">✕</button></div>';
-    if (World.material > 0) {
-      html += '<div class="wRow"><span class="wDot" style="background:#b8892f"></span><span class="wName">材料</span>';
-      html += '<span class="wQty">' + Math.floor(World.material) + '</span><span class="wVal">建造升级用</span></div>';
+    html += '<div class="pfFlow">买下这块租来的庄田即可通关，免除后续租金，并可继续经营。</div>';
+    html += '<div class="deedBox">';
+    html += '<div class="deedRow"><span>地价</span><b>' + price + ' 金</b></div>';
+    html += '<div class="deedRow"><span>现有金币</span><b data-ref="deedGold">' + fmt(World.gold) + ' 金</b></div>';
+    html += '<div class="deedProgress"><i data-ref="deedFill" style="width:' + pct + '%"></i></div>';
+    html += '<div class="deedNote">' + (World.victory ? '你已成为这块土地的主人。' : (World.overdue ? '欠租期间不能买地。' : '金币足够时即可买地通关。')) + '</div>';
+    html += '</div>';
+    if (!World.victory) {
+      html += '<button class="actUpgrade" data-action="buyLand" ' + (afford ? '' : 'disabled') + '>' + (World.overdue ? '欠租中，暂不能买地' : '买下庄田（' + price + ' 金）') + '</button>';
     }
-    if (!goods.length && !World.material) {
-      html += '<div class="pRow dim">仓库暂无物料。把建筑设置为「存进仓库」即可积累物资。</div>';
-    }
-    var order = C.BUILD_ORDER && Object.keys(G);
-    goods.sort(function (a, b2) { return (G[b2].sell * World.store[b2]) - (G[a].sell * World.store[a]); });
-    for (var i = 0; i < goods.length; i++) {
-      var g2 = goods[i];
-      var qty = World.store[g2];
-      html += '<div class="wRow"><span class="wDot" style="background:' + G[g2].color + '"></span>';
-      html += '<span class="wName">' + G[g2].name + '</span>';
-      html += '<span class="wQty">' + Math.floor(qty) + '</span>';
-      html += '<span class="wVal">' + Math.round(qty * G[g2].sell) + ' 金</span>';
-      html += '<button class="wSell" data-action="sellGood" data-good="' + g2 + '">卖出</button></div>';
-    }
-    if (goods.length) {
-      html += '<button class="wSellAll" data-action="sellAll">全部卖出（' + Math.round(World.storeValue()) + ' 金）</button>';
-    }
-    el.storePanel.innerHTML = html;
+    el.deedPanel.innerHTML = html;
   }
 
-  function updateStorePanelDynamic() {
-    if (el.storePanel.classList.contains('hidden')) return;
-    var goods = [];
-    for (var g in World.store) if ((World.store[g] || 0) > 0) goods.push(g);
-    var sig = goods.join(',') + '|' + World.material;
-    if (sig !== UI.storeSig) {
-      renderStorePanel(true);
+  function updateDeedPanelDynamic() {
+    if (el.deedPanel.classList.contains('hidden')) return;
+    var price = C.RENT.landPrice;
+    var pct = Math.min(100, Math.floor(World.gold / price * 100));
+    var sig = [World.victory ? 1 : 0, pct, World.overdue ? 1 : 0].join(':');
+    if (sig !== UI.deedSig) {
+      renderDeedPanel(true);
       return;
     }
-    var rows = el.storePanel.querySelectorAll('.wRow');
-    for (var i = 0; i < rows.length; i++) {
-      var good = rows[i].dataset.good;
-      if (!good) continue;
-      var qtyEl = rows[i].querySelector('.wQty');
-      var valEl = rows[i].querySelector('.wVal');
-      if (qtyEl) qtyEl.textContent = Math.floor(World.store[good] || 0);
-      if (valEl) valEl.textContent = Math.round((World.store[good] || 0) * G[good].sell) + ' 金';
-    }
-    var total = el.storePanel.querySelector('.pStatus');
-    if (total) total.innerHTML = '<i class="statusDot" style="background:#c9a04e"></i>总估值 ' + Math.round(World.storeValue()) + ' 金';
-    var allBtn = el.storePanel.querySelector('.wSellAll');
-    if (allBtn) allBtn.textContent = '全部卖出（' + Math.round(World.storeValue()) + ' 金）';
+    var goldEl = el.deedPanel.querySelector('[data-ref="deedGold"]');
+    if (goldEl) goldEl.textContent = fmt(World.gold) + ' 金';
+    var fill = el.deedPanel.querySelector('[data-ref="deedFill"]');
+    if (fill) fill.style.width = pct + '%';
   }
 
   function refreshTop() {
@@ -418,12 +402,6 @@
         el.rentTime.textContent = fmtTime(World.rentTimer);
       }
     }
-    var price = C.RENT.landPrice;
-    var pct = Math.min(100, Math.floor(World.gold / price * 100));
-    el.btnBuyLand.textContent = World.victory ? '已买地' : '买地 ' + pct + '%';
-    el.btnBuyLand.classList.toggle('ready', !World.victory && !World.overdue && World.gold >= price);
-    el.btnBuyLand.disabled = World.victory;
-
     if (World.overdue) {
       var lack = Math.max(0, World.overdue.rent - World.gold);
       el.overdueBar.classList.remove('hidden');
@@ -488,13 +466,13 @@
   }
 
   function showWelcome() {
-    openModal('欢迎来到庄田记', '<p>你受托经营一块租来的庄田。建造产业直接生产，选择入库或出售，按时交租，攒够金币买下土地即可通关。</p><ul><li>按住建筑栏里的建筑<b>拖到地图</b>空地上建造</li><li>点建筑打开详情，可<b>切换「存进仓库 / 直接卖出」</b></li><li>加工建筑会直接消耗仓库中的物料</li><li>打开详情面板后，<b>拖动建筑</b>即可移位</li><li>「仓库」页签可查看库存并整批卖出</li></ul>', [
+    openModal('欢迎来到庄田记', '<p>你受托经营一块租来的庄田。建造产业自动生产，物料在相邻建筑间直接输送，按时交租，买下土地即可通关。</p><ul><li>按住建筑栏里的建筑<b>拖到地图</b>空地上建造</li><li>上游建筑会直接把原料送给<b>相邻</b>的下游建筑</li><li>下游装满后，多余的物料<b>自动卖成金币</b></li><li>点建筑可查看详情、切换供给下游或直接卖出</li><li>「地契」页签可以买地通关</li></ul>', [
       { text: '开始经营', cls: 'primary' }
     ]);
   }
 
   function showHelp() {
-    openModal('玩法说明', '<ul><li><b>金币</b>：里正宅被动收入与建筑出售产物所得，用于建造、升级、租金与买地。</li><li><b>材料</b>：工坊消耗木头或石头产生，用于中后期建筑与升级，不可出售。</li><li><b>存进仓库</b>：产物进入仓库，供加工建筑继续加工。</li><li><b>直接卖出</b>：产物立即换成金币，不进入仓库。</li><li>加工建筑（工坊/堆肥/腌制/纺织/织染）直接从仓库取料。</li><li>库存不足时建筑暂停，补足后自动继续。</li></ul>', [{ text: '知道了', cls: 'primary' }]);
+    openModal('玩法说明', '<ul><li><b>金币</b>：里正宅被动收入与物料出售所得，用于建造、升级、租金与买地。</li><li><b>材料</b>：工坊消耗木头或石头产生，用于中后期建筑与升级，不可出售。</li><li><b>相邻输送</b>：建筑完成一批生产后，产物先送给相邻且需要它的建筑，送不出去的自动卖出。</li><li><b>原料预存</b>：每座建筑原料只存一批，生产中可继续被相邻上游补满。</li><li><b>供给下游</b>：默认模式，优先输送；<b>直接卖出</b>则跳过输送全部换金币。</li><li>选中建筑后，蓝色虚线框标出相邻的上游建筑。</li></ul>', [{ text: '知道了', cls: 'primary' }]);
   }
 
   function showMenu() {
@@ -513,7 +491,7 @@
     World.reset();
     overlayShown = null;
     UI.panelSig = '';
-    UI.storeSig = '';
+    UI.deedSig = '';
     UI.rentWarned = null;
     selectBuilding(null);
     Render.invalidateStatic();
@@ -540,6 +518,17 @@
     if (World.victory && overlayShown !== 'win') { overlayShown = 'win'; showVictory(); }
   }
 
+  var lastAppHeight = 0;
+  function setAppHeight() {
+    if (!el.app) return;
+    var h = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (h > 0 && h !== lastAppHeight) {
+      lastAppHeight = h;
+      el.app.style.height = h + 'px';
+      if (Render.refreshSize) Render.refreshSize();
+    }
+  }
+
   var lastRefreshLoop = performance.now();
   function loop(now) {
     var dt = Math.min(0.1, (now - lastRefreshLoop) / 1000);
@@ -554,7 +543,7 @@
         renderBuildPanel(false);
         updateBuildPanelDynamic();
       }
-      if (!el.storePanel.classList.contains('hidden')) updateStorePanelDynamic();
+      if (!el.deedPanel.classList.contains('hidden')) updateDeedPanelDynamic();
     }
     checkOverlays();
     requestAnimationFrame(loop);
@@ -571,13 +560,13 @@
         showOnly(null);
       }
     };
-    el.tabStore.onclick = function () {
+    el.tabDeed.onclick = function () {
       sfx('ui');
-      if (el.storePanel.classList.contains('hidden')) {
+      if (el.deedPanel.classList.contains('hidden')) {
         selectBuilding(null);
-        UI.storeSig = '';
-        renderStorePanel(true);
-        showOnly('store');
+        UI.deedSig = '';
+        renderDeedPanel(true);
+        showOnly('deed');
       } else {
         showOnly(null);
       }
@@ -610,15 +599,6 @@
         return;
       }
     });
-    el.btnBuyLand.onclick = function () {
-      if (World.victory) return;
-      if (World.overdue) { toast('欠租期间不能买地'); return; }
-      if (World.gold < C.RENT.landPrice) { toast('还差 ' + fmt(C.RENT.landPrice - World.gold) + ' 金币'); return; }
-      confirmModal('买下庄田', '<p>支付 <b>' + C.RENT.landPrice + ' 金币</b> 买下这块土地，立即通关并免除后续租金。是否确认？</p>', function () {
-        var r = World.tryBuyLand();
-        if (!r.ok) toast(r.msg);
-      });
-    };
     el.buildPanel.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-action]');
       if (!btn) return;
@@ -626,9 +606,8 @@
       if (!b) return;
       var action = btn.dataset.action;
       var r;
-      if (action === 'close') { selectBuilding(null); return; }
       if (action === 'toggleMode') {
-        r = World.setMode(b.id, b.mode === 'sell' ? 'store' : 'sell');
+        r = World.setMode(b.id, b.mode === 'sell' ? 'supply' : 'sell');
         if (!r.ok) toast(r.msg);
         UI.panelSig = '';
         renderBuildPanel(true);
@@ -654,39 +633,20 @@
         return;
       }
     });
-    el.storePanel.addEventListener('click', function (e) {
+    el.deedPanel.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-action]');
       if (!btn) return;
       var action = btn.dataset.action;
       if (action === 'close') { showOnly(null); return; }
-      if (action === 'sellGood') {
-        var good = btn.dataset.good;
-        var qty = Math.floor(World.store[good] || 0);
-        if (qty <= 0) return;
-        confirmModal('卖出 ' + G[good].name, '<p>卖出 <b>' + qty + ' 个' + G[good].name + '</b>，可得 <b>' + Math.round(qty * G[good].sell) + ' 金币</b>。</p>', function () {
-          var r = World.sellGood(good);
-          if (r.ok) {
-            toast('卖出 ' + r.qty + G[good].name + '，+' + Math.round(r.gain) + ' 金');
-            UI.storeSig = '';
-            renderStorePanel(true);
-          }
-        });
-        return;
-      }
-      if (action === 'sellAll') {
-        var total = World.storeValue();
-        if (total <= 0) return;
-        confirmModal('全部卖出', '<p>卖出仓库中所有物料，可得约 <b>' + Math.round(total) + ' 金币</b>。确认？</p>', function () {
-          var gain = 0;
-          for (var g in World.store) {
-            if ((World.store[g] || 0) > 0) {
-              var r2 = World.sellGood(g);
-              if (r2.ok) gain += r2.gain;
-            }
-          }
-          toast('仓库清空，+' + Math.round(gain) + ' 金');
-          UI.storeSig = '';
-          renderStorePanel(true);
+      if (action === 'buyLand') {
+        if (World.victory) return;
+        if (World.overdue) { toast('欠租期间不能买地'); return; }
+        if (World.gold < C.RENT.landPrice) { toast('还差 ' + fmt(C.RENT.landPrice - World.gold) + ' 金币'); return; }
+        confirmModal('买下庄田', '<p>支付 <b>' + C.RENT.landPrice + ' 金币</b> 买下这块土地，立即通关并免除后续租金。是否确认？</p>', function () {
+          var r = World.tryBuyLand();
+          if (!r.ok) toast(r.msg);
+          UI.deedSig = '';
+          renderDeedPanel(true);
         });
         return;
       }
@@ -697,17 +657,14 @@
         else selectBuilding(null);
       }
     });
-  }
-
-  var lastAppHeight = 0;
-  function setAppHeight() {
-    if (!el.app) return;
-    var h = window.innerHeight || document.documentElement.clientHeight || 0;
-    if (h > 0 && h !== lastAppHeight) {
-      lastAppHeight = h;
-      el.app.style.height = h + 'px';
-      if (Render.refreshSize) Render.refreshSize();
-    }
+    window.addEventListener('resize', function () {
+      setAppHeight();
+      setTimeout(setAppHeight, 300);
+    });
+    window.addEventListener('orientationchange', function () {
+      setAppHeight();
+      setTimeout(setAppHeight, 300);
+    });
   }
 
   function boot() {
@@ -718,14 +675,13 @@
     el.rentVal = $('rentVal');
     el.rentTime = $('rentTime');
     el.overdueBar = $('overdueBar');
-    el.btnBuyLand = $('btnBuyLand');
     el.btnPause = $('btnPause');
     el.btnSpeed = $('btnSpeed');
     el.btnMenu = $('btnMenu');
     el.tabBuild = $('tabBuild');
-    el.tabStore = $('tabStore');
+    el.tabDeed = $('tabDeed');
     el.buildMenu = $('buildMenu');
-    el.storePanel = $('storePanel');
+    el.deedPanel = $('deedPanel');
     el.buildPanel = $('buildPanel');
     el.toasts = $('toasts');
     el.modal = $('modal');
@@ -733,14 +689,6 @@
 
     window.SFX = sfx;
     setAppHeight();
-    window.addEventListener('resize', function () {
-      setAppHeight();
-      setTimeout(setAppHeight, 300);
-    });
-    window.addEventListener('orientationchange', function () {
-      setAppHeight();
-      setTimeout(setAppHeight, 300);
-    });
     Render.init(el.canvas, {
       onTileTap: onTileTap,
       onBuildingDragStart: onBuildingDragStart,

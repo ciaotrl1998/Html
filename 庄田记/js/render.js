@@ -1588,7 +1588,7 @@
     if (b.type === 'manor') { ch = '金'; col = '#b8892f'; }
     else if (!World.canSell(b)) { ch = '材'; col = '#5e8a5a'; }
     else if (b.mode === 'sell') { ch = '售'; col = '#c07a2a'; }
-    else { ch = '存'; col = '#5e8a5a'; }
+    else { ch = '供'; col = '#4f7ea8'; }
     var bx = px + 10, by = py + ph - 17;
     g.beginPath();
     g.arc(bx, by, 8, 0, Math.PI * 2);
@@ -1677,6 +1677,35 @@
     g.restore();
   }
 
+  function drawUpstreamFrames() {
+    if (!Render.selectedId) return;
+    var sel = null;
+    for (var i = 0; i < World.buildings.length; i++) if (World.buildings[i].id === Render.selectedId) sel = World.buildings[i];
+    if (!sel) return;
+    var g = Render.ctx;
+    g.save();
+    g.strokeStyle = 'rgba(70,124,180,0.95)';
+    g.lineWidth = 2;
+    g.setLineDash([7, 5]);
+    for (i = 0; i < World.buildings.length; i++) {
+      var c = World.buildings[i];
+      if (c.id === sel.id || c.constructing) continue;
+      if (!World.adjacent(sel, c)) continue;
+      var rs = World.getRecipes(c);
+      var feeds = false;
+      for (var j = 0; j < rs.length && !feeds; j++) {
+        for (var gd in rs[j].out) {
+          if (World.acceptsGood(sel, gd)) { feeds = true; break; }
+        }
+      }
+      if (!feeds) continue;
+      rrPath(g, c.x * T + 4, c.y * T + 4, c.w * T - 8, c.h * T - 8, 5);
+      g.stroke();
+    }
+    g.setLineDash([]);
+    g.restore();
+  }
+
   function drawFx() {
     var g = Render.ctx;
     for (var i = 0; i < World.fx.length; i++) {
@@ -1713,6 +1742,7 @@
       if (list[i].id === Render.hiddenBuildingId) continue;
       drawBuilding(list[i]);
     }
+    drawUpstreamFrames();
     drawMoveGhost();
     drawGhost();
     drawFx();

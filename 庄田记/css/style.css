@@ -571,6 +571,7 @@ html, body {
 .pfFlow .stok.ok { background: rgba(94, 138, 90, 0.16); color: #3f6b3d; border-color: rgba(94, 138, 90, 0.4); }
 .pfFlow .stok.bad { background: rgba(166, 54, 44, 0.14); color: #8a2c20; border-color: rgba(166, 54, 44, 0.4); }
 .pfFlow .arrow { color: #a87c24; font-weight: 800; margin: 0 2px; }
+.pfFlow .stockNote { flex-basis: 100%; font-size: 12.5px; color: #8a2c20; margin-top: 2px; font-weight: 700; }
 
 .pfToggle {
   flex: none;
@@ -620,63 +621,45 @@ html, body {
 .upLine:last-child { border-bottom: none; }
 .upLine.empty { color: #b7a684; }
 
-#buildPanel .pHead .pStatus {
-  width: 6.4em;
-  max-width: none;
-  justify-content: flex-end;
-}
-#buildPanel .pHead .pStatus b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
 
-/* ---------- 仓库 ---------- */
 
-.wRow {
+/* ---------- 地契 ---------- */
+
+.deedBox {
+  margin-top: 8px;
+  border-radius: 9px;
+  background: linear-gradient(#f7efdd, #e9dbbc);
+  border: 1.5px solid var(--wood-3);
+  padding: 10px 12px;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 0 0 3px rgba(107, 74, 42, 0.1);
+}
+.deedRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 2px;
-  border-bottom: 1px dashed rgba(107, 74, 42, 0.22);
-  position: relative;
-  z-index: 1;
-}
-.wDot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(60, 44, 24, 0.4); flex: none; }
-.wName { font-weight: 700; font-size: 15.5px; }
-.wQty { margin-left: auto; font-weight: 800; color: #5a3a12; font-size: 16px; }
-.wVal { color: #8a2a20; font-weight: 700; font-size: 13.5px; min-width: 58px; text-align: right; }
-.wSell {
-  flex: none;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1.5px solid #8a2a20;
-  background: linear-gradient(#c05545, #9c3228);
-  color: #fff2dc;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 15px;
   font-weight: 700;
-  font-size: 14px;
-  font-family: inherit;
-  cursor: pointer;
+  color: var(--ink);
 }
-.wSell:active { transform: translateY(1px); }
-.wSellAll {
-  width: 100%;
-  margin-top: 10px;
-  min-height: 44px;
-  border-radius: 9px;
-  border: 2px solid #8a2a20;
-  background: linear-gradient(#c05545, #9c3228);
-  color: #fff2dc;
-  font-weight: 800;
-  font-size: 15.5px;
-  font-family: inherit;
-  cursor: pointer;
-  position: relative;
-  z-index: 1;
+.deedRow span { color: #7a6448; }
+.deedRow b { color: #8a5a1a; }
+.deedProgress {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(107, 74, 42, 0.16);
+  border: 1px solid rgba(107, 74, 42, 0.45);
+  overflow: hidden;
+  margin: 8px 0 6px;
 }
-.wSellAll:active { transform: translateY(1px); }
+.deedProgress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #d4a94e, #e8cd82);
+}
+.deedNote { font-size: 13.5px; color: #8a7458; line-height: 1.6; }
 
 /* ---------- 提示与弹窗 ---------- */
 
