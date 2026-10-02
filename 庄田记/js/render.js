@@ -231,7 +231,7 @@
         if (Render.buildingDragEnabled !== false && Render.handlers && Render.handlers.onBuildingDragStart) {
           var t = tileAt(p);
           var b = World.buildingAt(t.x, t.y);
-          if (b && b.type !== 'market') candidate = b;
+          if (b && b.type !== 'market' && b.id === Render.selectedId) candidate = b;
         }
       } else if (pointers.size === 2) {
         if (drag && drag.kind === 'building' && Render.handlers.onBuildingDragEnd) {
@@ -1563,7 +1563,7 @@
       return;
     }
     drawBuildingArt(b);
-    drawGoodsTags(b);
+    drawModeBadge(b);
     if (b.batch) {
       var prog = clamp(b.batch.progress / b.batch.cycle, 0, 1);
       fillRR(g, px + 7, py + ph - 9, pw - 14, 5, 2.5, 'rgba(50,38,20,0.4)');
@@ -1575,161 +1575,26 @@
       strokeRR(g, px + 3, py + 3, 22, 13, 3, PAL.goldDeep, 1);
       inkText(g, CN[b.level - 1] + '级', px + 14, py + 10, 8.5, PAL.gold, 'center', true);
     }
-    if (b.type !== 'manor') {
-      var st = World.getStatus(b);
-      if (st) {
-        var bx = px + pw - 9, by = py - 10;
-        g.beginPath();
-        g.arc(bx, by, 8.5, 0, Math.PI * 2);
-        g.fillStyle = st.color;
-        g.fill();
-        g.strokeStyle = 'rgba(50,35,18,0.85)';
-        g.lineWidth = 1.4;
-        g.stroke();
-        inkText(g, st.icon, bx, by + 0.5, 9.5, '#fff8e8', 'center', true);
-      }
-    }
   }
 
-  function goodTag(g, x, y, good, qty, s) {
-    var gg = G[good];
-    var w = 17 * s, h = 15 * s;
-    g.save();
-    g.fillStyle = 'rgba(40,30,15,0.2)';
-    fillRR(g, x + 1, y + 1.5, w, h, 3, 'rgba(40,30,15,0.18)');
-    fillRR(g, x, y, w, h, 3, '#f6eeda');
-    strokeRR(g, x, y, w, h, 3, '#6b5540', 1);
-    g.fillStyle = gg.color;
-    g.beginPath();
-    g.arc(x + 4.5 * s, y + h / 2, 2.6 * s, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = 'rgba(70,55,35,0.8)';
-    g.lineWidth = 0.8;
-    g.stroke();
-    inkText(g, String(qty), x + w - 2.5 * s, y + h / 2 + 0.5, 8.5 * s, '#8a2c20', 'right', true);
-    g.restore();
-  }
-
-  function drawGoodsTags(b) {
-    if (b.type === 'market' || b.type === 'manor') return;
+  function drawModeBadge(b) {
+    if (b.type === 'market') return;
     var g = Render.ctx;
     var px = b.x * T, py = b.y * T, pw = b.w * T, ph = b.h * T;
-    var inKeys = Object.keys(b.input).filter(function (k) { return b.input[k] > 0; });
-    var outKeys = Object.keys(b.out).filter(function (k) { return b.out[k] > 0; });
-    var ci;
-    for (ci = 0; ci < Math.min(inKeys.length, 3); ci++) {
-      goodTag(g, px + 3 + ci * 19, py + ph - 27, inKeys[ci], b.input[inKeys[ci]], 1);
-    }
-    for (ci = 0; ci < Math.min(outKeys.length, 3); ci++) {
-      goodTag(g, px + pw - 20 - ci * 19, py + 3, outKeys[ci], b.out[outKeys[ci]], 1);
-    }
-  }
-
-  function drawPile(p) {
-    var g = Render.ctx;
-    var px = p.x * T, py = p.y * T;
-    g.fillStyle = 'rgba(45,35,18,0.2)';
+    var ch, col;
+    if (b.type === 'manor') { ch = '金'; col = '#b8892f'; }
+    else if (!World.canSell(b)) { ch = '材'; col = '#5e8a5a'; }
+    else if (b.mode === 'sell') { ch = '售'; col = '#c07a2a'; }
+    else { ch = '存'; col = '#5e8a5a'; }
+    var bx = px + 10, by = py + ph - 17;
     g.beginPath();
-    g.ellipse(px + T / 2, py + T / 2 + 6, 12, 4.5, 0, 0, Math.PI * 2);
+    g.arc(bx, by, 8, 0, Math.PI * 2);
+    g.fillStyle = col;
     g.fill();
-    g.beginPath();
-    g.ellipse(px + T / 2, py + T / 2 + 2, 12, 8, 0, 0, Math.PI * 2);
-    g.fillStyle = '#b08a56';
-    g.fill();
-    g.strokeStyle = '#6b4a2a';
+    g.strokeStyle = 'rgba(50,35,18,0.85)';
     g.lineWidth = 1.3;
     g.stroke();
-    g.strokeStyle = 'rgba(107,74,42,0.5)';
-    g.lineWidth = 0.9;
-    for (var i = -1; i <= 1; i++) {
-      g.beginPath();
-      g.moveTo(px + T / 2 + i * 5, py + T / 2 - 5);
-      g.lineTo(px + T / 2 + i * 5, py + T / 2 + 8);
-      g.stroke();
-    }
-    var keys = Object.keys(p.goods).filter(function (k) { return p.goods[k] > 0; }).slice(0, 2);
-    for (var j = 0; j < keys.length; j++) {
-      goodTag(g, px + 1 + j * 18, py - 2, keys[j], p.goods[keys[j]], 0.9);
-    }
-  }
-
-  function drawVillager(v) {
-    var g = Render.ctx;
-    var jitter = v.id % 3;
-    var px = v.x * T + T / 2 + (jitter - 1) * 3;
-    var py = v.y * T + T / 2 + (jitter - 1) * 2;
-    var moving = v.path && v.path.length > 0;
-    var bob = moving ? Math.abs(Math.sin(Render.time * 7 + v.bob)) * 1.8 : Math.sin(Render.time * 2 + v.bob) * 0.7;
-    g.fillStyle = 'rgba(40,30,15,0.22)';
-    g.beginPath();
-    g.ellipse(px, py + 7, 7, 3.2, 0, 0, Math.PI * 2);
-    g.fill();
-    var robe = !v.assigned ? '#8a8578' : (v.assigned === 'market' ? '#a65b4a' : '#4f6f8f');
-    var robeDark = !v.assigned ? '#6b675c' : (v.assigned === 'market' ? '#7d3f34' : '#3c566f');
-    g.beginPath();
-    g.moveTo(px - 6.5, py + 6.5 - bob);
-    g.quadraticCurveTo(px - 7, py - 2 - bob, px - 4.5, py - 4 - bob);
-    g.lineTo(px + 4.5, py - 4 - bob);
-    g.quadraticCurveTo(px + 7, py - 2 - bob, px + 6.5, py + 6.5 - bob);
-    g.closePath();
-    g.fillStyle = robe;
-    g.fill();
-    g.strokeStyle = 'rgba(35,28,18,0.7)';
-    g.lineWidth = 1.1;
-    g.stroke();
-    g.strokeStyle = 'rgba(255,245,220,0.5)';
-    g.lineWidth = 1.4;
-    g.beginPath();
-    g.moveTo(px - 5.5, py - 1.5 - bob);
-    g.lineTo(px + 5.5, py - 1.5 - bob);
-    g.stroke();
-    g.strokeStyle = robeDark;
-    g.lineWidth = 1;
-    g.beginPath();
-    g.moveTo(px, py - 1.5 - bob);
-    g.lineTo(px, py + 6 - bob);
-    g.stroke();
-    g.fillStyle = '#f0d0a8';
-    g.beginPath();
-    g.arc(px, py - 6.5 - bob, 4.2, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = 'rgba(60,45,30,0.7)';
-    g.lineWidth = 1;
-    g.stroke();
-    g.fillStyle = '#3a2e22';
-    g.beginPath();
-    g.arc(px, py - 8.5 - bob, 2.6, Math.PI, Math.PI * 2);
-    g.fill();
-    g.fillStyle = PAL.straw;
-    g.beginPath();
-    g.moveTo(px - 8, py - 7.5 - bob);
-    g.quadraticCurveTo(px, py - 15.5 - bob, px + 8, py - 7.5 - bob);
-    g.quadraticCurveTo(px, py - 10.5 - bob, px - 8, py - 7.5 - bob);
-    g.closePath();
-    g.fill();
-    g.strokeStyle = '#8a6a3a';
-    g.lineWidth = 1.1;
-    g.stroke();
-    if (v.carry) {
-      drawCarryTag(px - 9, py - 27 - bob, v.carry.good, v.carry.qty);
-    }
-  }
-
-  function drawCarryTag(x, y, good, qty) {
-    var g = Render.ctx;
-    var gg = G[good];
-    var w = 19, h = 16;
-    fillRR(g, x + 1, y + 1.5, w, h, 3, 'rgba(40,30,15,0.25)');
-    fillRR(g, x, y, w, h, 3, '#f6eeda');
-    strokeRR(g, x, y, w, h, 3, '#5a4630', 1.2);
-    g.fillStyle = gg.color;
-    g.beginPath();
-    g.arc(x + 5, y + h / 2, 3, 0, Math.PI * 2);
-    g.fill();
-    g.strokeStyle = 'rgba(70,55,35,0.8)';
-    g.lineWidth = 0.9;
-    g.stroke();
-    inkText(g, String(qty), x + w - 3, y + h / 2 + 0.5, 9.5, '#8a2c20', 'right', true);
+    inkText(g, ch, bx, by + 0.5, 9, '#fff8e8', 'center', true);
   }
 
   function drawMoveGhost() {
@@ -1840,8 +1705,6 @@
     ctx.translate(-Render.cam.x, -Render.cam.y);
     ctx.drawImage(Render.staticLayer, 0, 0);
     drawSelection();
-    var piles = World.piles.slice();
-    for (var pi = 0; pi < piles.length; pi++) drawPile(piles[pi]);
     var list = World.buildings.slice().sort(function (a, b2) { return (a.y + a.h) - (b2.y + b2.h); });
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === Render.hiddenBuildingId) continue;
@@ -1849,8 +1712,6 @@
     }
     drawMoveGhost();
     drawGhost();
-    var vs = World.villagers.slice().sort(function (a, b2) { return a.y - b2.y; });
-    for (var vi = 0; vi < vs.length; vi++) drawVillager(vs[vi]);
     drawFx();
     ctx.restore();
   };

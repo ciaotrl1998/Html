@@ -6,13 +6,13 @@
   var el = {};
   var soundOn = true;
   var audioCtx = null;
-  var lastRefresh = 0, lastSave = 0;
+  var lastRefresh = 0;
   var overlayShown = null;
 
   var UI = {
     selectedId: null,
     panelSig: '',
-    villageSig: '',
+    storeSig: '',
     rentWarned: null,
     dragBuild: null,
     dragMove: null
@@ -90,19 +90,19 @@
 
   function showOnly(which) {
     el.buildMenu.classList.toggle('hidden', which !== 'build');
-    el.villagePanel.classList.toggle('hidden', which !== 'village');
+    el.storePanel.classList.toggle('hidden', which !== 'store');
     el.buildPanel.classList.toggle('hidden', which !== 'building');
     syncTabs();
   }
 
   function syncTabs() {
     el.tabBuild.classList.toggle('active', !el.buildMenu.classList.contains('hidden'));
-    el.tabVillage.classList.toggle('active', !el.villagePanel.classList.contains('hidden'));
+    el.tabStore.classList.toggle('active', !el.storePanel.classList.contains('hidden'));
   }
 
   function sheetReserve() {
     var h = 0;
-    [el.buildPanel, el.buildMenu, el.villagePanel].forEach(function (p) {
+    [el.buildPanel, el.buildMenu, el.storePanel].forEach(function (p) {
       if (!p.classList.contains('hidden')) h = Math.max(h, p.offsetHeight);
     });
     return h + 16;
@@ -167,14 +167,6 @@
     }
   }
 
-  function invDots(map) {
-    var html = '';
-    for (var k in map) {
-      if (map[k] > 0) html += '<span class="dot" style="background:' + G[k].color + '"></span>' + G[k].name + ' ' + Math.round(map[k] * 10) / 10 + ' ';
-    }
-    return html || '空';
-  }
-
   function renderBuildMenu() {
     var grid = document.createElement('div');
     grid.className = 'grid';
@@ -235,62 +227,103 @@
     el.buildMenu.appendChild(grid);
     var hint = document.createElement('div');
     hint.className = 'menuHint';
-    hint.textContent = '按住建筑拖到地图空地建造 · 建筑可直接拖动移位 · 建造需要时间';
+    hint.textContent = '按住建筑拖到地图空地建造 · 建成后立即生产 · 在建筑面板切换入库或出售';
     el.buildMenu.appendChild(hint);
+  }
+
+  function recipeHTML(b) {
+    var rs = World.getRecipes(b);
+    if (!rs.length) return '不进行物料生产';
+    var r = World.pickDisplayRecipe(b, rs);
+    var g;
+    var inp = [];
+    if (r.mixedTotal) {
+      var total = 0;
+      var names = [];
+      for (var i = 0; i < r.mixedGoods.length; i++) {
+        var mg = r.mixedGoods[i];
+        var mv = Math.floor(World.store[mg] || 0);
+        total += mv;
+        names.push(G[mg].name + mv);
+      }
+      inp.push('<span class="stok ' + (total >= r.mixedTotal ? 'ok' : 'bad') + '">' + r.mixedGoods.map(function (x) { return G[x].name; }).join('/') + ' ' + r.mixedTotal + '（' + names.join(' · ') + '）</span>');
+    } else {
+      for (g in r.in) {
+        var have = Math.floor(World.store[g] || 0);
+        inp.push('<span class="stok ' + (have >= r.in[g] ? 'ok' : 'bad') + '">' + G[g].name + ' ' + r.in[g] + '（' + have + '）</span>');
+      }
+      if (!inp.length) inp.push('<span class="stok ok">无需原料</span>');
+    }
+    var outs = [];
+    for (g in r.out) {
+      outs.push(G[g].name + ' ' + r.out[g] + '（' + Math.floor(World.store[g] || 0) + '）');
+    }
+    if (r.material) outs.push('材料 ' + r.material + '（' + Math.floor(World.material) + '）');
+    return inp.join(' ') + ' <b class="arrow">→</b> ' + outs.join('、');
+  }
+
+  function toggleLabel(b) {
+    if (!World.canSell(b)) return '材料入库（不可出售）';
+    return b.mode === 'sell' ? '直接卖出 ⇄' : '存进仓库 ⇄';
+  }
+
+  function statusText(b) {
+    var st = World.getStatus(b);
+    if (b.constructing) return '建造中';
+    if (b.batch) return b.mode === 'sell' ? '生产并出售' : '生产中';
+    return st.text;
   }
 
   function renderBuildPanel(force) {
     var b = getSelected();
     if (!b) return;
     var d = C.BUILD[b.type];
-    var sig = b.id + ':' + b.level + ':' + b.type + ':' + (b.constructing ? 1 : 0);
+    var sig = b.id + ':' + b.level + ':' + b.type + ':' + (b.constructing ? 1 : 0) + ':' + b.mode;
     if (!force && sig === UI.panelSig) return;
     UI.panelSig = sig;
     var isMarket = b.type === 'market';
     var isManor = b.type === 'manor';
-    var aid = isMarket ? 'market' : b.id;
-    var assigned = World.assignedCount(aid);
     var st = World.getStatus(b);
+    var y = World.getYield(b);
+    var isSell = !isManor && b.mode === 'sell' && World.canSell(b);
+    var yieldText = y ? (isSell && y.sellText ? y.sellText : y.storeText) : '';
     var html = '';
     html += '<div class="pHead"><span class="pSeal">' + (C.SEAL[b.type] || '庄') + '</span><span class="pName">' + d.name + '</span>';
-    if (b.level > 1 && !isMarket && !b.constructing) html += '<span class="pLv">' + b.level + ' 级</span>';
-    html += '<span class="pStatus"><i class="statusDot" style="background:' + st.color + '"></i>' + st.text + '</span>';
-    html += '<button class="pClose" data-action="close">✕</button></div>';
-    if (b.constructing) {
-      var pct = Math.min(100, b.buildProgress / (b.buildTime || 1) * 100);
-      html += '<div class="pProgress big"><i style="width:' + pct + '%"></i></div>';
-      html += '<div class="pRow"><span>还需</span><span class="pInv">' + Math.ceil(Math.max(0, b.buildTime - b.buildProgress)) + ' 秒建成</span></div>';
-      html += '<div class="pRow dim">建成后闲置村民会自动前来工作，也可以手动指派。</div>';
-      html += '<div class="pBottom"><button data-action="demolish" class="danger">拆除（返还一半）</button></div>';
+    if (b.level > 1 && !isMarket) html += '<span class="pLv">' + b.level + ' 级</span>';
+    if (yieldText) html += '<span class="pYield' + (isManor || isSell ? ' gold' : '') + '" data-ref="yield">' + yieldText + '</span>';
+    html += '<span class="pHeadRight">';
+    if (d.buildable) html += '<button class="pfDemolish" data-action="demolish">拆除</button>';
+    html += '<span class="pStatus"><i class="statusDot" style="background:' + st.color + '"></i><b>' + statusText(b) + '</b></span>';
+    html += '<button class="pClose" data-action="close">✕</button></span></div>';
+
+    if (isMarket) {
+      html += '<div class="pfFlow">市场已改为自动收购模式：在建筑面板开启「直接卖出」后，产物会立即换成金币收入。</div>';
       el.buildPanel.innerHTML = html;
       return;
     }
-    if (isManor) {
-      html += '<div class="pRow"><span>金币收入</span><span class="pInv"><b>' + d.income[b.level - 1].toFixed(1) + '</b> /秒</span></div>';
-      html += '<div class="pRow dim">里正宅提供保底收入，不可拆除；拖动可直接移动位置。</div>';
+
+    if (!isManor) {
+      html += '<div class="pfRow"><div class="pfFlow" data-ref="recipe">' + recipeHTML(b) + '</div>';
+      html += '<button class="pfToggle' + (isSell ? ' sell' : '') + '" data-action="toggleMode"' + (World.canSell(b) ? '' : ' disabled') + '>' + toggleLabel(b) + '</button></div>';
     } else {
-      html += '<div class="pRow"><span>指派村民</span><span class="pAssigned">' + assigned + ' 人</span>';
-      html += '<span class="pBtns"><button data-action="assignDown" ' + (assigned ? '' : 'disabled') + '>−</button>';
-      html += '<button data-action="assignUp" ' + (World.idleCount() ? '' : 'disabled') + '>＋</button></span></div>';
-      if (isMarket) {
-        html += '<div class="pRow dim">市场为场外固定设施，指派村民可跨建筑收集物料售卖。</div>';
-      } else {
-        if (b.batch) html += '<div class="pProgress"><i style="width:' + Math.min(100, b.batch.progress / b.batch.cycle * 100) + '%"></i></div>';
-        html += '<div class="pRow"><span>输入 ' + Math.round(World.sumObj(b.input) * 10) / 10 + '/' + World.inCap(b) + '</span><span class="pInv" data-ref="in">' + invDots(b.input) + '</span></div>';
-        html += '<div class="pRow"><span>输出 ' + Math.round(World.sumObj(b.out) * 10) / 10 + '/' + World.outCap(b) + '</span><span class="pInv" data-ref="out">' + invDots(b.out) + '</span></div>';
-        html += '<div class="pRow dim">' + d.desc + ' · 拖动建筑可移位</div>';
+      html += '<div class="pfFlow"><span class="stok ok">无需原料</span> <b class="arrow">→</b> 金币（被动收入）</div>';
+    }
+
+    if (d.upgrade) {
+      var rows = [];
+      if (b.level < 5) rows = World.upgradeLines(b);
+      else rows = ['已达到最高等级'];
+      while (rows.length < 4) rows.push('—');
+      html += '<div class="pfUpList">';
+      for (var li = 0; li < 4; li++) {
+        html += '<div class="upLine' + (rows[li] === '—' ? ' empty' : '') + '">' + rows[li] + '</div>';
       }
-    }
-    if (d.upgrade && b.level < 5) {
-      var cost = d.upgrade[b.level - 1];
-      var afford = World.canAfford({ gold: cost[0], material: cost[1] });
-      html += '<div class="pUpgrade"><div class="pEffect">下一级：' + World.upgradePreview(b) + '</div>';
-      html += '<button class="actUpgrade" data-action="upgrade" ' + (afford ? '' : 'disabled') + '>升级到 ' + (b.level + 1) + ' 级（' + cost[0] + '金 ' + cost[1] + '材料）</button></div>';
-    } else if (d.upgrade) {
-      html += '<div class="pRow dim">已达到最高等级</div>';
-    }
-    if (!isManor && !isMarket) {
-      html += '<div class="pBottom"><button data-action="demolish" class="danger">拆除（返还一半）</button></div>';
+      html += '</div>';
+      if (b.level < 5) {
+        var cost = d.upgrade[b.level - 1];
+        var afford = World.canAfford({ gold: cost[0], material: cost[1] });
+        html += '<button class="actUpgrade" data-action="upgrade" ' + (afford ? '' : 'disabled') + '>升级到 ' + (b.level + 1) + ' 级（' + cost[0] + '金 ' + cost[1] + '材料）</button>';
+      }
     }
     el.buildPanel.innerHTML = html;
   }
@@ -300,47 +333,75 @@
     if (!b || el.buildPanel.classList.contains('hidden')) return;
     var st = World.getStatus(b);
     var statusEl = el.buildPanel.querySelector('.pStatus');
-    if (statusEl) statusEl.innerHTML = '<i class="statusDot" style="background:' + st.color + '"></i>' + st.text;
-    var prog = el.buildPanel.querySelector('.pProgress i');
-    if (prog) {
-      if (b.constructing) prog.style.width = Math.min(100, b.buildProgress / (b.buildTime || 1) * 100) + '%';
-      else if (b.batch) prog.style.width = Math.min(100, b.batch.progress / b.batch.cycle * 100) + '%';
-      else prog.style.width = '0%';
+    if (statusEl) statusEl.innerHTML = '<i class="statusDot" style="background:' + st.color + '"></i><b>' + statusText(b) + '</b>';
+    var y = World.getYield(b);
+    var yieldEl = el.buildPanel.querySelector('[data-ref="yield"]');
+    if (yieldEl && y) {
+      var isManor = b.type === 'manor';
+      var isSell = !isManor && b.mode === 'sell' && World.canSell(b);
+      yieldEl.textContent = (isSell && y.sellText) ? y.sellText : y.storeText;
+      yieldEl.classList.toggle('gold', isManor || isSell);
     }
-    var inEl = el.buildPanel.querySelector('[data-ref="in"]');
-    if (inEl) inEl.innerHTML = invDots(b.input);
-    var outEl = el.buildPanel.querySelector('[data-ref="out"]');
-    if (outEl) outEl.innerHTML = invDots(b.out);
-    var signed = el.buildPanel.querySelector('.pAssigned');
-    if (signed) signed.textContent = World.assignedCount(b.type === 'market' ? 'market' : b.id) + ' 人';
+    var recEl = el.buildPanel.querySelector('[data-ref="recipe"]');
+    if (recEl && b.type !== 'manor' && b.type !== 'market') recEl.innerHTML = recipeHTML(b);
   }
 
-  function renderVillagePanel(force) {
-    var sig = World.villagers.length + ':' + World.carryLv + ':' + World.speedLv + ':' + World.idleCount() + ':' + (World.gold >= World.hireCost() ? 1 : 0);
-    if (!force && sig === UI.villageSig) return;
-    UI.villageSig = sig;
+  function renderStorePanel(force) {
+    var goods = [];
+    for (var g in World.store) if ((World.store[g] || 0) > 0) goods.push(g);
+    var sig = goods.join(',') + '|' + World.material;
+    if (!force && sig === UI.storeSig) return;
+    UI.storeSig = sig;
     var html = '';
-    html += '<div class="pHead"><span class="pSeal">民</span><span class="pName">村民</span>';
-    html += '<span class="pStatus"><i class="statusDot" style="background:#5e8a5a"></i>共 ' + World.villagers.length + ' 人 · 空闲 ' + World.idleCount() + '</span>';
+    html += '<div class="pHead"><span class="pSeal">仓</span><span class="pName">仓库</span>';
+    html += '<span class="pStatus"><i class="statusDot" style="background:#c9a04e"></i>总估值 ' + Math.round(World.storeValue()) + ' 金</span>';
     html += '<button class="pClose" data-action="close">✕</button></div>';
-    html += '<div class="pRow"><span>雇佣村民</span><span class="pInv">每人 ' + World.hireCost() + ' 金</span></div>';
-    html += '<button class="actUpgrade" data-action="hire" ' + (World.gold >= World.hireCost() ? '' : 'disabled') + '>雇佣一名村民（' + World.hireCost() + ' 金）</button>';
-    html += '<div class="pRow dim">闲置村民会自动前往没有工人的建筑工作（市场除外）。</div>';
-    html += '<div class="pRow"><span>载重 Lv' + World.carryLv + '</span><span class="pInv">当前每人每趟 ' + C.VILLAGER.carry[World.carryLv - 1] + ' 单位</span></div>';
-    if (World.carryLv < 5) {
-      var cc = C.VILLAGER.upgrade[World.carryLv - 1];
-      html += '<button class="actUpgrade" data-action="carryUp" ' + (World.canAfford({ gold: cc[0], material: cc[1] }) ? '' : 'disabled') + '>升级载重 +1（' + cc[0] + '金 ' + cc[1] + '材料）</button>';
-    } else {
-      html += '<button class="actUpgrade" disabled>载重已满级</button>';
+    if (World.material > 0) {
+      html += '<div class="wRow"><span class="wDot" style="background:#b8892f"></span><span class="wName">材料</span>';
+      html += '<span class="wQty">' + Math.floor(World.material) + '</span><span class="wVal">建造升级用</span></div>';
     }
-    html += '<div class="pRow"><span>移速 Lv' + World.speedLv + '</span><span class="pInv">当前 ' + Math.round(C.VILLAGER.speed[World.speedLv - 1] * 100) + '% · 下一级 ' + (World.speedLv < 5 ? Math.round(C.VILLAGER.speed[World.speedLv] * 100) + '%' : '—') + '</span></div>';
-    if (World.speedLv < 5) {
-      var sc = C.VILLAGER.upgrade[World.speedLv - 1];
-      html += '<button class="actUpgrade" data-action="speedUp" ' + (World.canAfford({ gold: sc[0], material: sc[1] }) ? '' : 'disabled') + '>升级移速（' + sc[0] + '金 ' + sc[1] + '材料）</button>';
-    } else {
-      html += '<button class="actUpgrade" disabled>移速已满级</button>';
+    if (!goods.length && !World.material) {
+      html += '<div class="pRow dim">仓库暂无物料。把建筑设置为「存进仓库」即可积累物资。</div>';
     }
-    el.villagePanel.innerHTML = html;
+    var order = C.BUILD_ORDER && Object.keys(G);
+    goods.sort(function (a, b2) { return (G[b2].sell * World.store[b2]) - (G[a].sell * World.store[a]); });
+    for (var i = 0; i < goods.length; i++) {
+      var g2 = goods[i];
+      var qty = World.store[g2];
+      html += '<div class="wRow"><span class="wDot" style="background:' + G[g2].color + '"></span>';
+      html += '<span class="wName">' + G[g2].name + '</span>';
+      html += '<span class="wQty">' + Math.floor(qty) + '</span>';
+      html += '<span class="wVal">' + Math.round(qty * G[g2].sell) + ' 金</span>';
+      html += '<button class="wSell" data-action="sellGood" data-good="' + g2 + '">卖出</button></div>';
+    }
+    if (goods.length) {
+      html += '<button class="wSellAll" data-action="sellAll">全部卖出（' + Math.round(World.storeValue()) + ' 金）</button>';
+    }
+    el.storePanel.innerHTML = html;
+  }
+
+  function updateStorePanelDynamic() {
+    if (el.storePanel.classList.contains('hidden')) return;
+    var goods = [];
+    for (var g in World.store) if ((World.store[g] || 0) > 0) goods.push(g);
+    var sig = goods.join(',') + '|' + World.material;
+    if (sig !== UI.storeSig) {
+      renderStorePanel(true);
+      return;
+    }
+    var rows = el.storePanel.querySelectorAll('.wRow');
+    for (var i = 0; i < rows.length; i++) {
+      var good = rows[i].dataset.good;
+      if (!good) continue;
+      var qtyEl = rows[i].querySelector('.wQty');
+      var valEl = rows[i].querySelector('.wVal');
+      if (qtyEl) qtyEl.textContent = Math.floor(World.store[good] || 0);
+      if (valEl) valEl.textContent = Math.round((World.store[good] || 0) * G[good].sell) + ' 金';
+    }
+    var total = el.storePanel.querySelector('.pStatus');
+    if (total) total.innerHTML = '<i class="statusDot" style="background:#c9a04e"></i>总估值 ' + Math.round(World.storeValue()) + ' 金';
+    var allBtn = el.storePanel.querySelector('.wSellAll');
+    if (allBtn) allBtn.textContent = '全部卖出（' + Math.round(World.storeValue()) + ' 金）';
   }
 
   function refreshTop() {
@@ -366,7 +427,7 @@
     if (World.overdue) {
       var lack = Math.max(0, World.overdue.rent - World.gold);
       el.overdueBar.classList.remove('hidden');
-      el.overdueBar.textContent = (World.overdue.first ? '欠租！首次宽限期 ' : '欠租！募集期 ') + Math.max(0, Math.ceil(World.overdue.deadline - World.time)) + ' 秒，还差 ' + fmt(lack) + ' 金币（无人可求助，可自行补足）';
+      el.overdueBar.textContent = (World.overdue.first ? '欠租！首次宽限期 ' : '欠租！募集期 ') + Math.max(0, Math.ceil(World.overdue.deadline - World.time)) + ' 秒，还差 ' + fmt(lack) + ' 金币';
     } else {
       el.overdueBar.classList.add('hidden');
     }
@@ -427,17 +488,17 @@
   }
 
   function showWelcome() {
-    openModal('欢迎来到庄田记', '<p>你受托经营一块租来的庄田。布置产业，村民会自动生产、搬运和售卖；按时交租，攒够金币买下土地即可通关。</p><ul><li>按住建筑栏里的建筑<b>拖到地图</b>空地上建造</li><li>直接<b>拖动地图上的建筑</b>即可移动位置</li><li>点一下建筑可查看状态、指派村民和升级</li><li>建成后闲置村民会自动上岗（市场除外）</li><li>单指拖动地图，双指缩放，双击复位</li></ul>', [
+    openModal('欢迎来到庄田记', '<p>你受托经营一块租来的庄田。建造产业直接生产，选择入库或出售，按时交租，攒够金币买下土地即可通关。</p><ul><li>按住建筑栏里的建筑<b>拖到地图</b>空地上建造</li><li>点建筑打开详情，可<b>切换「存进仓库 / 直接卖出」</b></li><li>加工建筑会直接消耗仓库中的物料</li><li>打开详情面板后，<b>拖动建筑</b>即可移位</li><li>「仓库」页签可查看库存并整批卖出</li></ul>', [
       { text: '开始经营', cls: 'primary' }
     ]);
   }
 
   function showHelp() {
-    openModal('玩法说明', '<ul><li><b>金币</b>：里正宅被动收入与市场售卖所得，用于雇佣、租金、买地与升级。</li><li><b>材料</b>：工坊混合木头或石头产生，用于中后期建筑与升级。</li><li><b>物料</b>：农田→养殖→加工→市场，加工后售价更高。</li><li>建筑有建造时间，建成后才会生产。</li><li>下游建筑若无人指派则不会收货；有下游可加工的数量会预留，其余自动出售。</li><li>多配方建筑按等待顺序轮流处理，批次中途不切换。</li></ul>', [{ text: '知道了', cls: 'primary' }]);
+    openModal('玩法说明', '<ul><li><b>金币</b>：里正宅被动收入与建筑出售产物所得，用于建造、升级、租金与买地。</li><li><b>材料</b>：工坊消耗木头或石头产生，用于中后期建筑与升级，不可出售。</li><li><b>存进仓库</b>：产物进入仓库，供加工建筑继续加工。</li><li><b>直接卖出</b>：产物立即换成金币，不进入仓库。</li><li>加工建筑（工坊/堆肥/腌制/纺织/织染）直接从仓库取料。</li><li>库存不足时建筑暂停，补足后自动继续。</li></ul>', [{ text: '知道了', cls: 'primary' }]);
   }
 
   function showMenu() {
-    openModal('菜单', '<div class="pRow dim">存档自动保存在本机浏览器中，缩放位置也会一起保存。</div>', [
+    openModal('菜单', '<div class="pRow dim">本局不自动保存，刷新或关闭页面后重新开始。</div>', [
       { text: '新游戏', cls: 'danger', keepOpen: true, onClick: function () { confirmModal('开始新游戏？', '当前进度将被清除。', function () { newGame(); }); } },
       { text: '重置视角', keepOpen: true, onClick: function () { Render.fit(); closeModal(); } },
       { text: '关闭' }
@@ -445,14 +506,10 @@
   }
 
   function newGame() {
-    try {
-      localStorage.removeItem(C.SAVE_KEY);
-      localStorage.removeItem(C.SAVE_KEY + '_cam');
-    } catch (e) {}
     World.reset();
     overlayShown = null;
     UI.panelSig = '';
-    UI.villageSig = '';
+    UI.storeSig = '';
     UI.rentWarned = null;
     selectBuilding(null);
     Render.invalidateStatic();
@@ -479,28 +536,22 @@
     if (World.victory && overlayShown !== 'win') { overlayShown = 'win'; showVictory(); }
   }
 
-  function save() {
-    try {
-      localStorage.setItem(C.SAVE_KEY, JSON.stringify(World.serialize()));
-      localStorage.setItem(C.SAVE_KEY + '_cam', JSON.stringify(Render.getCam()));
-    } catch (e) {}
-  }
-
   var lastRefreshLoop = performance.now();
   function loop(now) {
     var dt = Math.min(0.1, (now - lastRefreshLoop) / 1000);
     lastRefreshLoop = now;
     World.tick(dt);
     Render.draw(dt);
-    if (now - lastRefresh > 120) {
+    if (now - lastRefresh > 150) {
       lastRefresh = now;
       refreshTop();
       syncToasts();
-      updateBuildPanelDynamic();
-      if (!el.buildPanel.classList.contains('hidden')) renderBuildPanel(false);
-      if (!el.villagePanel.classList.contains('hidden')) renderVillagePanel(false);
+      if (!el.buildPanel.classList.contains('hidden')) {
+        renderBuildPanel(false);
+        updateBuildPanelDynamic();
+      }
+      if (!el.storePanel.classList.contains('hidden')) updateStorePanelDynamic();
     }
-    if (now - lastSave > 8000) { lastSave = now; save(); }
     checkOverlays();
     requestAnimationFrame(loop);
   }
@@ -516,12 +567,13 @@
         showOnly(null);
       }
     };
-    el.tabVillage.onclick = function () {
+    el.tabStore.onclick = function () {
       sfx('ui');
-      if (el.villagePanel.classList.contains('hidden')) {
+      if (el.storePanel.classList.contains('hidden')) {
         selectBuilding(null);
-        renderVillagePanel(true);
-        showOnly('village');
+        UI.storeSig = '';
+        renderStorePanel(true);
+        showOnly('store');
       } else {
         showOnly(null);
       }
@@ -547,8 +599,7 @@
       if (World.gold < C.RENT.landPrice) { toast('还差 ' + fmt(C.RENT.landPrice - World.gold) + ' 金币'); return; }
       confirmModal('买下庄田', '<p>支付 <b>' + C.RENT.landPrice + ' 金币</b> 买下这块土地，立即通关并免除后续租金。是否确认？</p>', function () {
         var r = World.tryBuyLand();
-        if (r.ok) save();
-        else toast(r.msg);
+        if (!r.ok) toast(r.msg);
       });
     };
     el.buildPanel.addEventListener('click', function (e) {
@@ -559,15 +610,8 @@
       var action = btn.dataset.action;
       var r;
       if (action === 'close') { selectBuilding(null); return; }
-      if (action === 'assignUp') {
-        r = World.assignTo(b.type === 'market' ? 'market' : b.id);
-        if (!r.ok) toast(r.msg);
-        UI.panelSig = '';
-        renderBuildPanel(true);
-        return;
-      }
-      if (action === 'assignDown') {
-        r = World.unassignFrom(b.type === 'market' ? 'market' : b.id);
+      if (action === 'toggleMode') {
+        r = World.setMode(b.id, b.mode === 'sell' ? 'store' : 'sell');
         if (!r.ok) toast(r.msg);
         UI.panelSig = '';
         renderBuildPanel(true);
@@ -583,7 +627,7 @@
       }
       if (action === 'demolish') {
         var d = C.BUILD[b.type];
-        confirmModal('拆除 ' + d.name, '<p>拆除将返还一半建造费（' + costText(d.cost) + ' 的一半），建筑内库存会留在原地，由村民自动清理出售。确认拆除？</p>', function () {
+        confirmModal('拆除 ' + d.name, '<p>拆除将返还一半建造费（' + costText(d.cost) + ' 的一半）。确认拆除？</p>', function () {
           r = World.tryDemolish(b.id);
           if (r.ok) {
             toast('已拆除，返还 ' + r.refundGold + '金 ' + r.refundMat + '材料');
@@ -593,31 +637,40 @@
         return;
       }
     });
-    el.villagePanel.addEventListener('click', function (e) {
+    el.storePanel.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-action]');
       if (!btn) return;
       var action = btn.dataset.action;
-      var r;
       if (action === 'close') { showOnly(null); return; }
-      if (action === 'hire') {
-        r = World.hireVillager();
-        if (!r.ok) toast(r.msg);
-        else toast('已雇佣新村民');
-        renderVillagePanel(true);
+      if (action === 'sellGood') {
+        var good = btn.dataset.good;
+        var qty = Math.floor(World.store[good] || 0);
+        if (qty <= 0) return;
+        confirmModal('卖出 ' + G[good].name, '<p>卖出 <b>' + qty + ' 个' + G[good].name + '</b>，可得 <b>' + Math.round(qty * G[good].sell) + ' 金币</b>。</p>', function () {
+          var r = World.sellGood(good);
+          if (r.ok) {
+            toast('卖出 ' + r.qty + G[good].name + '，+' + Math.round(r.gain) + ' 金');
+            UI.storeSig = '';
+            renderStorePanel(true);
+          }
+        });
         return;
       }
-      if (action === 'carryUp') {
-        r = World.tryUpgradeCarry();
-        if (!r.ok) toast(r.msg);
-        else toast('全体村民载重 +1，当前 Lv' + World.carryLv);
-        renderVillagePanel(true);
-        return;
-      }
-      if (action === 'speedUp') {
-        r = World.tryUpgradeSpeed();
-        if (!r.ok) toast(r.msg);
-        else toast('全体村民移速提升至 Lv' + World.speedLv);
-        renderVillagePanel(true);
+      if (action === 'sellAll') {
+        var total = World.storeValue();
+        if (total <= 0) return;
+        confirmModal('全部卖出', '<p>卖出仓库中所有物料，可得约 <b>' + Math.round(total) + ' 金币</b>。确认？</p>', function () {
+          var gain = 0;
+          for (var g in World.store) {
+            if ((World.store[g] || 0) > 0) {
+              var r2 = World.sellGood(g);
+              if (r2.ok) gain += r2.gain;
+            }
+          }
+          toast('仓库清空，+' + Math.round(gain) + ' 金');
+          UI.storeSig = '';
+          renderStorePanel(true);
+        });
         return;
       }
     });
@@ -627,10 +680,6 @@
         else selectBuilding(null);
       }
     });
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) save();
-    });
-    window.addEventListener('beforeunload', save);
   }
 
   function boot() {
@@ -647,9 +696,9 @@
     el.btnSound = $('btnSound');
     el.btnMenu = $('btnMenu');
     el.tabBuild = $('tabBuild');
-    el.tabVillage = $('tabVillage');
+    el.tabStore = $('tabStore');
     el.buildMenu = $('buildMenu');
-    el.villagePanel = $('villagePanel');
+    el.storePanel = $('storePanel');
     el.buildPanel = $('buildPanel');
     el.toasts = $('toasts');
     el.modal = $('modal');
@@ -664,26 +713,12 @@
     });
     bind();
 
-    var loaded = false;
-    try {
-      var raw = localStorage.getItem(C.SAVE_KEY);
-      if (raw) loaded = World.load(JSON.parse(raw));
-    } catch (e) { loaded = false; }
-    if (!loaded) World.reset();
-    else toast('已载入本机存档');
-
+    World.reset();
     Render.invalidateStatic();
-    var restoredCam = false;
-    if (loaded) {
-      try {
-        var cam = JSON.parse(localStorage.getItem(C.SAVE_KEY + '_cam'));
-        if (cam) { Render.setCam(cam); restoredCam = true; }
-      } catch (e) {}
-    }
-    if (!restoredCam) Render.fit();
+    Render.fit();
 
     refreshTop();
-    if (!loaded) showWelcome();
+    showWelcome();
     requestAnimationFrame(loop);
   }
 

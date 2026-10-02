@@ -29,6 +29,14 @@ const {chromium}=require('playwright');
       await page.evaluate(()=>{demo.game.materials=10;demo.game.gold=500;demo.refresh();});
       await page.locator('[data-action="upgrade"]').click();
       assert.equal(await page.evaluate(()=>demo.game.buildings.find(b=>b.type==='wood').level),2);
+      const original=await page.evaluate(()=>{const b=demo.game.buildings.find(b=>b.type==='wood');return {x:b.x,y:b.y,id:b.id};});
+      const screenPoint=async(x,y)=>page.evaluate(({x,y})=>{const r=document.getElementById('map').getBoundingClientRect(),t=Math.min(r.width/14,r.height/15);return {x:r.x+(r.width-14*t)/2+x*t,y:r.y+(r.height-15*t)/2+y*t};},{x,y});
+      await page.locator('[data-action="move"]').click();
+      const destination=await screenPoint(9.5,7.5);await page.mouse.click(destination.x,destination.y);
+      assert.deepEqual(await page.evaluate(id=>{const b=demo.game.building(id);return {x:b.x,y:b.y,id:b.id};},original.id),original,'Clicking destination does not move building');
+      const blueprint=await screenPoint(original.x+.5,original.y+.5);
+      await page.mouse.move(blueprint.x,blueprint.y);await page.mouse.down();await page.mouse.move(destination.x,destination.y,{steps:10});await page.mouse.up();
+      assert.deepEqual(await page.evaluate(id=>{const b=demo.game.building(id);return {x:b.x,y:b.y};},original.id),{x:9,y:7},'Dragging blueprint relocates building');
       await page.locator('[data-action="move"]').click();await page.locator('#cancel-placement').click();
       await page.locator('#market-select').click();assert(await page.locator('[data-action="assign"]').count());
       await page.evaluate(()=>{for(let i=0;i<1400;i++)demo.game.tick(.05);demo.refresh();});
@@ -45,6 +53,10 @@ const {chromium}=require('playwright');
       await page.evaluate(()=>{demo.game.gold=5000;demo.refresh();});
       await page.evaluate(()=>{demo.game.buyLand();demo.refresh();});assert(await page.evaluate(()=>demo.game.won));
       await page.reload();await page.waitForTimeout(200);assert(await page.evaluate(()=>demo.game.won),'Save restores victory');
+      await page.locator('[data-tab="land"]').click();await page.locator('[data-action="restart-confirm"]').click();
+      assert(await page.locator('#dialog').evaluate(el=>el.open));await page.locator('[data-dialog="close"]').click();assert(await page.evaluate(()=>demo.game.won),'Cancel keeps current game');
+      await page.locator('[data-action="restart-confirm"]').click();await page.locator('[data-dialog="restart"]').click();
+      assert.equal(await page.evaluate(()=>demo.game.buildings.length),2);assert.equal(await page.evaluate(()=>demo.game.workers.length),2);assert.equal(await page.evaluate(()=>demo.game.won),false);
       assert.deepEqual(errors,[]);console.log(`PASS browser ${viewport.width}×${viewport.height}; ${colors} canvas colors; build/assign/upgrade/hire/sale/win/save`);await page.close();
     }
   }finally{await browser.close();}

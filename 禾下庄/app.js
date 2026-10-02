@@ -2,10 +2,10 @@
 const {Game,TYPES,GOODS,stats,sum}=FarmGame;
 const $=id=>document.getElementById(id);
 const STORAGE='hexiazhuang-demo-v1';
-let game,tab='build',selected=null,placing=null,moving=null,preview=null,toastUntil=0,shownFailure=false,dragType=null,buildPage=0;
+let game,tab='build',selected=null,placing=null,moving=null,preview=null,toastUntil=0,shownFailure=false,dragType=null,buildPage=0,moveDrag=null;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE));game=saved&&saved.version===1?new Game(saved.state):new Game();}catch{game=new Game();}
 const canvas=$('map'),ctx=canvas.getContext('2d');
-let width=0,height=0,baseTile=1,uiTime=0,saveTime=0,last=0,mapZoom=1,mapPanX=0,mapPanY=0,pinch=null,mapPointer=null,floaters=[],lastMaterials=game.materials,lastSales=game.sales;
+let width=0,height=0,baseTile=1,uiTime=0,saveTime=0,last=0,mapZoom=1,mapPanX=0,mapPanY=0,pinch=null,mapPointer=null,floaters=[],flights=[],lastMaterials=game.materials,lastSales=game.sales;
 function syncViewport(){const height=window.visualViewport?.height||window.innerHeight;document.documentElement.style.setProperty('--viewport-height',`${height}px`);}
 syncViewport();window.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('resize',syncViewport);
 const iconCache=new Map();
@@ -39,7 +39,7 @@ function renderPanel(){
     panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">庄丁名册</span><h2>村民 <em>${total}</em> <small>/ 24</small></h2><p>已指派 ${game.workers.filter(w=>w.assigned).length} · 空闲 ${free}</p></div><button class="primary compact-action" data-action="hire" ${game.gold<hire||total>=24?'disabled':''}>雇用 · ${hire}<i class="coin"></i></button></div><button class="secondary auto-distribute" data-action="auto-distribute" ${!free||!game.buildings.some(b=>!['home','pile','market'].includes(b.type)&&!game.active(b))?'disabled':''}>自动分派</button><div class="worker-upgrades">${[['carryLevel','搬运载重',[5,7,9,12,15]],['speedLevel','行走速度',[100,115,130,145,160]]].map(([key,label,values])=>{const level=game[key],cost=[60*2**(level-1),6*2**(level-1)],unit=key==='carryLevel'?'件':'%';return `<div class="worker-upgrade"><div><strong>${label}<span class="level">Lv.${level}</span></strong><small>${values[level-1]}${unit}${level<5?' → '+values[level]+unit:''}</small></div><button class="secondary" data-worker-upgrade="${key}" ${level>=5||game.gold<cost[0]||game.materials<cost[1]?'disabled':''}>${level>=5?'已满级':amountCost(...cost)}</button></div>`;}).join('')}</div>`;
     panel.scrollTop=scrollTop;return;
   }
-  if(tab==='land'){panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">田契卷宗</span><h2>青溪庄田</h2><p>一纸地契，终身经营</p></div><span class="seal-tag">${game.won?'已归名下':'租赁中'}</span></div><div class="land-deed"><span class="deed-label">买地银两</span><div class="land-price">${game.won?'已买下':game.landPrice.toLocaleString()}<small>${game.won?'免租经营':'金币'}</small></div><div class="deed-line"></div><p>买下地皮后，地主不再收租，田庄归你世代经营。</p></div><button class="primary buy-land" data-action="buy" ${game.won||game.gold<game.landPrice||game.grace!==null?'disabled':''}>${game.won?'地契已签':'签下地契 · '+game.landPrice.toLocaleString()+'金币'}</button>`;panel.scrollTop=scrollTop;return;}
+  if(tab==='land'){panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">田契卷宗</span><h2>青溪庄田</h2><p>一纸地契，终身经营</p></div><span class="seal-tag">${game.won?'已归名下':'租赁中'}</span></div><div class="land-deed"><span class="deed-label">买地银两</span><div class="land-price">${game.won?'已买下':game.landPrice.toLocaleString()}<small>${game.won?'免租经营':'金币'}</small></div><div class="deed-line"></div><p>买下地皮后，地主不再收租，田庄归你世代经营。</p></div><div class="land-actions"><button class="primary buy-land" data-action="buy" ${game.won||game.gold<game.landPrice||game.grace!==null?'disabled':''}>${game.won?'地契已签':'签下地契 · '+game.landPrice.toLocaleString()+'金币'}</button><button class="secondary" data-action="restart-confirm">重新开始</button></div>`;panel.scrollTop=scrollTop;return;}
   const list=Object.entries(TYPES).filter(([k])=>k!=='home'&&k!=='market'&&k!=='pile');
   const columns=Math.max(3,Math.min(5,Math.floor((panel.clientWidth-28)/92))),rows=2,pageSize=columns*rows,pages=Math.max(1,Math.ceil(list.length/pageSize));buildPage=Math.min(buildPage,pages-1);const pageList=list.slice(buildPage*pageSize,(buildPage+1)*pageSize);
   panel.innerHTML=`<div class="build-grid" style="--build-columns:${columns}">${pageList.map(([k,d])=>{const unlocked=game.unlocked.includes(k),affordable=game.gold>=d.cost[0]&&game.materials>=d.cost[1],state=!unlocked?'locked':affordable?'ready':'short';return `<button class="building-option ${state}" data-build="${k}" data-drag-type="${k}" draggable="false">${icon(k)}<strong>${d.name}</strong><small>${unlocked?amountCost(...d.cost):'需 '+d.requires.map(r=>TYPES[r].name).join(' / ')}</small></button>`;}).join('')}</div><div class="build-pagination"><button data-page="prev" ${buildPage===0?'disabled':''} aria-label="上一页">‹</button><span>${buildPage+1} / ${pages}</span><button data-page="next" ${buildPage>=pages-1?'disabled':''} aria-label="下一页">›</button></div>`;
@@ -64,21 +64,22 @@ $('panel').addEventListener('click',e=>{
   if(el.dataset.page){buildPage+=el.dataset.page==='next'?1:-1;renderPanel();return;}
   const b=game.building(selected),action=el.dataset.action;
   if(action==='deselect'){selected=null;renderPanel();return;}
+  if(action==='restart-confirm'){showDialog('<h2>重新经营？</h2><p>当前金币、材料、建筑和村民将重置，此操作无法撤回。</p><div class="dialog-actions"><button class="secondary" data-dialog="close">取消</button><button class="primary" data-dialog="restart">确认重开</button></div>');return;}
   if(game.failed)return toast('本局已结束');
   if(action==='auto-distribute'){const count=game.autoAssign(true);toast('已分派 '+count+' 名村民');refresh();save();return;}
   if(el.dataset.workerUpgrade){if(game.upgradeWorkers(el.dataset.workerUpgrade))toast('全体村民升级完成');refresh();save();return;}
   if(action==='assign'||action==='unassign'){game.assign(b,action==='assign'?1:-1);refresh();}
   if(action==='upgrade'){if(game.upgrade(b))toast(TYPES[b.type].name+'升级完成');refresh();}
-  if(action==='move'){moving=b.id;placing=b.type;preview=null;$('placement').hidden=false;$('placement-text').textContent='移动'+TYPES[b.type].name+' · 点击空地';}
+  if(action==='move'){moving=b.id;placing=b.type;preview={x:b.x,y:b.y};moveDrag=null;$('placement').hidden=false;$('placement-text').textContent='移动'+TYPES[b.type].name+' · 拖动蓝图放置';}
   if(action==='demolish')showDialog(`<h2>拆除${TYPES[b.type].name}？</h2><p>返还一半建造费用，库存留在原地，由村民清运售卖。升级费用不返还。</p><div class="dialog-actions"><button class="secondary" data-dialog="close">保留</button><button class="primary" data-dialog="demolish" data-id="${b.id}">拆除</button></div>`);
   if(action==='hire'){game.hire();refresh();}
   if(action==='buy')showDialog(`<h2>买下青溪庄田</h2><p>支付${game.landPrice}金币，田庄将归你所有。此后可以继续经营，无需再交租。</p><div class="dialog-actions"><button class="secondary" data-dialog="close">再等等</button><button class="primary" data-dialog="buy">购买地契</button></div>`);
 });
- $('dialog').addEventListener('click',e=>{const el=e.target.closest('[data-dialog]');if(!el)return;const a=el.dataset.dialog;if(a==='close')closeDialog();if(a==='demolish'){const b=game.building(Number(el.dataset.id));if(b)game.demolish(b);selected=null;closeDialog();refresh();}if(a==='buy'){if(game.buyLand())toast('地契在手！青溪庄田归你所有');closeDialog();refresh();save();}if(a==='restart'){game=new Game();selected=null;placing=null;moving=null;shownFailure=false;$('placement').hidden=true;closeDialog();refresh();save();}if(a==='reset')showDialog('<h2>重新经营？</h2><p>会清除当前存档，重新从里正宅和2名村民开始。</p><div class="dialog-actions"><button class="secondary" data-dialog="close">取消</button><button class="primary" data-dialog="restart">确认重开</button></div>');});
-$('cancel-placement').onclick=()=>{placing=null;moving=null;preview=null;$('placement').hidden=true;};
+  $('dialog').addEventListener('click',e=>{const el=e.target.closest('[data-dialog]');if(!el)return;const a=el.dataset.dialog;if(a==='close')closeDialog();if(a==='demolish'){const b=game.building(Number(el.dataset.id));if(b)game.demolish(b);selected=null;closeDialog();refresh();}if(a==='buy'){if(game.buyLand())toast('地契在手！青溪庄田归你所有');closeDialog();refresh();save();}if(a==='restart'){game=new Game();tab='build';buildPage=0;selected=null;placing=null;moving=null;moveDrag=null;touchDrag=null;dragType=null;preview=null;mapPointer=null;pinch=null;mapZoom=1;mapPanX=0;mapPanY=0;floaters=[];lastMaterials=game.materials;lastSales=game.sales;shownFailure=false;document.querySelector('.management').classList.remove('is-dragging');document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab==='build'));$('placement').hidden=true;closeDialog();refresh();save();}if(a==='reset')showDialog('<h2>重新经营？</h2><p>会清除当前存档，重新从里正宅和2名村民开始。</p><div class="dialog-actions"><button class="secondary" data-dialog="close">取消</button><button class="primary" data-dialog="restart">确认重开</button></div>');});
+$('cancel-placement').onclick=()=>{placing=null;moving=null;moveDrag=null;preview=null;$('placement').hidden=true;};
 $('market-select').onclick=()=>{selected=game.buildings.find(b=>b.type==='market').id;renderPanel();};
 document.addEventListener('dragstart',e=>{if(e.target.closest('[data-drag-type]')||e.target.closest('.building-icon')){e.preventDefault();e.stopPropagation();return false;}});
-document.addEventListener('selectstart',e=>{if(e.target.closest('[data-drag-type]'))e.preventDefault();});
+document.addEventListener('selectstart',e=>{if(e.target instanceof Element&&e.target.closest('[data-drag-type]'))e.preventDefault();});
 let touchDrag=null;
 document.addEventListener('pointerdown',e=>{const card=e.target.closest('[data-drag-type]');if(!card||card.classList.contains('locked')||card.classList.contains('short'))return;e.preventDefault();touchDrag={type:card.dataset.dragType,moved:false};card.setPointerCapture?.(e.pointerId);});
 document.addEventListener('pointermove',e=>{if(!touchDrag)return;const r=canvas.getBoundingClientRect();if(e.clientY<r.top){return;}touchDrag.moved=true;dragType=touchDrag.type;placing=dragType;preview=mapPoint(e);showDragGhost(dragType,e.clientX,e.clientY);$('placement').hidden=false;$('placement-text').textContent=TYPES[dragType].name+' · 拖到地图空地';});
@@ -86,20 +87,28 @@ document.addEventListener('pointerup',e=>{if(!touchDrag)return;const drag=touchD
 canvas.addEventListener('dragover',e=>{if(!dragType)return;e.preventDefault();preview=mapPoint(e);});
 canvas.addEventListener('drop',e=>{if(!dragType)return;e.preventDefault();const p=mapPoint(e);if(game.canPlace(dragType,p.x,p.y)){const b=game.build(dragType,p.x,p.y);if(b){selected=b.id;toast(TYPES[dragType].name+'已建造');}}else toast('这里不能放置，请留出通道');dragType=null;placing=null;preview=null;hideDragGhost();$('placement').hidden=true;refresh();save();});
 function mapPoint(e){const r=canvas.getBoundingClientRect(),tile=baseTile*mapZoom,ox=(width-game.cols*tile)/2+mapPanX,oy=(height-game.rows*tile)/2+mapPanY;return {x:Math.floor((e.clientX-r.left-ox)/tile),y:Math.floor((e.clientY-r.top-oy)/tile)};}
-canvas.addEventListener('pointermove',e=>{if(mapPointer&&!pinch){const dx=e.clientX-mapPointer.x,dy=e.clientY-mapPointer.y;mapPointer.moved=mapPointer.moved||Math.hypot(e.clientX-mapPointer.sx,e.clientY-mapPointer.sy)>5;mapPanX+=dx;mapPanY+=dy;mapPointer.x=e.clientX;mapPointer.y=e.clientY;}if(placing)preview=mapPoint(e);});
+canvas.addEventListener('pointermove',e=>{if(moveDrag&&e.pointerId===moveDrag.id){const p=mapPoint(e);preview={x:p.x-moveDrag.dx,y:p.y-moveDrag.dy};moveDrag.moved=moveDrag.moved||Math.hypot(e.clientX-moveDrag.sx,e.clientY-moveDrag.sy)>5;return;}if(mapPointer&&!pinch){const dx=e.clientX-mapPointer.x,dy=e.clientY-mapPointer.y;mapPointer.moved=mapPointer.moved||Math.hypot(e.clientX-mapPointer.sx,e.clientY-mapPointer.sy)>5;mapPanX+=dx;mapPanY+=dy;mapPointer.x=e.clientX;mapPointer.y=e.clientY;}if(placing&&!moving)preview=mapPoint(e);});
 canvas.addEventListener('touchstart',e=>{if(e.touches.length!==2)return;const [a,b]=e.touches;pinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:mapZoom,cx:(a.clientX+b.clientX)/2,cy:(a.clientY+b.clientY)/2};mapPointer=null;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchmove',e=>{if(!pinch||e.touches.length!==2)return;const [a,b]=e.touches,cx=(a.clientX+b.clientX)/2,cy=(a.clientY+b.clientY)/2,distance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),nextZoom=Math.max(.75,Math.min(2.2,pinch.zoom*distance/pinch.distance));mapPanX+=cx-pinch.cx;mapPanY+=cy-pinch.cy;mapZoom=nextZoom;pinch.distance=distance;pinch.cx=cx;pinch.cy=cy;pinch.zoom=nextZoom;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null;});
 canvas.addEventListener('pointerdown',e=>{
+  if(moving){const p=mapPoint(e),size=TYPES[placing].size;if(preview&&p.x>=preview.x&&p.x<preview.x+size&&p.y>=preview.y&&p.y<preview.y+size){moveDrag={id:e.pointerId,dx:p.x-preview.x,dy:p.y-preview.y,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture(e.pointerId);e.preventDefault();}return;}
   if(e.pointerType==='touch'&&e.isPrimary&&!placing){mapPointer={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture?.(e.pointerId);return;}
   const p=mapPoint(e);if(game.failed)return;
-  if(placing){if(!game.canPlace(placing,p.x,p.y,moving)){preview=p;toast('这里不能放置，请留出通道');return;}if(moving){const b=game.building(moving);if(game.move(b,p.x,p.y))selected=b.id;}else{const b=game.build(placing,p.x,p.y);if(!b)return toast('金币或材料不足');selected=b.id;toast(TYPES[b.type].name+'已建造');}placing=null;moving=null;preview=null;$('placement').hidden=true;refresh();save();return;}
+  if(placing)return;
   const b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();
 });
-canvas.addEventListener('pointerup',e=>{if(mapPointer){const wasTap=!mapPointer.moved&&!pinch;if(wasTap){const p=mapPoint(e),b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();}mapPointer=null;canvas.releasePointerCapture?.(e.pointerId);}});
-canvas.addEventListener('pointercancel',()=>{mapPointer=null;});
+canvas.addEventListener('pointerup',e=>{if(moveDrag&&e.pointerId===moveDrag.id){const dragged=moveDrag.moved;moveDrag=null;if(dragged){const b=game.building(moving);if(b&&game.move(b,preview.x,preview.y)){selected=b.id;moving=null;placing=null;preview=null;$('placement').hidden=true;toast('建筑已移动');refresh();save();}else toast('这里不能放置，请重新拖动或取消');}if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);return;}if(mapPointer){const wasTap=!mapPointer.moved&&!pinch;if(wasTap){const p=mapPoint(e),b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();}mapPointer=null;canvas.releasePointerCapture?.(e.pointerId);}});
+canvas.addEventListener('pointercancel',()=>{mapPointer=null;moveDrag=null;if(moving){const b=game.building(moving);if(b)preview={x:b.x,y:b.y};}});
 function rect(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));}
-function drawGood(c,key,x,y,size=7){const g=GOODS[key];if(!g)return;c.fillStyle=g.color;c.strokeStyle='#3f493655';c.lineWidth=1;if(g.shape==='egg'){c.beginPath();c.ellipse(x,y,size*.38,size*.48,0,0,Math.PI*2);c.fill();c.stroke();}else if(g.shape==='log'){rect(c,x-size*.6,y-size*.25,size*1.2,size*.55,g.color);rect(c,x-size*.52,y-size*.15,size*.13,size*.35,'#dab781');}else if(g.shape==='coat'){rect(c,x-size*.45,y-size*.4,size*.9,size*.9,g.color);rect(c,x-size*.7,y-size*.35,size*1.4,size*.35,g.color);rect(c,x-size*.07,y-size*.3,size*.14,size*.6,'#d5e0d3');}else{rect(c,x-size*.4,y-size*.4,size*.8,size*.8,g.color);rect(c,x-size*.2,y-size*.3,size*.3,size*.16,'#ffffff55');}}
+function drawStack(c,key,cx,baseY,size,count){
+  if(!count||!GOODS[key])return;
+  const cap=7,vis=Math.min(count,cap),step=size*.5,sh=Math.max(1.5,size*.15);
+  for(let i=0;i<vis;i++){const y=baseY-i*step;drawGood(c,key,cx+sh,y+sh,size,'rgba(26,32,24,0.34)');drawGood(c,key,cx,y,size);}
+  if(count>vis){c.font='bold 9px sans-serif';c.textAlign='left';c.textBaseline='middle';c.lineWidth=3;c.strokeStyle='#f7f0df';c.strokeText('x'+count,cx+size*.45,baseY-size*.4);c.fillStyle='#2c3f2e';c.fillText('x'+count,cx+size*.45,baseY-size*.4);}
+}
+function addFlight(key,from,to,delay){if(!GOODS[key])return;flights.push({key,from,to,born:performance.now()+(delay||0),dur:520});}
+function drawGood(c,key,x,y,size=7,tint){const g=GOODS[key];if(!g)return;const F=tint||g.color,S=tint||'#3f493655';c.fillStyle=F;c.strokeStyle=S;c.lineWidth=1;if(g.shape==='egg'){c.beginPath();c.ellipse(x,y,size*.38,size*.48,0,0,Math.PI*2);c.fill();c.stroke();}else if(g.shape==='log'){rect(c,x-size*.6,y-size*.25,size*1.2,size*.55,F);rect(c,x-size*.52,y-size*.15,size*.13,size*.35,F);}else if(g.shape==='coat'){rect(c,x-size*.45,y-size*.4,size*.9,size*.9,F);rect(c,x-size*.7,y-size*.35,size*1.4,size*.35,F);rect(c,x-size*.07,y-size*.3,size*.14,size*.6,F);}else{rect(c,x-size*.4,y-size*.4,size*.8,size*.8,F);rect(c,x-size*.2,y-size*.3,size*.3,size*.16,F);}}
 function drawBuilding(c,b,t,dx,dy,time,asIcon=false){
   const d=TYPES[b.type],sz=d.size,scale=asIcon?32:t,x=asIcon?0:dx+b.x*t,y=asIcon?0:dy+b.y*t,w=sz*scale,h=w;
   const r=(a,z,ww,hh,col)=>rect(c,x+a*w,y+z*h,ww*w,hh*h,col);
@@ -134,12 +143,16 @@ function drawBuilding(c,b,t,dx,dy,time,asIcon=false){
 function draw(time){
   const r=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);if(r.width!==width||r.height!==height){width=r.width;height=r.height;canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);baseTile=Math.min(width/game.cols,height/game.rows);}
   const tile=baseTile*mapZoom,ox=(width-game.cols*tile)/2+mapPanX,oy=(height-game.rows*tile)/2+mapPanY;
+  const wpos=id=>{const w=game.workers.find(z=>z.id===id);return w?{x:ox+(w.x+.5)*tile,y:oy+(w.y+.35)*tile}:null;};
+  const bslot=(id,kind)=>{const bb=game.building(id);if(!bb)return null;const ss=TYPES[bb.type].size;return {x:ox+(bb.x+ss*(kind==='in'?.28:.72))*tile,y:oy+(bb.y+ss*.88)*tile};};
+  const bcenter=id=>{const bb=game.building(id);if(!bb)return null;const ss=TYPES[bb.type].size;return {x:ox+(bb.x+ss/2)*tile,y:oy+(bb.y+ss/2)*tile};};
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,width,height);rect(ctx,0,0,width,height,'#a8b78e');
   const terrain=['#a7b684','#adbd8a','#a5b481','#b0bf8d','#a9b985'];
   for(let y=0;y<game.rows;y++)for(let x=0;x<game.cols;x++){const edge=x===0||y===0||x===game.cols-1||y===game.rows-1;rect(ctx,ox+x*tile,oy+y*tile,tile,tile,edge?'#94a478':terrain[(x*17+y*31)%5]);if(!edge){rect(ctx,ox+x*tile,oy+y*tile,tile,1,'#85976c19');rect(ctx,ox+x*tile,oy+y*tile,1,tile,'#85976c19');if((x*13+y*7)%9===0){rect(ctx,ox+(x+.3)*tile,oy+(y+.6)*tile,2,3,'#7f975e');rect(ctx,ox+(x+.65)*tile,oy+(y+.3)*tile,2,2,'#c1ca97');}}}
   for(let x=1;x<game.cols-1;x++){for(const y of [1,game.rows-1]){rect(ctx,ox+x*tile,oy+y*tile-3,tile,2,'#9a8762');rect(ctx,ox+x*tile,oy+y*tile-8,3,10,'#847654');}}
   for(let y=1;y<game.rows-1;y++){for(const x of [1,game.cols-1]){if(x===1&&y>=11)continue;rect(ctx,ox+x*tile-3,oy+y*tile,2,tile,'#9a8762');rect(ctx,ox+x*tile-7,oy+y*tile,9,3,'#847654');}}
   for(const b of [...game.buildings].sort((a,z)=>a.y-z.y)){
+    if(b.id===moving)continue;
     const d=TYPES[b.type],s=d.size;if(b.id===selected){rect(ctx,ox+b.x*tile-2,oy+b.y*tile-2,s*tile+4,s*tile+4,'#f3dd89');rect(ctx,ox+b.x*tile,oy+b.y*tile,s*tile,s*tile,'#bbc993');}
     drawBuilding(ctx,b,tile,ox,oy,time);
     if(b.type!=='market'&&b.type!=='pile'){
@@ -148,7 +161,7 @@ function draw(time){
       ctx.font='9px "Microsoft YaHei",sans-serif';ctx.textAlign='center';ctx.fillStyle='#354b33';ctx.fillText(d.name,ox+(b.x+s/2)*tile,oy+(b.y+s+.32)*tile);
       if(b.type!=='market'&&b.type!=='pile'&&b.level<5&&game.gold>=TYPES[b.type].upgrade[0]*2**(b.level-1)&&game.materials>=TYPES[b.type].upgrade[1]*2**(b.level-1)){ctx.fillStyle='#4f9a61';ctx.beginPath();ctx.moveTo(ox+(b.x+s-.1)*tile,oy+(b.y-.28)*tile);ctx.lineTo(ox+(b.x+s-.1)*tile+8,oy+(b.y-.28)*tile+8);ctx.lineTo(ox+(b.x+s-.1)*tile-2,oy+(b.y-.28)*tile+8);ctx.closePath();ctx.fill();}
     }
-    let k=0;for(const [key,n]of Object.entries(b.output)){if(n>0){drawGood(ctx,key,ox+(b.x+.3+k*.4)*tile,oy+(b.y+.9)*tile,tile*.25);ctx.font='8px sans-serif';ctx.fillStyle='#2c3f2e';ctx.textAlign='left';ctx.fillText(n,ox+(b.x+.4+k*.4)*tile,oy+(b.y+1.05)*tile);k++;}}
+    if(b.type!=='market'){let ci=0;for(const [key,n]of Object.entries(b.input)){if(!n)continue;drawStack(ctx,key,ox+(b.x+.28+ci*.42)*tile,oy+(b.y+s*.92)*tile,tile*.3,n);ci++;}let co=0;for(const [key,n]of Object.entries(b.output)){if(!n)continue;drawStack(ctx,key,ox+(b.x+s-.25-co*.42)*tile,oy+(b.y+s*.92)*tile,tile*.3,n);co++;}}
   }
   const feedbackNow=performance.now();
   for(const f of floaters){
@@ -169,9 +182,20 @@ function draw(time){
   for(const w of [...game.workers].sort((a,z)=>a.y-z.y)){
     const x=ox+(w.x+.5)*tile,y=oy+(w.y+.6)*tile,sc=tile/30,step=Math.sin(time*10+w.id)*sc*1.5;
     rect(ctx,x-5*sc,y+4*sc,11*sc,3*sc,'#3a523744');rect(ctx,x-3*sc,y-2*sc,7*sc,7*sc,w.producing?'#b07351':w.id%2?'#547b83':'#667a9a');rect(ctx,x-4*sc,y-9*sc,8*sc,7*sc,'#e7c294');rect(ctx,x-5*sc,y-10*sc,10*sc,3*sc,'#4b4434');rect(ctx,x-3*sc,y+5*sc,2*sc,(w.route.length?4+step:4)*sc,'#534c40');rect(ctx,x+2*sc,y+5*sc,2*sc,(w.route.length?4-step:4)*sc,'#534c40');
-    if(w.task?.phase==='delivery'){for(let i=0;i<Math.min(3,w.task.amount);i++)drawGood(ctx,w.task.key,x,y-16*sc-i*5*sc,8*sc);ctx.fillStyle='#304430';ctx.font='bold 9px sans-serif';ctx.textAlign='left';ctx.fillText(w.task.amount,x+6*sc,y-17*sc);}if(w.producing){ctx.fillStyle='#efdd94';ctx.font='10px sans-serif';ctx.fillText('·',x+6*sc,y-7*sc);}
+    if(w.task?.phase==='delivery')drawStack(ctx,w.task.key,ox+(w.x+.5)*tile,oy+(w.y+.12)*tile,tile*.26,w.task.amount);if(w.producing){ctx.fillStyle='#efdd94';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('·',x+6*sc,y-7*sc);}
   }
-  if(placing&&preview){const p=preview,s=TYPES[placing].size,valid=game.canPlace(placing,p.x,p.y,moving);ctx.save();ctx.globalAlpha=.78;ctx.fillStyle=valid?'#6d9fc455':'#c96a5a55';ctx.strokeStyle=valid?'#457a9a':'#a9463d';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.fillRect(ox+p.x*tile,oy+p.y*tile,s*tile,s*tile);ctx.strokeRect(ox+p.x*tile+1,oy+p.y*tile+1,s*tile-2,s*tile-2);ctx.setLineDash([]);ctx.fillStyle=valid?'#3f718b':'#9c4138';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('蓝图',ox+(p.x+s/2)*tile,oy+(p.y+s/2)*tile+4);ctx.restore();}
+  const resolveSpec=spec=>{if(!spec)return null;if(spec.kind==='worker')return wpos(spec.id);if(spec.kind==='slot')return bslot(spec.id,spec.slot);if(spec.kind==='center')return bcenter(spec.id);return {x:spec.x,y:spec.y};};
+  for(const e of (game.events||[])){const bc=bcenter(e.building);if(!bc||e.building===undefined)continue;const center={kind:'center',id:e.building};
+    if(e.type==='consume'){const sl={kind:'slot',id:e.building,slot:'in'};for(const [key,n]of Object.entries(e.items||{}))for(let j=0;j<Math.min(n,5);j++)addFlight(key,sl,center,j*40);}
+    else if(e.type==='produceOut'){const sl={kind:'slot',id:e.building,slot:'out'};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,center,sl,j*45);}
+    else if(e.type==='produceTo'){const wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,center,wk,j*45);}
+    else if(e.type==='pickup'){const sl={kind:'slot',id:e.building,slot:'out'},wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,sl,wk,j*45);}
+    else if(e.type==='deliver'){const wk={kind:'worker',id:e.worker},sl={kind:'slot',id:e.building,slot:'in'};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,wk,sl,j*45);}
+    else if(e.type==='sell'){const wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,wk,center,j*45);}
+  }
+  if(game.events)game.events.length=0;
+  const fnow=performance.now();for(const fl of flights){const ft=(fnow-fl.born)/fl.dur;if(ft<0||ft>1)continue;const p0=resolveSpec(fl.from),p1=resolveSpec(fl.to);if(!p0||!p1)continue;const fx=p0.x+(p1.x-p0.x)*ft,fy=p0.y+(p1.y-p0.y)*ft-Math.sin(Math.PI*ft)*Math.max(12,tile*.6);drawGood(ctx,fl.key,fx,fy,tile*.28);}flights=flights.filter(fl=>fnow-fl.born<fl.dur);
+  if(placing&&preview){const p=preview,s=TYPES[placing].size,valid=game.canPlace(placing,p.x,p.y,moving);drawBuilding(ctx,{type:placing,x:p.x,y:p.y,level:1},tile,ox,oy,time);ctx.save();ctx.globalAlpha=.32;ctx.fillStyle=valid?'#5b93c4':'#c96a5a';ctx.fillRect(ox+p.x*tile,oy+p.y*tile,s*tile,s*tile);ctx.restore();ctx.save();ctx.strokeStyle=valid?'#2f6f9b':'#a9463d';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.strokeRect(ox+p.x*tile+1,oy+p.y*tile+1,s*tile-2,s*tile-2);ctx.restore();}
   if(game.failed){rect(ctx,0,0,width,height,'#183a2722');}
 }
 function frame(t){const real=Math.min(1,(t-(last||t))/1000);last=t;if(!document.hidden&&!$('dialog').open&&!game.failed){let remaining=real;while(remaining>0){const step=Math.min(.05,remaining);game.tick(step);remaining-=step;}collectFeedback();}draw(t/1000);uiTime+=real;saveTime+=real;if(uiTime>.6){refresh();uiTime=0;}if(saveTime>8){save();saveTime=0;}if(t>toastUntil)$('toast').classList.remove('visible');requestAnimationFrame(frame);}

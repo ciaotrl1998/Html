@@ -204,25 +204,16 @@
       hireBase: 25,
       hireStep: 12
     },
-    VILLAGER: {
-      carry: [5, 6, 7, 8, 9],
-      speed: [1, 1.15, 1.3, 1.45, 1.6],
-      upgrade: UP(60, 6),
-      baseSpeed: 4.0,
-      names: ['阿福', '小翠', '阿牛', '阿满', '石头', '阿香', '柱儿', '喜儿', '铁蛋', '巧儿', '大壮', '小满', '阿贵', '春妮']
-    },
     MAP: {
       W: 20, H: 28,
       fence: { x1: 1, y1: 1, x2: 18, y2: 24 },
       gap: { x: 9, w: 2 },
       plot: { x: 2, y: 2, w: 16, h: 22 },
       market: { x: 6, y: 26, w: 8, h: 2 },
-      marketDrop: { x: 9, y: 25 },
       manorAt: { x: 8, y: 2 }
     },
     REFUND: 0.5,
-    TILE: 32,
-    SAVE_KEY: 'zhuangtianji_save_v1'
+    TILE: 32
   };
 
   root.CFG = CFG;
