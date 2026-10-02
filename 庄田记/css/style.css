@@ -33,13 +33,18 @@ html, body {
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
+  min-height: 100%;
   max-width: 760px;
   margin: 0 auto;
   position: relative;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(212, 169, 78, 0.08), transparent 60%),
     #241a0e;
+}
+
+@supports (height: 100dvh) {
+  #app { height: 100dvh; min-height: 0; }
 }
 
 .hidden { display: none !important; }
@@ -181,7 +186,8 @@ html, body {
     repeating-linear-gradient(90deg, rgba(255, 230, 170, 0.03) 0 2px, transparent 2px 30px),
     linear-gradient(#3f2a15, #2b1c0d);
   border-top: 2px solid var(--gold-2);
-  padding: 7px 9px calc(7px + env(safe-area-inset-bottom));
+  padding: 7px 9px;
+  padding-bottom: calc(7px + env(safe-area-inset-bottom));
   z-index: 30;
 }
 

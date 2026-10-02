@@ -682,7 +682,19 @@
     });
   }
 
+  var lastAppHeight = 0;
+  function setAppHeight() {
+    if (!el.app) return;
+    var h = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (h > 0 && h !== lastAppHeight) {
+      lastAppHeight = h;
+      el.app.style.height = h + 'px';
+      if (Render.refreshSize) Render.refreshSize();
+    }
+  }
+
   function boot() {
+    el.app = $('app');
     el.canvas = $('game');
     el.goldVal = $('goldVal');
     el.matVal = $('matVal');
@@ -705,6 +717,15 @@
     el.modalBox = $('modalBox');
 
     window.SFX = sfx;
+    setAppHeight();
+    window.addEventListener('resize', function () {
+      setAppHeight();
+      setTimeout(setAppHeight, 300);
+    });
+    window.addEventListener('orientationchange', function () {
+      setAppHeight();
+      setTimeout(setAppHeight, 300);
+    });
     Render.init(el.canvas, {
       onTileTap: onTileTap,
       onBuildingDragStart: onBuildingDragStart,

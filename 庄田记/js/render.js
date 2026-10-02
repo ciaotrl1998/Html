@@ -101,8 +101,9 @@
 
   function resize() {
     var c = Render.canvas;
-    var w = c.clientWidth || c.parentElement.clientWidth;
-    var h = c.clientHeight || c.parentElement.clientHeight;
+    if (!c) return;
+    var w = c.clientWidth || (c.parentElement ? c.parentElement.clientWidth : 0);
+    var h = c.clientHeight || (c.parentElement ? c.parentElement.clientHeight : 0);
     var changed = Math.abs(w - Render.lastW) > 2 || Math.abs(h - Render.lastH) > 2;
     Render.lastW = w;
     Render.lastH = h;
@@ -628,6 +629,8 @@
     gatePost(gap.x * T + mid, f.y2 * T + mid);
     gatePost((gap.x + gap.w) * T - mid, f.y2 * T + mid);
   }
+
+  Render.refreshSize = function () { resize(); };
 
   Render.invalidateStatic = function () { Render.staticLayer = null; };
 
