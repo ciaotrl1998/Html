@@ -204,16 +204,18 @@
     var gold = 0;
     for (var g in r.out) {
       var q = r.out[g] / r.cycle;
-      parts.push({ good: g, text: '+' + (Math.round(q * 100) / 100) + ' ' + G[g].name + '/秒' });
+      parts.push({ good: g, text: '+' + (Math.round(q * 100) / 100) + G[g].name });
       gold += q * (G[g].sell || 0);
     }
     if (r.material) {
-      parts.push({ good: null, text: '+' + (Math.round(r.material / r.cycle * 100) / 100) + ' 材料/秒' });
+      parts.push({ good: null, text: '+' + (Math.round(r.material / r.cycle * 100) / 100) + '材料' });
     }
+    var storeText = parts.map(function (p) { return p.text; }).join(' ');
+    if (parts.length) storeText += (parts.length > 1 ? ' /秒' : '/秒');
     return {
       storeParts: parts,
-      storeText: parts.map(function (p) { return p.text; }).join(' · '),
-      sellText: gold > 0 ? '+' + (Math.round(gold * 100) / 100) + ' 金/秒' : null,
+      storeText: storeText,
+      sellText: gold > 0 ? '+' + (Math.round(gold * 100) / 100) + '金/秒' : null,
       gold: gold
     };
   }

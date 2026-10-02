@@ -129,7 +129,8 @@
   function onTileTap(tx, ty) {
     if (tx < 0 || ty < 0 || tx >= World.W || ty >= World.H) return;
     var b = World.buildingAt(tx, ty);
-    selectBuilding(b ? b.id : null);
+    if (b && b.id === UI.selectedId) selectBuilding(null);
+    else selectBuilding(b ? b.id : null);
   }
 
   function onBuildingDragStart(id) {
@@ -291,10 +292,9 @@
     html += '<div class="pHead"><span class="pSeal">' + (C.SEAL[b.type] || '庄') + '</span><span class="pName">' + d.name + '</span>';
     if (b.level > 1 && !isMarket) html += '<span class="pLv">' + b.level + ' 级</span>';
     if (yieldText) html += '<span class="pYield' + (isManor || isSell ? ' gold' : '') + '" data-ref="yield">' + yieldText + '</span>';
-    html += '<span class="pHeadRight">';
     if (d.buildable) html += '<button class="pfDemolish" data-action="demolish">拆除</button>';
     html += '<span class="pStatus"><i class="statusDot" style="background:' + st.color + '"></i><b>' + statusText(b) + '</b></span>';
-    html += '<button class="pClose" data-action="close">✕</button></span></div>';
+    html += '</div>';
 
     if (isMarket) {
       html += '<div class="pfFlow">市场已改为自动收购模式：在建筑面板开启「直接卖出」后，产物会立即换成金币收入。</div>';
@@ -498,11 +498,15 @@
   }
 
   function showMenu() {
-    openModal('菜单', '<div class="pRow dim">本局不自动保存，刷新或关闭页面后重新开始。</div>', [
-      { text: '新游戏', cls: 'danger', keepOpen: true, onClick: function () { confirmModal('开始新游戏？', '当前进度将被清除。', function () { newGame(); }); } },
-      { text: '重置视角', keepOpen: true, onClick: function () { Render.fit(); closeModal(); } },
-      { text: '关闭' }
-    ]);
+    var body = '' +
+      '<div class="menuList">' +
+      '<button class="menuItem" data-menu="sound"><span>音效</span><b id="menuSoundVal">' + (soundOn ? '开' : '关') + '</b></button>' +
+      '<button class="menuItem" data-menu="help"><span>玩法帮助</span><b>查看</b></button>' +
+      '<button class="menuItem" data-menu="reset"><span>重置视角</span><b>↺</b></button>' +
+      '<button class="menuItem danger" data-menu="new"><span>新游戏</span><b>重新开始</b></button>' +
+      '</div>' +
+      '<div class="pRow dim">本局不自动保存，刷新或关闭页面后重新开始。</div>';
+    openModal('菜单', body, [{ text: '关闭' }]);
   }
 
   function newGame() {
@@ -578,7 +582,6 @@
         showOnly(null);
       }
     };
-    el.btnHelp.onclick = showHelp;
     el.btnMenu.onclick = showMenu;
     el.btnPause.onclick = function () {
       World.paused = !World.paused;
@@ -589,10 +592,24 @@
       World.speed = World.speed === 1 ? 2 : (World.speed === 2 ? 3 : 1);
       el.btnSpeed.textContent = World.speed + '×';
     };
-    el.btnSound.onclick = function () {
-      soundOn = !soundOn;
-      el.btnSound.textContent = soundOn ? '音' : '静';
-    };
+    el.modalBox.addEventListener('click', function (e) {
+      var item = e.target.closest('[data-menu]');
+      if (!item) return;
+      var action = item.dataset.menu;
+      if (action === 'sound') {
+        soundOn = !soundOn;
+        var label = document.getElementById('menuSoundVal');
+        if (label) label.textContent = soundOn ? '开' : '关';
+        sfx('ui');
+        return;
+      }
+      if (action === 'help') { showHelp(); return; }
+      if (action === 'reset') { Render.fit(); closeModal(); return; }
+      if (action === 'new') {
+        confirmModal('开始新游戏？', '当前进度将被清除。', newGame);
+        return;
+      }
+    });
     el.btnBuyLand.onclick = function () {
       if (World.victory) return;
       if (World.overdue) { toast('欠租期间不能买地'); return; }
@@ -702,10 +719,8 @@
     el.rentTime = $('rentTime');
     el.overdueBar = $('overdueBar');
     el.btnBuyLand = $('btnBuyLand');
-    el.btnHelp = $('btnHelp');
     el.btnPause = $('btnPause');
     el.btnSpeed = $('btnSpeed');
-    el.btnSound = $('btnSound');
     el.btnMenu = $('btnMenu');
     el.tabBuild = $('tabBuild');
     el.tabStore = $('tabStore');

@@ -74,7 +74,7 @@ html, body {
   border: 1px solid rgba(212, 169, 78, 0.4);
   border-radius: 8px;
   padding: 3px 9px 3px 4px;
-  font-size: clamp(14px, 3.9vw, 16px);
+  font-size: 16px;
   font-weight: 700;
   color: #f2e2b8;
   white-space: nowrap;
@@ -84,7 +84,7 @@ html, body {
 .rentStat b { color: var(--gold-3); }
 .rentStat i {
   font-style: normal;
-  font-size: clamp(11.5px, 3.1vw, 13px);
+  font-size: 13px;
   font-weight: 600;
   color: #cdb88e;
   margin-left: 3px;
@@ -93,12 +93,12 @@ html, body {
 
 .seal {
   display: inline-flex;
-  width: clamp(21px, 5.8vw, 24px);
-  height: clamp(21px, 5.8vw, 24px);
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  font-size: clamp(12px, 3.4vw, 14px);
+  font-size: 14px;
   font-weight: 700;
   color: #ffe9c8;
   border: 1px solid rgba(255, 226, 170, 0.45);
@@ -112,13 +112,13 @@ html, body {
 .tools { margin-left: auto; display: flex; gap: 5px; }
 
 .tool {
-  min-width: clamp(34px, 9vw, 40px);
-  height: clamp(32px, 8.6vw, 38px);
+  min-width: 40px;
+  height: 38px;
   border-radius: 8px;
   border: 1px solid rgba(212, 169, 78, 0.55);
   background: linear-gradient(#6b4a24, #4a3016);
   color: #f2dfae;
-  font-size: clamp(14px, 3.8vw, 16px);
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   padding: 0 8px;
@@ -131,7 +131,7 @@ html, body {
   background: linear-gradient(#c9a04e, #9a7222);
   border-color: var(--gold-3);
   color: #33260e;
-  font-size: clamp(13px, 3.6vw, 15px);
+  font-size: 15px;
 }
 .tool.buyland.ready {
   background: linear-gradient(#6fae54, #4a8236);
@@ -148,7 +148,7 @@ html, body {
 #overdueBar {
   padding: 8px 10px;
   text-align: center;
-  font-size: clamp(13.5px, 3.8vw, 15px);
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 1px;
   background:
@@ -195,12 +195,12 @@ html, body {
 
 .tab {
   flex: 1;
-  min-height: clamp(50px, 13vw, 58px);
+  min-height: 58px;
   border-radius: 12px;
   border: 2px solid var(--wood-3);
   background: linear-gradient(#e6d6b2, #cbb488);
   color: #6b5540;
-  font-size: clamp(16px, 4.6vw, 19px);
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: 3px;
   cursor: pointer;
@@ -222,14 +222,14 @@ html, body {
 
 .tabSeal {
   display: inline-flex;
-  width: clamp(24px, 6.6vw, 28px);
-  height: clamp(24px, 6.6vw, 28px);
+  width: 28px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   background: linear-gradient(#b8443a, #8a2b22);
   color: #ffe9c8;
-  font-size: clamp(13px, 3.8vw, 16px);
+  font-size: 16px;
   font-weight: 700;
   border: 1px solid rgba(90, 26, 20, 0.9);
   box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.25);
@@ -304,24 +304,24 @@ html, body {
 
 .buildItem .sealBig {
   display: inline-flex;
-  width: clamp(24px, 7vw, 30px);
-  height: clamp(24px, 7vw, 30px);
+  width: 30px;
+  height: 30px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   background: linear-gradient(#b8443a, #8a2b22);
   color: #ffe9c8;
-  font-size: clamp(13px, 3.8vw, 16px);
+  font-size: 16px;
   font-weight: 700;
   border: 1px solid rgba(90, 26, 20, 0.85);
   box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.25);
 }
-.buildItem .bn { font-size: clamp(11px, 3.1vw, 13px); font-weight: 700; line-height: 1.15; }
+.buildItem .bn { font-size: 13px; font-weight: 700; line-height: 1.15; }
 .buildItem .bc {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: clamp(10px, 2.8vw, 12px);
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -334,7 +334,7 @@ html, body {
 
 .menuHint {
   margin-top: 9px;
-  font-size: clamp(12px, 3.3vw, 14px);
+  font-size: 14px;
   color: #7a6448;
   line-height: 1.5;
   text-align: center;
@@ -371,9 +371,9 @@ html, body {
   flex: none;
 }
 
-.pHead .pName { font-size: clamp(16px, 4.5vw, 18px); font-weight: 800; letter-spacing: 1px; flex: none; }
+.pHead .pName { font-size: 18px; font-weight: 800; letter-spacing: 1px; flex: none; }
 .pHead .pLv {
-  font-size: clamp(11px, 3vw, 13px);
+  font-size: 13px;
   font-weight: 700;
   background: linear-gradient(#d4a94e, #b8892f);
   color: #35260e;
@@ -382,7 +382,7 @@ html, body {
   border: 1px solid rgba(90, 60, 20, 0.5);
 }
 .pHead .pStatus {
-  font-size: clamp(12.5px, 3.4vw, 14px);
+  font-size: 14px;
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -421,7 +421,7 @@ html, body {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  font-size: clamp(13.5px, 3.7vw, 15px);
+  font-size: 15px;
   padding: 6px 2px;
   border-bottom: 1px dashed rgba(107, 74, 42, 0.22);
   position: relative;
@@ -429,7 +429,7 @@ html, body {
 }
 .pRow:last-child { border-bottom: none; }
 .pRow > span:first-child { color: #7a6448; white-space: nowrap; }
-.pRow.dim { color: #8a7458; font-size: clamp(12.5px, 3.4vw, 14px); line-height: 1.55; }
+.pRow.dim { color: #8a7458; font-size: 14px; line-height: 1.55; }
 .pInv { margin-left: auto; text-align: right; color: var(--ink); }
 .pAssigned { margin-left: auto; color: #8a5a1a; font-weight: 800; }
 .pBtns { display: flex; gap: 8px; margin-left: auto; flex: none; }
@@ -465,7 +465,7 @@ html, body {
 .pProgress i { display: block; height: 100%; background: linear-gradient(90deg, #b8892f, #e8cd82); }
 
 .pUpgrade { margin-top: 9px; display: flex; flex-direction: column; gap: 7px; position: relative; z-index: 1; }
-.pEffect { font-size: clamp(12.5px, 3.4vw, 14px); color: #5f7a3a; line-height: 1.5; }
+.pEffect { font-size: 14px; color: #5f7a3a; line-height: 1.5; }
 
 .actUpgrade {
   display: block;
@@ -476,7 +476,7 @@ html, body {
   border: 2px solid var(--jade-2);
   background: linear-gradient(#6ca35a, #437736);
   color: #f4ffe8;
-  font-size: clamp(14.5px, 4vw, 16px);
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
@@ -496,7 +496,7 @@ html, body {
   border: 1.5px solid var(--red-2);
   background: rgba(255, 246, 238, 0.6);
   color: #8a2c20;
-  font-size: clamp(14px, 3.9vw, 15.5px);
+  font-size: 15.5px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
@@ -515,36 +515,35 @@ html, body {
 
 /* ---------- 建筑详情区块（统一中式配色） ---------- */
 
-.pHead { flex-wrap: wrap; row-gap: 6px; }
+#buildPanel .pHead { flex-wrap: nowrap; row-gap: 0; gap: 7px; }
 
 .pYield {
-  font-size: clamp(13px, 3.7vw, 15px);
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
   font-weight: 800;
   color: #3f6b3d;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-left: 2px;
 }
 .pYield.gold { color: #b8892f; }
 
-.pHeadRight {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex: none;
-}
-
 .pfDemolish {
+  flex: none;
+  margin-left: auto;
   min-height: 38px;
-  padding: 0 14px;
+  padding: 0 13px;
   border-radius: 8px;
   border: 2px solid var(--red-2);
   background: linear-gradient(#c05545, #9c3228);
   color: #fff2dc;
   font-weight: 800;
-  font-size: clamp(13px, 3.6vw, 15px);
+  font-size: 14.5px;
   font-family: inherit;
   cursor: pointer;
+  white-space: nowrap;
   box-shadow: 0 2px 0 rgba(20, 12, 4, 0.4), inset 0 1px 0 rgba(255, 220, 180, 0.25);
 }
 .pfDemolish:active { transform: translateY(1px); }
@@ -563,7 +562,7 @@ html, body {
   border: 1.5px solid var(--wood-3);
   color: var(--ink);
   font-weight: 700;
-  font-size: clamp(12.5px, 3.5vw, 14.5px);
+  font-size: 14.5px;
   padding: 8px 10px;
   line-height: 1.6;
   box-shadow: inset 0 0 0 3px rgba(107, 74, 42, 0.1);
@@ -581,7 +580,7 @@ html, body {
   background: linear-gradient(#f6ead0, #e0cda6);
   color: #6b5540;
   font-weight: 800;
-  font-size: clamp(12.5px, 3.4vw, 14.5px);
+  font-size: 14.5px;
   font-family: inherit;
   cursor: pointer;
   padding: 6px 10px;
@@ -610,7 +609,7 @@ html, body {
   height: 32px;
   display: flex;
   align-items: center;
-  font-size: clamp(13px, 3.7vw, 15px);
+  font-size: 15px;
   color: #3f6b3d;
   font-weight: 700;
   border-bottom: 1px solid rgba(107, 74, 42, 0.22);
@@ -645,9 +644,9 @@ html, body {
   z-index: 1;
 }
 .wDot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(60, 44, 24, 0.4); flex: none; }
-.wName { font-weight: 700; font-size: clamp(14px, 3.8vw, 15.5px); }
-.wQty { margin-left: auto; font-weight: 800; color: #5a3a12; font-size: clamp(14px, 3.8vw, 16px); }
-.wVal { color: #8a2a20; font-weight: 700; font-size: clamp(12px, 3.3vw, 13.5px); min-width: 58px; text-align: right; }
+.wName { font-weight: 700; font-size: 15.5px; }
+.wQty { margin-left: auto; font-weight: 800; color: #5a3a12; font-size: 16px; }
+.wVal { color: #8a2a20; font-weight: 700; font-size: 13.5px; min-width: 58px; text-align: right; }
 .wSell {
   flex: none;
   min-height: 36px;
@@ -657,7 +656,7 @@ html, body {
   background: linear-gradient(#c05545, #9c3228);
   color: #fff2dc;
   font-weight: 700;
-  font-size: clamp(12.5px, 3.4vw, 14px);
+  font-size: 14px;
   font-family: inherit;
   cursor: pointer;
 }
@@ -671,7 +670,7 @@ html, body {
   background: linear-gradient(#c05545, #9c3228);
   color: #fff2dc;
   font-weight: 800;
-  font-size: clamp(14px, 3.9vw, 15.5px);
+  font-size: 15.5px;
   font-family: inherit;
   cursor: pointer;
   position: relative;
@@ -701,7 +700,7 @@ html, body {
   color: var(--ink);
   border-radius: 8px;
   padding: 8px 16px;
-  font-size: clamp(13.5px, 3.7vw, 15px);
+  font-size: 15px;
   font-weight: 700;
   animation: toastIn 0.22s ease-out;
   max-width: 100%;
@@ -771,7 +770,7 @@ html, body {
 
 .modalBox h3 {
   margin: 0 0 11px;
-  font-size: clamp(18px, 5vw, 21px);
+  font-size: 21px;
   letter-spacing: 2px;
   color: #6b2a1e;
   text-align: center;
@@ -781,7 +780,7 @@ html, body {
   z-index: 1;
 }
 
-.modalBox .mBody { font-size: clamp(14px, 3.9vw, 15.5px); line-height: 1.8; color: var(--ink); position: relative; z-index: 1; }
+.modalBox .mBody { font-size: 15.5px; line-height: 1.8; color: var(--ink); position: relative; z-index: 1; }
 .modalBox .mBody ul { margin: 6px 0; padding-left: 21px; }
 .modalBox .mBody li { margin: 4px 0; }
 .modalBox .mBody b { color: #8a2c20; }
@@ -789,13 +788,36 @@ html, body {
 .modalBox .mBtns .act { min-height: 46px; font-size: 15px; }
 .modalBox .mNote { font-size: 12.5px; color: #8a7458; margin-top: 6px; }
 
+.menuList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; position: relative; z-index: 1; }
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 15px;
+  border-radius: 10px;
+  border: 2px solid var(--wood-3);
+  background: linear-gradient(#f8efd8, #e6d6b2);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(20, 12, 4, 0.4);
+}
+.menuItem b { color: #8a5a1a; font-size: 14px; }
+.menuItem.danger { border-color: var(--red-2); background: linear-gradient(#f6ded6, #e8c4b8); }
+.menuItem.danger b { color: var(--red-2); }
+.menuItem:active { transform: translateY(1px); }
+
 .statChips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .statChip {
   background: rgba(107, 74, 42, 0.1);
   border: 1px solid rgba(107, 74, 42, 0.35);
   border-radius: 7px;
   padding: 4px 10px;
-  font-size: clamp(12.5px, 3.4vw, 14px);
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -821,12 +843,4 @@ html, body {
 .act.primary { background: linear-gradient(#c05545, #9c3228); border-color: var(--red-2); color: #fff2dc; }
 .act.danger { background: linear-gradient(#b04a3c, #832a20); border-color: #5c1c16; color: #ffe6dc; }
 
-@media (max-width: 380px) {
-  .stat { font-size: 13px; padding: 2px 6px 2px 3px; }
-  .seal { width: 19px; height: 19px; font-size: 11px; }
-  .tool { min-width: 31px; height: 30px; font-size: 13px; padding: 0 6px; }
-  .grid { gap: 5px; }
-  .buildItem { padding: 5px 1px 4px; }
-  .buildItem .bn { font-size: 10.5px; }
-  .buildItem .bc { font-size: 9.5px; }
-}
+
