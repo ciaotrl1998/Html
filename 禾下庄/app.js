@@ -5,13 +5,21 @@ const STORAGE='hexiazhuang-demo-v1';
 let game,tab='build',selected=null,placing=null,moving=null,preview=null,toastUntil=0,shownFailure=false,dragType=null,buildPage=0;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE));game=saved&&saved.version===1?new Game(saved.state):new Game();}catch{game=new Game();}
 const canvas=$('map'),ctx=canvas.getContext('2d');
-let width=0,height=0,baseTile=1,uiTime=0,saveTime=0,last=0,mapZoom=1,mapPanX=0,mapPanY=0,pinch=null;
+let width=0,height=0,baseTile=1,uiTime=0,saveTime=0,last=0,mapZoom=1,mapPanX=0,mapPanY=0,pinch=null,mapPointer=null,floaters=[],lastMaterials=game.materials,lastSales=game.sales;
 function syncViewport(){const height=window.visualViewport?.height||window.innerHeight;document.documentElement.style.setProperty('--viewport-height',`${height}px`);}
 syncViewport();window.addEventListener('resize',syncViewport);window.visualViewport?.addEventListener('resize',syncViewport);
 const iconCache=new Map();
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');toastUntil=performance.now()+2600;}
-function showDragGhost(type,x,y){const ghost=$('drag-ghost');ghost.hidden=false;ghost.style.left=x+'px';ghost.style.top=y+'px';$('drag-ghost-icon').innerHTML=icon(type);$('drag-ghost-name').textContent=TYPES[type].name;}
+function showDragGhost(type,x,y){const ghost=$('drag-ghost');ghost.hidden=true;document.querySelector('.management').classList.add('is-dragging');}
 function hideDragGhost(){ $('drag-ghost').hidden=true; }
+function addFloater(b,text,type){floaters.push({bId:b.id,text,type,born:performance.now()});}
+function collectFeedback(){
+  const materialDelta=game.materials-lastMaterials,salesDelta=game.sales-lastSales;const workshop=game.buildings.find(b=>b.type==='workshop'),market=game.buildings.find(b=>b.type==='market');
+  if(materialDelta>0&&workshop)addFloater(workshop,'+'+materialDelta,'material');
+  if(salesDelta>0&&market)addFloater(market,'+'+salesDelta,'gold');
+  for(const event of game.feedback.splice(0)){const b=game.building(event.building);if(b)addFloater(b,'+'+Number(event.amount.toFixed(2)),event.type);}
+  lastMaterials=game.materials;lastSales=game.sales;
+}
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify({version:1,state:game.serialize()}));}catch{}}
 function amountCost(g,m){return `${g?g+'金币':''}${g&&m?' · ':''}${m?m+'材料':''}`||'免费';}
 function closeDialog(){$('dialog').close();}
@@ -26,7 +34,11 @@ function renderPanel(){
     panel.innerHTML=`<div class="detail-sheet"><div class="panel-title"><div class="detail-name">${icon(b.type)}<div><h2>${d.name}<span class="level">${b.type==='market'||b.type==='pile'?'场外':'Lv.'+b.level}</span></h2><div class="subtitle">${b.type==='home'?'庄田主宅':b.type==='market'?'物料售出即换金币':s.cycle+'秒 / 批 · 输出 '+sum(b.output)+'/'+s.output}</div></div></div><button data-action="deselect" title="返回建筑栏" aria-label="关闭建筑信息">×</button></div><div class="meter detail-meter"><span id="detail-progress" style="width:${b.batch?b.progress/b.batch.cycle*100:0}%"></span></div><div class="inventory" id="detail-inventory">${inv.join('')||'<span class="empty">暂无库存</span>'}</div>${!['home','pile'].includes(b.type)?`<div class="assignment"><div>指派村民 <small id="free-label">空闲 ${free} 人</small></div><div class="stepper"><button data-action="unassign" ${workers===0?'disabled':''} aria-label="移除一名村民">−</button><strong id="assigned-count">${workers}</strong><button data-action="assign" ${free===0?'disabled':''} aria-label="指派一名村民">+</button></div></div>`:''}<div class="detail-actions">${cost?`<button class="primary" data-action="upgrade" ${b.level>=5||game.gold<cost[0]||game.materials<cost[1]?'disabled':''}>${b.level>=5?'已达最高级':'升级至 '+(b.level+1)+' 级'}${b.level<5?`<small>${amountCost(...cost)}</small>`:''}</button>`:''}${!['market','pile'].includes(b.type)?'<button data-action="move" class="secondary action-icon" title="移动建筑" aria-label="移动建筑">↔</button>':''}${!['home','market','pile'].includes(b.type)?'<button data-action="demolish" class="secondary destructive action-icon" title="拆除建筑">×</button>':''}</div></div>`;
     fillIcons();panel.scrollTop=scrollTop;return;
   }
-  if(tab==='workers'){const total=game.workers.length,free=game.workers.filter(w=>!w.assigned&&!w.task).length,hire=45+Math.max(0,total-2)*15;panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">庄丁名册</span><h2>村民 <em>${total}</em> <small>/ 24</small></h2><p>已指派 ${total-free} · 空闲 ${free}</p></div><button class="primary compact-action" data-action="hire" ${game.gold<hire||total>=24?'disabled':''}>雇用 · ${hire}<i class="coin"></i></button></div><div class="panel-rule"></div><div class="worker-note"><span class="ink-mark">役</span><div><strong>自动分派</strong><p>闲置村民会优先前往尚未有人工作的建筑。</p></div></div>`;panel.scrollTop=scrollTop;return;}
+  if(tab==='workers'){
+    const total=game.workers.length,free=game.workers.filter(w=>!w.assigned&&!w.task).length,hire=45+Math.max(0,total-2)*15;
+    panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">庄丁名册</span><h2>村民 <em>${total}</em> <small>/ 24</small></h2><p>已指派 ${game.workers.filter(w=>w.assigned).length} · 空闲 ${free}</p></div><button class="primary compact-action" data-action="hire" ${game.gold<hire||total>=24?'disabled':''}>雇用 · ${hire}<i class="coin"></i></button></div><button class="secondary auto-distribute" data-action="auto-distribute" ${!free||!game.buildings.some(b=>!['home','pile','market'].includes(b.type)&&!game.active(b))?'disabled':''}>自动分派</button><div class="worker-upgrades">${[['carryLevel','搬运载重',[5,7,9,12,15]],['speedLevel','行走速度',[100,115,130,145,160]]].map(([key,label,values])=>{const level=game[key],cost=[60*2**(level-1),6*2**(level-1)],unit=key==='carryLevel'?'件':'%';return `<div class="worker-upgrade"><div><strong>${label}<span class="level">Lv.${level}</span></strong><small>${values[level-1]}${unit}${level<5?' → '+values[level]+unit:''}</small></div><button class="secondary" data-worker-upgrade="${key}" ${level>=5||game.gold<cost[0]||game.materials<cost[1]?'disabled':''}>${level>=5?'已满级':amountCost(...cost)}</button></div>`;}).join('')}</div>`;
+    panel.scrollTop=scrollTop;return;
+  }
   if(tab==='land'){panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">田契卷宗</span><h2>青溪庄田</h2><p>一纸地契，终身经营</p></div><span class="seal-tag">${game.won?'已归名下':'租赁中'}</span></div><div class="land-deed"><span class="deed-label">买地银两</span><div class="land-price">${game.won?'已买下':game.landPrice.toLocaleString()}<small>${game.won?'免租经营':'金币'}</small></div><div class="deed-line"></div><p>买下地皮后，地主不再收租，田庄归你世代经营。</p></div><button class="primary buy-land" data-action="buy" ${game.won||game.gold<game.landPrice||game.grace!==null?'disabled':''}>${game.won?'地契已签':'签下地契 · '+game.landPrice.toLocaleString()+'金币'}</button>`;panel.scrollTop=scrollTop;return;}
   const list=Object.entries(TYPES).filter(([k])=>k!=='home'&&k!=='market'&&k!=='pile');
   const columns=Math.max(3,Math.min(5,Math.floor((panel.clientWidth-28)/92))),rows=2,pageSize=columns*rows,pages=Math.max(1,Math.ceil(list.length/pageSize));buildPage=Math.min(buildPage,pages-1);const pageList=list.slice(buildPage*pageSize,(buildPage+1)*pageSize);
@@ -34,6 +46,7 @@ function renderPanel(){
   fillIcons();panel.scrollTop=scrollTop;
 }
 function refresh(){
+  collectFeedback();
   $('gold').textContent=Math.floor(game.gold).toLocaleString();$('materials').textContent=game.materials;
   const secs=Math.max(0,Math.ceil(game.grace??game.rentTime));$('timer').textContent=game.won?'已买地':`${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
   $('rent-amount').textContent=game.won?'免租':game.rent;
@@ -52,6 +65,8 @@ $('panel').addEventListener('click',e=>{
   const b=game.building(selected),action=el.dataset.action;
   if(action==='deselect'){selected=null;renderPanel();return;}
   if(game.failed)return toast('本局已结束');
+  if(action==='auto-distribute'){const count=game.autoAssign(true);toast('已分派 '+count+' 名村民');refresh();save();return;}
+  if(el.dataset.workerUpgrade){if(game.upgradeWorkers(el.dataset.workerUpgrade))toast('全体村民升级完成');refresh();save();return;}
   if(action==='assign'||action==='unassign'){game.assign(b,action==='assign'?1:-1);refresh();}
   if(action==='upgrade'){if(game.upgrade(b))toast(TYPES[b.type].name+'升级完成');refresh();}
   if(action==='move'){moving=b.id;placing=b.type;preview=null;$('placement').hidden=false;$('placement-text').textContent='移动'+TYPES[b.type].name+' · 点击空地';}
@@ -67,19 +82,22 @@ document.addEventListener('selectstart',e=>{if(e.target.closest('[data-drag-type
 let touchDrag=null;
 document.addEventListener('pointerdown',e=>{const card=e.target.closest('[data-drag-type]');if(!card||card.classList.contains('locked')||card.classList.contains('short'))return;e.preventDefault();touchDrag={type:card.dataset.dragType,moved:false};card.setPointerCapture?.(e.pointerId);});
 document.addEventListener('pointermove',e=>{if(!touchDrag)return;const r=canvas.getBoundingClientRect();if(e.clientY<r.top){return;}touchDrag.moved=true;dragType=touchDrag.type;placing=dragType;preview=mapPoint(e);showDragGhost(dragType,e.clientX,e.clientY);$('placement').hidden=false;$('placement-text').textContent=TYPES[dragType].name+' · 拖到地图空地';});
-document.addEventListener('pointerup',e=>{if(!touchDrag)return;const drag=touchDrag;touchDrag=null;if(!drag.moved){hideDragGhost();return;}if(dragType&&e.clientY>=canvas.getBoundingClientRect().top){const p=mapPoint(e);if(game.canPlace(dragType,p.x,p.y)){const b=game.build(dragType,p.x,p.y);if(b){selected=b.id;toast(TYPES[dragType].name+'已建造');}}else toast('这里不能放置，请留出通道');}dragType=null;placing=null;preview=null;hideDragGhost();$('placement').hidden=true;refresh();save();});
+document.addEventListener('pointerup',e=>{if(!touchDrag)return;const drag=touchDrag;touchDrag=null;if(!drag.moved){hideDragGhost();document.querySelector('.management').classList.remove('is-dragging');return;}if(dragType&&e.clientY>=canvas.getBoundingClientRect().top){const p=mapPoint(e);if(game.canPlace(dragType,p.x,p.y)){const b=game.build(dragType,p.x,p.y);if(b){selected=b.id;toast(TYPES[dragType].name+'已建造');}}else toast('这里不能放置，请留出通道');}dragType=null;placing=null;preview=null;hideDragGhost();document.querySelector('.management').classList.remove('is-dragging');$('placement').hidden=true;refresh();save();});
 canvas.addEventListener('dragover',e=>{if(!dragType)return;e.preventDefault();preview=mapPoint(e);});
 canvas.addEventListener('drop',e=>{if(!dragType)return;e.preventDefault();const p=mapPoint(e);if(game.canPlace(dragType,p.x,p.y)){const b=game.build(dragType,p.x,p.y);if(b){selected=b.id;toast(TYPES[dragType].name+'已建造');}}else toast('这里不能放置，请留出通道');dragType=null;placing=null;preview=null;hideDragGhost();$('placement').hidden=true;refresh();save();});
 function mapPoint(e){const r=canvas.getBoundingClientRect(),tile=baseTile*mapZoom,ox=(width-game.cols*tile)/2+mapPanX,oy=(height-game.rows*tile)/2+mapPanY;return {x:Math.floor((e.clientX-r.left-ox)/tile),y:Math.floor((e.clientY-r.top-oy)/tile)};}
-canvas.addEventListener('pointermove',e=>{if(placing)preview=mapPoint(e);});
-canvas.addEventListener('touchstart',e=>{if(e.touches.length!==2)return;const [a,b]=e.touches;pinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:mapZoom};e.preventDefault();},{passive:false});
-canvas.addEventListener('touchmove',e=>{if(!pinch||e.touches.length!==2)return;const [a,b]=e.touches;const distance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);mapZoom=Math.max(.75,Math.min(2.2,pinch.zoom*distance/pinch.distance));e.preventDefault();},{passive:false});
+canvas.addEventListener('pointermove',e=>{if(mapPointer&&!pinch){const dx=e.clientX-mapPointer.x,dy=e.clientY-mapPointer.y;mapPointer.moved=mapPointer.moved||Math.hypot(e.clientX-mapPointer.sx,e.clientY-mapPointer.sy)>5;mapPanX+=dx;mapPanY+=dy;mapPointer.x=e.clientX;mapPointer.y=e.clientY;}if(placing)preview=mapPoint(e);});
+canvas.addEventListener('touchstart',e=>{if(e.touches.length!==2)return;const [a,b]=e.touches;pinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:mapZoom,cx:(a.clientX+b.clientX)/2,cy:(a.clientY+b.clientY)/2};mapPointer=null;e.preventDefault();},{passive:false});
+canvas.addEventListener('touchmove',e=>{if(!pinch||e.touches.length!==2)return;const [a,b]=e.touches,cx=(a.clientX+b.clientX)/2,cy=(a.clientY+b.clientY)/2,distance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),nextZoom=Math.max(.75,Math.min(2.2,pinch.zoom*distance/pinch.distance));mapPanX+=cx-pinch.cx;mapPanY+=cy-pinch.cy;mapZoom=nextZoom;pinch.distance=distance;pinch.cx=cx;pinch.cy=cy;pinch.zoom=nextZoom;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null;});
 canvas.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'&&e.isPrimary&&!placing){mapPointer={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture?.(e.pointerId);return;}
   const p=mapPoint(e);if(game.failed)return;
-  if(placing){if(!game.canPlace(placing,p.x,p.y,moving)){preview=p;toast('这里不能放置，请留出通道');return;}if(moving){const b=game.building(moving);if(game.move(b,p.x,p.y))selected=b.id;}else{const b=game.build(placing,p.x,p.y);if(!b)return toast('金币或材料不足');selected=b.id;const free=game.workers.find(w=>!w.assigned&&!w.task);if(free)game.assign(b,1);toast(TYPES[b.type].name+'已建造'+(free?' · 指派1人':''));}placing=null;moving=null;preview=null;$('placement').hidden=true;refresh();save();return;}
+  if(placing){if(!game.canPlace(placing,p.x,p.y,moving)){preview=p;toast('这里不能放置，请留出通道');return;}if(moving){const b=game.building(moving);if(game.move(b,p.x,p.y))selected=b.id;}else{const b=game.build(placing,p.x,p.y);if(!b)return toast('金币或材料不足');selected=b.id;toast(TYPES[b.type].name+'已建造');}placing=null;moving=null;preview=null;$('placement').hidden=true;refresh();save();return;}
   const b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();
 });
+canvas.addEventListener('pointerup',e=>{if(mapPointer){const wasTap=!mapPointer.moved&&!pinch;if(wasTap){const p=mapPoint(e),b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();}mapPointer=null;canvas.releasePointerCapture?.(e.pointerId);}});
+canvas.addEventListener('pointercancel',()=>{mapPointer=null;});
 function rect(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));}
 function drawGood(c,key,x,y,size=7){const g=GOODS[key];if(!g)return;c.fillStyle=g.color;c.strokeStyle='#3f493655';c.lineWidth=1;if(g.shape==='egg'){c.beginPath();c.ellipse(x,y,size*.38,size*.48,0,0,Math.PI*2);c.fill();c.stroke();}else if(g.shape==='log'){rect(c,x-size*.6,y-size*.25,size*1.2,size*.55,g.color);rect(c,x-size*.52,y-size*.15,size*.13,size*.35,'#dab781');}else if(g.shape==='coat'){rect(c,x-size*.45,y-size*.4,size*.9,size*.9,g.color);rect(c,x-size*.7,y-size*.35,size*1.4,size*.35,g.color);rect(c,x-size*.07,y-size*.3,size*.14,size*.6,'#d5e0d3');}else{rect(c,x-size*.4,y-size*.4,size*.8,size*.8,g.color);rect(c,x-size*.2,y-size*.3,size*.3,size*.16,'#ffffff55');}}
 function drawBuilding(c,b,t,dx,dy,time,asIcon=false){
@@ -128,18 +146,35 @@ function draw(time){
       const x=ox+(b.x+.15)*tile,y=oy+(b.y+s)*tile-2,w=tile*s*.7;if(b.batch){rect(ctx,x,y,w,3,'#46603c');rect(ctx,x,y,w*b.progress/b.batch.cycle,3,'#d7cd76');}
       const n=game.workers.filter(w=>w.assigned===b.id).length;if(b.type!=='home'){rect(ctx,ox+(b.x+s-.3)*tile,oy+(b.y+.04)*tile,11,11,n?'#355a42':'#a15b44');ctx.fillStyle='#fff7db';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(n||'!',ox+(b.x+s-.3)*tile+5.5,oy+(b.y+.04)*tile+8);}
       ctx.font='9px "Microsoft YaHei",sans-serif';ctx.textAlign='center';ctx.fillStyle='#354b33';ctx.fillText(d.name,ox+(b.x+s/2)*tile,oy+(b.y+s+.32)*tile);
+      if(b.type!=='market'&&b.type!=='pile'&&b.level<5&&game.gold>=TYPES[b.type].upgrade[0]*2**(b.level-1)&&game.materials>=TYPES[b.type].upgrade[1]*2**(b.level-1)){ctx.fillStyle='#4f9a61';ctx.beginPath();ctx.moveTo(ox+(b.x+s-.1)*tile,oy+(b.y-.28)*tile);ctx.lineTo(ox+(b.x+s-.1)*tile+8,oy+(b.y-.28)*tile+8);ctx.lineTo(ox+(b.x+s-.1)*tile-2,oy+(b.y-.28)*tile+8);ctx.closePath();ctx.fill();}
     }
     let k=0;for(const [key,n]of Object.entries(b.output)){if(n>0){drawGood(ctx,key,ox+(b.x+.3+k*.4)*tile,oy+(b.y+.9)*tile,tile*.25);ctx.font='8px sans-serif';ctx.fillStyle='#2c3f2e';ctx.textAlign='left';ctx.fillText(n,ox+(b.x+.4+k*.4)*tile,oy+(b.y+1.05)*tile);k++;}}
   }
+  const feedbackNow=performance.now();
+  for(const f of floaters){
+    const b=game.building(f.bId),age=(feedbackNow-f.born)/1200;if(!b||age>=1)continue;
+    const y=oy+(b.y-.25)*tile-age*28;
+    ctx.save();ctx.globalAlpha=Math.min(1,(1-age)*2);ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+    const textWidth=ctx.measureText(f.text).width,x=ox+(b.x+TYPES[b.type].size/2)*tile-(textWidth+19)/2;
+    ctx.lineWidth=1.5;
+    if(f.type==='gold'){
+      ctx.fillStyle='#e7b84d';ctx.strokeStyle='#9b7029';ctx.beginPath();ctx.arc(x+6,y,6,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.strokeStyle='#fff0b8';ctx.strokeRect(x+4,y-2,4,4);
+    }else{
+      ctx.fillStyle='#8cacaf';ctx.strokeStyle='#486b73';ctx.beginPath();ctx.moveTo(x+6,y-7);ctx.lineTo(x+13,y);ctx.lineTo(x+6,y+7);ctx.lineTo(x-1,y);ctx.closePath();ctx.fill();ctx.stroke();
+    }
+    ctx.strokeStyle='#f7f0df';ctx.lineWidth=3;ctx.strokeText(f.text,x+19,y);ctx.fillStyle=f.type==='material'?'#315e69':'#79521b';ctx.fillText(f.text,x+19,y);ctx.restore();
+  }
+  floaters=floaters.filter(f=>feedbackNow-f.born<1200);
   for(const w of [...game.workers].sort((a,z)=>a.y-z.y)){
     const x=ox+(w.x+.5)*tile,y=oy+(w.y+.6)*tile,sc=tile/30,step=Math.sin(time*10+w.id)*sc*1.5;
     rect(ctx,x-5*sc,y+4*sc,11*sc,3*sc,'#3a523744');rect(ctx,x-3*sc,y-2*sc,7*sc,7*sc,w.producing?'#b07351':w.id%2?'#547b83':'#667a9a');rect(ctx,x-4*sc,y-9*sc,8*sc,7*sc,'#e7c294');rect(ctx,x-5*sc,y-10*sc,10*sc,3*sc,'#4b4434');rect(ctx,x-3*sc,y+5*sc,2*sc,(w.route.length?4+step:4)*sc,'#534c40');rect(ctx,x+2*sc,y+5*sc,2*sc,(w.route.length?4-step:4)*sc,'#534c40');
     if(w.task?.phase==='delivery'){for(let i=0;i<Math.min(3,w.task.amount);i++)drawGood(ctx,w.task.key,x,y-16*sc-i*5*sc,8*sc);ctx.fillStyle='#304430';ctx.font='bold 9px sans-serif';ctx.textAlign='left';ctx.fillText(w.task.amount,x+6*sc,y-17*sc);}if(w.producing){ctx.fillStyle='#efdd94';ctx.font='10px sans-serif';ctx.fillText('·',x+6*sc,y-7*sc);}
   }
-  if(placing&&preview){const p=preview,s=TYPES[placing].size,valid=game.canPlace(placing,p.x,p.y,moving);ctx.globalAlpha=.6;rect(ctx,ox+p.x*tile,oy+p.y*tile,s*tile,s*tile,valid?'#e8eec0':'#d47767');drawBuilding(ctx,{type:placing,x:p.x,y:p.y,level:1},tile,ox,oy,time);ctx.globalAlpha=1;}
+  if(placing&&preview){const p=preview,s=TYPES[placing].size,valid=game.canPlace(placing,p.x,p.y,moving);ctx.save();ctx.globalAlpha=.78;ctx.fillStyle=valid?'#6d9fc455':'#c96a5a55';ctx.strokeStyle=valid?'#457a9a':'#a9463d';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.fillRect(ox+p.x*tile,oy+p.y*tile,s*tile,s*tile);ctx.strokeRect(ox+p.x*tile+1,oy+p.y*tile+1,s*tile-2,s*tile-2);ctx.setLineDash([]);ctx.fillStyle=valid?'#3f718b':'#9c4138';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('蓝图',ox+(p.x+s/2)*tile,oy+(p.y+s/2)*tile+4);ctx.restore();}
   if(game.failed){rect(ctx,0,0,width,height,'#183a2722');}
 }
-function frame(t){const real=Math.min(.12,(t-(last||t))/1000);last=t;if(!document.hidden&&!$('dialog').open&&!game.failed){game.tick(real);}draw(t/1000);uiTime+=real;saveTime+=real;if(uiTime>.6){refresh();uiTime=0;}if(saveTime>8){save();saveTime=0;}if(t>toastUntil)$('toast').classList.remove('visible');requestAnimationFrame(frame);}
+function frame(t){const real=Math.min(1,(t-(last||t))/1000);last=t;if(!document.hidden&&!$('dialog').open&&!game.failed){let remaining=real;while(remaining>0){const step=Math.min(.05,remaining);game.tick(step);remaining-=step;}collectFeedback();}draw(t/1000);uiTime+=real;saveTime+=real;if(uiTime>.6){refresh();uiTime=0;}if(saveTime>8){save();saveTime=0;}if(t>toastUntil)$('toast').classList.remove('visible');requestAnimationFrame(frame);}
 window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{last=0;if(document.hidden)save();});
 // Exposed only for deterministic local smoke tests and tuning the prototype.
 window.demo={get game(){return game;},set game(value){game=value;selected=null;refresh();},refresh,draw,select(id){selected=id;renderPanel();}};

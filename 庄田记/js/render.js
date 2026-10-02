@@ -43,7 +43,10 @@
     selectedId: null,
     hoverTile: null,
     time: 0,
-    staticLayer: null
+    staticLayer: null,
+    moveGhost: null,
+    hiddenBuildingId: null,
+    cameraTouched: false
   };
   root.Render = Render;
 
@@ -196,28 +199,47 @@
     clampCam();
   }
 
-  Render.init = function (canvas, onTileTap) {
+  Render.init = function (canvas, handlers) {
     Render.canvas = canvas;
     Render.ctx = canvas.getContext('2d');
-    Render.onTileTap = onTileTap;
+    if (typeof handlers === 'function') handlers = { onTileTap: handlers };
+    Render.handlers = handlers || {};
     resize();
     window.addEventListener('resize', resize);
 
     var pointers = new Map();
     var downPos = null, moved = false, pinchDist = 0, last = null;
+    var drag = null, candidate = null;
 
     function local(e) {
       var r = canvas.getBoundingClientRect();
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     }
+    function tileAt(p) {
+      return Render.screenToTile(p.x, p.y);
+    }
     canvas.addEventListener('pointerdown', function (e) {
-      canvas.setPointerCapture(e.pointerId);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       var p = local(e);
       pointers.set(e.pointerId, p);
-      downPos = p;
-      last = p;
-      moved = false;
-      if (pointers.size === 2) {
+      if (pointers.size === 1) {
+        downPos = p;
+        last = p;
+        moved = false;
+        drag = null;
+        candidate = null;
+        if (Render.buildingDragEnabled !== false && Render.handlers && Render.handlers.onBuildingDragStart) {
+          var t = tileAt(p);
+          var b = World.buildingAt(t.x, t.y);
+          if (b && b.type !== 'market') candidate = b;
+        }
+      } else if (pointers.size === 2) {
+        if (drag && drag.kind === 'building' && Render.handlers.onBuildingDragEnd) {
+          Render.handlers.onBuildingDragEnd(drag.id, null, null);
+        }
+        drag = { kind: 'pinch' };
+        candidate = null;
+        moved = true;
         var a = Array.from(pointers.values());
         pinchDist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
       }
@@ -227,16 +249,28 @@
       var p = local(e);
       pointers.set(e.pointerId, p);
       if (pointers.size === 1) {
-        var dx = p.x - last.x, dy = p.y - last.y;
-        if (Math.abs(p.x - downPos.x) + Math.abs(p.y - downPos.y) > 6) moved = true;
-        if (moved) {
-          Render.cam.x -= dx / Render.cam.s;
-          Render.cam.y -= dy / Render.cam.s;
+        if (!moved && Math.abs(p.x - downPos.x) + Math.abs(p.y - downPos.y) > 7) {
+          moved = true;
+          if (candidate && Render.handlers.onBuildingDragStart) {
+            drag = { kind: 'building', id: candidate.id };
+            Render.handlers.onBuildingDragStart(candidate.id);
+          } else {
+            drag = { kind: 'pan' };
+          }
+        }
+        if (drag && drag.kind === 'building') {
+          if (Render.handlers.onBuildingDragMove) {
+            var t = tileAt(p);
+            Render.handlers.onBuildingDragMove(drag.id, t.x, t.y);
+          }
+        } else if (drag && drag.kind === 'pan') {
+          Render.cameraTouched = true;
+          Render.cam.x -= (p.x - last.x) / Render.cam.s;
+          Render.cam.y -= (p.y - last.y) / Render.cam.s;
           clampCam();
         }
         last = p;
       } else if (pointers.size === 2) {
-        moved = true;
         var a = Array.from(pointers.values());
         var d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
         var mid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
@@ -248,12 +282,27 @@
       if (!pointers.has(e.pointerId)) return;
       pointers.delete(e.pointerId);
       if (pointers.size === 0) {
-        if (!moved && downPos && Render.onTileTap) {
-          var t = Render.screenToTile(downPos.x, downPos.y);
-          Render.onTileTap(t.x, t.y);
+        if (drag && drag.kind === 'building' && Render.handlers.onBuildingDragEnd) {
+          var p = local(e);
+          var t = tileAt(p);
+          Render.handlers.onBuildingDragEnd(drag.id, t.x, t.y);
+        } else if (!moved && downPos && Render.handlers.onTileTap) {
+          var t2 = tileAt(downPos);
+          Render.handlers.onTileTap(t2.x, t2.y);
         }
         pinchDist = 0;
         downPos = null;
+        drag = null;
+        candidate = null;
+        moved = false;
+      } else if (pointers.size === 1) {
+        if (drag && drag.kind === 'building' && Render.handlers.onBuildingDragEnd) {
+          Render.handlers.onBuildingDragEnd(drag.id, null, null);
+        }
+        drag = { kind: 'pan' };
+        downPos = Array.from(pointers.values())[0];
+        last = downPos;
+        moved = true;
       }
     }
     canvas.addEventListener('pointerup', endPointer);
@@ -1440,13 +1489,7 @@
     drawLantern(g, px + pw - 6, py + 18, b.id + 3);
   }
 
-  function drawBuilding(b) {
-    var g = Render.ctx;
-    var px = b.x * T, py = b.y * T, pw = b.w * T, ph = b.h * T;
-    g.fillStyle = 'rgba(45,35,18,0.16)';
-    g.beginPath();
-    g.ellipse(px + pw / 2, py + ph - 4, pw * 0.44, ph * 0.14, 0, 0, Math.PI * 2);
-    g.fill();
+  function drawBuildingArt(b) {
     switch (b.type) {
       case 'manor': drawManor(b); break;
       case 'farm': drawFarm(b); break;
@@ -1459,8 +1502,67 @@
       case 'pickling': drawPickling(b); break;
       case 'textile': drawTextile(b); break;
       case 'dyeing': drawDyeing(b); break;
-      default: fillRR(g, px + 3, py + 3, pw - 6, ph - 6, 4, '#d8c9a4'); strokeRR(g, px + 3, py + 3, pw - 6, ph - 6, 4, '#6b4a2a', 1.4);
+      default:
+        fillRR(Render.ctx, b.x * T + 3, b.y * T + 3, b.w * T - 6, b.h * T - 6, 4, '#d8c9a4');
+        strokeRR(Render.ctx, b.x * T + 3, b.y * T + 3, b.w * T - 6, b.h * T - 6, 4, '#6b4a2a', 1.4);
     }
+  }
+
+  function drawConstruction(b) {
+    var g = Render.ctx;
+    var px = b.x * T, py = b.y * T, pw = b.w * T, ph = b.h * T;
+    var p = clamp(b.buildProgress / (b.buildTime || 1), 0, 1);
+    fillRR(g, px + 2, py + 2, pw - 4, ph - 4, 4, '#c9b489');
+    strokeRR(g, px + 2, py + 2, pw - 4, ph - 4, 4, '#8a7a58', 1.5);
+    fillRR(g, px + 6, py + 6, pw - 12, ph - 12, 3, 'rgba(150,125,85,0.45)');
+    g.save();
+    g.globalAlpha = 0.2 + 0.5 * p;
+    drawBuildingArt(b);
+    g.restore();
+    g.save();
+    g.strokeStyle = 'rgba(122,90,42,0.75)';
+    g.lineWidth = 1.4;
+    g.beginPath();
+    g.moveTo(px + 4, py + 4);
+    g.lineTo(px + pw - 4, py + ph - 4);
+    g.moveTo(px + pw - 4, py + 4);
+    g.lineTo(px + 4, py + ph - 4);
+    g.stroke();
+    g.strokeStyle = '#6b4a2a';
+    g.lineWidth = 2;
+    g.strokeRect(px + 3, py + 3, pw - 6, ph - 6);
+    g.restore();
+    var posts = [[px + 3, py + 3], [px + pw - 3, py + 3], [px + 3, py + ph - 3], [px + pw - 3, py + ph - 3]];
+    for (var i = 0; i < posts.length; i++) {
+      fillRR(g, posts[i][0] - 3, posts[i][1] - 3, 6, 6, 1.5, '#8a6238');
+      strokeRR(g, posts[i][0] - 3, posts[i][1] - 3, 6, 6, 1.5, '#4a3016', 1);
+    }
+    fillRR(g, px + 7, py + ph - 10, pw - 14, 6, 3, 'rgba(50,38,20,0.45)');
+    fillRR(g, px + 7, py + ph - 10, (pw - 14) * p, 6, 3, '#d4a94e');
+    inkText(g, '建造中 ' + Math.ceil(Math.max(0, b.buildTime - b.buildProgress)) + 's', px + pw / 2, py + ph / 2, 10.5, '#5a4630', 'center', true);
+    var bx = px + pw - 9, by = py - 10;
+    g.beginPath();
+    g.arc(bx, by, 8.5, 0, Math.PI * 2);
+    g.fillStyle = '#b8892f';
+    g.fill();
+    g.strokeStyle = 'rgba(50,35,18,0.85)';
+    g.lineWidth = 1.4;
+    g.stroke();
+    inkText(g, '建', bx, by + 0.5, 9.5, '#fff8e8', 'center', true);
+  }
+
+  function drawBuilding(b) {
+    var g = Render.ctx;
+    var px = b.x * T, py = b.y * T, pw = b.w * T, ph = b.h * T;
+    g.fillStyle = 'rgba(45,35,18,0.16)';
+    g.beginPath();
+    g.ellipse(px + pw / 2, py + ph - 4, pw * 0.44, ph * 0.14, 0, 0, Math.PI * 2);
+    g.fill();
+    if (b.constructing) {
+      drawConstruction(b);
+      return;
+    }
+    drawBuildingArt(b);
     drawGoodsTags(b);
     if (b.batch) {
       var prog = clamp(b.batch.progress / b.batch.cycle, 0, 1);
@@ -1630,6 +1732,28 @@
     inkText(g, String(qty), x + w - 3, y + h / 2 + 0.5, 9.5, '#8a2c20', 'right', true);
   }
 
+  function drawMoveGhost() {
+    if (!Render.moveGhost) return;
+    var mg = Render.moveGhost;
+    var b = null;
+    for (var i = 0; i < World.buildings.length; i++) if (World.buildings[i].id === mg.id) b = World.buildings[i];
+    if (!b) return;
+    var g = Render.ctx;
+    var px = mg.x * T, py = mg.y * T, pw = b.w * T, ph = b.h * T;
+    g.fillStyle = mg.valid ? 'rgba(110,170,100,0.3)' : 'rgba(180,70,60,0.3)';
+    fillRR(g, px, py, pw, ph, 5, g.fillStyle);
+    g.strokeStyle = mg.valid ? 'rgba(70,120,60,0.95)' : 'rgba(150,50,40,0.95)';
+    g.lineWidth = 2;
+    g.setLineDash([7, 5]);
+    rrPath(g, px, py, pw, ph, 5);
+    g.stroke();
+    g.setLineDash([]);
+    g.save();
+    g.globalAlpha = 0.85;
+    drawBuildingArt(Object.assign({}, b, { x: mg.x, y: mg.y }));
+    g.restore();
+  }
+
   function drawGhost() {
     if (!Render.ghost) return;
     var g = Render.ctx;
@@ -1719,7 +1843,11 @@
     var piles = World.piles.slice();
     for (var pi = 0; pi < piles.length; pi++) drawPile(piles[pi]);
     var list = World.buildings.slice().sort(function (a, b2) { return (a.y + a.h) - (b2.y + b2.h); });
-    for (var i = 0; i < list.length; i++) drawBuilding(list[i]);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === Render.hiddenBuildingId) continue;
+      drawBuilding(list[i]);
+    }
+    drawMoveGhost();
     drawGhost();
     var vs = World.villagers.slice().sort(function (a, b2) { return a.y - b2.y; });
     for (var vi = 0; vi < vs.length; vi++) drawVillager(vs[vi]);

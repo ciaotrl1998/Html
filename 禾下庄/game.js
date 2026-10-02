@@ -46,16 +46,16 @@
     constructor(data) {
       this.cols=14;this.rows=15;this.gold=320;this.materials=0;this.elapsed=0;this.rentTime=60;this.round=1;this.rent=180;
       this.landPrice=4200;this.grace=null;this.firstDebt=false;this.won=false;this.failed=false;this.carryLevel=1;this.speedLevel=1;
-      this.nextId=1;this.buildings=[];this.workers=[];this.logs=[];this.unlocked=['home','wood','stone','workshop','farm'];this.sales=0;
+      this.nextId=1;this.buildings=[];this.workers=[];this.logs=[];this.unlocked=['home','wood','stone','workshop','farm'];this.sales=0;this.feedback=[];this.homeClock=0;
       if(data){Object.assign(this,data);this.rentTime=Math.min(this.rentTime,60);}
       else {this.addBuilding('home',6,2);this.addBuilding('market',1,12);this.hire(true);this.hire(true);this.log('来到青溪庄田，里正宅开始收取杂项收入');}
     }
     log(text){this.logs.unshift({time:this.elapsed,text});this.logs=this.logs.slice(0,60);}
-    serialize(){return JSON.parse(JSON.stringify(this));}
+    serialize(){const {feedback,...state}=this;return JSON.parse(JSON.stringify(state));}
     building(id){return this.buildings.find(b=>b.id===id);}
     addBuilding(type,x,y){const b={id:this.nextId++,type,x,y,level:1,input:{},output:{},batch:null,progress:0,lastRecipe:-1};this.buildings.push(b);this.unlock();return b;}
     unlock(){for(const [type,d] of Object.entries(TYPES))if(d.requires?.some(r=>this.buildings.some(b=>b.type===r))&&!this.unlocked.includes(type))this.unlocked.push(type);}
-    hire(free=false){const cost=45+Math.max(0,this.workers.length-2)*15;if(!free&&this.gold<cost)return false;if(this.workers.length>=24)return false;if(!free)this.gold-=cost;this.workers.push({id:this.nextId++,x:6,y:5,assigned:null,task:null,route:[],producing:false});if(!free)this.log('雇佣了一名村民');return true;}
+    hire(free=false){const cost=45+Math.max(0,this.workers.length-2)*15;if(!free&&this.gold<cost)return false;if(this.workers.length>=24)return false;if(!free)this.gold-=cost;this.workers.push({id:this.nextId++,x:6,y:5,assigned:null,task:null,route:[],producing:false});if(!free){this.autoAssign();this.log('雇佣了一名村民');}return true;}
     blocked(x,y,ignore){return x<1||y<1||x>=this.cols-1||y>=this.rows-1||this.buildings.some(b=>b.id!==ignore&&b.type!=='pile'&&x>=b.x&&y>=b.y&&x<b.x+TYPES[b.type].size&&y<b.y+TYPES[b.type].size);}
     spots(b){const s=TYPES[b.type].size,a=[];if(b.type==='pile')a.push({x:b.x,y:b.y});for(let k=0;k<s;k++)a.push({x:b.x+k,y:b.y-1},{x:b.x+k,y:b.y+s},{x:b.x-1,y:b.y+k},{x:b.x+s,y:b.y+k});return a.filter(p=>!this.blocked(p.x,p.y));}
     path(start,targets){
@@ -73,14 +73,16 @@
         &&this.workers.every(w=>this.path(w,this.spots(this.buildings.find(b=>b.id===w.assigned)||this.buildings.find(b=>b.type==='market')))!==null);
       this.buildings=old;return valid;
     }
-    build(type,x,y){const d=TYPES[type];if(!this.unlocked.includes(type)||this.gold<d.cost[0]||this.materials<d.cost[1]||!this.canPlace(type,x,y))return null;this.gold-=d.cost[0];this.materials-=d.cost[1];const b=this.addBuilding(type,x,y);for(const w of this.workers)w.route=[];this.log('建造'+d.name);return b;}
+    build(type,x,y){const d=TYPES[type];if(!this.unlocked.includes(type)||this.gold<d.cost[0]||this.materials<d.cost[1]||!this.canPlace(type,x,y))return null;this.gold-=d.cost[0];this.materials-=d.cost[1];const b=this.addBuilding(type,x,y);for(const w of this.workers)w.route=[];this.assign(b,1);this.log('建造'+d.name);return b;}
     upgrade(b){if(!TYPES[b.type].upgrade||b.level>=5)return false;const [g,m]=TYPES[b.type].upgrade.map(n=>n*2**(b.level-1));if(this.gold<g||this.materials<m)return false;this.gold-=g;this.materials-=m;b.level++;this.log(TYPES[b.type].name+'升至'+b.level+'级');return true;}
     upgradeWorkers(key){const l=this[key];if(l>=5||this.gold<60*2**(l-1)||this.materials<6*2**(l-1))return false;this.gold-=60*2**(l-1);this.materials-=6*2**(l-1);this[key]++;this.log(key==='carryLevel'?'全体村民载重提升':'全体村民移速提升');return true;}
     assign(b,delta){if(delta>0){const w=this.workers.find(w=>!w.assigned&&!w.task);if(!w)return false;w.assigned=b.id;w.route=[];return true;}const w=this.workers.filter(w=>w.assigned===b.id).sort((a,z)=>Number(a.producing)-Number(z.producing))[0];if(!w)return false;w.assigned=null;w.producing=false;if(w.task?.phase==='pickup')this.cancel(w);return true;}
-    autoAssign(){
+    autoAssign(even=false){
       const idle=()=>this.workers.find(w=>!w.assigned&&!w.task);
       const buildings=this.buildings.filter(b=>!['home','pile','market'].includes(b.type)&&!this.active(b));
-      for(const b of buildings){const w=idle();if(!w)break;w.assigned=b.id;w.route=[];}
+      let count=0;
+      do{for(const b of buildings){const w=idle();if(!w)return count;w.assigned=b.id;w.route=[];count++;}}while(even&&buildings.length&&idle());
+      return count;
     }
     cancel(w){w.task=null;w.route=[];w.producing=false;}
     move(b,x,y){if(b.type==='market'||!this.canPlace(b.type,x,y,b.id))return false;b.x=x;b.y=y;for(const w of this.workers){w.route=[];if(w.task?.phase==='pickup')this.cancel(w);}return true;}
@@ -108,10 +110,11 @@
     status(b){if(b.type==='home')return '每秒收入 '+stats(b).income.toFixed(1);if(b.type==='market')return '自动售卖';if(b.type==='pile')return '等待清运';if(!this.active(b))return '无人指派';if(b.batch)return this.workers.some(w=>w.assigned===b.id&&w.producing)?'生产中':'等待生产者';if(sum(b.output)+Math.min(...stats(b).recipes.map(r=>sum(r.out)))>stats(b).output)return '输出空间不足';if(!this.recipe(b))return '缺少输入';return '等待生产者';}
     walk(w,dt){const target=w.route[0];if(!target)return;const dx=target.x-w.x,dy=target.y-w.y,d=Math.hypot(dx,dy),v=1.6*(1+(this.speedLevel-1)*.15)*dt;if(d<=v){w.x=target.x;w.y=target.y;w.route.shift();}else{w.x+=dx/d*v;w.y+=dy/d*v;}}
     tick(dt){
-      if(this.failed)return;this.elapsed+=dt;this.gold+=stats(this.buildings.find(b=>b.type==='home')).income*dt;
+      if(this.failed)return;this.elapsed+=dt;this.homeClock+=dt;
+      const home=this.buildings.find(b=>b.type==='home');
+      while(this.homeClock>=1-1e-9){this.homeClock=Math.max(0,this.homeClock-1);const income=stats(home).income;this.gold+=income;this.feedback.push({building:home.id,type:'gold',amount:income});}
       if(!this.won){this.rentTime-=dt;if(this.grace!==null){this.grace-=dt;if(this.gold>=this.rent)this.payRent();else if(this.grace<=0){this.failed=true;this.log('未能付清租金，经营结束');}}else if(this.rentTime<=0){if(this.gold>=this.rent)this.payRent();else{this.grace=this.firstDebt?10:30;this.firstDebt=true;this.log('金币不足，进入'+this.grace+'秒宽限');}}}
       if(this.failed)return;
-      this.autoAssign();
       for(const w of this.workers)w.producing=false;
       // A shared task list reserves both ends before either upstream or downstream departs.
       for(const w of this.workers){if(!w.task)continue;const t=w.task,src=this.building(t.source),dest=this.building(t.dest);if(!src&&t.phase==='pickup'){this.cancel(w);continue;}if(!dest){t.dest=this.buildings.find(b=>b.type==='market').id;w.route=[];}const target=t.phase==='pickup'?src:this.building(t.dest);if(!w.route.length){const p=this.path(w,this.spots(target));if(p===null){if(t.phase==='pickup')this.cancel(w);continue;}w.route=p;if(!p.length){if(t.phase==='pickup'){t.amount=Math.min(t.amount,src.output[t.key]||0);src.output[t.key]-=t.amount;t.phase='delivery';if(!t.amount){this.cancel(w);continue;}w.route=this.path(w,this.spots(this.building(t.dest)))||[];}else{const d=this.building(t.dest);if(d.type==='market'){const money=GOODS[t.key].price*t.amount;this.gold+=money;this.sales+=money;}else d.input[t.key]=(d.input[t.key]||0)+t.amount;this.cancel(w);}continue;}}this.walk(w,dt);}
