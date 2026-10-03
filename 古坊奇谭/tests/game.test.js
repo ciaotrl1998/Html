@@ -2,30 +2,129 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const G = require('../js/game.js');
-const rich = () => { const s = G.createState(); s.coins = 100000; return s; };
+const rich = () => { const s = G.createState(); s.coins = 100000; s.materials = 100000; return s; };
 const build = (s, t, x, y) => { const r = G.build(s, t, x, y); assert.equal(r.ok, true, t + ': ' + r.reason); return r.building; };
 const advance = (s, seconds) => { for (let t = 0; t < seconds - .00001; t += .1) G.step(s, .1); };
-test('26 buildings and four coherent terrain regions', () => {
+test('26 buildings and a distinct shore ring around water', () => {
   assert.equal(Object.keys(G.DEFS).length, 26);
+  assert.deepEqual(new Set(Object.values(G.TERRAIN)), new Set(['平地','水岸','水域','林地','山地']));
   for (const type of ['water','forest','mountain']) {
     let block = false;
     for (let y=0;y<G.SIZE-2;y++) for(let x=0;x<G.SIZE-2;x++) if(Array.from({length:9},(_,i)=>G.terrain(x+i%3,y+Math.floor(i/3))).every(v=>v===type))block=true;
     assert(block, type+' must contain at least a 3×3 patch');
   }
   assert.equal(G.terrain(8,8), 'plain');
+  assert.equal(G.terrain(4,8), 'water');
+  assert.equal(G.terrain(5,8), 'shore');
+  assert.equal(G.terrain(5,4), 'shore'); // Diagonal corner of the reservoir.
+  assert.equal(G.terrain(7,10), 'shore'); // The winding lower water region also has a bank.
+  assert.equal(G.terrain(6,8), 'plain');
+  for(let y=0;y<G.SIZE;y++)for(let x=0;x<G.SIZE;x++)if(G.terrain(x,y)==='shore'){
+    let touchesWater=false;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy)if(x+dx>=0&&x+dx<G.SIZE&&y+dy>=0&&y+dy<G.SIZE&&G.terrain(x+dx,y+dy)==='water')touchesWater=true;
+    assert(touchesWater,`shore ${x},${y} must border water`);
+  }
+  for(let y=0;y<G.SIZE;y++)for(let x=0;x<G.SIZE;x++)if(G.terrain(x,y)==='water'){
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<G.SIZE&&ny>=0&&ny<G.SIZE&&G.terrain(nx,ny)!=='water')
+        assert.equal(G.terrain(nx,ny),'shore',`water ${x},${y} must have a complete shore ring`);
+    }
+  }
 });
-test('terrain restrictions, orthogonal predecessor, insufficient funds, occupied cells', () => {
+test('diagonal adjacency counts, plus terrain, predecessor, funds and occupied cells', () => {
   const s=rich();assert.equal(G.build(s,'farm',7,8).ok,false);assert.equal(G.build(s,'tea',2,7).ok,false);
-  assert.match(G.buildReason(s,'farm',4,8),/需临水平地/); // Water itself is invalid.
-  assert.match(G.buildReason(s,'farm',6,8),/需临水平地/); // Plain, but not orthogonally adjacent to water.
-  build(s,'farm',5,8);assert.equal(G.build(s,'mill',6,9).ok,false);build(s,'mill',6,8);build(s,'wine',7,8);
-  assert.equal(G.build(s,'home',6,8).ok,false);assert.equal(G.build(s,'shrine',9,8).ok,false);
+  assert.match(G.buildReason(s,'farm',4,8),/水域不可建造/);
+  assert.match(G.buildReason(s,'farm',6,8),/需水岸或水井旁平地/);
+  build(s,'farm',5,8);assert.equal(G.build(s,'mill',7,9).ok,false); // Chebyshev distance 2 is not adjacent.
+  build(s,'mill',6,9);build(s,'wine',7,8); // Diagonal adjacency to the farm now qualifies.
+  assert.equal(G.build(s,'home',6,9).ok,false);assert.equal(G.build(s,'shrine',9,8).ok,false);
   s.coins=0;assert.match(G.buildReason(s,'tower',9,8),/^差/);
+});
+test('no building type can be placed in water, including unrestricted buildings',()=>{
+  const s=rich(),before=s.coins;
+  for(const type of Object.keys(G.DEFS)){
+    assert.equal(G.buildReason(s,type,4,8),'水域不可建造',type);
+    assert.equal(G.build(s,type,4,8).ok,false,type);
+  }
+  assert.equal(s.buildings.length,1);assert.equal(s.coins,before);
+  assert.equal(G.buildReason(s,'farm',5,8),'');
+  assert.equal(G.buildReason(s,'farm',5,4),''); // Diagonal shore is valid too.
+  assert.equal(G.buildReason(s,'farm',6,8),'需水岸或水井旁平地');
+});
+test('forest and mountain reserve industry plots for their own starter buildings',()=>{
+  const s=rich(),forest=[12,4],mountain=[13,13];
+  assert.equal(G.terrain(...forest),'forest');assert.equal(G.terrain(...mountain),'mountain');
+  for(const d of Object.values(G.DEFS).filter(d=>d.cat==='economy')){
+    if(d.id!=='mulberry'){
+      assert.equal(G.buildReason(s,d.id,...forest),'林地仅可建桑园',d.id);
+      assert.equal(G.build(s,d.id,...forest).ok,false,d.id);
+    }
+    if(d.id!=='quarry'){
+      assert.equal(G.buildReason(s,d.id,...mountain),'山地仅可建石场',d.id);
+      assert.equal(G.build(s,d.id,...mountain).ok,false,d.id);
+    }
+  }
+  build(s,'mulberry',...forest);build(s,'quarry',...mountain);
+  assert.equal(G.buildReason(s,'tower',12,5),'');
+  assert.equal(G.buildReason(s,'home',13,12),'');
+  assert.equal(G.buildReason(s,'earth',14,13),'');
+});
+test('a well permits farms on adjacent plain tiles, including diagonals',()=>{
+  const s=rich();
+  assert.equal(G.buildReason(s,'farm',9,9),'需水岸或水井旁平地');
+  const well=build(s,'well',10,10);
+  assert.equal(G.buildReason(s,'farm',9,9),'');
+  assert.equal(G.buildReason(s,'farm',12,10),'需水岸或水井旁平地');
+  assert.equal(G.buildReason(s,'farm',11,11),'山地仅可建石场');
+  const farm=build(s,'farm',9,9);
+  assert.equal(G.buildReason(s,'farm',4,8),'水域不可建造');
+  assert.equal(G.restore(G.serialize(s)).buildings.some(b=>b.id===farm.id),true);
+  assert.equal(G.demolish(s,well).ok,true);
+  assert.equal(G.buildReason(s,'farm',9,10),'需水岸或水井旁平地');
+  assert(s.buildings.includes(farm),'an existing field remains after the well is removed');
+  const forest=rich();build(forest,'well',9,4);
+  assert.equal(G.buildReason(forest,'farm',10,4),'林地仅可建桑园');
+});
+test('inland farms lose durability after their last well is removed, then collapse',()=>{
+  const s=rich(),well=build(s,'well',10,10),inland=build(s,'farm',9,9),shore=build(s,'farm',5,8);
+  advance(s,1);assert.equal(inland.hp,G.maxHP(inland));
+  const result=G.demolish(s,well);assert.equal(result.ok,true);assert.equal(result.dryFarms,1);
+  assert.equal(G.dryFarm(s,inland),true);assert.equal(G.dryFarm(s,shore),false);
+  advance(s,1);assert(Math.abs(inland.hp-G.maxHP(inland)*.95)<1e-7);
+  assert.equal(shore.hp,G.maxHP(shore));
+  const loaded=G.restore(G.serialize(s));assert(loaded);const dry=loaded.buildings.find(b=>b.id===inland.id);
+  advance(loaded,19);
+  assert.equal(loaded.buildings.includes(dry),false);
+  assert(loaded.events.some(e=>e.text.includes('农田被摧毁')));
+  assert.equal(loaded.buildings.some(b=>b.id===shore.id),true);
+});
+test('a second or replacement well keeps inland farms alive',()=>{
+  const s=rich(),first=build(s,'well',10,10),second=build(s,'well',9,10),farm=build(s,'farm',9,9);
+  assert.equal(G.demolish(s,first).dryFarms,0);
+  advance(s,2);assert.equal(farm.hp,G.maxHP(farm));
+  assert.equal(G.demolish(s,second).dryFarms,1);
+  advance(s,1);const damaged=farm.hp;assert(damaged<G.maxHP(farm));
+  build(s,'well',10,10);assert.equal(G.dryFarm(s,farm),false);
+  advance(s,2);assert(farm.hp>=damaged);
+});
+test('old saves move water buildings onto land while retaining their progress',()=>{
+  const s=rich(),farm=build(s,'farm',5,8),tower=build(s,'tower',8,7);
+  farm.x=4;farm.y=8;farm.level=2;farm.hp=G.maxHP(farm);
+  tower.x=3;tower.y=8;tower.hp=200;
+  const restored=G.restore(G.serialize(s));assert(restored);
+  assert.equal(restored.coins,s.coins);assert.equal(restored.buildings.length,s.buildings.length);
+  const movedFarm=restored.buildings.find(b=>b.id===farm.id),movedTower=restored.buildings.find(b=>b.id===tower.id);
+  assert.equal(G.terrain(movedFarm.x,movedFarm.y),'shore');assert.equal(movedFarm.level,2);assert.equal(movedFarm.hp,farm.hp);
+  assert.notEqual(G.terrain(movedTower.x,movedTower.y),'water');assert.equal(movedTower.hp,200);
+  assert.notDeepEqual([movedFarm.x,movedFarm.y],[movedTower.x,movedTower.y]);
+  assert(restored.events.some(e=>e.text.includes('2 栋建筑已迁出水域')));
+  assert.equal(G.restore(G.serialize(restored)).events.length,0,'migration runs only once');
 });
 test('upgrade propagation chooses highest adjacent predecessor and stops at level 3', () => {
   const s=rich(), a=build(s,'tea',6,7), b=build(s,'inn',7,7), c=build(s,'bank',8,7);
   assert.equal(G.upgrade(s,b).ok,false);assert(G.upgrade(s,a).ok);assert(G.upgrade(s,b).ok);assert(G.upgrade(s,c).ok);
-  const other=build(s,'tea',7,6);G.upgrade(s,other);G.upgrade(s,other);assert(G.upgrade(s,b).ok);assert(G.upgrade(s,c).ok);assert.equal(G.upgrade(s,c).ok,false);
+  const other=build(s,'tea',8,6);G.upgrade(s,other);G.upgrade(s,other);assert(G.upgrade(s,b).ok);assert(G.upgrade(s,c).ok);assert.equal(G.upgrade(s,c).ok,false);
   assert.equal(a.level,2);assert.equal(c.level,3);
 });
 test('existing chains keep producing after their prerequisite is removed', () => {
@@ -33,25 +132,88 @@ test('existing chains keep producing after their prerequisite is removed', () =>
   assert(G.income(s,b)>0);assert.match(G.upgradeReason(s,b),/需邻茶肆/);
   const old=s.coins;advance(s,2);assert(s.coins>old);
 });
-test('ultimate prerequisites count distinct endpoint types, regardless of level', () => {
+test('copper ultimate requires bank and winery and boosts only copper income', () => {
   const s=rich();build(s,'tea',9,7);build(s,'inn',9,8);build(s,'bank',9,9);
-  assert.equal(G.terminalCount(s,9,10),1);assert.match(G.buildReason(s,'guild',9,10),/1\/2/);
+  assert.deepEqual(G.DEFS.guild.required,['bank','wine']);assert.equal(G.DEFS.guild.resource,'coins');
+  assert(G.DEFS.guild.cost.materials>G.DEFS.guild.cost.coins);
+  assert.match(G.buildReason(s,'guild',9,10),/酒坊/);
   build(s,'farm',7,11);build(s,'mill',8,11);const wine=build(s,'wine',8,10);
+  const before=G.rates(s);
   const guild=build(s,'guild',9,10);assert.equal(guild.level,1);assert.equal(G.upgrade(s,guild).ok,false);
-  assert(G.rates(s).coins>Object.values(s.buildings).reduce((a,b)=>a+(G.DEFS[b.type].income||0),0));
-  G.demolish(s,guild);assert.match(G.buildReason(s,'port',9,10),/2\/3/);
-  build(s,'quarry',11,11);build(s,'kiln',10,11);build(s,'trade',10,10);const port=build(s,'port',9,10);
-  G.demolish(s,wine);assert(G.income(s,port)>=39*1.1);assert(s.buildings.includes(port));
+  assert(G.rates(s).coins>before.coins);assert.equal(G.rates(s).materials,before.materials);
+  assert(G.income(s,guild)>=26*1.2);
+  G.demolish(s,wine);assert(s.buildings.includes(guild),'built ultimate remains after a prerequisite is removed');
+  G.demolish(s,guild);assert.match(G.buildReason(s,'guild',9,10),/酒坊/);
+});
+test('materials ultimate requires tailor and trade and boosts only materials',()=>{
+  const s=rich();build(s,'tea',7,8);
+  build(s,'mulberry',10,6);build(s,'weaver',10,7);build(s,'tailor',10,8);
+  assert.deepEqual(G.DEFS.port.required,['tailor','trade']);assert.equal(G.DEFS.port.name,'百工院');assert.equal(G.DEFS.port.resource,'materials');
+  assert(G.DEFS.port.cost.coins>G.DEFS.port.cost.materials);
+  assert.match(G.buildReason(s,'port',9,9),/商号/);
+  build(s,'quarry',11,11);build(s,'kiln',10,10);const trade=build(s,'trade',10,9);
+  const before=G.rates(s);const port=build(s,'port',9,9);
+  assert.equal(G.rates(s).coins,before.coins);assert(G.rates(s).materials>before.materials);
+  assert(G.income(s,port)>=39*1.2);
+  const old=s.materials;advance(s,1);assert(s.materials>old);
+  assert(s.effects.some(e=>e.buildingId===port.id&&e.resource==='materials'));
+  const saved=JSON.parse(G.serialize(s)),oldPort=saved.buildings.find(b=>b.id===port.id);
+  oldPort.coinPending=.6;oldPort.materialPending=0;
+  const migrated=G.restore(JSON.stringify(saved)),migratedPort=migrated.buildings.find(b=>b.id===port.id);
+  assert.equal(migratedPort.coinPending,0);assert.equal(migratedPort.materialPending,.6);
+  G.demolish(s,trade);assert(s.buildings.includes(port));
+  G.demolish(s,port);assert.match(G.buildReason(s,'port',9,9),/商号/);
 });
 test('support bonuses affect the intended buildings only',()=>{
   const s=rich(),farm=build(s,'farm',5,8),tea=build(s,'tea',7,8);
   const baseline=G.income(s,farm);build(s,'well',5,9);assert(Math.abs(G.income(s,farm)-baseline*1.2)<.001);
-  build(s,'home',6,8);assert(Math.abs(G.income(s,farm)-baseline*1.3)<.001);assert(Math.abs(G.income(s,tea)-3.3)<.001);
-  build(s,'stage',7,9);assert(Math.abs(G.income(s,tea)-3.39)<.001);
+  build(s,'home',6,8);assert(Math.abs(G.income(s,farm)-baseline*1.3)<.001);assert(Math.abs(G.income(s,tea)-1.1)<.001);
+  build(s,'stage',7,9);assert(Math.abs(G.income(s,tea)-1.13)<.001);
 });
-test('daylight heals 5% every two seconds; dusk and night do not',()=>{
-  const s=rich(),base=s.buildings[0];base.hp=900;advance(s,2.1);assert.equal(base.hp,990);
-  G.dusk(s);advance(s,2.1);assert.equal(base.hp,990);G.startNight(s);advance(s,2.1);assert.equal(base.hp,990);
+test('same building cannot repeat within its range, but farm and mulberry may cluster',()=>{
+  const s=rich();
+  build(s,'tea',7,8);
+  assert.match(G.buildReason(s,'tea',8,7),/范围内已有相同建筑/); // Diagonal neighbour counts.
+  assert.match(G.buildReason(s,'tea',8,9),/范围内已有相同建筑/);
+  assert.equal(G.build(s,'tea',9,8).ok,true);                    // Two cells away is allowed.
+  build(s,'farm',5,8);assert.equal(G.build(s,'farm',5,9).ok,true); // Range 0 lets farms stand adjacent.
+  build(s,'mulberry',11,3);assert.equal(G.build(s,'mulberry',12,4).ok,true);
+});
+test('only the immediately previous industry tier adds 10% income per level',()=>{
+  const s=rich();
+  const farm=build(s,'farm',5,8),mill=build(s,'mill',6,9),wine=build(s,'wine',7,8);
+  assert(Math.abs(G.income(s,mill)-3.3)<.001);   // 3 × (1 + .1), farm within 1.
+  assert(Math.abs(G.income(s,wine)-6.6)<.001);   // Farm is two tiers earlier and adds nothing.
+  assert(G.upgrade(s,farm).ok);                   // Farm Lv2 adds .2
+  assert(Math.abs(G.income(s,mill)-3.6)<.001);
+  assert(Math.abs(G.income(s,wine)-6.6)<.001);
+  build(s,'tea',6,5);const inn=build(s,'inn',6,4);
+  assert(Math.abs(G.income(s,inn)-3.3)<.001);
+  build(s,'tea',9,4);                             // Distance 3 exceeds the inn range of 2.
+  assert(Math.abs(G.income(s,inn)-3.3)<.001);
+});
+test('all four chains ignore a starter two tiers behind the endpoint',()=>{
+  for(const [types,cells,midBase,endBase] of [
+    [['tea','inn','bank'],[[6,5],[6,4],[7,4]],3,6],
+    [['farm','mill','wine'],[[5,8],[6,9],[7,8]],3,6],
+    [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],5,9],
+    [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],5,9]
+  ]){
+    const s=rich(),start=build(s,types[0],...cells[0]),middle=build(s,types[1],...cells[1]),end=build(s,types[2],...cells[2]);
+    assert(Math.abs(G.income(s,middle)-midBase*1.1)<1e-8,types[1]+' receives starter bonus');
+    assert(Math.abs(G.income(s,end)-endBase*1.1)<1e-8,types[2]+' receives middle bonus only');
+    assert(G.upgrade(s,start).ok);
+    assert(Math.abs(G.income(s,middle)-midBase*1.2)<1e-8,types[1]+' responds to starter level');
+    assert(Math.abs(G.income(s,end)-endBase*1.1)<1e-8,types[2]+' ignores starter level');
+  }
+});
+test('daylight heals 10% each second and caps at full health; dusk and night do not',()=>{
+  const s=rich(),base=s.buildings[0];base.hp=900;
+  advance(s,.9);assert.equal(base.hp,900);
+  advance(s,.1);assert.equal(base.hp,1080);
+  advance(s,4);assert.equal(base.hp,G.maxHP(base));
+  base.hp=900;G.dusk(s);advance(s,2.1);assert.equal(base.hp,900);
+  G.startNight(s);advance(s,2.1);assert.equal(base.hp,900);
 });
 test('shortest paths stay orthogonal, bypass a single wall, and attack a complete enclosure',()=>{
   const s=rich(),e={x:8,y:2,type:'bandit',damage:14};const direct=G.findPath(s,e);assert.equal(direct.length,6);
@@ -60,6 +222,25 @@ test('shortest paths stay orthogonal, bypass a single wall, and attack a complet
   G.demolish(s,wall);for(const [x,y] of [[8,7],[9,8],[8,9],[7,8]])build(s,'fence',x,y);
   assert(G.findPath(s,e).some(p=>G.at(s,p.x,p.y)?.type==='fence'));
   G.dusk(s);s.direction=0;G.startNight(s);advance(s,38);assert(s.buildings.some(b=>b.type==='fence'&&b.hp<G.maxHP(b))||s.buildings.length<5);
+});
+test('enemies route around water and old saves move enemies out of water',()=>{
+  const s=rich(),e={x:0,y:8,type:'bandit',damage:14};
+  const path=G.findPath(s,e);assert(path.length>8);
+  let prev=e;
+  for(const p of path){
+    assert.notEqual(G.terrain(p.x,p.y),'water');
+    assert.equal(Math.abs(p.x-prev.x)+Math.abs(p.y-prev.y),1);
+    prev=p;
+  }
+  G.startNight(s);s.wave.spawned=s.wave.total;
+  s.enemies=[{...e,id:s.nextId++,hp:100,maxHp:100,speed:.65,attack:0,repelled:0,path:[],pathRevision:-1}];
+  for(let i=0;i<100;i++){
+    G.step(s,.1);
+    assert(s.enemies.every(n=>G.terrain(Math.round(n.x),Math.round(n.y))!=='water'));
+  }
+  const saved=JSON.parse(G.serialize(s));saved.enemies[0].x=3;saved.enemies[0].y=8;
+  const restored=G.restore(JSON.stringify(saved));assert(restored);
+  assert.notEqual(G.terrain(Math.round(restored.enemies[0].x),Math.round(restored.enemies[0].y)),'water');
 });
 test('two arrow towers can complete the first night and grant dawn rewards',()=>{
   const s=rich();build(s,'tower',8,7);build(s,'tower',7,8);G.dusk(s);G.startNight(s);
@@ -73,21 +254,27 @@ test('skills enforce night, costs, cooldown and Taoist temple unlock',()=>{
   const base=s.buildings[0];base.hp=900;assert(G.skill(s,'repair').ok);assert.equal(base.hp,1530);assert.equal(s.incense,255);assert.equal(G.skill(s,'repair').ok,false);
   advance(s,1);const hp=s.enemies[0].hp;assert(G.skill(s,'repel').ok);assert.equal(s.enemies[0].hp,hp-20);assert(s.enemies[0].repelled>0);assert(G.skill(s,'thunder').ok);assert.equal(s.enemies.length,0);
 });
-test('night blocks all construction, while dusk still permits preparation',()=>{
+test('night permits the same building construction, upgrade and demolition as day',()=>{
   const s=rich(),farm=build(s,'farm',5,8);G.dusk(s);
   const tower=build(s,'tower',7,7);assert.equal(G.build(s,'fence',6,6).ok,true);
-  G.startNight(s);const before=s.coins,count=s.buildings.length;
-  assert.match(G.buildReason(s,'farm',5,9),/夜晚不可建造/);
-  assert.match(G.buildReason(s,'fence',6,5),/夜晚不可建造/);
-  assert.equal(G.build(s,'fence',6,5).ok,false);
-  assert.match(G.upgradeReason(s,tower),/夜晚不可升级/);
-  assert.equal(G.upgrade(s,tower).ok,false);
-  assert.match(G.demolish(s,farm).reason,/夜晚不可拆除/);
-  assert.equal(s.coins,before);assert.equal(s.buildings.length,count);
+  G.startNight(s);const before={coins:s.coins,materials:s.materials},count=s.buildings.length;
+  assert.equal(G.buildReason(s,'farm',5,9),'');
+  assert.equal(G.buildReason(s,'fence',6,5),'');
+  assert.equal(G.build(s,'farm',5,9).ok,true);
+  assert.equal(G.build(s,'fence',6,5).ok,true);
+  assert.equal(G.buildReason(s,'home',4,8),'水域不可建造');
+  assert.equal(G.upgradeReason(s,tower),'');
+  assert.equal(G.upgrade(s,tower).ok,true);assert.equal(tower.level,2);
+  assert.equal(G.demolishReason(s,farm),'');
+  assert.equal(G.demolish(s,farm).ok,true);
+  assert.match(G.demolish(s,s.buildings[0]).reason,/祠堂不可拆除/);
+  const farmCost=G.DEFS.farm.cost,fenceCost=G.DEFS.fence.cost,upgradeCost=G.upgradeCost({type:'tower',level:1});
+  for(const resource of ['coins','materials']) assert.equal(s[resource],before[resource]-farmCost[resource]-fenceCost[resource]-upgradeCost[resource]+Math.floor(farmCost[resource]*.4));
+  assert.equal(s.buildings.length,count+1);
 });
 test('festival awards and boss wave occur every seventh day',()=>{
   const s=rich();s.day=6;G.startNight(s);s.wave.spawned=s.wave.total;advance(s,.1);assert.equal(s.day,7);assert(s.events.some(e=>e.text.includes('上元灯会')));
-  const base=s.buildings[0];assert.equal(G.income(s,base),1.25);base.hp=100000;G.startNight(s);assert(s.wave.boss);advance(s,60);assert(s.enemies.some(e=>e.boss));
+  const base=s.buildings[0];assert(Math.abs(G.income(s,base)-0.5)<1e-8);base.hp=100000;G.startNight(s);assert(s.wave.boss);advance(s,60);assert(s.enemies.some(e=>e.boss));
 });
 test('main base destruction ends the game and freezes simulation',()=>{
   const s=rich();s.buildings[0].hp=1;G.startNight(s);advance(s,120);assert(s.over);const coins=s.coins;advance(s,10);assert.equal(s.coins,coins);
@@ -102,28 +289,75 @@ test('save restores construction, clock, enemies and cooldowns; rejects malforme
 test('income settles once per building per second, with exact coin floating amounts',()=>{
   const s=rich();const tea=build(s,'tea',7,8);const before=s.coins,incense=s.incense;
   advance(s,.9);assert.equal(s.coins,before);assert.equal(s.incense,incense);assert.equal(s.effects.filter(e=>e.type==='income').length,0);
-  advance(s,.1);assert.equal(s.coins,before+4);assert(Math.abs(s.incense-incense-.4)<1e-8);
-  const floats=s.effects.filter(e=>e.type==='income');assert.equal(floats.length,2);assert.equal(floats.find(e=>e.buildingId===tea.id).amount,3);
-  advance(s,.5);assert.equal(s.coins,before+4);assert(s.effects.find(e=>e.buildingId===tea.id).life<.5);
-  advance(s,.5);assert.equal(s.coins,before+8);assert.equal(s.effects.filter(e=>e.type==='income').length,2);
+  advance(s,.1);assert.equal(s.coins,before+1);assert(Math.abs(s.incense-incense-.25)<1e-8);
+  const floats=s.effects.filter(e=>e.type==='income');assert.equal(floats.length,1);assert.equal(floats.find(e=>e.buildingId===tea.id).amount,1);
+  advance(s,.5);assert.equal(s.coins,before+1);assert(s.effects.find(e=>e.buildingId===tea.id).life<.5);
+  advance(s,.5);assert.equal(s.coins,before+2);assert.equal(s.effects.filter(e=>e.type==='income').length,1);
 });
 test('each newly built building waits a full second before its first payout',()=>{
   const s=rich();advance(s,.8);const tea=build(s,'tea',7,8),before=s.coins;
-  advance(s,.2);assert.equal(s.coins,before+1);assert(!s.effects.some(e=>e.buildingId===tea.id));
-  advance(s,.8);assert.equal(s.coins,before+4);assert(s.effects.some(e=>e.buildingId===tea.id&&e.amount===3));
+  advance(s,.2);assert.equal(s.coins,before);assert(!s.effects.some(e=>e.buildingId===tea.id));
+  advance(s,.8);assert.equal(s.coins,before+1);assert(s.effects.some(e=>e.buildingId===tea.id&&e.amount===1));
 });
 test('fractional income is retained across payouts, upgrades and save reloads',()=>{
   const s=rich(),tea=build(s,'tea',7,8);G.upgrade(s,tea);const before=s.coins;
-  advance(s,1);assert.equal(s.effects.find(e=>e.buildingId===tea.id).amount,4);
+  advance(s,1);assert.equal(s.effects.find(e=>e.buildingId===tea.id).amount,1);
   const copy=G.restore(G.serialize(s));assert(copy);advance(copy,19);
-  // 4.95 × 20 = 99 tea coins, plus 20 coins from the shrine.
-  assert.equal(copy.coins,before+119);
+  // 1.65 × 20 = 33 tea coins, plus 8 coins from the shrine.
+  assert.equal(copy.coins,before+41);
   const partial=rich();build(partial,'tea',7,8);advance(partial,.6);const amount=partial.coins;
-  const restored=G.restore(G.serialize(partial));advance(restored,.3);assert.equal(restored.coins,amount);advance(restored,.1);assert.equal(restored.coins,amount+4);
+  const restored=G.restore(G.serialize(partial));advance(restored,.3);assert.equal(restored.coins,amount);advance(restored,.1);assert.equal(restored.coins,amount+1);
 });
 test('v1 saves without income counters migrate without losing buildings or money',()=>{
   const s=rich();build(s,'tea',7,8);const old=JSON.parse(G.serialize(s));
   for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.incensePending;}
   const restored=G.restore(JSON.stringify(old));assert(restored);assert.equal(restored.buildings.length,2);assert.equal(restored.coins,s.coins);
-  advance(restored,1);assert.equal(restored.coins,s.coins+4);
+  advance(restored,1);assert.equal(restored.coins,s.coins+1);
+});
+test('two-resource chains have the intended costs, production and formula upgrades',()=>{
+  const fresh=G.createState();
+  assert.deepEqual({coins:fresh.coins,materials:fresh.materials,incense:fresh.incense},{coins:200,materials:120,incense:25});
+  assert.equal('prosperity' in fresh,false);
+  for(const d of Object.values(G.DEFS)){assert.equal('prosperity' in d,false);assert.equal('unlock' in d,false);}
+  for(const type of ['tea','inn','bank','farm','mill','wine']) assert.equal(G.DEFS[type].resource,'coins');
+  for(const type of ['mulberry','weaver','tailor','quarry','kiln','trade']) assert.equal(G.DEFS[type].resource,'materials');
+  for(const type of ['tea','farm']){
+    const d=G.DEFS[type];assert.equal(d.cost.coins,0);assert(d.cost.materials>0);
+    for(const level of [1,2]){const cost=G.upgradeCost({type,level});assert.equal(cost.coins,0);assert(cost.materials>d.cost.materials);}
+  }
+  for(const type of ['mulberry','quarry']){
+    const d=G.DEFS[type];assert(d.cost.coins>0);assert.equal(d.cost.materials,0);
+    for(const level of [1,2]){const cost=G.upgradeCost({type,level});assert(cost.coins>d.cost.coins);assert.equal(cost.materials,0);}
+  }
+  for(const group of [['inn','bank'],['mill','wine']])for(const type of group){const c=G.DEFS[type].cost;assert(c.materials>c.coins);assert(c.coins>0);}
+  for(const group of [['weaver','tailor'],['kiln','trade']])for(const type of group){const c=G.DEFS[type].cost;assert(c.coins>c.materials);assert(c.materials>0);}
+  assert(G.DEFS.tailor.cost.coins>G.DEFS.weaver.cost.coins);
+  assert(G.DEFS.tailor.cost.materials>G.DEFS.weaver.cost.materials);
+  for(const type of ['tea','inn','bank','farm','mill','wine','mulberry','weaver','tailor','quarry','kiln','trade']){
+    const c=G.DEFS[type].cost;
+    for(const level of [1,2])assert.deepEqual(G.upgradeCost({type,level}),{
+      coins:Math.ceil(c.coins*(level===1?1.5:2.25)),materials:Math.ceil(c.materials*(level===1?1.5:2.25))
+    });
+  }
+});
+test('construction and upgrading check and deduct each resource atomically',()=>{
+  const s=G.createState(),coins=s.coins,materials=s.materials;
+  s.materials=0;assert.match(G.buildReason(s,'tea',7,8),/工材/);assert.equal(G.build(s,'tea',7,8).ok,false);assert.equal(s.coins,coins);
+  s.materials=materials;const tea=build(s,'tea',7,8);assert.equal(s.materials,materials-G.DEFS.tea.cost.materials);assert(s.coins>=coins);
+  const before={coins:s.coins,materials:s.materials};s.materials=0;assert.match(G.upgradeReason(s,tea),/工材/);assert.equal(G.upgrade(s,tea).ok,false);assert.equal(s.coins,before.coins);
+  s.materials=1000;const cost=G.upgradeCost(tea);assert(G.upgrade(s,tea).ok);assert.equal(s.materials,1000-cost.materials);
+  const other=rich();other.coins=0;assert.match(G.buildReason(other,'mulberry',11,3),/铜钱/);assert.equal(G.build(other,'mulberry',11,3).ok,false);assert.equal(other.materials,100000);
+});
+test('silk and craft pay materials once per building-second and survive save migration',()=>{
+  const s=rich(),mulberry=build(s,'mulberry',11,3),coins=s.coins,materials=s.materials;
+  advance(s,.9);assert.equal(s.materials,materials);assert.equal(s.effects.filter(e=>e.buildingId===mulberry.id).length,0);
+  advance(s,.1);assert.equal(s.materials,materials+2);assert.equal(s.coins,coins);
+  assert.deepEqual(s.effects.filter(e=>e.buildingId===mulberry.id).map(e=>[e.resource,e.amount]),[['materials',2]]);
+  G.upgrade(s,mulberry);advance(s,.5);
+  const restored=G.restore(G.serialize(s));assert(restored);const next=restored.buildings.find(b=>b.id===mulberry.id);
+  assert.equal(next.materialPending,mulberry.materialPending);assert.equal(restored.materials,s.materials);
+  const legacy=JSON.parse(G.serialize(s));delete legacy.materials;delete legacy.prosperity;
+  for(const b of legacy.buildings){delete b.materialPending;if(b.id===mulberry.id)b.coinPending=.45;}
+  const migrated=G.restore(JSON.stringify(legacy));assert(migrated);assert.equal(migrated.materials,120);
+  const migratedTree=migrated.buildings.find(b=>b.id===mulberry.id);assert.equal(migratedTree.materialPending,.45);assert.equal(migratedTree.coinPending,0);
 });

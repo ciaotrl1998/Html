@@ -8,7 +8,7 @@
   try { savedCategory = localStorage.getItem(KEY + '-category'); } catch { /* Session selection still works. */ }
   let state = (saved && GF.restore(saved)) || GF.createState(), selected = null, category = categories.includes(savedCategory) ? savedCategory : 'economy', paused = false, sound = false;
   let saveStatus = storageWarning ? '本地存档不可用' : '本地自动存档';
-  let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden;
+  let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = new Map();
   const view = { width: 390, height: 844 };
   function center() {
@@ -49,32 +49,45 @@
     selected = { x, y }; panelKey = ''; $('cards').scrollLeft = 0; $('panel').hidden = false; $('game').classList.add('has-panel'); refresh();
   }
   function closePanel() { selected = null; panelKey = ''; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
+  const rateText = value => String(Math.round((value + Number.EPSILON) * 10) / 10);
+  const costText = cost => [cost.coins ? cost.coins + ' 铜钱' : '', cost.materials ? cost.materials + ' 工材' : ''].filter(Boolean).join(' · ') || '免费';
+  const costHTML = cost => `<span class="cost-parts">${cost.coins ? `<span><i class="coin-icon"></i>${cost.coins}</span>` : ''}${cost.materials ? `<span><i class="material-icon"></i>${cost.materials}</span>` : ''}</span>`;
+  function productionLine(resource, base, total) {
+    const bonus = rateText(Math.max(0, total - base));
+    return `${resource} +${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
+  }
   function effect(d, b) {
-    if (d.neighbors) return '收入 +' + d.income + '/秒 · 全镇 +' + d.aura * 100 + '%';
-    if (d.cat === 'economy') return '铜钱 +' + (b ? GF.income(state, b).toFixed(1) : d.income) + ' / 秒';
-    return d.desc || '';
+    if (!d.income && !d.incense) return d.desc || '';
+    const building = b || { type: d.id, x: selected?.x ?? GF.CENTER, y: selected?.y ?? GF.CENTER, level: 1 };
+    const preview = b ? state : { ...state, buildings: [...state.buildings, building] };
+    const lines = [];
+    if (d.income) lines.push(productionLine(d.resource === 'materials' ? '工材' : '铜钱', d.income * GF.factor(building), GF.income(preview, building)));
+    if (d.incense) lines.push(productionLine('香火', d.incense * GF.factor(building), d.incense * GF.factor(building)));
+    if (d.required) lines.push('全镇' + (d.auraResource === 'materials' ? '工材' : '铜钱') + '收入 +' + rateText(d.aura * 100) + '%');
+    return lines.join('<br>');
   }
   function cardHTML(d) {
-    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${d.chain ? d.chain + '业' : d.neighbors ? '终极' : ''}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price"><i class="coin-icon"></i> ${d.cost}</span><span class="card-effect">${effect(d)}</span></button>`;
+    const description = d.id === 'well' ? '井旁平地可建农田<br>相邻农田收入 +20%' : effect(d);
+    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${d.chain ? d.chain + '业' : d.required ? '终极' : ''}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(d.cost)}</span><span class="card-effect">${description}</span></button>`;
   }
   function detailHTML(b) {
     const d = GF.DEFS[b.type], max = b.level >= (d.max || 3), hp = GF.maxHP(b), f = GF.factor(b), nextF = f * 1.65;
+    const description = effect(d, b) + (GF.dryFarm(state, b) ? ' · 缺水：耐久每秒 -5%' : '');
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + Math.round(hp * 1.65)}</strong></div>`;
-    if (d.income) stats += `<div>铜钱 / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + (GF.income(state, b) * 1.65).toFixed(1)}</strong></div>`;
+    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + (GF.income(state, b) * 1.65).toFixed(1)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? '' : ' → ' + (d.incense * nextF).toFixed(1)}</strong></div>`;
     else if (['home', 'well', 'stage', 'market'].includes(b.type)) { const v = { home: 10, well: 20, stage: 3, market: 5 }[b.type]; stats += `<div>收入加成<strong>${v * b.level}%${max ? '' : ' → ' + v * (b.level + 1) + '%'}</strong></div>`; }
     else if (b.type === 'zhong') stats += `<div>普通敌人减速<strong>${40 + (b.level - 1) * 8}%${max ? '' : ' → ' + (40 + b.level * 8) + '%'}</strong></div>`;
     if (d.income && d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? '' : ' → ' + (d.incense * nextF).toFixed(1)}</strong></div>`;
-    return `<div class="detail"><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.neighbors ? '四方来客' : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}${max ? ' · 满级' : ''}</span></div><p class="detail-description">${effect(d, b)}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button><button class="demolish-button${state.phase === 'night' ? ' night-restricted' : ''}" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '古坊根基 · 不可拆除' : state.phase === 'night' ? '夜晚不可拆除' : '拆除 · 返还 ' + Math.floor(d.cost * .4) + ' 铜钱'}</button></div></div>`;
+    return `<div class="detail"><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}${max ? ' · 满级' : ''}</span><button class="demolish-button" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '不可拆除' : '拆除'}</button></div><p class="detail-description">${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
     const availability = b ? '' : Object.values(GF.DEFS).filter(d => d.cat === category && !d.unique).map(d => GF.buildReason(state, d.id, x, y) ? 0 : 1).join('');
-    const key = `${x},${y},${category},${state.revision},${b?.id || ''},${availability},${state.phase}`;
-    $('plot-label').textContent = b ? GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y)] + (state.phase === 'night' ? ' · 夜晚停工' : ' · 可兴建');
-    $('plot-coord').textContent = '地块 ' + (x + 1) + ' · ' + (y + 1);
+    const key = `${x},${y},${category},${state.revision},${b?.id || ''},${availability},${state.phase},${state.day}`;
+    $('plot-label').textContent = b ? GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y)] + ' · 可兴建';
     $('build-view').hidden = !!b; $('detail-view').hidden = !b;
     if (key !== panelKey) {
       panelKey = key;
@@ -90,7 +103,7 @@
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
       const reason = GF.upgradeReason(state, b), max = b.level >= (GF.DEFS[b.type].max || 3);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
-      $('upgrade-label').textContent = max ? '本建筑已达最高等级' : reason || '◎ ' + GF.upgradeCost(b) + ' 铜钱';
+      $('upgrade-label').textContent = max ? '本建筑已达最高等级' : reason || costText(GF.upgradeCost(b));
     } else for (const el of $('cards').children) {
       const reason = GF.buildReason(state, el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差 ')); el.setAttribute('aria-disabled', String(!!reason));
       const label = el.querySelector('.card-reason'); label.hidden = !reason; label.textContent = reason;
@@ -98,8 +111,7 @@
   }
   const fmt = n => Math.floor(n).toLocaleString('en-US');
   function refresh() {
-    $('coins').textContent = fmt(state.coins); $('incense').textContent = fmt(state.incense);
-    $('prosperity').textContent = GF.prosperity(state);
+    $('coins').textContent = fmt(state.coins); $('materials').textContent = fmt(state.materials); $('incense').textContent = fmt(state.incense);
     $('day-label').textContent = '第 ' + state.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[state.phase]) + (state.day % 7 === 0 ? ' · 灯会' : '');
     $('phase-icon').textContent = { day: '☀', dusk: '◒', night: '☾' }[state.phase];
     const remaining = state.phase === 'day' ? GF.DAY - state.time : GF.DUSK - state.time;
@@ -132,10 +144,16 @@
   $('cards').addEventListener('click', e => { const el = e.target.closest('[data-build]'); if (el && !cardDrag.suppress) performBuild(el.dataset.build, el); });
   $('detail-view').addEventListener('click', e => {
     if (!selected) return; const b = GF.at(state, selected.x, selected.y); if (!b) return;
-    if (e.target.closest('#upgrade-building')) { const r = GF.upgrade(state, b); if (!r.ok) return blocked($('upgrade-building'), r.reason); tone(); toast(GF.name(b) + ' · 升至 Lv.' + b.level); }
-    else if (e.target.closest('#demolish-building')) { const r = GF.demolish(state, b); if (!r.ok) return blocked($('demolish-building'), r.reason); toast('已拆除，返还 ' + r.refund + ' 铜钱'); }
-    else return;
-    panelKey = ''; handleEvents(); save(); refresh();
+    if (e.target.closest('#upgrade-building')) {
+      const r = GF.upgrade(state, b); if (!r.ok) return blocked($('upgrade-building'), r.reason);
+      tone(); toast(GF.name(b) + ' · 升至 Lv.' + b.level);
+      panelKey = ''; handleEvents(); save(); refresh();
+    } else if (e.target.closest('#demolish-building')) {
+      const reason = GF.demolishReason(state, b); if (reason) return blocked($('demolish-building'), reason);
+      demolishTarget = b;
+      const cost=GF.DEFS[b.type].cost,refund={coins:Math.floor(cost.coins*.4),materials:Math.floor(cost.materials*.4)};
+      modal('<p class="modal-kicker">拆除建筑</p><h2>拆除' + GF.name(b) + '？</h2><p>拆除后返还 ' + costText(refund) + '，且无法恢复。</p>' + (b.type === 'well' ? '<p>失去水井的非水岸农田会持续掉耐久。</p>' : '') + '<button class="modal-primary" data-modal="confirm-demolish">确认拆除</button><button class="modal-secondary" data-modal="cancel-demolish">返回</button>');
+    }
   });
   for (const el of document.querySelectorAll('[data-category]')) el.addEventListener('click', () => { category = el.dataset.category; try { localStorage.setItem(KEY + '-category', category); } catch { /* Keep the tab for this session. */ } panelKey = ''; $('cards').scrollLeft = 0; renderPanel(); });
   for (const el of document.querySelectorAll('[data-skill]')) el.addEventListener('click', () => { const r = GF.skill(state, el.dataset.skill); if (!r.ok) return blocked(el, r.reason); tone('skill'); toast(GF.SKILLS[el.dataset.skill].name + ' · 已施展'); save(); refresh(); });
@@ -156,18 +174,20 @@
   $('close-modal').onclick = closeModal;
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
   function showMenu() {
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日 · ' + GF.townName(state) + '</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><p id="save-status">' + saveStatus + '</p>');
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><p id="save-status">' + saveStatus + '</p>');
   }
   function showEnd() {
     modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><div class="modal-stats"><div><strong>' + (state.day - 1) + '</strong><span>守过长夜</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="close">返回古坊</button>');
   }
   function showVictory() {
-    modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + GF.prosperity(state) + '</strong><span>繁荣</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
+    modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + '</strong><span>现存建筑</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
   function newGame(){state=GF.createState();paused=false;closePanel();center();closeModal();save();refresh();toast('青溪新雨 · 古坊的故事重新开始');}
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
     if(action==='close')closeModal();if(action==='save')save(true);if(action==='sound'){sound=!sound;tone();showMenu();}
+    if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast(r.dryFarms ? '已拆除，' + r.dryFarms + ' 块农田缺水，耐久持续下降' : '已拆除，返还 ' + costText(r.refund), r.dryFarms ? 'warning' : 'info');panelKey='';handleEvents();save();}refresh();}
+    if(action==='cancel-demolish'){demolishTarget=null;closeModal();}
     if(action==='reset')modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
     if(action==='new')newGame();if(action==='menu')showMenu();
     if(action==='export'){const blob=new Blob([GF.serialize(state)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-第'+state.day+'日.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('存档已导出');}

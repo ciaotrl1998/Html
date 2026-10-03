@@ -6,34 +6,38 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   const SIZE = 17, CENTER = 8, DAY = 85, DUSK = 12;
-  const TERRAIN = { plain: '平地', water: '水域', forest: '林地', mountain: '山地' };
+  const TERRAIN = { plain: '平地', shore: '水岸', water: '水域', forest: '林地', mountain: '山地' };
   const DEFS = {};
   function def(id, name, cat, cost, hp, extra) { DEFS[id] = { id, name, cat, cost, hp, ...extra }; }
   const chains = [
     ['tea', 'inn', 'bank', '茶肆', '客栈', '钱庄', 'plain', '商', '#d6a450'],
-    ['farm', 'mill', 'wine', '农田', '磨坊', '酒坊', 'plain', '农', '#89a663'],
+    ['farm', 'mill', 'wine', '农田', '磨坊', '酒坊', 'shore', '农', '#89a663'],
     ['mulberry', 'weaver', 'tailor', '桑园', '织坊', '成衣铺', 'forest', '丝', '#b38ba7'],
     ['quarry', 'kiln', 'trade', '石场', '瓷窑', '商号', 'mountain', '工', '#7b9fa2']
   ];
-  for (const a of chains) for (let i = 0; i < 3; i++) def(a[i], a[i + 3], 'economy', [65, 115, 195][i], [180, 250, 340][i], {
-    income: [3, 7, 13][i], terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
-    chain: a[7], color: a[8], end: i === 2, prosperity: [8, 15, 24][i],
-    names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][chains.indexOf(a)] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
-  });
-  def('guild', '会馆', 'economy', 400, 600, { income: 26, aura: .05, neighbors: 2, max: 1, prosperity: 50 });
-  def('port', '市舶司', 'economy', 800, 900, { income: 39, aura: .10, neighbors: 3, max: 1, prosperity: 90 });
-  def('fence', '木栅', 'defense', 35, 650, { desc: '挡住来敌，守住街巷', prosperity: 2 });
-  def('tower', '箭塔', 'defense', 95, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格', prosperity: 6 });
-  def('rock', '擂石台', 'defense', 155, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, unlock: 45, desc: '范围轰击 · 克制妖狐', prosperity: 9 });
-  def('barracks', '兵营', 'defense', 165, 420, { damage: 18, range: 4.5, interval: .8, unlock: 65, desc: '自动派出民兵近战', prosperity: 9 });
-  def('home', '民居', 'support', 70, 220, { desc: '相邻产业收入 +10%', prosperity: 12 });
-  def('well', '水井', 'support', 55, 250, { desc: '相邻农田收入 +20%', prosperity: 5 });
-  def('stage', '戏台', 'support', 160, 280, { aura: .03, desc: '全镇收入 +3%', prosperity: 18 });
-  def('market', '集市', 'support', 110, 250, { desc: '周围 2 格收入 +5%', prosperity: 12 });
-  def('shrine', '祠堂', 'temple', 0, 1800, { incense: .4, income: 1, desc: '古坊之根 · 失守则游戏结束', prosperity: 10, unique: true, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
-  def('earth', '土地庙', 'temple', 85, 260, { incense: 1.5, desc: '香火 +1.5 / 秒', prosperity: 8 });
-  def('zhong', '钟馗像', 'temple', 125, 430, { range: 3, desc: '周围妖鬼减速 40%', prosperity: 10 });
-  def('tao', '道观', 'temple', 180, 380, { incense: 3, unlock: 80, desc: '香火 +3 / 秒 · 解锁天雷', prosperity: 16 });
+  // 辐射范围：茶肆/石场链自 1 起，农田/桑园链自 0 起，每段 +1；终极建筑为 4。
+  const CHAIN_BASE = [1, 0, 0, 1];
+  const COIN_CHAIN_COSTS = [{ coins: 0, materials: 35 }, { coins: 24, materials: 80 }, { coins: 80, materials: 180 }];
+  const MATERIAL_CHAIN_COSTS = [{ coins: 55, materials: 0 }, { coins: 130, materials: 20 }, { coins: 260, materials: 75 }];
+  chains.forEach((a, ci) => { for (let i = 0; i < 3; i++) def(a[i], a[i + 3], 'economy', (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], [180, 250, 340][i], {
+    income: (ci < 2 ? [1, 3, 6] : [2, 5, 9])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
+    chain: a[7], color: a[8], end: i === 2, tier: i, radius: CHAIN_BASE[ci] + i,
+    names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
+  }); });
+  def('guild', '汇财会馆', 'economy', { coins: 300, materials: 420 }, 600, { income: 26, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'wine'], max: 1, radius: 4 });
+  def('port', '百工院', 'economy', { coins: 620, materials: 340 }, 900, { income: 39, resource: 'materials', aura: .10, auraResource: 'materials', required: ['tailor', 'trade'], max: 1, radius: 4 });
+  def('fence', '木栅', 'defense', { coins: 25, materials: 18 }, 650, { desc: '挡住来敌，守住街巷' });
+  def('tower', '箭塔', 'defense', { coins: 70, materials: 45 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
+  def('rock', '擂石台', 'defense', { coins: 110, materials: 75 }, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, desc: '范围轰击 · 克制妖狐' });
+  def('barracks', '兵营', 'defense', { coins: 120, materials: 90 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '自动派出民兵近战' });
+  def('home', '民居', 'support', { coins: 50, materials: 25 }, 220, { desc: '相邻产业收入 +10%' });
+  def('well', '水井', 'support', { coins: 40, materials: 15 }, 250, { desc: '邻近 1 格平地可建农田 · 相邻农田收入 +20%' });
+  def('stage', '戏台', 'support', { coins: 120, materials: 70 }, 280, { aura: .03, desc: '全镇收入 +3%' });
+  def('market', '集市', 'support', { coins: 80, materials: 45 }, 250, { desc: '周围 2 格收入 +5%' });
+  def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { incense: .25, income: .4, resource: 'coins', desc: '古坊之根 · 失守则游戏结束', unique: true, upgradeBase: { coins: 100, materials: 50 }, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
+  def('earth', '土地庙', 'temple', { coins: 60, materials: 25 }, 260, { incense: 1.5, desc: '香火 +1.5 / 秒' });
+  def('zhong', '钟馗像', 'temple', { coins: 90, materials: 50 }, 430, { range: 3, desc: '周围妖鬼减速 40%' });
+  def('tao', '道观', 'temple', { coins: 130, materials: 95 }, 380, { incense: 3, desc: '香火 +3 / 秒 · 解锁天雷' });
   const ENEMIES = {
     bandit: { name: '山匪', hp: 100, speed: .65, damage: 14, reward: 12 },
     ghost: { name: '阴兵', hp: 220, speed: .42, damage: 23, reward: 20 },
@@ -47,52 +51,71 @@
     { title: '香火不绝', desc: '建造土地庙，积攒神技香火', reward: 75, test: s => s.buildings.some(b => b.type === 'earth') },
     { title: '长夜过，古坊安', desc: '守住第一夜', reward: 120, test: s => s.day >= 2 },
     { title: '百业初兴', desc: '建成任意两种经济链终点建筑', reward: 200, test: s => new Set(s.buildings.filter(b => DEFS[b.type].end).map(b => b.type)).size >= 2 },
-    { title: '四方会聚', desc: '建成一座会馆', reward: 300, test: s => s.buildings.some(b => b.type === 'guild') },
+    { title: '四方会聚', desc: '建成一座汇财会馆', reward: 300, test: s => s.buildings.some(b => b.type === 'guild') },
     { title: '万家灯火', desc: '守过第七夜，迎来太平晨光', reward: 500, test: s => s.day >= 8 }
   ];
-  function terrain(x, y) {
+  function baseTerrain(x, y) {
     if ((x >= 1 && x <= 4 && y >= 5 && y <= 12) || (x >= 3 && x <= 6 && y >= 11 && y <= 14)) return 'water';
     if ((x >= 10 && x <= 14 && y >= 2 && y <= 6) || (x >= 2 && x <= 5 && y >= 1 && y <= 3)) return 'forest';
     if (x >= 11 && x <= 15 && y >= 11 && y <= 15) return 'mountain';
     return 'plain';
   }
   const inside = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < SIZE && y < SIZE;
-  const bordersWater = (x, y) => [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]].some(([nx, ny]) => inside(nx, ny) && terrain(nx, ny) === 'water');
+  // 相邻含斜角：切比雪夫距离 1。
+  const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+  const NEIGHBORS8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  function terrain(x, y) {
+    const base = baseTerrain(x, y);
+    return base === 'plain' && NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy) && baseTerrain(x + dx, y + dy) === 'water') ? 'shore' : base;
+  }
   const at = (s, x, y) => s.buildings.find(b => b.x === x && b.y === y);
-  const adjacent = (s, x, y) => s.buildings.filter(b => Math.abs(b.x - x) + Math.abs(b.y - y) === 1);
+  const adjacent = (s, x, y) => s.buildings.filter(b => dist8(b.x, b.y, x, y) === 1);
+  const dryFarm = (s, b) => b.type === 'farm' && terrain(b.x, b.y) !== 'shore' && !adjacent(s, b.x, b.y).some(n => n.type === 'well');
+  const isPrereq = (d, nd) => d.chain ? nd.id === d.prev : !!d.required?.includes(nd.id);
   const factor = b => Math.pow(1.65, b.level - 1);
   const maxHP = b => Math.round(DEFS[b.type].hp * factor(b));
   const name = b => DEFS[b.type].names?.[b.level - 1] || (b.level === 1 ? DEFS[b.type].name : ['','', '兴盛', '鼎盛'][b.level] + DEFS[b.type].name);
   function addBuilding(s, type, x, y) {
-    const b = { id: s.nextId++, type, x, y, level: 1, hp: DEFS[type].hp, cooldown: 0, incomeTime: 0, coinPending: 0, incensePending: 0 };
+    const b = { id: s.nextId++, type, x, y, level: 1, hp: DEFS[type].hp, cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, incensePending: 0 };
     s.buildings.push(b); s.revision++; return b;
   }
   function createState() {
-    const s = { version: 1, seed: 73193, nextId: 1, coins: 420, incense: 40, day: 1, phase: 'day', time: 0, elapsed: 0, repairTime: 0,
+    const s = { version: 1, seed: 73193, nextId: 1, coins: 200, materials: 120, incense: 25, day: 1, phase: 'day', time: 0, elapsed: 0, repairTime: 0,
       direction: 0, buildings: [], enemies: [], projectiles: [], effects: [], events: [], kills: 0, wave: null,
       cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0, revision: 0, over: false, celebrated: false };
     addBuilding(s, 'shrine', CENTER, CENTER); return s;
   }
   function random(s) { s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0; return s.seed / 4294967296; }
-  const prosperity = s => s.buildings.reduce((n, b) => n + (DEFS[b.type].prosperity || 0) * b.level, 0);
-  const townName = s => { const p = prosperity(s); return p >= 450 ? '锦绣名镇' : p >= 230 ? '百业兴坊' : p >= 100 ? '烟火小镇' : '山野初坊'; };
-  const terminalCount = (s, x, y) => new Set(adjacent(s, x, y).filter(b => DEFS[b.type].end).map(b => b.type)).size;
+  function shortage(s, cost) {
+    const missing = [];
+    if (s.coins < cost.coins) missing.push(Math.ceil(cost.coins - s.coins) + ' 铜钱');
+    if (s.materials < cost.materials) missing.push(Math.ceil(cost.materials - s.materials) + ' 工材');
+    return missing.length ? '差 ' + missing.join('、') : '';
+  }
+  function pay(s, cost) { s.coins -= cost.coins; s.materials -= cost.materials; }
   function buildReason(s, type, x, y) {
     const d = DEFS[type];
     if (!d) return '未知建筑';
     if (s.over) return '古坊已失守';
-    if (s.phase === 'night') return '夜晚不可建造';
     if (!inside(x, y)) return '请选择坊内地块';
     if (at(s, x, y)) return '此地已有建筑';
+    const plot = terrain(x, y);
+    if (plot === 'water') return '水域不可建造';
     if (s.enemies.some(e => Math.hypot(e.x - x, e.y - y) < .65)) return '敌人正在此地';
     if (d.unique) return '祠堂仅此一座';
-    if (type === 'farm' && (terrain(x, y) !== 'plain' || !bordersWater(x, y))) return '需临水平地';
-    if (d.terrain && terrain(x, y) !== d.terrain) return '需' + TERRAIN[d.terrain];
+    if (d.cat === 'economy' && plot === 'forest' && type !== 'mulberry') return '林地仅可建桑园';
+    if (d.cat === 'economy' && plot === 'mountain' && type !== 'quarry') return '山地仅可建石场';
+    if (type === 'farm') {
+      if (plot !== 'shore' && !(plot === 'plain' && adjacent(s, x, y).some(b => b.type === 'well'))) return '需水岸或水井旁平地';
+    } else if (d.terrain && plot !== d.terrain) return '需' + TERRAIN[d.terrain];
+    if (d.radius && s.buildings.some(b => b.type === type && dist8(b.x, b.y, x, y) <= d.radius)) return '范围内已有相同建筑';
     if (d.prev && !adjacent(s, x, y).some(b => b.type === d.prev)) return '需紧挨' + DEFS[d.prev].name;
-    if (d.neighbors && terminalCount(s, x, y) < d.neighbors) return '邻终点 ' + terminalCount(s, x, y) + '/' + d.neighbors + ' 种';
-    if (d.unlock && prosperity(s) < d.unlock) return '需繁荣 ' + d.unlock;
-    if (s.coins < d.cost) return '差 ' + Math.ceil(d.cost - s.coins) + ' 钱';
-    return '';
+    if (d.required) {
+      const nearby = new Set(adjacent(s, x, y).map(b => b.type));
+      const missing = d.required.filter(id => !nearby.has(id));
+      if (missing.length) return '需紧邻' + missing.map(id => DEFS[id].name).join('、');
+    }
+    return shortage(s, d.cost);
   }
   function event(s, text, kind = 'info') { s.events.push({ text, kind }); if (s.events.length > 30) s.events.shift(); }
   function missions(s) {
@@ -100,53 +123,71 @@
   }
   function build(s, type, x, y) {
     const reason = buildReason(s, type, x, y); if (reason) return { ok: false, reason };
-    s.coins -= DEFS[type].cost; const b = addBuilding(s, type, x, y); missions(s); return { ok: true, building: b };
+    pay(s, DEFS[type].cost); const b = addBuilding(s, type, x, y); missions(s); return { ok: true, building: b };
   }
-  const upgradeCost = b => Math.ceil((DEFS[b.type].cost || 180) * (b.level === 1 ? 1.35 : 2.2));
+  function upgradeCost(b) {
+    const base = DEFS[b.type].upgradeBase || DEFS[b.type].cost, multiple = b.level === 1 ? 1.5 : 2.25;
+    return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
+  }
   function upgradeReason(s, b) {
     if (!b || !s.buildings.includes(b)) return '建筑已不存在';
     if (s.over) return '古坊已失守';
-    if (s.phase === 'night') return '夜晚不可升级';
     const d = DEFS[b.type]; if (b.level >= (d.max || 3)) return '已达最高等级';
     if (d.prev && !adjacent(s, b.x, b.y).some(n => n.type === d.prev && n.level >= b.level + 1)) return '需邻' + DEFS[d.prev].name + ' Lv' + (b.level + 1);
-    if (s.coins < upgradeCost(b)) return '差 ' + Math.ceil(upgradeCost(b) - s.coins) + ' 钱';
-    return '';
+    return shortage(s, upgradeCost(b));
   }
   function upgrade(s, b) {
     const reason = upgradeReason(s, b); if (reason) return { ok: false, reason };
-    const ratio = b.hp / maxHP(b); s.coins -= upgradeCost(b); b.level++; b.hp = maxHP(b) * ratio; s.revision++; missions(s); return { ok: true };
+    const ratio = b.hp / maxHP(b); pay(s, upgradeCost(b)); b.level++; b.hp = maxHP(b) * ratio; s.revision++; missions(s); return { ok: true };
+  }
+  function demolishReason(s, b) {
+    if (!b || !s.buildings.includes(b) || b.type === 'shrine') return '祠堂不可拆除';
+    if (s.over) return '古坊已失守';
+    return '';
   }
   function demolish(s, b) {
-    if (!b || !s.buildings.includes(b) || b.type === 'shrine' || s.over) return { ok: false, reason: '祠堂不可拆除' };
-    if (s.phase === 'night') return { ok: false, reason: '夜晚不可拆除' };
-    const refund = Math.floor(DEFS[b.type].cost * .4); s.coins += refund; s.buildings = s.buildings.filter(n => n !== b); s.revision++; return { ok: true, refund };
+    const reason = demolishReason(s, b); if (reason) return { ok: false, reason };
+    const cost = DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * .4), materials: Math.floor(cost.materials * .4) };
+    s.coins += refund.coins; s.materials += refund.materials; s.buildings = s.buildings.filter(n => n !== b); s.revision++;
+    const dryFarms = b.type === 'well' ? s.buildings.filter(n => n.type === 'farm' && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
+    return { ok: true, refund, dryFarms };
   }
   function income(s, b) {
     const d = DEFS[b.type]; if (!d.income) return 0;
     let bonus = 0;
     for (const n of s.buildings) {
-      const nd = DEFS[n.type], dist = Math.abs(n.x - b.x) + Math.abs(n.y - b.y);
-      if (nd.aura) bonus += nd.aura * n.level;
+      const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
+      if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * n.level;
       if (n.type === 'home' && dist === 1 && d.cat === 'economy') bonus += .1 * n.level;
       if (n.type === 'well' && dist === 1 && b.type === 'farm') bonus += .2 * n.level;
       if (n.type === 'market' && dist <= 2) bonus += .05 * n.level;
+      if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += .1 * n.level;
     }
     return d.income * factor(b) * (1 + bonus) * (s.day % 7 === 0 ? 1.25 : 1);
   }
-  const rates = s => s.buildings.reduce((r, b) => ({ coins: r.coins + income(s, b), incense: r.incense + (DEFS[b.type].incense || 0) * factor(b) }), { coins: 0, incense: 0 });
+  const rates = s => s.buildings.reduce((r, b) => {
+    const d = DEFS[b.type];
+    r[d.resource === 'materials' ? 'materials' : 'coins'] += income(s, b);
+    r.incense += (d.incense || 0) * factor(b);
+    return r;
+  }, { coins: 0, materials: 0, incense: 0 });
   function settleIncome(s, dt) {
     for (const b of s.buildings) {
       const d = DEFS[b.type]; if (!d.income && !d.incense) continue;
       b.incomeTime += dt;
-      b.coinPending += income(s, b) * dt;
+      if (d.resource === 'materials') b.materialPending += income(s, b) * dt;
+      else b.coinPending += income(s, b) * dt;
       b.incensePending += (d.incense || 0) * factor(b) * dt;
       if (b.incomeTime < 1 - 1e-8) continue;
       b.incomeTime = Math.max(0, b.incomeTime - 1);
-      // Keep fractional coins on the building so the floating integer equals the actual payout.
-      const paid = Math.floor(b.coinPending + 1e-8);
-      b.coinPending = Math.max(0, b.coinPending - paid);
-      s.coins += paid; s.incense += b.incensePending; b.incensePending = 0;
-      if (paid > 0) s.effects.push({ type: 'income', buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+      // Keep fractional resources on each building so floating amounts equal actual payouts.
+      for (const [resource, pending] of [['coins', 'coinPending'], ['materials', 'materialPending']]) {
+        const paid = Math.floor(b[pending] + 1e-8);
+        b[pending] = Math.max(0, b[pending] - paid);
+        s[resource] += paid;
+        if (paid > 0) s.effects.push({ type: 'income', resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+      }
+      s.incense += b.incensePending; b.incensePending = 0;
     }
   }
   function dusk(s) { s.phase = 'dusk'; s.time = 0; s.direction = Math.floor(random(s) * 4); event(s, '暮色将至 · 今夜来敌在' + ['北', '东', '南', '西'][s.direction] + '方', 'warning'); }
@@ -181,11 +222,12 @@
       open.delete(current); if (current === goal) break;
       const x = current % SIZE, y = Math.floor(current / SIZE);
       for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
-        if (!inside(nx, ny)) continue; const next = ny * SIZE + nx, b = occupied.get(next);
+        if (!inside(nx, ny) || terrain(nx, ny) === 'water') continue; const next = ny * SIZE + nx, b = occupied.get(next);
         const obstacle = b && next !== goal ? 1.8 + b.hp / (e.damage * (e.type === 'fox' ? 1 : 2.5)) : 0;
         const cost = best + 1 + obstacle; if (cost < costs[next]) { costs[next] = cost; prev[next] = current; open.add(next); }
       }
     }
+    if (!Number.isFinite(costs[goal])) return [];
     const path = []; let n = goal; while (n !== start && n !== -1) { path.unshift({ x: n % SIZE, y: Math.floor(n / SIZE) }); n = prev[n]; }
     // Return to the nearest grid center before turning after a route invalidation.
     if (Math.hypot(e.x - startX, e.y - startY) > .03) path.unshift({ x: startX, y: startY });
@@ -270,10 +312,11 @@
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
     for (const group of [s.effects, s.projectiles]) { for (const e of group) e.life -= dt; }
     s.effects = s.effects.filter(e => e.life > 0); s.projectiles = s.projectiles.filter(e => e.life > 0);
+    for (const b of [...s.buildings]) if (dryFarm(s, b)) hurtBuilding(s, b, maxHP(b) * .05 * dt);
     settleIncome(s, dt);
     if (s.phase === 'day') {
       s.repairTime += dt;
-      if (s.repairTime >= 2) { s.repairTime -= 2; for (const b of s.buildings) b.hp = Math.min(maxHP(b), b.hp + maxHP(b) * .05); }
+      if (s.repairTime >= 1 - 1e-8) { s.repairTime = Math.max(0, s.repairTime - 1); for (const b of s.buildings) if (!dryFarm(s, b)) b.hp = Math.min(maxHP(b), b.hp + maxHP(b) * .1); }
       if (s.time >= DAY) dusk(s);
     } else if (s.phase === 'dusk' && s.time >= DUSK) startNight(s);
     else if (s.phase === 'night') combat(s, dt);
@@ -283,14 +326,23 @@
   function restore(raw) {
     try {
       const s = JSON.parse(raw), finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
-      if (s.version !== 1 || !finite(s.coins) || !finite(s.incense) || !Number.isInteger(s.day) || s.day < 1 || !['day', 'dusk', 'night'].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== 'boolean') return null;
+      if (s.materials === undefined) s.materials = 120; // Pre-material saves receive starting stock.
+      delete s.prosperity; // Remove the retired value from legacy saves as well as the UI.
+      if (s.version !== 1 || !finite(s.coins) || !finite(s.materials) || !finite(s.incense) || !Number.isInteger(s.day) || s.day < 1 || !['day', 'dusk', 'night'].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== 'boolean') return null;
       if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * SIZE || !Array.isArray(s.enemies) || s.enemies.length > 100 || !s.cooldowns || !Object.keys(SKILLS).every(k => finite(s.cooldowns[k]))) return null;
       const cells = new Set();
       for (const b of s.buildings) {
         if (!Object.prototype.hasOwnProperty.call(DEFS,b.type) || !inside(b.x, b.y) || !Number.isInteger(b.level) || b.level < 1 || b.level > (DEFS[b.type].max || 3) || !finite(b.hp) || b.hp <= 0 || b.hp > maxHP(b) + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
-        for (const field of ['incomeTime', 'coinPending', 'incensePending']) {
+        if (b.materialPending === undefined) {
+          b.materialPending = DEFS[b.type].resource === 'materials' ? (b.coinPending || 0) : 0;
+          if (DEFS[b.type].resource === 'materials') b.coinPending = 0;
+        }
+        for (const field of ['incomeTime', 'coinPending', 'materialPending', 'incensePending']) {
           if (b[field] === undefined) b[field] = 0; // Migrate existing v1 saves without losing the town.
           if (!finite(b[field])) return null;
+        }
+        if (b.type === 'port' && b.coinPending > 0) {
+          b.materialPending += b.coinPending; b.coinPending = 0; // Former port earnings now settle as materials.
         }
         if (b.incomeTime >= 1) return null;
         const key = b.x + ',' + b.y; if (cells.has(key)) return null; cells.add(key); b.cooldown = 0; delete b.soldier;
@@ -299,12 +351,38 @@
       if (s.phase === 'night' && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 75 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
         if (!Object.prototype.hasOwnProperty.call(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled)) return null;
+        if (terrain(Math.round(e.x), Math.round(e.y)) === 'water') {
+          let nearest = null;
+          for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (terrain(x, y) !== 'water') {
+            const distance = (x - e.x) ** 2 + (y - e.y) ** 2;
+            if (!nearest || distance < nearest.distance) nearest = { x, y, distance };
+          }
+          e.x = nearest.x; e.y = nearest.y;
+        }
         e.path = []; e.pathRevision = -1;
       }
-      s.events = []; s.effects = []; s.projectiles = []; s.revision = 1;
+      // Older saves could contain buildings in water. Move them without losing their level or earnings.
+      // Reserve shore cells for farms before relocating other buildings.
+      const occupiedLand = new Set(s.buildings.filter(b => terrain(b.x, b.y) !== 'water').map(b => b.x + ',' + b.y));
+      let moved = 0, stranded = 0;
+      for (const b of s.buildings.filter(b => terrain(b.x, b.y) === 'water').sort((a, z) => Number(z.type === 'farm') - Number(a.type === 'farm') || a.id - z.id)) {
+        const candidates = [];
+        for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+          const land = terrain(x, y);
+          if (land === 'water' || (b.type === 'farm' && land !== 'shore') || occupiedLand.has(x + ',' + y)) continue;
+          candidates.push({ x, y, score: dist8(b.x, b.y, x, y) * 100 + (Math.abs(b.x - x) + Math.abs(b.y - y)) * 2 + (land === 'shore' && b.type !== 'farm' ? 1 : 0) });
+        }
+        candidates.sort((a, z) => a.score - z.score || a.y - z.y || a.x - z.x);
+        if (!candidates.length) { stranded++; continue; }
+        b.x = candidates[0].x; b.y = candidates[0].y;
+        occupiedLand.add(b.x + ',' + b.y); moved++;
+      }
+      s.events = moved ? [{ text: '旧存档中 ' + moved + ' 栋建筑已迁出水域', kind: 'info' }] : [];
+      if (stranded) s.events.push({ text: '岸地已满，' + stranded + ' 栋旧建筑暂保留原位', kind: 'warning' });
+      s.effects = []; s.projectiles = []; s.revision = 1;
       s.nextId = Math.max(0, ...s.buildings.map(b => b.id), ...s.enemies.map(e => e.id || 0)) + 1;
       return s;
     } catch { return null; }
   }
-  return { SIZE, CENTER, DAY, DUSK, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, at, adjacent, factor, maxHP, name, createState, prosperity, townName, terminalCount, buildReason, build, upgradeCost, upgradeReason, upgrade, demolish, income, rates, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
+  return { SIZE, CENTER, DAY, DUSK, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, maxHP, name, createState, buildReason, build, upgradeCost, upgradeReason, upgrade, demolishReason, demolish, income, rates, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
 });
