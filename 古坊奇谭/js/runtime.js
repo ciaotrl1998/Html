@@ -23,7 +23,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   else root.GF = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function() {
   "use strict";
-  const SIZE = 17, CENTER = 8, DAY = 85, DUSK = 12;
+  const SIZE = 17, CENTER = 8, DAY = 72, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15;
+  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 2.15;
+  const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
   const DEFS = {};
   function def(id, name2, cat, cost, hp, extra) {
@@ -36,8 +38,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     ["quarry", "kiln", "trade", "石场", "瓷窑", "商号", "mountain", "工", "#7b9fa2"]
   ];
   const CHAIN_BASE = [1, 0, 0, 1];
-  const COIN_CHAIN_COSTS = [{ coins: 0, materials: 35 }, { coins: 24, materials: 80 }, { coins: 80, materials: 180 }];
-  const MATERIAL_CHAIN_COSTS = [{ coins: 55, materials: 0 }, { coins: 130, materials: 20 }, { coins: 260, materials: 75 }];
+  const COIN_CHAIN_COSTS = [{ coins: 0, materials: 65 }, { coins: 110, materials: 240 }, { coins: 430, materials: 750 }];
+  const MATERIAL_CHAIN_COSTS = [{ coins: 95, materials: 0 }, { coins: 290, materials: 70 }, { coins: 920, materials: 300 }];
   chains.forEach((a, ci) => {
     for (let i = 0; i < 3; i++) def(a[i], a[i + 3], "economy", (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], [180, 250, 340][i], {
       income: (ci < 2 ? [1, 3, 6] : [2, 5, 9])[i],
@@ -49,27 +51,28 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       end: i === 2,
       tier: i,
       radius: CHAIN_BASE[ci] + i,
+      limit: i === 0 ? [6, 9, 9, 6][ci] : i === 1 ? 4 : 2,
       names: [a[i + 3], i === 0 ? ["清茗茶肆", "临水良田", "葱郁桑园", "青石矿场"][ci] : "兴旺" + a[i + 3], "鼎盛" + a[i + 3]]
     });
   });
-  def("guild", "汇财会馆", "economy", { coins: 300, materials: 420 }, 600, { income: 26, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], max: 1, radius: 4 });
-  def("port", "百工院", "economy", { coins: 620, materials: 340 }, 900, { income: 39, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], max: 1, radius: 4 });
-  def("fence", "木栅", "defense", { coins: 25, materials: 18 }, 650, { desc: "挡住来敌，守住街巷" });
-  def("tower", "箭塔", "defense", { coins: 70, materials: 45 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
-  def("rock", "擂石台", "defense", { coins: 110, materials: 75 }, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, desc: "范围轰击 · 克制妖狐" });
-  def("barracks", "兵营", "defense", { coins: 120, materials: 90 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "自动派出民兵近战" });
-  def("home", "民居", "support", { coins: 50, materials: 25 }, 220, { desc: "相邻产业收入 +10%" });
-  def("well", "水井", "support", { coins: 40, materials: 15 }, 250, { desc: "邻近 1 格平地可建农田 · 相邻农田收入 +20%" });
-  def("stage", "戏台", "support", { coins: 120, materials: 70 }, 280, { aura: 0.03, desc: "全镇收入 +3%" });
-  def("market", "集市", "support", { coins: 80, materials: 45 }, 250, { desc: "周围 2 格收入 +5%" });
-  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { incense: 0.25, income: 0.4, resource: "coins", desc: "古坊之根 · 失守则游戏结束", unique: true, upgradeBase: { coins: 100, materials: 50 }, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
-  def("earth", "土地庙", "temple", { coins: 60, materials: 25 }, 260, { incense: 1.5, desc: "香火 +1.5 / 秒" });
-  def("zhong", "钟馗像", "temple", { coins: 90, materials: 50 }, 430, { range: 3, desc: "周围妖鬼减速 40%" });
-  def("tao", "道观", "temple", { coins: 130, materials: 95 }, 380, { incense: 3, desc: "香火 +3 / 秒 · 解锁天雷" });
+  def("guild", "汇财会馆", "economy", { coins: 2600, materials: 3900 }, 600, { income: 14, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 4, limit: 1 });
+  def("port", "百工院", "economy", { coins: 4700, materials: 2500 }, 900, { income: 20, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 4, limit: 1 });
+  def("fence", "木栅", "defense", { coins: 60, materials: 40 }, 650, { desc: "挡住来敌，守住街巷" });
+  def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
+  def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, desc: "范围轰击 · 克制妖狐" });
+  def("barracks", "兵营", "defense", { coins: 320, materials: 240 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "自动派出民兵近战" });
+  def("home", "民居", "support", { coins: 150, materials: 100 }, 220, { desc: "相邻产业收入 +10%" });
+  def("well", "水井", "support", { coins: 120, materials: 65 }, 250, { desc: "邻近 1 格平地可建农田 · 相邻农田收入 +20%" });
+  def("stage", "戏台", "support", { coins: 400, materials: 300 }, 280, { aura: 0.03, desc: "全镇收入 +3%" });
+  def("market", "集市", "support", { coins: 260, materials: 180 }, 250, { desc: "周围 2 格收入 +5%" });
+  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { incense: 0.25, income: 0.4, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
+  def("earth", "土地庙", "temple", { coins: 140, materials: 95 }, 260, { incense: 1.5, desc: "香火 +1.5 / 秒" });
+  def("zhong", "钟馗像", "temple", { coins: 250, materials: 180 }, 430, { range: 3, desc: "周围妖鬼减速 40%" });
+  def("tao", "道观", "temple", { coins: 450, materials: 330 }, 380, { incense: 3, desc: "香火 +3 / 秒 · 解锁天雷" });
   const ENEMIES = {
-    bandit: { name: "山匪", hp: 100, speed: 0.65, damage: 14, reward: 12 },
-    ghost: { name: "阴兵", hp: 220, speed: 0.42, damage: 23, reward: 20 },
-    fox: { name: "妖狐", hp: 75, speed: 1.1, damage: 12, reward: 16 }
+    bandit: { name: "山匪", hp: 100, speed: 0.65, damage: 14, reward: 8 },
+    ghost: { name: "阴兵", hp: 220, speed: 0.42, damage: 23, reward: 12 },
+    fox: { name: "妖狐", hp: 75, speed: 1.1, damage: 12, reward: 10 }
   };
   const SKILLS = { repel: { name: "驱鬼符", cost: 30, cooldown: 18 }, repair: { name: "回春诀", cost: 45, cooldown: 24 }, thunder: { name: "九霄天雷", cost: 65, cooldown: 22 } };
   const MISSIONS = [
@@ -102,11 +105,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a;
     return d.chain ? nd.id === d.prev : !!((_a = d.required) == null ? void 0 : _a.includes(nd.id));
   };
-  const factor = (b) => Math.pow(1.65, b.level - 1);
-  const maxHP = (b) => Math.round(DEFS[b.type].hp * factor(b));
+  const factor = (b) => Math.pow(GROWTH, b.level - 1);
+  const hpFactor = (b) => Math.pow(HP_GROWTH, b.level - 1);
+  const maxLevel = (b) => (b == null ? void 0 : b.type) === "shrine" ? SHRINE_MAX_LEVEL : MAX_LEVEL;
+  const shrineLevel = (s) => {
+    var _a;
+    return ((_a = s.buildings.find((b) => b.type === "shrine")) == null ? void 0 : _a.level) || 0;
+  };
+  const requiredShrineLevel = (level) => SHRINE_REQUIREMENTS[Math.min(MAX_LEVEL, Math.max(1, level))];
+  const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
+  const visualLevel = (level) => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = (b) => {
     var _a;
-    return ((_a = DEFS[b.type].names) == null ? void 0 : _a[b.level - 1]) || (b.level === 1 ? DEFS[b.type].name : ["", "", "兴盛", "鼎盛"][b.level] + DEFS[b.type].name);
+    return ((_a = DEFS[b.type].names) == null ? void 0 : _a[visualLevel(b.level) - 1]) || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? "兴盛" : "鼎盛") + DEFS[b.type].name);
   };
   function addBuilding(s, type, x, y) {
     const b = { id: s.nextId++, type, x, y, level: 1, hp: DEFS[type].hp, cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, incensePending: 0 };
@@ -116,7 +127,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function createState() {
     const s = {
-      version: 1,
+      version: 3,
       seed: 73193,
       nextId: 1,
       coins: 200,
@@ -168,6 +179,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (plot === "water") return "水域不可建造";
     if (s.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
     if (d.unique) return "祠堂仅此一座";
+    if (d.limit && s.buildings.filter((b) => b.type === type).length >= d.limit) return "已达上限（" + d.limit + "座）";
     if (d.cat === "economy" && plot === "forest" && type !== "mulberry") return "林地仅可建桑园";
     if (d.cat === "economy" && plot === "mountain" && type !== "quarry") return "山地仅可建石场";
     if (type === "farm") {
@@ -203,15 +215,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return { ok: true, building: b };
   }
   function upgradeCost(b) {
-    const base = DEFS[b.type].upgradeBase || DEFS[b.type].cost, multiple = b.level === 1 ? 1.5 : 2.25;
+    const d = DEFS[b.type], base = d.upgradeBase || d.cost, multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1);
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
   function upgradeReason(s, b) {
     if (!b || !s.buildings.includes(b)) return "建筑已不存在";
     if (s.over) return "古坊已失守";
     const d = DEFS[b.type];
-    if (b.level >= (d.max || 3)) return "已达最高等级";
+    if (b.level >= maxLevel(b)) return "已达最高等级";
+    if (b.type !== "shrine") {
+      const required = requiredShrineLevel(b.level + 1), current = shrineLevel(s);
+      if (current < required) return "需祠堂 Lv" + required + "（当前 Lv" + current + "）";
+    }
     if (d.prev && !adjacent(s, b.x, b.y).some((n) => n.type === d.prev && n.level >= b.level + 1)) return "需邻" + DEFS[d.prev].name + " Lv" + (b.level + 1);
+    if (d.required) {
+      for (const id of d.required) if (!adjacent(s, b.x, b.y).some((n) => n.type === id && n.level >= b.level + 1)) return "需邻" + DEFS[id].name + " Lv" + (b.level + 1);
+    }
     return shortage(s, upgradeCost(b));
   }
   function upgrade(s, b) {
@@ -247,13 +266,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     let bonus = 0;
     for (const n of s.buildings) {
       const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
-      if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * n.level;
-      if (n.type === "home" && dist === 1 && d.cat === "economy") bonus += 0.1 * n.level;
-      if (n.type === "well" && dist === 1 && b.type === "farm") bonus += 0.2 * n.level;
-      if (n.type === "market" && dist <= 2) bonus += 0.05 * n.level;
-      if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += 0.1 * n.level;
+      if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * factor(n);
+      if (n.type === "home" && dist === 1 && d.cat === "economy") bonus += 0.1 * factor(n);
+      if (n.type === "well" && dist === 1 && b.type === "farm") bonus += 0.2 * factor(n);
+      if (n.type === "market" && dist <= 2) bonus += 0.05 * factor(n);
+      if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += 0.1 * factor(n);
     }
-    return d.income * factor(b) * (1 + bonus) * (s.day % 7 === 0 ? 1.25 : 1);
+    return d.income * factor(b) * (1 + Math.min(2, bonus)) * (s.day % 7 === 0 ? 1.25 : 1);
   }
   const rates = (s) => s.buildings.reduce((r, b) => {
     const d = DEFS[b.type];
@@ -291,7 +310,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.phase = "night";
     s.time = 0;
     const boss = s.day % 7 === 0;
-    s.wave = { total: Math.min(75, 5 + s.day * 2 + (boss ? 9 : 0)), spawned: 0, timer: 0.5, boss };
+    s.wave = { total: Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + (boss ? 12 : 0)), spawned: 0, timer: 0.35, boss };
     event(s, boss ? "百鬼夜行！妖将与群妖从四方来袭" : "入夜了 · 守住祠堂，灯火不熄", "warning");
   }
   function dawn(s) {
@@ -302,13 +321,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.enemies = [];
     s.projectiles = [];
     s.repairTime = 0;
-    const reward = 65 + s.day * 15;
+    const reward = 40 + s.day * 8;
     s.coins += reward;
     event(s, "平安入晓 · 守夜赏钱 +" + reward, "reward");
     if (s.day % 7 === 0) {
-      s.coins += 250;
-      s.incense += 70;
-      event(s, "上元灯会 · 收入 +25%，获赠 250 钱与 70 香火", "reward");
+      s.coins += 180;
+      s.incense += 50;
+      event(s, "上元灯会 · 收入 +25%，获赠 180 钱与 50 香火", "reward");
     }
     if (s.day === 8 && !s.celebrated) {
       s.celebrated = true;
@@ -320,16 +339,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const w = s.wave, i = w.spawned++, dir = w.boss ? i % 4 : s.direction;
     const pos = 3 + Math.floor(random(s) * 11), p = [[pos, 0], [SIZE - 1, pos], [pos, SIZE - 1], [0, pos]][dir];
     const type = s.day >= 3 && i % 4 === 2 ? "fox" : s.day >= 2 && i % 3 === 1 ? "ghost" : "bandit";
-    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, scale = 1 + (s.day - 1) * 0.16;
+    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, scale = Math.pow(1.23, s.day - 1);
     s.enemies.push({
       id: s.nextId++,
       type,
       x: p[0],
       y: p[1],
-      hp: d.hp * scale * (boss ? 5 : 1),
-      maxHp: d.hp * scale * (boss ? 5 : 1),
-      damage: d.damage * (1 + (s.day - 1) * 0.1) * (boss ? 2 : 1),
-      speed: d.speed,
+      hp: d.hp * scale * (boss ? 4.5 : 1),
+      maxHp: d.hp * scale * (boss ? 4.5 : 1),
+      damage: d.damage * Math.pow(1.12, s.day - 1) * (boss ? 2 : 1),
+      speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)),
       attack: 0,
       repelled: 0,
       boss,
@@ -401,7 +420,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     w.timer -= dt;
     if (w.spawned < w.total && w.timer <= 0) {
       spawnEnemy(s);
-      w.timer += Math.max(0.55, 2.2 - s.day * 0.07);
+      w.timer += Math.max(0.28, 1.35 - s.day * 0.045);
     }
     for (const b of s.buildings) {
       const d = DEFS[b.type];
@@ -522,11 +541,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
       if (s.materials === void 0) s.materials = 120;
       delete s.prosperity;
-      if (s.version !== 1 || !finite(s.coins) || !finite(s.materials) || !finite(s.incense) || !Number.isInteger(s.day) || s.day < 1 || !["day", "dusk", "night"].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== "boolean") return null;
-      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * SIZE || !Array.isArray(s.enemies) || s.enemies.length > 100 || !s.cooldowns || !Object.keys(SKILLS).every((k) => finite(s.cooldowns[k]))) return null;
+      if (![1, 2, 3].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !finite(s.incense) || !Number.isInteger(s.day) || s.day < 1 || !["day", "dusk", "night"].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== "boolean") return null;
+      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * SIZE || !Array.isArray(s.enemies) || s.enemies.length > 150 || !s.cooldowns || !Object.keys(SKILLS).every((k) => finite(s.cooldowns[k]))) return null;
       const cells = /* @__PURE__ */ new Set();
       for (const b of s.buildings) {
-        if (!Object.prototype.hasOwnProperty.call(DEFS, b.type) || !inside(b.x, b.y) || !Number.isInteger(b.level) || b.level < 1 || b.level > (DEFS[b.type].max || 3) || !finite(b.hp) || b.hp <= 0 || b.hp > maxHP(b) + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
+        const legacyGrowth = s.version === 1 ? 1.65 : 1.3;
+        const savedMaxLevel = s.version === 1 ? DEFS[b.type].max || 3 : s.version === 2 ? MAX_LEVEL : maxLevel(b);
+        const savedMaxHP = s.version < 3 ? Math.round(DEFS[b.type].hp * Math.pow(legacyGrowth, b.level - 1)) : maxHP(b);
+        if (!Object.prototype.hasOwnProperty.call(DEFS, b.type) || !inside(b.x, b.y) || !Number.isInteger(b.level) || b.level < 1 || b.level > savedMaxLevel || !finite(b.hp) || b.hp <= 0 || b.hp > savedMaxHP + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
+        if (s.version < 3) b.hp = Math.max(1e-3, b.hp / savedMaxHP * maxHP(b));
         if (b.materialPending === void 0) {
           b.materialPending = DEFS[b.type].resource === "materials" ? b.coinPending || 0 : 0;
           if (DEFS[b.type].resource === "materials") b.coinPending = 0;
@@ -547,7 +570,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         delete b.soldier;
       }
       if (!s.over && s.buildings.filter((b) => b.type === "shrine").length !== 1 || s.buildings.filter((b) => b.type === "shrine").length > 1) return null;
-      if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 75 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
+      if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 120 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
         if (!Object.prototype.hasOwnProperty.call(ENEMIES, e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled)) return null;
         if (terrain(Math.round(e.x), Math.round(e.y)) === "water") {
@@ -586,13 +609,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       s.effects = [];
       s.projectiles = [];
       s.revision = 1;
+      s.version = 3;
       s.nextId = Math.max(0, ...s.buildings.map((b) => b.id), ...s.enemies.map((e) => e.id || 0)) + 1;
       return s;
     } catch (e) {
       return null;
     }
   }
-  return { SIZE, CENTER, DAY, DUSK, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, maxHP, name, createState, buildReason, build, upgradeCost, upgradeReason, upgrade, demolishReason, demolish, income, rates, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
+  return { SIZE, CENTER, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, maxHP, visualLevel, name, createState, buildReason, build, upgradeCost, upgradeReason, upgrade, demolishReason, demolish, income, rates, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
 });
 
 (function() {
@@ -730,6 +754,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     rect(c, -11, 17, 22, 2, "#b6bca1");
   }
   function building(c, type, level = 1, time = 0) {
+    level = GF.visualLevel(level);
     c.save();
     c.lineJoin = "round";
     ellipse(c, 2, 18, 26, 8, "#3b503728");
@@ -905,7 +930,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const thumbs = /* @__PURE__ */ new Map();
   function thumbnail(type, level = 1) {
-    const key = type + level;
+    const key = type + GF.visualLevel(level);
     if (thumbs.has(key)) return thumbs.get(key);
     const c = document.createElement("canvas");
     c.width = 180;
@@ -972,7 +997,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const ground = makeGround();
   function healthBarY(b) {
-    const type = b.type, level = b.level;
+    const type = b.type, level = GF.visualLevel(b.level);
     if (type === "farm") return -26;
     if (type === "mulberry") return -31;
     if (type === "quarry" || type === "rock") return -34;
@@ -1409,19 +1434,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function cardHTML(d) {
     const description = d.id === "well" ? "井旁平地可建农田<br>相邻农田收入 +20%" : effect(d);
-    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${d.chain ? d.chain + "业" : d.required ? "终极" : ""}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(d.cost)}</span><span class="card-effect">${description}</span></button>`;
+    const tag = d.chain ? d.chain + "业" : d.required ? "终极" : "";
+    const limit = d.limit ? `${state.buildings.filter((b) => b.type === d.id).length}/${d.limit}` : "";
+    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${[tag, limit].filter(Boolean).join(" · ")}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(d.cost)}</span><span class="card-effect">${description}</span></button>`;
   }
   function detailHTML(b) {
-    const d = GF.DEFS[b.type], max = b.level >= (d.max || 3), hp = GF.maxHP(b), f = GF.factor(b), nextF = f * 1.65;
+    const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), nextF = GF.factor(next);
     const description = effect(d, b) + (GF.dryFarm(state, b) ? " · 缺水：耐久每秒 -5%" : "");
-    let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + Math.round(hp * 1.65)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? "" : " → " + (GF.income(state, b) * 1.65).toFixed(1)}</strong></div>`;
+    let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
+    if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? "" : " → " + GF.income(state, next).toFixed(1)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? "" : " → " + (d.incense * nextF).toFixed(1)}</strong></div>`;
     else if (["home", "well", "stage", "market"].includes(b.type)) {
       const v = { home: 10, well: 20, stage: 3, market: 5 }[b.type];
-      stats += `<div>收入加成<strong>${v * b.level}%${max ? "" : " → " + v * (b.level + 1) + "%"}</strong></div>`;
-    } else if (b.type === "zhong") stats += `<div>普通敌人减速<strong>${40 + (b.level - 1) * 8}%${max ? "" : " → " + (40 + b.level * 8) + "%"}</strong></div>`;
+      stats += `<div>收入加成<strong>${v * f}%${max ? "" : " → " + v * nextF + "%"}</strong></div>`;
+    } else if (b.type === "zhong") stats += `<div>普通敌人减速<strong>${Math.min(65, 40 + (b.level - 1) * 8)}%${max ? "" : " → " + Math.min(65, 40 + b.level * 8) + "%"}</strong></div>`;
     if (d.income && d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? "" : " → " + (d.incense * nextF).toFixed(1)}</strong></div>`;
     return `<div class="detail"><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + "业兴旺" : d.required ? d.resource === "materials" ? "百工汇聚" : "财源广进" : d.cat === "defense" ? "守望古坊" : "人间烟火"}</span></div><div class="detail-info"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}${max ? " · 满级" : ""}</span><button class="demolish-button" id="demolish-building" ${b.type === "shrine" ? "disabled" : ""}>${b.type === "shrine" ? "不可拆除" : "拆除"}</button></div><p class="detail-description">${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级至 Lv." + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
   }
@@ -1448,7 +1475,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (b) {
       $("detail-hp").textContent = Math.ceil(Math.max(0, b.hp)) + " / " + GF.maxHP(b);
       $("detail-hp-fill").style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + "%";
-      const reason = GF.upgradeReason(state, b), max = b.level >= (GF.DEFS[b.type].max || 3);
+      const reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
       $("upgrade-building").classList.toggle("blocked", !!reason);
       $("upgrade-building").setAttribute("aria-disabled", String(!!reason));
       $("upgrade-label").textContent = max ? "本建筑已达最高等级" : reason || costText(GF.upgradeCost(b));
@@ -1462,7 +1489,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       label.textContent = reason;
     }
   }
-  const fmt = (n) => Math.floor(n).toLocaleString("en-US");
+  const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
     var _a, _b, _c, _d, _e, _f;
     $("coins").textContent = fmt(state.coins);

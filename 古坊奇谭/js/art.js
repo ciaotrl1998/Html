@@ -40,6 +40,7 @@
     rect(c, -9, 15, 18, 2, '#d6d6bc'); rect(c, -11, 17, 22, 2, '#b6bca1');
   }
   function building(c, type, level = 1, time = 0) {
+    level = GF.visualLevel(level);
     c.save(); c.lineJoin = 'round'; ellipse(c, 2, 18, 26, 8, '#3b503728');
     if(level>=2){poly(c,[[-29,-20],[27,-20],[30,23],[-28,23]],'#bfc4a582','#929f7f',.7);for(let i=0;i<4;i++)line(c,[[-26+i*17,19],[-26+i*17,23]],'#8b987b',.7);}
     if(level===3){for(const x of [-28,28]){line(c,[[x,-17],[x,19]],'#aa985b',1.2);ellipse(c,x,-17,2,2,'#c5ab66');}line(c,[[-26,22],[27,22]],'#c5ab66',2);}
@@ -90,7 +91,7 @@
   }
   function houseTiny(c,x,y){rect(c,x-5,y,10,7,'#d6d0a6');roof(c,x,y-5,16,7,'#887a52');}
   const thumbs = new Map();
-  function thumbnail(type, level=1){const key=type+level;if(thumbs.has(key))return thumbs.get(key);const c=document.createElement('canvas');c.width=180;c.height=150;const ctx=c.getContext('2d');ctx.translate(90,99);ctx.scale(2,2);building(ctx,type,level);const url=c.toDataURL();thumbs.set(key,url);return url;}
+  function thumbnail(type, level=1){const key=type+GF.visualLevel(level);if(thumbs.has(key))return thumbs.get(key);const c=document.createElement('canvas');c.width=180;c.height=150;const ctx=c.getContext('2d');ctx.translate(90,99);ctx.scale(2,2);building(ctx,type,level);const url=c.toDataURL();thumbs.set(key,url);return url;}
   function makeGround(){
     const canvas=document.createElement('canvas');canvas.width=GF.SIZE*T;canvas.height=GF.SIZE*T;const c=canvas.getContext('2d');
     for(let y=0;y<GF.SIZE;y++)for(let x=0;x<GF.SIZE;x++){
@@ -118,7 +119,7 @@
   }
   const ground=makeGround();
   function healthBarY(b){
-    const type=b.type,level=b.level;
+    const type=b.type,level=GF.visualLevel(b.level);
     if(type==='farm')return -26;
     if(type==='mulberry')return -31;
     if(type==='quarry'||type==='rock')return -34;

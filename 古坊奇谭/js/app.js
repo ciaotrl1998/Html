@@ -68,17 +68,19 @@
   }
   function cardHTML(d) {
     const description = d.id === 'well' ? '井旁平地可建农田<br>相邻农田收入 +20%' : effect(d);
-    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${d.chain ? d.chain + '业' : d.required ? '终极' : ''}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(d.cost)}</span><span class="card-effect">${description}</span></button>`;
+    const tag = d.chain ? d.chain + '业' : d.required ? '终极' : '';
+    const limit = d.limit ? `${state.buildings.filter(b => b.type === d.id).length}/${d.limit}` : '';
+    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${[tag, limit].filter(Boolean).join(' · ')}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(d.cost)}</span><span class="card-effect">${description}</span></button>`;
   }
   function detailHTML(b) {
-    const d = GF.DEFS[b.type], max = b.level >= (d.max || 3), hp = GF.maxHP(b), f = GF.factor(b), nextF = f * 1.65;
+    const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
     const description = effect(d, b) + (GF.dryFarm(state, b) ? ' · 缺水：耐久每秒 -5%' : '');
-    let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + Math.round(hp * 1.65)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + (GF.income(state, b) * 1.65).toFixed(1)}</strong></div>`;
+    let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
+    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + GF.income(state, next).toFixed(1)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? '' : ' → ' + (d.incense * nextF).toFixed(1)}</strong></div>`;
-    else if (['home', 'well', 'stage', 'market'].includes(b.type)) { const v = { home: 10, well: 20, stage: 3, market: 5 }[b.type]; stats += `<div>收入加成<strong>${v * b.level}%${max ? '' : ' → ' + v * (b.level + 1) + '%'}</strong></div>`; }
-    else if (b.type === 'zhong') stats += `<div>普通敌人减速<strong>${40 + (b.level - 1) * 8}%${max ? '' : ' → ' + (40 + b.level * 8) + '%'}</strong></div>`;
+    else if (['home', 'well', 'stage', 'market'].includes(b.type)) { const v = { home: 10, well: 20, stage: 3, market: 5 }[b.type]; stats += `<div>收入加成<strong>${v * f}%${max ? '' : ' → ' + v * nextF + '%'}</strong></div>`; }
+    else if (b.type === 'zhong') stats += `<div>普通敌人减速<strong>${Math.min(65, 40 + (b.level - 1) * 8)}%${max ? '' : ' → ' + Math.min(65, 40 + b.level * 8) + '%'}</strong></div>`;
     if (d.income && d.incense) stats += `<div>香火 / 秒<strong>${(d.incense * f).toFixed(1)}${max ? '' : ' → ' + (d.incense * nextF).toFixed(1)}</strong></div>`;
     return `<div class="detail"><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}${max ? ' · 满级' : ''}</span><button class="demolish-button" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '不可拆除' : '拆除'}</button></div><p class="detail-description">${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
   }
@@ -101,7 +103,7 @@
     }
     if (b) {
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
-      const reason = GF.upgradeReason(state, b), max = b.level >= (GF.DEFS[b.type].max || 3);
+      const reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
       $('upgrade-label').textContent = max ? '本建筑已达最高等级' : reason || costText(GF.upgradeCost(b));
     } else for (const el of $('cards').children) {
@@ -109,7 +111,7 @@
       const label = el.querySelector('.card-reason'); label.hidden = !reason; label.textContent = reason;
     }
   }
-  const fmt = n => Math.floor(n).toLocaleString('en-US');
+  const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
     $('coins').textContent = fmt(state.coins); $('materials').textContent = fmt(state.materials); $('incense').textContent = fmt(state.incense);
     $('day-label').textContent = '第 ' + state.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[state.phase]) + (state.day % 7 === 0 ? ' · 灯会' : '');

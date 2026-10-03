@@ -27,6 +27,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.deepEqual(await page.locator('.topbar .resource small').allTextContents(),['铜钱','工材','香火']);
       assert.equal(await page.locator('.topbar .material-icon').count(),1);
       assert.equal(await page.locator('#prosperity').count(),0);
+      assert(await page.evaluate(()=>GFArt.thumbnail('tea',1)===GFArt.thumbnail('tea',3)&&GFArt.thumbnail('tea',4)===GFArt.thumbnail('tea',6)&&GFArt.thumbnail('tea',7)===GFArt.thumbnail('tea',9)&&GFArt.thumbnail('tea',3)!==GFArt.thumbnail('tea',4)&&GFArt.thumbnail('tea',6)!==GFArt.thumbnail('tea',7)),'Nine levels reuse three distinct sprite stages');
       assert.equal(await page.locator('#speed,#map-tools,.map-tools,#grid-toggle,.mission-card,#idle-hint,#help').count(),0);
       assert(await page.locator('#startup-error').isHidden());
       // Menu and pause are the same action. Time, payouts and income counters must all stop.
@@ -76,8 +77,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.equal(await page.locator('[data-build="tea"] .card-effect').innerText(),'铜钱 +1/秒');
       await page.locator('[data-build="tea"]').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='tea').length),1);
       assert(Math.abs((await page.locator('#panel').boundingBox()).height-height)<.1);
+      await page.evaluate(()=>{const s=Gufang.state;s.materials=1000;const shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=2;shrine.hp=GF.maxHP(shrine);Gufang.refresh();});
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='tea').level),2);
-      assert((await page.locator('.detail-description').textContent()).includes('铜钱 +1.7/秒'));
+      assert((await page.locator('.detail-description').textContent()).includes('铜钱 +2/秒'));
       await page.screenshot({path:path.join(shots,`detail-v2-${viewport.width}.png`)});
       await page.evaluate(()=>{Gufang.state.coins=2000;Gufang.state.materials=2000;Gufang.select(7,7);});await page.locator('[data-build="inn"]').click();
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='inn').level),2);
@@ -151,7 +153,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         await page.evaluate(()=>Gufang.select(10,10));await page.locator('[data-category="support"]').click();
         await page.locator('[data-build="well"]').click();await page.locator('#close-panel').click();
         await page.evaluate(()=>{GF.build(Gufang.state,'stage',10,9);Gufang.select(8,8);});
-        assert((await page.locator('.detail-description').textContent()).includes('铜钱 +0.4/秒'));
+        assert((await page.locator('.detail-description').textContent()).includes('铜钱 +0.8/秒'));
         assert.equal(await page.locator('.detail-description .income-bonus').count(),0,'Rounded-zero bonus is hidden');
         await page.locator('#close-panel').click();
       }
