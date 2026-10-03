@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#263f38">
+  <title>古坊奇谭 · 一方烟火，长夜灯明</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='12' fill='%23a74e3c'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='40' fill='%23fff4d7'%3E坊%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="game.js"></script>
+  <script defer src="art.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main id="game">
+    <canvas id="map" aria-label="古坊地图：点击格子建造，拖动移动视角，滚轮或双指缩放"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="topbar">
+      <div class="brand"><span class="seal">古<br>坊</span><div><h1>古坊奇谭</h1><p>一方烟火 · 长夜灯明</p></div></div>
+      <div class="resources">
+        <div class="resource"><i class="coin-icon"></i><div><span class="resource-label">铜钱</span><strong id="coins">420</strong></div><small id="coin-rate">+1 / 秒</small></div>
+        <span class="resource-divider"></span>
+        <div class="resource"><i class="incense-icon">♨</i><div><span class="resource-label">香火</span><strong id="incense">40</strong></div><small id="incense-rate">+0.4 / 秒</small></div>
+      </div>
+      <div class="header-actions"><button id="sound" class="icon-button" title="开启音效" aria-label="开启音效">♪</button><button id="help" class="icon-button" title="游玩指南" aria-label="游玩指南">?</button><button id="menu" class="icon-button" title="存档与设置" aria-label="存档与设置">☰</button></div>
+    </header>
+    <section class="daybar" aria-label="时辰与来袭信息"><span id="phase-icon">☀</span><div><strong id="day-label">第一日 · 白昼</strong><span id="phase-hint">万物生长，宜兴业筑坊</span></div><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">85s</span><button id="pause" title="暂停 / 继续" aria-label="暂停">Ⅱ</button><button id="speed" title="切换时间速度">1×</button></section>
+    <aside class="town-card"><div class="eyebrow">青山有邻 · 人间有坊</div><h2 id="town-name">山野初坊</h2><div class="prosperity-line"><span>繁荣</span><strong id="prosperity">10</strong><span class="muted" id="town-next">/ 100</span><span class="town-sprig">❧</span></div><div class="thin-progress"><i id="prosperity-fill"></i></div><p id="unlock-hint">繁荣 45 · 解锁擂石台</p></aside>
+    <aside class="mission-card"><div class="eyebrow"><span>坊 间 小 记</span><span id="mission-number">01 / 08</span></div><h3 id="mission-title">一盏茶，起一座坊</h3><p id="mission-desc">在平地建造一间茶肆</p><div class="mission-bottom"><span id="mission-reward">赏 · 60 铜钱</span><button id="mission-locate">去建造 ↗</button></div></aside>
+    <div class="map-caption"><span>青溪境</span><i></i><small>山水之间，自有烟火</small></div>
+    <aside class="map-tools"><button id="zoom-in" aria-label="放大地图" title="放大">＋</button><span id="zoom-label">100%</span><button id="zoom-out" aria-label="缩小地图" title="缩小">−</button><span class="tool-divider"></span><button id="recenter" aria-label="回到祠堂" title="回到祠堂">⌖</button><button id="grid-toggle" aria-label="显示或隐藏网格" title="显示或隐藏网格">▦</button><button id="quick-menu" aria-label="指南与存档" title="指南与存档">☰</button></aside>
+    <div id="night-warning" hidden></div>
+    <div class="legend"><span><i class="plain"></i>平地</span><span><i class="water"></i>水边</span><span><i class="forest"></i>林地</span><span><i class="mountain"></i>山地</span></div>
+    <div id="skills" hidden><span class="skills-caption">护 坊 神 技</span><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>30 香火</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>45 香火</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>65 香火</small></button></div>
+    <div id="idle-hint"><span class="hint-mark">＋</span><div><strong>择一方水土，建万家灯火</strong><p>点选地块开始建造 <span>·</span> 拖动地图探索四方</p></div><button id="start-build">兴建古坊 <span>→</span></button></div>
+    <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板">
+      <div class="panel-grip"></div><div class="panel-heading"><div><span id="plot-label">平地</span><small id="plot-coord">地块 8 · 9</small></div><p id="panel-tip">起点看地形，后面挨着建</p><button id="close-panel" aria-label="关闭建筑面板">×</button></div>
+      <div id="build-view"><nav class="categories" aria-label="建筑类别"><button class="active" data-category="economy">产业<span>14</span></button><button data-category="defense">防御<span>4</span></button><button data-category="support">民生<span>4</span></button><button data-category="temple">神庙<span>3</span></button><span>← 滑动选建筑 →</span></nav><div id="cards" class="cards"></div></div>
+      <div id="detail-view" hidden></div>
+    </section>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="paused-indicator" hidden>时光暂歇 <small>点击  ▶  继续</small></div>
+    <footer class="footnote"><span>古坊奇谭 · 首版</span><span id="save-status">本地自动存档</span></footer>
+  </main>
+  <dialog id="modal"><button id="close-modal" aria-label="关闭">×</button><div id="modal-content"></div></dialog>
+</body>
+</html>

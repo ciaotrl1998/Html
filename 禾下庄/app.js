@@ -22,16 +22,32 @@ function collectFeedback(){
 }
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify({version:1,state:game.serialize()}));}catch{}}
 function amountCost(g,m){return `${g?g+'金币':''}${g&&m?' · ':''}${m?m+'材料':''}`||'免费';}
+function upgradePreview(b){
+  const pool=(FarmGame.POOLS&&FarmGame.POOLS[b.type])||[],rows=[];
+  const withAdd=(a,add)=>{const m={...(b.mods||{})};m[a]=(m[a]||0)+add;return stats({...b,mods:m});};
+  const val=(a,m)=>a==='cycle'?m.cycle:a==='batch'?Math.max(0,...m.recipes.map(r=>sum(r.out))):a==='inputCap'?m.input:a==='outputCap'?m.output:a==='income'?m.income:0;
+  const fmt=(a,v)=>a==='cycle'?v+'秒':a==='income'?Number(v).toFixed(1)+'/秒':v+'件';
+  const label={cycle:'生产周期',batch:'每批产出',inputCap:'输入上限',outputCap:'输出上限',income:'金币 / 秒'};
+  for(const a of pool){if(rows.length>=3)break;const cur=val(a,withAdd(a,0)),nxt=val(a,withAdd(a,1));if(cur===nxt)continue;rows.push({label:label[a],from:fmt(a,cur),to:fmt(a,nxt)});}
+  while(rows.length<3)rows.push({empty:true,label:'—',from:'',to:''});
+  return rows;
+}
 function closeDialog(){$('dialog').close();}
 function showDialog(html){$('dialog-body').innerHTML=html;$('dialog').showModal();}
 function icon(type){if(!iconCache.has(type)){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');drawBuilding(x,{type,x:0,y:0,level:1},2,0,0,0,true);iconCache.set(type,c.toDataURL());}return `<img class="building-icon" src="${iconCache.get(type)}" alt="">`;}
 function fillIcons(){}
 function renderPanel(){
   const panel=$('panel'),scrollTop=panel.scrollTop,b=game.building(selected);
+  document.querySelector('.management').classList.toggle('detail-open',!!b);
   if(b){
-    const d=TYPES[b.type],s=stats(b),workers=game.workers.filter(w=>w.assigned===b.id).length,free=game.workers.filter(w=>!w.assigned&&!w.task).length,mult=2**(b.level-1),cost=d.upgrade?.map(n=>n*mult);
+    const d=TYPES[b.type],s=stats(b),workers=game.workers.filter(w=>w.assigned===b.id).length,free=game.workers.filter(w=>!w.assigned&&!w.task).length,mult=2**(b.level-1),cost=d.upgrade?.map((n,i)=>(i===1&&b.level===1)?0:n*mult);
     let inv=[];for(const [k,n]of Object.entries(b.input))if(n)inv.push(`<span>入 ${GOODS[k].name} ${n}</span>`);for(const [k,n]of Object.entries(b.output))if(n)inv.push(`<span>${GOODS[k].name} ${n}</span>`);
-    panel.innerHTML=`<div class="detail-sheet"><div class="panel-title"><div class="detail-name">${icon(b.type)}<div><h2>${d.name}<span class="level">${b.type==='market'||b.type==='pile'?'场外':'Lv.'+b.level}</span></h2><div class="subtitle">${b.type==='home'?'庄田主宅':b.type==='market'?'物料售出即换金币':s.cycle+'秒 / 批 · 输出 '+sum(b.output)+'/'+s.output}</div></div></div><button data-action="deselect" title="返回建筑栏" aria-label="关闭建筑信息">×</button></div><div class="meter detail-meter"><span id="detail-progress" style="width:${b.batch?b.progress/b.batch.cycle*100:0}%"></span></div><div class="inventory" id="detail-inventory">${inv.join('')||'<span class="empty">暂无库存</span>'}</div>${!['home','pile'].includes(b.type)?`<div class="assignment"><div>指派村民 <small id="free-label">空闲 ${free} 人</small></div><div class="stepper"><button data-action="unassign" ${workers===0?'disabled':''} aria-label="移除一名村民">−</button><strong id="assigned-count">${workers}</strong><button data-action="assign" ${free===0?'disabled':''} aria-label="指派一名村民">+</button></div></div>`:''}<div class="detail-actions">${cost?`<button class="primary" data-action="upgrade" ${b.level>=5||game.gold<cost[0]||game.materials<cost[1]?'disabled':''}>${b.level>=5?'已达最高级':'升级至 '+(b.level+1)+' 级'}${b.level<5?`<small>${amountCost(...cost)}</small>`:''}</button>`:''}${!['market','pile'].includes(b.type)?'<button data-action="move" class="secondary action-icon" title="移动建筑" aria-label="移动建筑">↔</button>':''}${!['home','market','pile'].includes(b.type)?'<button data-action="demolish" class="secondary destructive action-icon" title="拆除建筑">×</button>':''}</div></div>`;
+    const upT=d.upgrade;
+    const rowsHtml=upT?upgradePreview(b).map(r=>r.empty?`<div class="upgrade-line empty"><span class="uk">—</span></div>`:`<div class="upgrade-line"><span class="uk">${r.label}</span><em class="uf">${r.from}</em><span class="ua">›</span><strong class="ut">${r.to}</strong></div>`).join(''):'';
+    const moveBtn=!['market','pile'].includes(b.type)?`<button data-action="move" class="icon-button small" title="移动建筑" aria-label="移动建筑">移</button>`:'';
+    const demolishBtn=!['home','market','pile'].includes(b.type)?`<button data-action="demolish" class="icon-button small destructive" title="拆除建筑" aria-label="拆除建筑">拆</button>`:'';
+    const upgradeBtn=upT?`<button class="primary upgrade-btn" data-action="upgrade" ${b.level>=5||game.gold<cost[0]||game.materials<cost[1]?'disabled':''}>${b.level>=5?'已达最高级':'升级至 '+(b.level+1)+' 级 · '+amountCost(...cost)}</button>`:'';
+    panel.innerHTML=`<div class="detail-sheet"><div class="panel-title"><div class="detail-name">${icon(b.type)}<div><h2>${d.name}<span class="level">${b.type==='market'||b.type==='pile'?'场外':'Lv.'+b.level}</span></h2><div class="subtitle">${b.type==='home'?'庄田主宅':b.type==='market'?'物料售出即换金币':s.cycle+'秒 / 批 · 输出 '+sum(b.output)+'/'+s.output}</div></div></div><div class="title-actions">${moveBtn}${demolishBtn}<button data-action="deselect" class="icon-button small" title="返回建筑栏" aria-label="关闭建筑信息">×</button></div></div><div class="meter detail-meter"><span id="detail-progress" style="width:${b.batch?b.progress/b.batch.cycle*100:0}%"></span></div><div class="inventory" id="detail-inventory">${inv.join('')||'<span class="empty">暂无库存</span>'}</div>${!['home','pile'].includes(b.type)?`<div class="assignment"><div>指派村民 <small id="free-label">空闲 ${free} 人</small></div><div class="stepper"><button data-action="unassign" ${workers===0?'disabled':''} aria-label="移除一名村民">−</button><strong id="assigned-count">${workers}</strong><button data-action="assign" ${free===0?'disabled':''} aria-label="指派一名村民">+</button></div></div>`:''}${upT?`<div class="upgrade-box"><div class="upgrade-rows">${rowsHtml}</div>${upgradeBtn}</div>`:''}</div>`;
     fillIcons();panel.scrollTop=scrollTop;return;
   }
   if(tab==='workers'){
@@ -41,7 +57,7 @@ function renderPanel(){
   }
   if(tab==='land'){panel.innerHTML=`<div class="section-heading"><div><span class="eyebrow">田契卷宗</span><h2>青溪庄田</h2><p>一纸地契，终身经营</p></div><span class="seal-tag">${game.won?'已归名下':'租赁中'}</span></div><div class="land-deed"><span class="deed-label">买地银两</span><div class="land-price">${game.won?'已买下':game.landPrice.toLocaleString()}<small>${game.won?'免租经营':'金币'}</small></div><div class="deed-line"></div><p>买下地皮后，地主不再收租，田庄归你世代经营。</p></div><div class="land-actions"><button class="primary buy-land" data-action="buy" ${game.won||game.gold<game.landPrice||game.grace!==null?'disabled':''}>${game.won?'地契已签':'签下地契 · '+game.landPrice.toLocaleString()+'金币'}</button><button class="secondary" data-action="restart-confirm">重新开始</button></div>`;panel.scrollTop=scrollTop;return;}
   const list=Object.entries(TYPES).filter(([k])=>k!=='home'&&k!=='market'&&k!=='pile');
-  const columns=Math.max(3,Math.min(5,Math.floor((panel.clientWidth-28)/92))),rows=2,pageSize=columns*rows,pages=Math.max(1,Math.ceil(list.length/pageSize));buildPage=Math.min(buildPage,pages-1);const pageList=list.slice(buildPage*pageSize,(buildPage+1)*pageSize);
+  const columns=Math.max(3,Math.min(5,Math.floor(panel.clientWidth/70))),rows=2,pageSize=columns*rows,pages=Math.max(1,Math.ceil(list.length/pageSize));buildPage=Math.min(buildPage,pages-1);const pageList=list.slice(buildPage*pageSize,(buildPage+1)*pageSize);
   panel.innerHTML=`<div class="build-grid" style="--build-columns:${columns}">${pageList.map(([k,d])=>{const unlocked=game.unlocked.includes(k),affordable=game.gold>=d.cost[0]&&game.materials>=d.cost[1],state=!unlocked?'locked':affordable?'ready':'short';return `<button class="building-option ${state}" data-build="${k}" data-drag-type="${k}" draggable="false">${icon(k)}<strong>${d.name}</strong><small>${unlocked?amountCost(...d.cost):'需 '+d.requires.map(r=>TYPES[r].name).join(' / ')}</small></button>`;}).join('')}</div><div class="build-pagination"><button data-page="prev" ${buildPage===0?'disabled':''} aria-label="上一页">‹</button><span>${buildPage+1} / ${pages}</span><button data-page="next" ${buildPage>=pages-1?'disabled':''} aria-label="下一页">›</button></div>`;
   fillIcons();panel.scrollTop=scrollTop;
 }
@@ -51,7 +67,7 @@ function refresh(){
   const secs=Math.max(0,Math.ceil(game.grace??game.rentTime));$('timer').textContent=game.won?'已买地':`${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
   $('rent-amount').textContent=game.won?'免租':game.rent;
   $('rent-label').textContent=game.grace!==null?'宽限剩余':'距收租';document.querySelector('.rent-strip').classList.toggle('danger',!game.won&&(game.rentTime<30||game.grace!==null));
-  $('rent-progress').style.width=(game.won?100:Math.max(0,game.rentTime/60*100))+'%';
+  $('rent-progress').style.width=(game.won?100:Math.max(0,game.rentTime/game.rentInterval*100))+'%';
   const free=game.workers.filter(w=>!w.assigned&&!w.task).length;const people=`村民 ${game.workers.length} · 空闲 ${free}`;$('population').textContent=people;
   const market=game.buildings.find(b=>b.type==='market'),n=game.workers.filter(w=>w.assigned===market.id).length;$('market-workers').textContent=n?n+'人售货':'无人专职';
   renderPanel();
@@ -91,9 +107,11 @@ canvas.addEventListener('pointermove',e=>{if(moveDrag&&e.pointerId===moveDrag.id
 canvas.addEventListener('touchstart',e=>{if(e.touches.length!==2)return;const [a,b]=e.touches;pinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom:mapZoom,cx:(a.clientX+b.clientX)/2,cy:(a.clientY+b.clientY)/2};mapPointer=null;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchmove',e=>{if(!pinch||e.touches.length!==2)return;const [a,b]=e.touches,cx=(a.clientX+b.clientX)/2,cy=(a.clientY+b.clientY)/2,distance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),nextZoom=Math.max(.75,Math.min(2.2,pinch.zoom*distance/pinch.distance));mapPanX+=cx-pinch.cx;mapPanY+=cy-pinch.cy;mapZoom=nextZoom;pinch.distance=distance;pinch.cx=cx;pinch.cy=cy;pinch.zoom=nextZoom;e.preventDefault();},{passive:false});
 canvas.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();mapZoom=Math.max(.6,Math.min(2.6,mapZoom*(e.deltaY<0?1.12:.89)));},{passive:false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{
   if(moving){const p=mapPoint(e),size=TYPES[placing].size;if(preview&&p.x>=preview.x&&p.x<preview.x+size&&p.y>=preview.y&&p.y<preview.y+size){moveDrag={id:e.pointerId,dx:p.x-preview.x,dy:p.y-preview.y,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture(e.pointerId);e.preventDefault();}return;}
-  if(e.pointerType==='touch'&&e.isPrimary&&!placing){mapPointer={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture?.(e.pointerId);return;}
+  if(!placing&&((e.pointerType==='touch'&&e.isPrimary)||(e.pointerType!=='touch'&&e.button===0))){mapPointer={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};canvas.setPointerCapture?.(e.pointerId);e.preventDefault();return;}
   const p=mapPoint(e);if(game.failed)return;
   if(placing)return;
   const b=game.buildings.find(b=>p.x>=b.x&&p.x<b.x+TYPES[b.type].size&&p.y>=b.y&&p.y<b.y+TYPES[b.type].size);selected=b?.id??null;renderPanel();
@@ -157,9 +175,9 @@ function draw(time){
     drawBuilding(ctx,b,tile,ox,oy,time);
     if(b.type!=='market'&&b.type!=='pile'){
       const x=ox+(b.x+.15)*tile,y=oy+(b.y+s)*tile-2,w=tile*s*.7;if(b.batch){rect(ctx,x,y,w,3,'#46603c');rect(ctx,x,y,w*b.progress/b.batch.cycle,3,'#d7cd76');}
-      const n=game.workers.filter(w=>w.assigned===b.id).length;if(b.type!=='home'){rect(ctx,ox+(b.x+s-.3)*tile,oy+(b.y+.04)*tile,11,11,n?'#355a42':'#a15b44');ctx.fillStyle='#fff7db';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(n||'!',ox+(b.x+s-.3)*tile+5.5,oy+(b.y+.04)*tile+8);}
+      const staffed=game.workers.some(w=>w.assigned===b.id);if(b.type!=='home'){rect(ctx,ox+(b.x+s-.34)*tile,oy+(b.y+.03)*tile,14,12,staffed?'#2f5c43':'#a15b44');ctx.fillStyle='#fff7db';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('Lv'+b.level,ox+(b.x+s-.34)*tile+7,oy+(b.y+.03)*tile+9);}
       ctx.font='9px "Microsoft YaHei",sans-serif';ctx.textAlign='center';ctx.fillStyle='#354b33';ctx.fillText(d.name,ox+(b.x+s/2)*tile,oy+(b.y+s+.32)*tile);
-      if(b.type!=='market'&&b.type!=='pile'&&b.level<5&&game.gold>=TYPES[b.type].upgrade[0]*2**(b.level-1)&&game.materials>=TYPES[b.type].upgrade[1]*2**(b.level-1)){ctx.fillStyle='#4f9a61';ctx.beginPath();ctx.moveTo(ox+(b.x+s-.1)*tile,oy+(b.y-.28)*tile);ctx.lineTo(ox+(b.x+s-.1)*tile+8,oy+(b.y-.28)*tile+8);ctx.lineTo(ox+(b.x+s-.1)*tile-2,oy+(b.y-.28)*tile+8);ctx.closePath();ctx.fill();}
+      const upT=TYPES[b.type].upgrade;if(b.type!=='market'&&b.type!=='pile'&&upT&&b.level<5){const ug=upT[0]*2**(b.level-1),um=b.level===1?0:upT[1]*2**(b.level-1);if(game.gold>=ug&&game.materials>=um){ctx.fillStyle='#4f9a61';ctx.beginPath();ctx.moveTo(ox+(b.x+s-.1)*tile,oy+(b.y-.28)*tile);ctx.lineTo(ox+(b.x+s-.1)*tile+8,oy+(b.y-.28)*tile+8);ctx.lineTo(ox+(b.x+s-.1)*tile-2,oy+(b.y-.28)*tile+8);ctx.closePath();ctx.fill();}}
     }
     if(b.type!=='market'){let ci=0;for(const [key,n]of Object.entries(b.input)){if(!n)continue;drawStack(ctx,key,ox+(b.x+.28+ci*.42)*tile,oy+(b.y+s*.92)*tile,tile*.3,n);ci++;}let co=0;for(const [key,n]of Object.entries(b.output)){if(!n)continue;drawStack(ctx,key,ox+(b.x+s-.25-co*.42)*tile,oy+(b.y+s*.92)*tile,tile*.3,n);co++;}}
   }
@@ -182,16 +200,15 @@ function draw(time){
   for(const w of [...game.workers].sort((a,z)=>a.y-z.y)){
     const x=ox+(w.x+.5)*tile,y=oy+(w.y+.6)*tile,sc=tile/30,step=Math.sin(time*10+w.id)*sc*1.5;
     rect(ctx,x-5*sc,y+4*sc,11*sc,3*sc,'#3a523744');rect(ctx,x-3*sc,y-2*sc,7*sc,7*sc,w.producing?'#b07351':w.id%2?'#547b83':'#667a9a');rect(ctx,x-4*sc,y-9*sc,8*sc,7*sc,'#e7c294');rect(ctx,x-5*sc,y-10*sc,10*sc,3*sc,'#4b4434');rect(ctx,x-3*sc,y+5*sc,2*sc,(w.route.length?4+step:4)*sc,'#534c40');rect(ctx,x+2*sc,y+5*sc,2*sc,(w.route.length?4-step:4)*sc,'#534c40');
-    if(w.task?.phase==='delivery')drawStack(ctx,w.task.key,ox+(w.x+.5)*tile,oy+(w.y+.12)*tile,tile*.26,w.task.amount);if(w.producing){ctx.fillStyle='#efdd94';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('·',x+6*sc,y-7*sc);}
+    if(w.task?.phase==='delivery'){const seq=[];for(const k of Object.keys(w.task.items||{}))for(let i=0;i<w.task.items[k];i++)seq.push(k);const size=tile*.24,step=size*.5,sh=Math.max(1.5,size*.15);seq.slice(0,8).forEach((k,i)=>{const gx=ox+(w.x+.5)*tile,gy=oy+(w.y+.12)*tile-i*step;drawGood(ctx,k,gx+sh,gy+sh,size,'rgba(26,32,24,0.34)');drawGood(ctx,k,gx,gy,size);});}if(w.producing){ctx.fillStyle='#efdd94';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('·',x+6*sc,y-7*sc);}
   }
   const resolveSpec=spec=>{if(!spec)return null;if(spec.kind==='worker')return wpos(spec.id);if(spec.kind==='slot')return bslot(spec.id,spec.slot);if(spec.kind==='center')return bcenter(spec.id);return {x:spec.x,y:spec.y};};
-  for(const e of (game.events||[])){const bc=bcenter(e.building);if(!bc||e.building===undefined)continue;const center={kind:'center',id:e.building};
-    if(e.type==='consume'){const sl={kind:'slot',id:e.building,slot:'in'};for(const [key,n]of Object.entries(e.items||{}))for(let j=0;j<Math.min(n,5);j++)addFlight(key,sl,center,j*40);}
+  for(const e of (game.events||[])){const bc=bcenter(e.building);if(!bc||e.building===undefined)continue;const center={kind:'center',id:e.building},items=e.items||{};
+    if(e.type==='consume'){const sl={kind:'slot',id:e.building,slot:'in'};for(const [key,n]of Object.entries(items))for(let j=0;j<Math.min(n,5);j++)addFlight(key,sl,center,j*40);}
     else if(e.type==='produceOut'){const sl={kind:'slot',id:e.building,slot:'out'};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,center,sl,j*45);}
-    else if(e.type==='produceTo'){const wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,center,wk,j*45);}
-    else if(e.type==='pickup'){const sl={kind:'slot',id:e.building,slot:'out'},wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,sl,wk,j*45);}
-    else if(e.type==='deliver'){const wk={kind:'worker',id:e.worker},sl={kind:'slot',id:e.building,slot:'in'};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,wk,sl,j*45);}
-    else if(e.type==='sell'){const wk={kind:'worker',id:e.worker};for(let j=0;j<Math.min(e.amount,6);j++)addFlight(e.key,wk,center,j*45);}
+    else if(e.type==='pickup'){const sl={kind:'slot',id:e.building,slot:'out'},wk={kind:'worker',id:e.worker};for(const [key,n]of Object.entries(items))for(let j=0;j<Math.min(n,5);j++)addFlight(key,sl,wk,j*45);}
+    else if(e.type==='deliver'){const wk={kind:'worker',id:e.worker},sl={kind:'slot',id:e.building,slot:'in'};for(const [key,n]of Object.entries(items))for(let j=0;j<Math.min(n,5);j++)addFlight(key,wk,sl,j*45);}
+    else if(e.type==='sell'){const wk={kind:'worker',id:e.worker};for(const [key,n]of Object.entries(items))for(let j=0;j<Math.min(n,5);j++)addFlight(key,wk,center,j*45);}
   }
   if(game.events)game.events.length=0;
   const fnow=performance.now();for(const fl of flights){const ft=(fnow-fl.born)/fl.dur;if(ft<0||ft>1)continue;const p0=resolveSpec(fl.from),p1=resolveSpec(fl.to);if(!p0||!p1)continue;const fx=p0.x+(p1.x-p0.x)*ft,fy=p0.y+(p1.y-p0.y)*ft-Math.sin(Math.PI*ft)*Math.max(12,tile*.6);drawGood(ctx,fl.key,fx,fy,tile*.28);}flights=flights.filter(fl=>fnow-fl.born<fl.dur);
@@ -201,5 +218,5 @@ function draw(time){
 function frame(t){const real=Math.min(1,(t-(last||t))/1000);last=t;if(!document.hidden&&!$('dialog').open&&!game.failed){let remaining=real;while(remaining>0){const step=Math.min(.05,remaining);game.tick(step);remaining-=step;}collectFeedback();}draw(t/1000);uiTime+=real;saveTime+=real;if(uiTime>.6){refresh();uiTime=0;}if(saveTime>8){save();saveTime=0;}if(t>toastUntil)$('toast').classList.remove('visible');requestAnimationFrame(frame);}
 window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{last=0;if(document.hidden)save();});
 // Exposed only for deterministic local smoke tests and tuning the prototype.
-window.demo={get game(){return game;},set game(value){game=value;selected=null;refresh();},refresh,draw,select(id){selected=id;renderPanel();}};
+window.demo={get game(){return game;},set game(value){game=value;selected=null;refresh();},refresh,draw,select(id){selected=id;renderPanel();},cam(){return {x:mapPanX,y:mapPanY,zoom:mapZoom};},setCam(v){mapPanX=v.x||0;mapPanY=v.y||0;mapZoom=v.zoom||1;}};
 refresh();requestAnimationFrame(frame);
