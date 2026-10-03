@@ -4,9 +4,9 @@
 
 ## 启动
 
-**直接用 Chrome、Edge、Firefox 或 Safari 打开 `古坊奇谭.html` 即可游玩。** 这是可独立分享的离线单文件，不需要安装依赖、不需要服务器，也不会请求外部图片、字体或接口。
+**直接用 Chrome、Edge、Firefox 或 Safari 打开 `dist/古坊奇谭.html` 即可游玩。** 这是可独立分享的离线单文件，不需要安装依赖、不需要服务器，也不会请求外部图片、字体或接口。
 
-也可以打开 `index.html`，此时需保留 `style.css`、`boot.js`、`runtime.js` 在同一目录。开发时首次执行 `npm install`，修改源码后执行 `npm run build`，同时更新兼容运行脚本和单文件版本。两个入口在浏览器中可能使用不同的本地存档空间，可通过导出/导入迁移进度。
+也可以打开根目录的 `index.html`，此时需保留 `css/`、`js/` 目录。开发时首次执行 `npm install`，修改源码后执行 `npm run build`，同时更新兼容运行脚本和单文件版本。两个入口在浏览器中可能使用不同的本地存档空间，可通过导出/导入迁移进度。
 
 手机可通过静态网页服务器访问整个目录，也可将目录放到任意静态网站空间。没有后端服务。
 
@@ -48,10 +48,26 @@
 
 ## 文件与验证
 
-`game.js` 为独立游戏逻辑；`art.js` 为绘图；`app.js` 为操作、界面和存档。`build.js` 通过 esbuild 将脚本转换为 ES2017，生成 `runtime.js` 和离线单文件。`boot.js` 提供安卓兼容布局与启动错误反馈。规则测试不依赖浏览器：
+目录结构：
+
+```
+古坊奇谭/
+  index.html          开发入口，引用 css/ 与 js/
+  css/style.css       样式
+  js/game.js          独立游戏逻辑
+  js/art.js           绘图
+  js/app.js           操作、界面和存档
+  js/boot.js          安卓兼容布局与启动错误反馈
+  js/runtime.js       build.js 生成的兼容运行脚本
+  dist/古坊奇谭.html  可独立分享的离线单文件
+  docs/               策划文档与说明
+  tests/              规则测试与浏览器回归测试
+```
+
+`build.js` 通过 esbuild 将脚本转换为 ES2017，生成 `js/runtime.js` 和 `dist/古坊奇谭.html`。规则测试不依赖浏览器：
 
 ```sh
-node --test game.test.js
+node --test tests/game.test.js
 ```
 
 浏览器回归测试使用 Playwright，验证电脑与手机布局、真实鼠标点击、触摸缩放、建造升级、存档和夜战神技：
