@@ -1,10 +1,14 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
+const esbuild = require('esbuild');
 const read = name => fs.readFileSync(path.join(__dirname, name), 'utf8');
 let html = read('index.html');
 html = html.replace('<link rel="stylesheet" href="style.css">', () => '<style>\n' + read('style.css') + '\n</style>');
-const scripts = ['game.js', 'art.js', 'app.js'];
+const sources = ['game.js', 'art.js', 'app.js'];
+const runtime = sources.map(file => esbuild.transformSync(read(file), { target: 'es2017', charset: 'utf8', sourcefile: file }).code).join('\n');
+fs.writeFileSync(path.join(__dirname, 'runtime.js'), runtime, 'utf8');
+const scripts = ['boot.js', 'runtime.js'];
 for (const file of scripts) html = html.replace(`<script defer src="${file}"></script>`, '');
 html = html.replace('</body>', () => scripts.map(file => '<script>\n' + read(file).replace(/<\/script/gi, '<\\/script') + '\n</script>').join('\n') + '\n</body>');
 const target = path.join(__dirname, '古坊奇谭.html');

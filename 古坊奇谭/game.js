@@ -6,12 +6,12 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   const SIZE = 17, CENTER = 8, DAY = 85, DUSK = 12;
-  const TERRAIN = { plain: '平地', water: '水边', forest: '林地', mountain: '山地' };
+  const TERRAIN = { plain: '平地', water: '水域', forest: '林地', mountain: '山地' };
   const DEFS = {};
   function def(id, name, cat, cost, hp, extra) { DEFS[id] = { id, name, cat, cost, hp, ...extra }; }
   const chains = [
     ['tea', 'inn', 'bank', '茶肆', '客栈', '钱庄', 'plain', '商', '#d6a450'],
-    ['farm', 'mill', 'wine', '农田', '磨坊', '酒坊', 'water', '农', '#89a663'],
+    ['farm', 'mill', 'wine', '农田', '磨坊', '酒坊', 'plain', '农', '#89a663'],
     ['mulberry', 'weaver', 'tailor', '桑园', '织坊', '成衣铺', 'forest', '丝', '#b38ba7'],
     ['quarry', 'kiln', 'trade', '石场', '瓷窑', '商号', 'mountain', '工', '#7b9fa2']
   ];
@@ -57,13 +57,14 @@
     return 'plain';
   }
   const inside = (x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+  const bordersWater = (x, y) => [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]].some(([nx, ny]) => inside(nx, ny) && terrain(nx, ny) === 'water');
   const at = (s, x, y) => s.buildings.find(b => b.x === x && b.y === y);
   const adjacent = (s, x, y) => s.buildings.filter(b => Math.abs(b.x - x) + Math.abs(b.y - y) === 1);
   const factor = b => Math.pow(1.65, b.level - 1);
   const maxHP = b => Math.round(DEFS[b.type].hp * factor(b));
   const name = b => DEFS[b.type].names?.[b.level - 1] || (b.level === 1 ? DEFS[b.type].name : ['','', '兴盛', '鼎盛'][b.level] + DEFS[b.type].name);
   function addBuilding(s, type, x, y) {
-    const b = { id: s.nextId++, type, x, y, level: 1, hp: DEFS[type].hp, cooldown: 0 };
+    const b = { id: s.nextId++, type, x, y, level: 1, hp: DEFS[type].hp, cooldown: 0, incomeTime: 0, coinPending: 0, incensePending: 0 };
     s.buildings.push(b); s.revision++; return b;
   }
   function createState() {
@@ -80,10 +81,12 @@
     const d = DEFS[type];
     if (!d) return '未知建筑';
     if (s.over) return '古坊已失守';
+    if (s.phase === 'night') return '夜晚不可建造';
     if (!inside(x, y)) return '请选择坊内地块';
     if (at(s, x, y)) return '此地已有建筑';
     if (s.enemies.some(e => Math.hypot(e.x - x, e.y - y) < .65)) return '敌人正在此地';
     if (d.unique) return '祠堂仅此一座';
+    if (type === 'farm' && (terrain(x, y) !== 'plain' || !bordersWater(x, y))) return '需临水平地';
     if (d.terrain && terrain(x, y) !== d.terrain) return '需' + TERRAIN[d.terrain];
     if (d.prev && !adjacent(s, x, y).some(b => b.type === d.prev)) return '需紧挨' + DEFS[d.prev].name;
     if (d.neighbors && terminalCount(s, x, y) < d.neighbors) return '邻终点 ' + terminalCount(s, x, y) + '/' + d.neighbors + ' 种';
@@ -103,6 +106,7 @@
   function upgradeReason(s, b) {
     if (!b || !s.buildings.includes(b)) return '建筑已不存在';
     if (s.over) return '古坊已失守';
+    if (s.phase === 'night') return '夜晚不可升级';
     const d = DEFS[b.type]; if (b.level >= (d.max || 3)) return '已达最高等级';
     if (d.prev && !adjacent(s, b.x, b.y).some(n => n.type === d.prev && n.level >= b.level + 1)) return '需邻' + DEFS[d.prev].name + ' Lv' + (b.level + 1);
     if (s.coins < upgradeCost(b)) return '差 ' + Math.ceil(upgradeCost(b) - s.coins) + ' 钱';
@@ -114,6 +118,7 @@
   }
   function demolish(s, b) {
     if (!b || !s.buildings.includes(b) || b.type === 'shrine' || s.over) return { ok: false, reason: '祠堂不可拆除' };
+    if (s.phase === 'night') return { ok: false, reason: '夜晚不可拆除' };
     const refund = Math.floor(DEFS[b.type].cost * .4); s.coins += refund; s.buildings = s.buildings.filter(n => n !== b); s.revision++; return { ok: true, refund };
   }
   function income(s, b) {
@@ -129,6 +134,21 @@
     return d.income * factor(b) * (1 + bonus) * (s.day % 7 === 0 ? 1.25 : 1);
   }
   const rates = s => s.buildings.reduce((r, b) => ({ coins: r.coins + income(s, b), incense: r.incense + (DEFS[b.type].incense || 0) * factor(b) }), { coins: 0, incense: 0 });
+  function settleIncome(s, dt) {
+    for (const b of s.buildings) {
+      const d = DEFS[b.type]; if (!d.income && !d.incense) continue;
+      b.incomeTime += dt;
+      b.coinPending += income(s, b) * dt;
+      b.incensePending += (d.incense || 0) * factor(b) * dt;
+      if (b.incomeTime < 1 - 1e-8) continue;
+      b.incomeTime = Math.max(0, b.incomeTime - 1);
+      // Keep fractional coins on the building so the floating integer equals the actual payout.
+      const paid = Math.floor(b.coinPending + 1e-8);
+      b.coinPending = Math.max(0, b.coinPending - paid);
+      s.coins += paid; s.incense += b.incensePending; b.incensePending = 0;
+      if (paid > 0) s.effects.push({ type: 'income', buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+    }
+  }
   function dusk(s) { s.phase = 'dusk'; s.time = 0; s.direction = Math.floor(random(s) * 4); event(s, '暮色将至 · 今夜来敌在' + ['北', '东', '南', '西'][s.direction] + '方', 'warning'); }
   function startNight(s) {
     s.phase = 'night'; s.time = 0; const boss = s.day % 7 === 0;
@@ -182,7 +202,7 @@
     s.enemies = s.enemies.filter(e => {
       if (e.hp > 0) return true;
       s.coins += ENEMIES[e.type].reward * (e.boss ? 5 : 1); s.kills++;
-      s.effects.push({ type: 'coin', x: e.x, y: e.y, life: .7, total: .7 }); return false;
+      s.effects.push({ type: 'coin', amount: ENEMIES[e.type].reward * (e.boss ? 5 : 1), x: e.x, y: e.y, life: .7, total: .7 }); return false;
     });
   }
   function combat(s, dt) {
@@ -247,10 +267,10 @@
   function step(s, dt) {
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, .25); s.time += dt; s.elapsed += dt;
-    const r = rates(s); s.coins += r.coins * dt; s.incense += r.incense * dt;
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
     for (const group of [s.effects, s.projectiles]) { for (const e of group) e.life -= dt; }
     s.effects = s.effects.filter(e => e.life > 0); s.projectiles = s.projectiles.filter(e => e.life > 0);
+    settleIncome(s, dt);
     if (s.phase === 'day') {
       s.repairTime += dt;
       if (s.repairTime >= 2) { s.repairTime -= 2; for (const b of s.buildings) b.hp = Math.min(maxHP(b), b.hp + maxHP(b) * .05); }
@@ -267,13 +287,18 @@
       if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * SIZE || !Array.isArray(s.enemies) || s.enemies.length > 100 || !s.cooldowns || !Object.keys(SKILLS).every(k => finite(s.cooldowns[k]))) return null;
       const cells = new Set();
       for (const b of s.buildings) {
-        if (!Object.hasOwn(DEFS,b.type) || !inside(b.x, b.y) || !Number.isInteger(b.level) || b.level < 1 || b.level > (DEFS[b.type].max || 3) || !finite(b.hp) || b.hp <= 0 || b.hp > maxHP(b) + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
+        if (!Object.prototype.hasOwnProperty.call(DEFS,b.type) || !inside(b.x, b.y) || !Number.isInteger(b.level) || b.level < 1 || b.level > (DEFS[b.type].max || 3) || !finite(b.hp) || b.hp <= 0 || b.hp > maxHP(b) + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
+        for (const field of ['incomeTime', 'coinPending', 'incensePending']) {
+          if (b[field] === undefined) b[field] = 0; // Migrate existing v1 saves without losing the town.
+          if (!finite(b[field])) return null;
+        }
+        if (b.incomeTime >= 1) return null;
         const key = b.x + ',' + b.y; if (cells.has(key)) return null; cells.add(key); b.cooldown = 0; delete b.soldier;
       }
       if ((!s.over && s.buildings.filter(b => b.type === 'shrine').length !== 1) || s.buildings.filter(b => b.type === 'shrine').length > 1) return null;
       if (s.phase === 'night' && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 75 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
-        if (!Object.hasOwn(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled)) return null;
+        if (!Object.prototype.hasOwnProperty.call(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled)) return null;
         e.path = []; e.pathRevision = -1;
       }
       s.events = []; s.effects = []; s.projectiles = []; s.revision = 1;

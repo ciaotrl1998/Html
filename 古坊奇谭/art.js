@@ -139,7 +139,12 @@
     for(const p of s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(p.type==='rock'){ellipse(c,x,y-Math.sin(f*Math.PI)*35,4,4,'#c6c4a2');}else{line(c,[[x,y],[x-(p.tx-p.x)*5,y-(p.ty-p.y)*5]],p.type==='barracks'?'#f5e5a1':'#f6e8bf',2);}}
     for(const e of s.effects){const x=e.x*T+32,y=e.y*T+32,f=1-e.life/e.total;c.save();c.globalAlpha=1-f;
       if(e.type==='thunder'){line(c,[[x+15,y-120],[x-10,y-70],[x+7,y-70],[x-5,y]],'#faf3b0',3);ellipse(c,x,y,22,12,'#eee4a344');}
-      else if(e.type==='coin'){c.font='12px Georgia';c.fillStyle='#e2c77f';c.textAlign='center';c.fillText('+ 铜',x,y-15-f*24);}
+      else if(e.type==='income'||e.type==='coin'){
+        c.globalAlpha=Math.min(1,(1-f)*3);c.translate(x,y-(e.type==='income'?53:20)-f*30);c.scale(Math.max(1,1/cam.zoom),Math.max(1,1/cam.zoom));
+        c.font='bold 13px Georgia,serif';c.textAlign='left';const label='+'+e.amount,tw=c.measureText(label).width,start=-(tw+18)/2;
+        c.lineWidth=3;c.strokeStyle='#3e573ae0';c.strokeText(label,start,0);c.fillStyle='#ffecb1';c.fillText(label,start,0);
+        const cx=start+tw+10;ellipse(c,cx,-5,6,6,'#ddb767','#6f743d');ellipse(c,cx,-5,4.2,4.2,null,'#fae3a2');rect(c,cx-1.7,-6.7,3.4,3.4,'#61724a','#b18e4c');
+      }
       else if(e.type==='hit'){ellipse(c,x,y,20,20,'#ae674066');}
       else{ellipse(c,x,y,20+f*450,20+f*450,null,e.type==='repair'?'#d0e8a4':'#eee0a6');}
       c.restore();}
