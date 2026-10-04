@@ -18,12 +18,11 @@
       <span class="seal" aria-label="古坊奇谭">坊</span>
       <div class="resource"><i class="coin-icon" aria-hidden="true"></i><div><small>铜钱</small><strong id="coins">200</strong></div></div>
       <div class="resource"><i class="material-icon" aria-hidden="true"></i><div><small>工材</small><strong id="materials">120</strong></div></div>
-      <div class="resource"><i class="incense-icon" aria-hidden="true">♨</i><div><small>香火</small><strong id="incense">25</strong></div></div>
     </header>
-    <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">85s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
+    <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
     <div id="night-warning" hidden></div>
-    <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>30 香火</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>45 香火</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>65 香火</small></button></div>
-    <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><nav class="categories" aria-label="建筑类别"><button class="active" data-category="economy">产业</button><button data-category="defense">防御</button><button data-category="support">民生</button><button data-category="temple">神庙</button></nav><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
+    <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>可施展</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>可施展</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>可施展</small></button></div>
+    <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
     <div id="toast" role="status" aria-live="polite"></div>
     <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="游戏菜单" hidden><section class="modal-card"><button id="close-modal" aria-label="关闭菜单并继续">×</button><div id="modal-content"></div></section></div>
     <div id="startup-error" role="alert" hidden><strong>游戏未能启动</strong><p id="startup-error-message"></p><button onclick="location.reload()">重新加载</button></div>
