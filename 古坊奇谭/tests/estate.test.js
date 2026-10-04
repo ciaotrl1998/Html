@@ -222,7 +222,9 @@ test('each cardinal gate blocks attackers until destroyed, then permits passage'
     const e = attacker(s,gate.x + dx,gate.y + dy);s.enemies = [e];
     advance(s,2);
     assert(gate.hp > 0 && gate.hp < G.maxHP(gate),`direction ${direction}: attack gate`);
-    assert.equal(e.x,gate.x + dx);assert.equal(e.y,gate.y + dy);
+    assert.equal(Math.round(e.x),gate.x + dx);assert.equal(Math.round(e.y),gate.y + dy);
+    assert((e.x - gate.x) * dx + (e.y - gate.y) * dy > .5,'attacker remains outside the live gate');
+    assert(Math.hypot(e.x-gate.x,e.y-gate.y)<=1.05,'attacker remains within attack range');
     assert.equal(s.buildings[0].hp,G.maxHP(s.buildings[0]));
     gate.hp = 1;e.attack = 0;const revision = s.revision;
     G.step(s,.1);

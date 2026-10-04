@@ -236,7 +236,7 @@
     c.restore();
   }
   function render(canvas,s,cam,selected,options={}){
-    const size=GF.worldSize(s),center=GF.worldCenter(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.estateSeed,size,s.mapGeneration]);
+    const size=GF.worldSize(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.estateSeed,size,s.mapGeneration]);
     if(!ground || groundSeed!==cacheKey){ground=makeGround(s);groundSeed=cacheKey;}
     const c=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,dpr=canvas.width/w;
     c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
@@ -298,9 +298,6 @@
       else if(e.type==='hit'){ellipse(c,x,y,20,20,'#ae674066');}
       else{ellipse(c,x,y,20+f*450,20+f*450,null,e.type==='repair'?'#d0e8a4':'#eee0a6');}
       c.restore();}
-    if(s.phase!=='day'){
-      const d=s.direction,mid=(center+.5)*T,positions=[[mid,25],[size*T-25,mid],[mid,size*T-25],[25,mid]],p=positions[d];c.font='bold 15px serif';c.textAlign='center';c.fillStyle=night?'#efd5a0':'#a96045';c.fillText('⚠ 来袭',p[0],p[1]);
-    }
     c.restore();
     // Two passing swallows, rendered as fine ink strokes.
     if(!night){for(let i=0;i<2;i++){const x=(s.elapsed*8+i*37+w*.67)%(w+100)-50,y=h*.31+Math.sin(s.elapsed*.12+i)*15+i*12;line(c,[[x-6,y-2],[x,y+Math.sin(s.elapsed*4+i)*2],[x+6,y-2]],'#5d73596a',1);}}

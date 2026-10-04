@@ -334,8 +334,10 @@ test('day fifteen starts the later enemy growth segment',()=>{
   const first=enemyAt(1),late=enemyAt(15);
   assert(first&&late);
   assert.equal(first.maxHp,45);assert(Math.abs(first.damage-4.2)<1e-8);
-  assert(Math.abs(late.maxHp-100*Math.pow(1.23,13)*1.24*1.08)<1e-8);
-  assert(Math.abs(late.damage-14*Math.pow(1.12,13)*1.15*1.04)<1e-8);
+  assert(Math.abs(late.maxHp-100*Math.pow(1.23,13)*1.28*1.08)<1e-8);
+  assert(Math.abs(late.damage-14*Math.pow(1.12,13)*1.18*1.04)<1e-8);
+  assert(Math.abs(late.maxHp/first.maxHp-Math.pow(1.23,13)*1.28*1.08/.45)<1e-8);
+  assert(Math.abs(late.damage/first.damage-Math.pow(1.12,13)*1.18*1.04/.3)<1e-8);
   assert(late.speed>first.speed);
 });
 test('skills enforce night and cooldown without incense or building unlocks',()=>{
@@ -373,6 +375,8 @@ test('save restores construction, clock, enemies and cooldowns; rejects malforme
   const s=rich();build(s,'tea',7,8);G.startNight(s);advance(s,4);G.skill(s,'repel');
   const recovered=G.restore(G.serialize(s));assert(recovered);assert.equal(recovered.coins,s.coins);assert.equal(recovered.time,s.time);assert.equal(recovered.buildings.length,2);assert.equal(recovered.enemies.length,s.enemies.length);assert.equal(recovered.cooldowns.repel,s.cooldowns.repel);
   const legacyEnemy=JSON.parse(G.serialize(s));for(const e of legacyEnemy.enemies){delete e.slowed;delete e.slowFactor;}
+  assert.deepEqual(recovered.enemies.map(e=>[e.x,e.y,e.laneX,e.laneY]),s.enemies.map(e=>[e.x,e.y,e.laneX,e.laneY]));
+  assert(recovered.enemies.every(e=>e.path.length===0&&e.pathRevision===-1));
   const migratedEnemy=G.restore(JSON.stringify(legacyEnemy));assert(migratedEnemy);assert(migratedEnemy.enemies.every(e=>e.slowed===0&&e.slowFactor===1));
   advance(recovered,2);assert(recovered.time>s.time);assert.equal(G.restore('{bad'),null);
   const duplicate=JSON.parse(G.serialize(s));duplicate.buildings.push({...duplicate.buildings[0]});assert.equal(G.restore(JSON.stringify(duplicate)),null);

@@ -21,7 +21,7 @@
 #map{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}#map:active{cursor:grabbing}.vignette{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;pointer-events:none;box-shadow:inset 0 0 90px #70816528;background:linear-gradient(#f6f3e92b,transparent 25%,transparent 85%,#89957712)}
 .topbar{position:absolute;top:0;left:0;right:0;height:76px;height:calc(76px + env(safe-area-inset-top,0px));padding:14px 16px 10px;padding-top:calc(14px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:auto repeat(2,minmax(0,1fr));align-items:center;gap:16px;background:#f7f5eef5;border-bottom:1px solid #d6dac9}.seal{font-family:KaiTi,serif;background:var(--red);color:#fff0d3;font-size:23px;padding:2px 5px;line-height:30px;border:3px double #ebd1b5;outline:1px solid var(--red);transform:rotate(-3deg)}.resource{display:flex;align-items:center;gap:7px;min-width:0}.resource>div{display:flex;flex-direction:column;gap:3px}.resource small{font-size:10px;color:#7b886e;letter-spacing:1px}.resource strong{font:24px/26px Georgia,serif;font-variant-numeric:tabular-nums;white-space:nowrap}.coin-icon{display:inline-block;width:21px;height:21px;border:4px solid #c7a15c;border-radius:50%;box-shadow:inset 0 0 0 1px #9c7c40,0 0 0 1px #dbc18c;position:relative;flex-shrink:0}.coin-icon:after{content:"";width:5px;height:5px;border:1px solid #af8946;position:absolute;top:4px;left:4px}
 .daybar{position:absolute;top:86px;top:calc(86px + env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;align-items:center;gap:9px;height:47px;padding:0 9px 0 13px;background:#f8f6ebed;border:1px solid #d9ddc9;border-radius:5px}.daybar strong{font-size:12px;font-weight:500;white-space:nowrap}#phase-icon{font-size:24px;color:#ac8741}.day-progress{height:3px;flex:1;background:#dadfca;min-width:15px;margin-left:5px}.day-progress i{display:block;height:100%;background:#b99c61;width:100%}#countdown{font:11px Georgia,serif;color:#7f8b74;min-width:30px;text-align:right;white-space:nowrap}#menu-pause{width:35px;height:35px;flex-shrink:0;border-radius:4px;background:#e9ecdc;color:#4c654b;font-size:17px;letter-spacing:1px;margin-left:2px}
-#night-warning{position:absolute;top:145px;top:calc(145px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);white-space:nowrap;max-width:94%;font-size:10px;color:#9d6240;background:#f6e9cee8;border:1px solid #dac49b70;border-radius:4px;padding:7px 12px;pointer-events:none}
+#invasion-indicators{position:absolute;inset:0;z-index:6;pointer-events:none}.invasion-arrow{position:absolute;width:24px;height:24px;pointer-events:none}.invasion-arrow svg{display:block;width:100%;height:100%;fill:#b35b50;pointer-events:none}.invasion-arrow.north{top:141px;top:calc(141px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%)}.invasion-arrow.east{right:2px;top:50%;transform:translateY(-50%)}.invasion-arrow.east svg{transform:rotate(90deg)}.invasion-arrow.south{bottom:2px;left:50%;transform:translateX(-50%)}.invasion-arrow.south svg{transform:rotate(180deg)}.invasion-arrow.west{left:2px;top:50%;transform:translateY(-50%)}.invasion-arrow.west svg{transform:rotate(-90deg)}.at-title>#invasion-indicators{visibility:hidden}
 .bottom-panel{position:absolute;bottom:0;left:0;right:0;height:var(--panel-height);height:calc(var(--panel-height) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:#f8f5eafa;border:1px solid #d4d8c4;border-bottom:0;border-radius:12px 12px 0 0;box-shadow:0 -6px 28px #35443018;z-index:5;animation:panel-in .17s ease-out}.panel-grip{width:32px;height:3px;border-radius:3px;background:#cbd2bd;margin:8px auto 0}.panel-heading{height:38px;padding:0 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #dfe2d2}#plot-label{font-size:12px;font-weight:600}.panel-heading button{margin-left:auto;background:none;color:#8a947c;font-size:23px;width:32px;height:32px;padding:0}.categories{height:41px;display:flex;align-items:center;gap:28px;padding:0 16px}.categories button{height:100%;background:transparent;color:#86917a;font-size:12px;padding:0 4px;position:relative}.categories button.active{color:#3f5e43;font-weight:600}.categories button.active:after{content:"";position:absolute;height:2px;left:3px;right:3px;bottom:5px;background:#6c865f}.cards{display:flex;gap:9px;overflow:auto;padding:3px 16px 12px;scrollbar-width:none;cursor:grab;touch-action:pan-x;-webkit-overflow-scrolling:touch}.cards::-webkit-scrollbar{display:none}.build-card{position:relative;width:119px;flex:0 0 119px;height:170px;border:1px solid #d3dac2;border-radius:5px;background:#f2f2e6;text-align:left;padding:0 11px;overflow:hidden}.build-card:active{transform:scale(.97)}.build-card img{display:block;width:90px;height:78px;object-fit:contain;margin:-2px auto 1px;pointer-events:none}.build-card strong{display:block;font-family:KaiTi,serif;font-size:18px;font-weight:500;letter-spacing:1px}.card-price{display:block;font-size:11px;color:#9e8147;margin:6px 0}.card-price .coin-icon{width:10px;height:10px;border-width:2px;vertical-align:-1px;margin-right:3px}.card-price .coin-icon:after{width:3px;height:3px;left:1px;top:1px}.card-effect{font-size:9px;color:#7f8e75;white-space:nowrap}.chain-tag{position:absolute;top:7px;right:8px;font-size:9px;color:#9ca58b;writing-mode:vertical-rl}.build-card.locked{background:#eeeee0;border-color:#dcded0}.build-card.locked img{filter:grayscale(.8);opacity:.48}.build-card.locked strong{color:#989f89}.build-card.poor .card-price{color:var(--red)}.card-reason{position:absolute;top:35px;left:5px;right:5px;text-align:center;font-size:10px;padding:4px;background:#f1f0e6e8;color:#828a75}.shake{animation:shake .28s}
 .detail{display:flex;flex-wrap:wrap;align-content:flex-start;gap:12px;padding:15px 16px;height:219px}.detail-art{position:relative;width:75px;flex:0 0 75px;height:112px;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse,#dfe6cb88,transparent 70%)}.detail-art img{width:95px;height:98px;object-fit:contain}.detail-art>span{position:absolute;bottom:0;font-size:8px;letter-spacing:1px;color:#9e8a55}.detail-info{flex:1;min-width:0;height:112px}.detail-title{display:flex;gap:6px;align-items:center;margin-bottom:5px}.detail-title h3{font-size:20px;font-weight:500}.level-badge{font-size:8px;color:#9f874a;border:1px solid #cec79d;padding:3px 5px;white-space:nowrap}.detail-description{font-size:9px;color:#87937c;margin-bottom:9px}.health-row{display:flex;align-items:center;gap:6px;font-size:8px;color:#849077}.health-track{width:70px;height:4px;background:#dfe1d0}.health-track i{height:100%;display:block;background:#789165}.upgrade-stats{display:flex;gap:16px;margin-top:10px;font-size:8px;color:#8c9580}.upgrade-stats strong{display:block;color:#4d684b;font-size:11px;font-weight:400;margin-top:3px}.detail-actions{display:flex;width:100%;flex-direction:row;align-items:center;gap:12px;height:55px}.upgrade-button{flex:1;background:var(--green);color:#f3efd9;border-radius:4px;padding:9px;font-size:11px}.upgrade-button small{display:block;margin-top:4px;opacity:.7;font-size:8px}.upgrade-button.blocked{background:#a9b39b;color:#f5f3e9}.demolish-button{margin-left:auto;font-size:10px;color:#a48770;background:none;padding:5px 2px;white-space:nowrap}
 #skills{position:absolute;right:12px;bottom:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;gap:7px;z-index:4}.has-panel #skills{bottom:calc(var(--panel-height) + 15px);bottom:calc(var(--panel-height) + 15px + env(safe-area-inset-bottom,0px))}#skills button{width:59px;background:#f4eddce8;border:1px solid #c2ac78;border-radius:6px;padding:7px 3px;box-shadow:0 3px 15px #0001}#skills i{display:block;margin:0 auto 4px;width:28px;height:28px;line-height:26px;font-family:KaiTi,serif;font-style:normal;font-size:20px;color:#a4773d;border:1px solid #b99f69;border-radius:50%}#skills strong{display:block;font-size:10px;font-weight:400}#skills small{display:block;font-size:8px;color:#927d55;margin-top:4px}#skills button.unavailable{filter:grayscale(.6);opacity:.7}
@@ -41,8 +41,16 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 .cost-number{font-weight:400}.upgrade-button{display:flex;align-items:center;justify-content:center;gap:12px}.upgrade-button small{display:block;margin:0;opacity:1}.upgrade-button .cost-parts{display:flex;align-items:center;justify-content:center;gap:10px}.upgrade-button .cost-part{display:inline-flex;align-items:center;gap:4px}.upgrade-button .coin-icon,.upgrade-button .material-icon{width:14px;height:14px}.upgrade-button .coin-icon{border-width:3px}.upgrade-button .coin-icon:after{top:2px;left:2px;width:3px;height:3px}.upgrade-button .cost-number.insufficient{color:#9d382f}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .build-card.poor .card-price{color:#9e8147}.card-price .cost-number.insufficient{color:#9d382f}
+.detail-actions.bulk{gap:8px;align-items:stretch}.detail-actions.bulk .upgrade-button{flex:1 1 0;min-width:0;flex-direction:column;gap:4px;padding:5px 4px;font-size:12px;line-height:1.2}.detail-actions.bulk .upgrade-button small{width:100%;min-width:0;font-size:10px}.detail-actions.bulk .cost-parts{flex-wrap:wrap;gap:2px 6px}.detail-actions.bulk .cost-part{min-width:0;gap:3px}.detail-actions.bulk .cost-number{overflow-wrap:anywhere}.detail-actions.bulk .coin-icon,.detail-actions.bulk .material-icon{width:12px;height:12px}.detail-actions.bulk .coin-icon:after{top:1px;left:1px}@media(max-width:360px){.detail-actions.bulk .upgrade-button small{font-size:9px}.detail-actions.bulk .cost-parts{gap:2px 4px}}
 .detail{gap:12px;padding:12px 14px}.detail-art{width:65px;flex-basis:65px}.detail-title{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 8px;align-items:center;margin-bottom:9px}.detail-title h3{font-size:20px;white-space:nowrap}.detail-title .level-badge{justify-self:start;font-size:10px}.detail-title .demolish-button{justify-self:end;font-size:11px;margin:0}.detail-revenue{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:wrap;color:#526d45}.detail-revenue strong{font-size:18px;font-weight:700;line-height:1.2}.detail-revenue small{font-size:10px}.detail-revenue .income-bonus{font-size:12px}.detail-revenue .coin-icon,.detail-revenue .material-icon{width:15px;height:15px}.detail-revenue .coin-icon{border-width:3px}.detail-revenue .coin-icon:after{width:3px;height:3px;top:2px;left:2px}.detail-description{font-size:11px;line-height:1.4;margin-bottom:7px}.health-row{font-size:10px;flex-wrap:wrap;gap:5px}.health-track{flex:1;min-width:25px;height:5px}.upgrade-stats{font-size:10px;gap:12px;margin-top:10px;flex-wrap:wrap}.upgrade-stats strong{font-size:13px;font-weight:600;margin-top:4px}.detail-info{height:auto;min-height:130px}.detail-actions{height:48px}.upgrade-button{font-size:13px}.upgrade-button small{font-size:11px}@media(max-width:360px){.detail{gap:9px;padding-left:11px;padding-right:11px}.detail-art{width:56px;flex-basis:56px}.detail-title h3{font-size:18px}.detail-revenue strong{font-size:17px}.detail-revenue .income-bonus{font-size:11px}.upgrade-stats{gap:10px}.upgrade-stats strong{font-size:12px}}
-.detail{display:grid;grid-template-columns:65px minmax(0,1fr);grid-template-rows:30px 105px 48px;align-content:start;gap:8px 12px}.detail-title{grid-column:1/-1;display:flex;flex-wrap:nowrap;gap:7px;margin:0;min-width:0}.detail-title h3{flex-shrink:0}.detail-title .level-badge{flex-shrink:0}.detail-title .demolish-button{margin-left:auto;flex-shrink:0}.detail-revenue{justify-content:flex-start;flex-wrap:nowrap;white-space:nowrap}.detail-art{height:105px}.detail-info{min-height:0;height:auto;padding-top:8px}.detail-actions{grid-column:1/-1}.detail-revenue strong{white-space:nowrap}@media(max-width:360px){.detail{grid-template-columns:56px minmax(0,1fr);gap:8px 9px}.detail-title{gap:4px}.detail-title h3{font-size:17px}.detail-title .level-badge{font-size:9px;padding:3px 4px}.detail-revenue{gap:3px}.detail-revenue strong{font-size:16px}.detail-revenue .income-bonus{font-size:10px}.detail-title .demolish-button{font-size:10px}}
+.bottom-panel{bottom:100px;bottom:calc(100px + env(safe-area-inset-bottom,0px));height:var(--panel-height);padding-bottom:0;border-bottom:1px solid #d4d8c4;border-radius:12px}
+#skills,.has-panel #skills{bottom:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5}
+.detail{display:grid;grid-template-columns:104px minmax(0,1fr);grid-template-rows:30px minmax(0,1fr) 56px;align-content:start;gap:8px 12px;height:calc(var(--panel-height) - 49px);padding:12px 14px}
+.detail-title{grid-column:1/-1;display:flex;flex-wrap:nowrap;gap:7px;margin:0;min-width:0}.detail-title h3{flex-shrink:0}.detail-title .level-badge{flex-shrink:0}.detail-title .demolish-button{margin-left:auto;flex-shrink:0}.detail-revenue{justify-content:flex-start;flex-wrap:nowrap;white-space:nowrap}.detail-revenue strong{white-space:nowrap}
+.detail-art{grid-column:1;grid-row:2/4;width:104px;height:auto;min-height:0;overflow:hidden;align-items:flex-start;padding-top:2px}.detail-art img{width:128px;height:150px;max-width:none;flex-shrink:0;object-fit:contain}.detail-art>span{bottom:7px;font-size:10px}
+.detail-info{grid-column:2;grid-row:2;min-height:0;height:auto;overflow:auto;padding-top:4px}.health-row{gap:4px;font-size:9px}.upgrade-stats{gap:8px;font-size:9px;margin-top:8px}.upgrade-stats strong{font-size:12px}
+.detail-actions,.detail-actions.bulk{grid-column:2;grid-row:3;display:flex;gap:8px;height:56px;align-items:stretch;min-width:0}.detail-actions .upgrade-button,.detail-actions.bulk .upgrade-button{flex:1 1 0;min-width:0;flex-direction:column;gap:5px;height:56px;padding:5px 4px;font-size:12px;line-height:1.2}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{width:100%;min-width:0;font-size:10px;margin:0}.detail-actions .cost-parts{flex-wrap:wrap;gap:2px 5px}.detail-actions .cost-part{min-width:0;gap:3px}.detail-actions .cost-number{overflow-wrap:anywhere}.detail-actions .coin-icon,.detail-actions .material-icon{width:12px;height:12px}.detail-actions .coin-icon:after{top:1px;left:1px}
+@media(max-width:360px){.detail{grid-template-columns:88px minmax(0,1fr);gap:8px 9px;padding-left:11px;padding-right:11px}.detail-art{width:88px}.detail-art img{width:112px;height:144px}.detail-title{gap:4px}.detail-title h3{font-size:17px}.detail-title .level-badge{font-size:9px;padding:3px 4px}.detail-revenue{gap:3px}.detail-revenue strong{font-size:16px}.detail-revenue .income-bonus{font-size:10px}.detail-title .demolish-button{font-size:10px}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{font-size:9px}}
 
 </style>
   
@@ -76,13 +84,18 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
     </section>
     <canvas id="map" aria-label="古坊地图"></canvas>
     <div class="vignette" aria-hidden="true"></div>
+    <div id="invasion-indicators" hidden>
+      <div class="invasion-arrow north" data-direction="0" role="img" aria-label="北方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow east" data-direction="1" role="img" aria-label="东方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow south" data-direction="2" role="img" aria-label="南方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow west" data-direction="3" role="img" aria-label="西方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+    </div>
     <header class="topbar">
       <span class="seal" aria-label="古坊奇谭">坊</span>
       <div class="resource"><i class="coin-icon" aria-hidden="true"></i><div><small>铜钱</small><strong id="coins">200</strong></div></div>
       <div class="resource"><i class="material-icon" aria-hidden="true"></i><div><small>工材</small><strong id="materials">120</strong></div></div>
     </header>
     <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
-    <div id="night-warning" hidden></div>
     <div id="autoplay-status" hidden><strong>托管中</strong><span id="autoplay-action"></span></div>
     <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>可施展</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>可施展</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>可施展</small></button></div>
     <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
@@ -691,7 +704,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const d = DEFS[b.type], base = d.upgradeBase || d.cost, multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1) * Math.pow(b.type === "shrine" ? 1.08 : d.income ? 1.12 : 1, Math.max(0, b.level - (b.type === "shrine" ? 7 : 4)));
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
-  function upgradeReason(s, b) {
+  function upgradeReason(s, b, ignoreFunds = false) {
     if (!b || !s.buildings.includes(b)) return "建筑已不存在";
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可升级庄园内建筑";
     if (s.over) return "古坊已失守";
@@ -705,7 +718,38 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) {
       for (const id of d.required) if (!adjacent(s, b.x, b.y).some((n) => n.type === id && n.level >= b.level + 1)) return "需邻" + DEFS[id].name + " Lv" + (b.level + 1);
     }
-    return shortage(s, upgradeCost(b));
+    return ignoreFunds ? "" : shortage(s, upgradeCost(b));
+  }
+  function upgradeOptions(s, b) {
+    const result = { levels: 0, cost: { coins: 0, materials: 0 } };
+    if (!b || !s.buildings.includes(b)) return result;
+    const mapping = new Map(s.buildings.map((n) => [n, __spreadValues({}, n)]));
+    const shadow = __spreadProps(__spreadValues({}, s), { buildings: [...mapping.values()] }), target = mapping.get(b);
+    while (!upgradeReason(shadow, target, true)) {
+      const cost = upgradeCost(target), level = target.level + 1;
+      result.levels++;
+      result.cost.coins += cost.coins;
+      result.cost.materials += cost.materials;
+      for (const n of target.type === "gate" ? shadow.buildings.filter((n2) => n2.type === "gate") : [target]) n.level = level;
+      if (target.type === "gate") shadow.gateLevel = level;
+    }
+    return result;
+  }
+  function bulkUpgrade(s, b) {
+    const options = upgradeOptions(s, b), cost = { coins: 0, materials: 0 };
+    let levels = 0, reason = "";
+    if (!options.levels) reason = upgradeReason(s, b);
+    for (let i = 0; i < options.levels; i++) {
+      const nextCost = upgradeCost(b), result = upgrade(s, b);
+      if (!result.ok) {
+        reason = result.reason;
+        break;
+      }
+      levels++;
+      cost.coins += nextCost.coins;
+      cost.materials += nextCost.materials;
+    }
+    return { ok: levels > 0, levels, reason, costspent: cost };
   }
   function upgrade(s, b) {
     const reason = upgradeReason(s, b);
@@ -810,23 +854,44 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     missions(s);
   }
+  function spawnPlots(s, direction) {
+    var _a;
+    if (!Number.isInteger(direction) || direction < 0 || direction > 3) return [];
+    const size = worldSize(s), center = worldCenter(s), plots = [];
+    for (let pos = center - 2; pos <= center + 2; pos++) {
+      const [x, y] = [[pos, 0], [size - 1, pos], [pos, size - 1], [0, pos]][direction];
+      if (terrain(x, y, s) !== "water" && walkable(s, x, y) && !((_a = at(s, x, y)) == null ? void 0 : _a.hp) && findPath(s, { x, y }).length) plots.push({ x, y });
+    }
+    return plots;
+  }
+  function enemyLane(e) {
+    if (e.laneX === void 0) e.laneX = (Math.imul(e.id, 1664525) + 1013904223 >>> 0) / 4294967296 * 0.5 - 0.25;
+    if (e.laneY === void 0) e.laneY = (Math.imul(e.id, 2246822519) + 3266489917 >>> 0) / 4294967296 * 0.5 - 0.25;
+  }
   function spawnEnemy(s) {
-    var _a, _b, _c, _d, _e;
-    const w = s.wave, i = w.spawned++, dir = w.boss ? i % 4 : s.direction;
-    const SIZE2 = worldSize(s), pos = 3 + Math.floor(random(s) * (SIZE2 - 6));
-    const gate = (_a = estate(s)) == null ? void 0 : _a.gates[dir];
-    const p = [[(_b = gate == null ? void 0 : gate.x) != null ? _b : pos, 0], [SIZE2 - 1, (_c = gate == null ? void 0 : gate.y) != null ? _c : pos], [(_d = gate == null ? void 0 : gate.x) != null ? _d : pos, SIZE2 - 1], [0, (_e = gate == null ? void 0 : gate.y) != null ? _e : pos]][dir];
+    const w = s.wave, i = w.spawned, dir = w.boss ? i % 4 : s.direction;
+    const plots = spawnPlots(s, dir);
+    if (!plots.length) {
+      w.spawned++;
+      return;
+    }
+    w.spawned++;
+    const SIZE2 = worldSize(s), p = plots[Math.floor(random(s) * plots.length)];
+    const jitter = (value) => value === 0 ? random(s) * 0.2 : value === SIZE2 - 1 ? value - random(s) * 0.2 : value + (random(s) * 2 - 1) * 0.28;
+    const x = jitter(p.x), y = jitter(p.y), laneX = random(s) * 0.5 - 0.25, laneY = random(s) * 0.5 - 0.25;
     const type = s.day >= 5 && i % 4 === 2 ? "fox" : s.day >= 4 && i % 3 === 1 ? "ghost" : "bandit";
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (0.45 + 0.55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.24, Math.min(7, late)) * Math.pow(1.18, Math.max(0, late - 7)) * (1 + 0.08 * late);
+    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (0.45 + 0.55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + 0.08 * late);
     s.enemies.push({
       id: s.nextId++,
       type,
-      x: p[0],
-      y: p[1],
+      x,
+      y,
+      laneX,
+      laneY,
       hp: d.hp * scale * (boss ? 4.5 : 1),
       maxHp: d.hp * scale * (boss ? 4.5 : 1),
-      damage: d.damage * (0.3 + 0.7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.15, Math.min(7, late)) * Math.pow(1.12, Math.max(0, late - 7)) * (1 + 0.04 * late) * (boss ? 2 : 1),
+      damage: d.damage * (0.3 + 0.7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.18, Math.min(7, late)) * Math.pow(1.15, Math.max(0, late - 7)) * (1 + 0.04 * late) * (boss ? 2 : 1),
       speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)),
       attack: 0,
       repelled: 0,
@@ -863,8 +928,26 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       path.unshift({ x: n % SIZE2, y: Math.floor(n / SIZE2) });
       n = prev[n];
     }
-    if (Math.hypot(e.x - startX, e.y - startY) > 0.03) path.unshift({ x: startX, y: startY });
     return path;
+  }
+  function safeEnemySegment(s, e, x, y) {
+    const size = worldSize(s), sx = Math.round(e.x), sy = Math.round(e.y);
+    const clear = (tx, ty) => {
+      var _a;
+      return walkable(s, tx, ty) && !(((_a = at(s, tx, ty)) == null ? void 0 : _a.hp) > 0 && (tx !== sx || ty !== sy));
+    };
+    const samples = Math.max(1, Math.ceil(Math.hypot(x - e.x, y - e.y) / 0.05));
+    let lastX = sx, lastY = sy;
+    for (let i = 0; i <= samples; i++) {
+      const px = i === samples ? x : e.x + (x - e.x) * i / samples, py = i === samples ? y : e.y + (y - e.y) * i / samples;
+      if (px < 0 || py < 0 || px > size - 1 || py > size - 1) return false;
+      const tx = Math.round(px), ty = Math.round(py);
+      if (!clear(tx, ty)) return false;
+      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
+      lastX = tx;
+      lastY = ty;
+    }
+    return true;
   }
   function buildingGuard(s, b) {
     let guard = 0;
@@ -911,6 +994,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     });
   }
   function combat(s, dt) {
+    s.projectiles = s.projectiles.filter((p) => {
+      if (p.type !== "tower") return true;
+      const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
+      if (!target) return false;
+      p.tx = target.x;
+      p.ty = target.y;
+      if (p.life > 0) return true;
+      target.hp -= p.damage;
+      return false;
+    });
+    collectDead(s);
     const w = s.wave;
     if (!w) return;
     w.timer -= dt;
@@ -952,8 +1046,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (d.splash) for (const e of s.enemies) {
           if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === "fox" ? 1.3 : 1);
         }
-        else target.hp -= damage * (b.type === "barracks" && target.type === "fox" ? 1.5 : 1);
-        s.projectiles.push({ x: b.type === "barracks" ? b.soldier.x : b.x, y: b.type === "barracks" ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: 0.3, total: 0.3 });
+        else if (b.type !== "tower") target.hp -= damage * (b.type === "barracks" && target.type === "fox" ? 1.5 : 1);
+        s.projectiles.push(__spreadValues({ x: b.type === "barracks" ? b.soldier.x : b.x, y: b.type === "barracks" ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: 0.3, total: 0.3 }, b.type === "tower" ? { targetId: target.id, damage } : {}));
       }
     }
     collectDead(s);
@@ -966,29 +1060,72 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         e.repelled -= dt;
         continue;
       }
+      enemyLane(e);
+      const size = worldSize(s), laneGoal = (p2) => ({ x: Math.max(0, Math.min(size - 1, p2.x + e.laneX)), y: Math.max(0, Math.min(size - 1, p2.y + e.laneY)) });
       if (e.pathRevision !== s.revision || !e.path.length) {
         e.path = findPath(s, e);
         e.pathRevision = s.revision;
       }
-      const p = e.path[0];
+      let p = e.path[0];
       if (!p) continue;
-      const b = at(s, p.x, p.y), dist = Math.hypot(p.x - e.x, p.y - e.y);
-      if (b && b.hp > 0 && dist <= 1.05) {
+      let b = at(s, p.x, p.y), goal = laneGoal(p);
+      const attacking = b && b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) <= 1.05;
+      if (attacking) {
         if (e.attack === 0) {
           hurtBuilding(s, b, e.damage);
           e.attack = 1;
           s.effects.push({ type: "hit", x: b.x, y: b.y, life: 0.2, total: 0.2 });
         }
-        continue;
       }
       const slow = e.slowed > 0 ? e.slowFactor : 1;
-      const step2 = Math.min(dist, e.speed * dt * slow);
-      if (dist > 1e-3) {
-        e.x += (p.x - e.x) / dist * step2;
-        e.y += (p.y - e.y) / dist * step2;
+      if (!attacking) {
+        if (!((b == null ? void 0 : b.hp) > 0) && !safeEnemySegment(s, e, goal.x, goal.y)) {
+          const tile = { x: Math.round(e.x), y: Math.round(e.y) };
+          if (tile.x !== p.x || tile.y !== p.y) {
+            e.path.unshift(tile);
+            p = tile;
+            b = at(s, p.x, p.y);
+            goal = laneGoal(p);
+          }
+        }
+        const dist = Math.hypot(goal.x - e.x, goal.y - e.y), step2 = Math.min(dist, e.speed * dt * slow);
+        if (dist > 1e-3) {
+          const x = step2 === dist ? goal.x : e.x + (goal.x - e.x) / dist * step2, y = step2 === dist ? goal.y : e.y + (goal.y - e.y) / dist * step2;
+          if (safeEnemySegment(s, e, x, y)) {
+            e.x = x;
+            e.y = y;
+          } else {
+            const tile = { x: Math.round(e.x), y: Math.round(e.y) };
+            if (tile.x !== p.x || tile.y !== p.y) e.path.unshift(tile);
+          }
+        }
+        if (Math.hypot(goal.x - e.x, goal.y - e.y) <= 1e-3) e.path.shift();
       }
-      if (dist <= step2 + 1e-3) e.path.shift();
+      const dx = (attacking ? b.x : goal.x) - e.x, dy = (attacking ? b.y : goal.y) - e.y, length = Math.hypot(dx, dy);
+      if (length > 1e-3) {
+        const nx = -dy / length, ny = dx / length;
+        let push = 0;
+        for (const other of s.enemies) {
+          if (other === e || other.hp <= 0) continue;
+          const ox = e.x - other.x, oy = e.y - other.y, distance = Math.hypot(ox, oy);
+          if (distance < 0.3) push += (Math.sign(ox * nx + oy * ny) || (e.id < other.id ? -1 : 1)) * (1 - distance / 0.3);
+        }
+        const offset = Math.max(-1, Math.min(1, push)) * 0.08 * dt;
+        const x = e.x + nx * offset, y = e.y + ny * offset;
+        if (offset && (!attacking || Math.hypot(x - b.x, y - b.y) <= 1.05) && safeEnemySegment(s, e, x, y)) {
+          e.x = x;
+          e.y = y;
+        }
+      }
     }
+    s.projectiles = s.projectiles.filter((p) => {
+      if (p.type !== "tower") return true;
+      const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
+      if (!target) return false;
+      p.tx = target.x;
+      p.ty = target.y;
+      return true;
+    });
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
   function skillReason(s, id) {
@@ -1022,10 +1159,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.elapsed += dt;
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
     for (const group of [s.effects, s.projectiles]) {
-      for (const e of group) e.life -= dt;
+      for (const e of group) {
+        e.life -= dt;
+        if (e.type === "tower" && e.life < 1e-8) e.life = 0;
+      }
     }
     s.effects = s.effects.filter((e) => e.life > 0);
-    s.projectiles = s.projectiles.filter((e) => e.life > 0);
+    s.projectiles = s.projectiles.filter((e) => e.type === "tower" || e.life > 0);
     for (const b of [...s.buildings]) if (dryFarm(s, b)) hurtBuilding(s, b, maxHP(b) * 0.05 * dt, true);
     settleIncome(s, dt);
     if (s.phase === "day") {
@@ -1040,7 +1180,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     missions(s);
   }
   function serialize(s) {
-    return JSON.stringify(__spreadProps(__spreadValues({}, s), { events: [], projectiles: [], effects: [] }));
+    const projectiles = s.projectiles.filter((p) => p.type === "tower" && p.life > 0 && s.enemies.some((e) => e.id === p.targetId && e.hp > 0)).map(({ type, targetId, damage, life, total, x, y, tx, ty }) => ({ type, targetId, damage, life, total, x, y, tx, ty }));
+    return JSON.stringify(__spreadProps(__spreadValues({}, s), { events: [], projectiles, effects: [] }));
   }
   function restore(raw) {
     var _a;
@@ -1110,6 +1251,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!s.over && s.buildings.filter((b) => b.type === "shrine").length !== 1 || s.buildings.filter((b) => b.type === "shrine").length > 1) return null;
       if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 120 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
+        enemyLane(e);
+        if (![e.laneX, e.laneY].every((n) => Number.isFinite(n) && Math.abs(n) <= 0.3)) return null;
         if (e.slowed === void 0) e.slowed = 0;
         if (e.slowFactor === void 0) e.slowFactor = 1;
         if (!Object.prototype.hasOwnProperty.call(ENEMIES, e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE2 || !finite(e.y) || e.y >= SIZE2 || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
@@ -1124,6 +1267,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         e.path = [];
         e.pathRevision = -1;
+      }
+      if (s.projectiles === void 0) s.projectiles = [];
+      if (!Array.isArray(s.projectiles) || s.projectiles.length > 1e3) return null;
+      const projectiles = [];
+      for (const p of s.projectiles) {
+        if (!p || p.type !== "tower" || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > 0.3 || p.total !== 0.3 || ![p.x, p.y, p.tx, p.ty].every((n) => finite(n) && n < SIZE2)) return null;
+        const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
+        if (target) projectiles.push({ type: "tower", targetId: p.targetId, damage: p.damage, life: p.life, total: 0.3, x: p.x, y: p.y, tx: target.x, ty: target.y });
       }
       const occupiedLand = new Set(s.buildings.filter((b) => terrain(b.x, b.y, s) !== "water").map((b) => b.x + "," + b.y));
       let moved = 0, stranded = 0;
@@ -1148,7 +1299,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (moved) s.events.push({ text: "旧存档中 " + moved + " 栋建筑已迁出水域", kind: "info" });
       if (stranded) s.events.push({ text: "岸地已满，" + stranded + " 栋旧建筑暂保留原位", kind: "warning" });
       s.effects = [];
-      s.projectiles = [];
+      s.projectiles = projectiles;
       s.revision = 1;
       s.version = land ? 5 : 4;
       s.nextId = Math.max(0, ...s.buildings.map((b) => b.id), ...s.enemies.map((e) => e.id || 0)) + 1;
@@ -1157,7 +1308,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return null;
     }
   }
-  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
+  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
 });
 
 (function() {
@@ -1720,7 +1871,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
-    const size = GF.worldSize(s), center = GF.worldCenter(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, s.mapGeneration]);
+    const size = GF.worldSize(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, s.mapGeneration]);
     if (!ground || groundSeed !== cacheKey) {
       ground = makeGround(s);
       groundSeed = cacheKey;
@@ -1946,13 +2097,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ellipse(c, x, y, 20 + f * 450, 20 + f * 450, null, e.type === "repair" ? "#d0e8a4" : "#eee0a6");
       }
       c.restore();
-    }
-    if (s.phase !== "day") {
-      const d = s.direction, mid = (center + 0.5) * T, positions = [[mid, 25], [size * T - 25, mid], [mid, size * T - 25], [25, mid]], p = positions[d];
-      c.font = "bold 15px serif";
-      c.textAlign = "center";
-      c.fillStyle = night ? "#efd5a0" : "#a96045";
-      c.fillText("⚠ 来袭", p[0], p[1]);
     }
     c.restore();
     if (!night) {
@@ -2507,7 +2651,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     else if (b.type === "tao") stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? "" : " → " + Math.min(150, 15 * nextF) + "%"}</strong></div>`;
     else if (b.type === "zhong") stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? "" : " → " + Math.round(GF.zhongSlow(next) * 100) + "%"}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === "materials" ? "工材" : "铜钱"}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? "" : " → " + rateText(d.aura * GF.auraFactor(next) * 100) + "%"}</strong></div>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === "gate" ? name + " · 守护庄园" : d.chain ? d.chain + "业兴旺" : d.required ? d.resource === "materials" ? "百工汇聚" : "财源广进" : d.cat === "defense" ? "守望古坊" : "人间烟火"}</span></div><div class="detail-info"><p class="detail-description" ${description ? "" : "hidden"}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级至 Lv." + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === "gate" ? name + " · 守护庄园" : d.chain ? d.chain + "业兴旺" : d.required ? d.resource === "materials" ? "百工汇聚" : "财源广进" : d.cat === "defense" ? "守望古坊" : "人间烟火"}</span></div><div class="detail-info"><p class="detail-description" ${description ? "" : "hidden"}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
@@ -2517,7 +2661,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     const buildableDefs = Object.values(GF.DEFS).filter((d) => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""}`;
+    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""}`;
     $("plot-label").textContent = b ? b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y, state)] + " · 可兴建";
     $("build-view").hidden = !!b;
     $("detail-view").hidden = !b;
@@ -2534,19 +2678,32 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (b) {
       $("detail-hp").textContent = Math.ceil(Math.max(0, b.hp)) + " / " + GF.maxHP(b);
       $("detail-hp-fill").style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + "%";
-      const reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
+      const options = GF.upgradeOptions(state, b), reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
       $("upgrade-building").classList.toggle("blocked", !!reason);
       $("upgrade-building").setAttribute("aria-disabled", String(!!reason));
       $("upgrade-building").title = reason || "";
+      $("upgrade-building").firstChild.textContent = max ? "已臻化境" : "升级";
+      const bulk = $("bulk-upgrade-building");
+      bulk.hidden = options.levels < 2;
+      bulk.parentElement.classList.toggle("bulk", !bulk.hidden);
+      bulk.firstChild.textContent = "连升" + options.levels + "级";
+      bulk.classList.toggle("blocked", !!reason);
+      bulk.setAttribute("aria-disabled", String(!!reason));
+      bulk.title = reason || "";
       const demolishReason = GF.demolishReason(state, b);
       $("demolish-building").disabled = !!demolishReason;
       $("demolish-building").title = demolishReason || "";
       $("demolish-building").textContent = demolishReason ? "不可拆除" : "拆除";
       if (b.type === "gate") {
         $("detail-view").querySelector(".detail-description").textContent = b.hp <= 0 ? "城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园" : "四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次";
-        $("upgrade-building").firstChild.textContent = max ? "已臻化境" : "统一升级四门至 Lv." + (b.level + 1);
       }
-      $("upgrade-label").innerHTML = max ? "" : costHTML(GF.upgradeCost(b), true);
+      for (const [id, html] of [["upgrade-label", max ? "" : costHTML(GF.upgradeCost(b), true)], ["bulk-upgrade-label", bulk.hidden ? "" : costHTML(options.cost, true)]]) {
+        const label = $(id);
+        if (label._costHTML !== html) {
+          label.innerHTML = html;
+          label._costHTML = html;
+        }
+      }
     } else for (const el of $("cards").children) {
       const reason = GF.buildReason(state, el.dataset.build, x, y);
       el.classList.toggle("locked", !!reason);
@@ -2564,7 +2721,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d;
+    const invasion = started && state.phase !== "day";
+    const allDirections = state.phase === "dusk" ? state.day % 7 === 0 : !!((_a = state.wave) == null ? void 0 : _a.boss);
+    $("invasion-indicators").hidden = !invasion;
+    for (const el of $("invasion-indicators").children) el.hidden = !invasion || !allDirections && Number(el.dataset.direction) !== state.direction;
     $("autoplay-status").hidden = !autoplay || !started;
     $("autoplay-status").querySelector("strong").textContent = paused ? "托管已暂停" : "托管中";
     $("autoplay-action").textContent = (pilot == null ? void 0 : pilot.lastAction) || "准备经营";
@@ -2573,10 +2734,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("day-label").textContent = "第 " + state.day + " 日 · " + { day: "白昼", dusk: "黄昏", night: "长夜" }[state.phase] + (state.day % 7 === 0 ? " · 灯会" : "");
     $("phase-icon").textContent = { day: "☀", dusk: "◒", night: "☾" }[state.phase];
     const remaining = state.phase === "day" ? GF.DAY - state.time : GF.DUSK - state.time;
-    $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_a = state.wave) == null ? void 0 : _a.total) || 1) - (((_b = state.wave) == null ? void 0 : _b.spawned) || 0) + state.enemies.length) / (((_c = state.wave) == null ? void 0 : _c.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
-    $("countdown").textContent = state.phase === "night" ? state.enemies.length + " 敌" : Math.max(0, Math.ceil(remaining)) + "s";
-    $("night-warning").hidden = state.phase === "day";
-    $("night-warning").textContent = state.phase === "dusk" ? ["北", "东", "南", "西"][state.direction] + "方即将来袭" : (((_d = state.wave) == null ? void 0 : _d.boss) ? "四方来袭" : ["北", "东", "南", "西"][state.direction] + "方来袭") + " · " + (((_e = state.wave) == null ? void 0 : _e.spawned) || 0) + " / " + (((_f = state.wave) == null ? void 0 : _f.total) || 0);
+    $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_b = state.wave) == null ? void 0 : _b.total) || 1) - (((_c = state.wave) == null ? void 0 : _c.spawned) || 0) + state.enemies.length) / (((_d = state.wave) == null ? void 0 : _d.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
+    $("countdown").textContent = state.phase === "night" ? "" : Math.max(0, Math.ceil(remaining)) + "s";
     $("skills").hidden = state.phase !== "night" || state.over;
     for (const el of document.querySelectorAll("[data-skill]")) {
       const id = el.dataset.skill, reason = GF.skillReason(state, id);
@@ -2650,6 +2809,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       handleEvents();
       save();
       refresh();
+    } else if (e.target.closest("#bulk-upgrade-building")) {
+      const r = GF.bulkUpgrade(state, b);
+      if (!r.ok) return blocked($("bulk-upgrade-building"), r.reason);
+      tone();
+      panelKey = "";
+      handleEvents();
+      save();
+      refresh();
+      toast((b.type === "gate" ? "四座城门" : GF.name(b)) + " · 已连升" + r.levels + "级" + (r.reason ? " · " + r.reason : ""), r.reason ? "warning" : "info");
     } else if (e.target.closest("#demolish-building")) {
       const reason = GF.demolishReason(state, b);
       if (reason) return blocked($("demolish-building"), reason);
@@ -2709,6 +2877,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("menu-pause").setAttribute("aria-expanded", "false");
     updateStartMenu();
     $("start-single").focus();
+    refresh();
   }
   function enterGame(next) {
     autoplay = false;

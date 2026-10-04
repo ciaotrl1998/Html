@@ -1,6 +1,6 @@
 # Estate Balance Baseline
 
-Current results are in **Faster Late Enemy Growth** at the end of this report. All preceding measurements, formulas, survival targets and artifact references are historical and describe their explicitly fingerprinted versions.
+Current results are in **New Stronger Current Enemy Growth** at the end of this report. All preceding measurements, formulas, survival targets and artifact references are historical and describe their explicitly fingerprinted versions.
 
 Measured on 2026-10-04 with `scripts/estate-balance-sim.js` against current working-tree game values. Game SHA-256: `55a221b7bcaca8db97b5cb4bc14e7e5fd46c5536adbd7331c2d1c94d5120313d`. This fingerprint identifies the measured version even if tuning continues concurrently.
 
@@ -402,3 +402,41 @@ To isolate this curve change, an inline Node comparison loaded the current game 
 The fresh seed 1 reinforcement run clears 24 nights and defeats on D25 at second 3270.25, versus 22 nights and defeat D23 at second 2947.50 by default. All four additional towers are paid builds on D15 at seconds 1707/1708/1709/1710. Pre-D15 histories and action audits are deeply identical between these two policies. The test retains the measured longer survival and legal delayed construction checks; the historical requirement that reinforcement clears D30 is removed. Only seed 1 reinforcement was measured here, so this result does not establish a five-seed reinforcement benefit or a universal survival target.
 
 Verification: `npm test` passed all 80 tests with zero failures, including exact enemy curves, five-seed three-night no-skills opening, the revised middle-game baseline and seed 1 reinforcement comparison. Only `tests/game.test.js`, `tests/balance.test.js` and this report were edited for this update. No build was run and no historical artifact was changed. Outcomes retain the simulator's fixed-policy and small-sample limitations.
+
+## New Stronger Current Enemy Growth
+
+Measured on 2026-10-04 against working-tree `js/game.js` SHA-256 `5196a3ed5a3da25c2393404a77e9c3427ca61d43814208cbaba630559799803f`. This section supersedes earlier current curves and survival expectations. Production source already contained the stronger curve and was not edited; concurrent working-tree changes were preserved. Historical measurements and artifacts above remain historical.
+
+With `late = max(0,D-14)` and `opening = min(1,(D-1)/9)`, non-boss stats use:
+
+- HP: `base HP * (0.45 + 0.55*opening) * 1.23^min(13,D-1) * 1.28^min(7,late) * 1.22^max(0,late-7) * (1 + 0.08*late)`.
+- Damage: `base damage * (0.3 + 0.7*opening) * 1.12^min(13,D-1) * 1.18^min(7,late) * 1.15^max(0,late-7) * (1 + 0.04*late)`.
+
+Days 1-14 keep their previous formulas. Relative to the preceding 1.24/1.18 HP and 1.15/1.12 damage segments, D21 HP is `(1.28/1.24)^7 = 1.248872` times (+24.89%) and damage is `(1.18/1.15)^7 = 1.197538` times (+19.75%). D30 adds nine days of the later segment: HP is `(1.28/1.24)^7 * (1.22/1.18)^9 = 1.685848` times (+68.58%), and damage is `(1.18/1.15)^7 * (1.15/1.12)^9 = 1.519174` times (+51.92%). These compare curves at the same day, not outcomes across different maps.
+
+### Default Five-Seed Runs
+
+Fresh exported `run(30,'balanced',seed)` calls used default current maps (map generation 2), skills enabled, two towers per gate, one optional fortune, no reinforcement and a 36,000-second timeout. CLI reproduction from the project directory:
+
+```sh
+node scripts/estate-balance-sim.js --days=30 --seeds=1,7,42,73193,99991 --style=balanced
+npm test
+```
+
+| Seed | Completed nights | Defeat night | Elapsed seconds | First ordinary Lv9 | Shrine Lv15 | Full planned Lv9 |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| 1 | 22 | 23 | 2952.25 | unreached | unreached | unreached |
+| 7 | 19 | 20 | 2538.25 | unreached | unreached | unreached |
+| 42 | 19 | 20 | 2635.75 | unreached | unreached | unreached |
+| 73193 | 21 | 22 | 2967.25 | unreached | unreached | unreached |
+| 99991 | 21 | 22 | 2933.25 | unreached | unreached | unreached |
+
+All five ended in defeat, with no timeouts and 0/5 D30 clears. All five default-map runs completed D15; this is an observation, not a retained D15 survival guarantee. Only seeds 1, 73193 and 99991 cleared D20; defeat on D20 does not clear that night. No progression date was reached before defeat.
+
+### Tests And Reinforcement
+
+Exact enemy tests now cover the stronger D1-D31 curves, explicit D15/D21/D30 stats, ratios to D1 and later segment transitions. The historical-map late regression retains five-seed survival through all fourteen opening nights, pressure checks and no ordinary Lv9 before D20, without hardcoding D15 completion by seed.
+
+The first `npm test` run passed 89/90 tests. Its only failure was the old requirement that seed 1 reinforcement survive to a strictly later day. Fresh historical-map (`mapGeneration:1`) comparisons instead both defeated on D23: default at 2956.75 seconds and reinforcement at 2975.00 seconds. The four extra towers were paid builds on D15 at seconds 1707/1708/1709/1710. The revised test checks pre-D15 history identity, fourteen completed opening nights, delayed progression and legal delayed construction; it no longer promises an extra survival day.
+
+Final verification: `npm test` passed all 90 tests with zero failures, and `git diff --check` passed. Only `tests/game.test.js`, `tests/balance.test.js` and this report were edited for this update, using `apply_patch`. No build was run, no production source was edited and no historical artifact was changed. Default-map runs and historical-map regressions are explicitly separate measurements; the fixed heuristic and five-seed sample do not establish a universal survival guarantee.

@@ -60,10 +60,10 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       const resource=G.DEFS[type].resource==='materials'?'工材':'铜钱';
       assert.equal(await incomePage.locator('.upgrade-stats div').filter({hasText:resource+' / 秒'}).locator('strong').textContent(),total.toFixed(1)+(max?'':' → '+G.income(s,next).toFixed(1)),type+' income upgrade preview');
       if(max){
-        assert.equal(await incomePage.locator('#upgrade-building').innerText(),'已臻化境');
+        assert.equal(await incomePage.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'已臻化境');
         assert.equal(await incomePage.locator('#upgrade-label .cost-number').count(),0);
       }else{
-        assert((await incomePage.locator('#upgrade-building').innerText()).includes('升级至 Lv.'+(level+1)));
+        assert.equal(await incomePage.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'升级');
         const cost=G.upgradeCost(b);
         for(const [resource,icon] of [['coins','coin-icon'],['materials','material-icon']]){
           const number=incomePage.locator(`#upgrade-label .cost-part:has(.${icon}) .cost-number`);
@@ -170,7 +170,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
        assert.equal(await page.locator('[data-build="tea"] .card-effect').innerText(),'铜钱 +2/秒');
       await page.locator('[data-build="tea"]').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='tea').length),1);
       assert(Math.abs((await page.locator('#panel').boundingBox()).height-height)<.1);
-      assert((await page.locator('#upgrade-building').innerText()).includes('升级至 Lv.2'));
+      assert.equal(await page.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'升级');
       assert.equal(await page.locator('#upgrade-label .material-icon').count(),1);
       assert.equal(await page.locator('#upgrade-label').evaluate(el=>/铜钱|工材|差/.test(el.textContent)),false,'Upgrade cost uses icons without resource names or shortage text');
       assert.equal(await page.locator('#upgrade-label .cost-number.insufficient').count(),1,'Only the insufficient resource number turns red');
@@ -383,11 +383,11 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         assert(await page.locator('#demolish-building').isDisabled());
          if(i===0){
            assert.equal(await page.locator('#upgrade-building').getAttribute('aria-disabled'),'false');
-           assert((await page.locator('#upgrade-building').innerText()).includes('统一升级四门至 Lv.2'));
+            assert.equal(await page.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'升级');
            await page.locator('#upgrade-building').click();
            assert.deepEqual(await page.evaluate(()=>({gateLevel:Gufang.state.gateLevel,levels:Gufang.state.buildings.filter(b=>b.type==='gate').map(b=>b.level),coins:Gufang.state.coins,materials:Gufang.state.materials})),{gateLevel:2,levels:[2,2,2,2],coins:10000-gateCost.coins,materials:10000-gateCost.materials});
          }
-         assert((await page.locator('#upgrade-building').innerText()).includes('统一升级四门至 Lv.3'));
+         assert.equal(await page.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'升级');
         assert.equal(await page.evaluate(g=>GF.at(Gufang.state,g.x,g.y).level,gate),2);
         assert.equal(await page.locator('.level-badge').textContent(),'Lv.2');
         await page.locator('#close-panel').click();

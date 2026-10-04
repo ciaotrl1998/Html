@@ -109,14 +109,14 @@
     else if (b.type === 'tao') stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? '' : ' → ' + Math.min(150, 15 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'zhong') stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? '' : ' → ' + Math.round(GF.zhongSlow(next) * 100) + '%'}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === 'materials' ? '工材' : '铜钱'}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? '' : ' → ' + rateText(d.aura * GF.auraFactor(next) * 100) + '%'}</strong></div>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === 'gate' ? name + ' · 守护庄园' : d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><p class="detail-description" ${description ? '' : 'hidden'}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === 'gate' ? name + ' · 守护庄园' : d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><p class="detail-description" ${description ? '' : 'hidden'}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级'}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
     if (GF.isWall(state, x, y) || !GF.owns(state, x, y)) { closePanel(); return; }
     const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${b?.id || ''}`;
+    const key = `${x},${y},${b?.id || ''},${b?.level || ''}`;
     $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
     $('build-view').hidden = !!b; $('detail-view').hidden = !b;
     if (key !== panelKey) {
@@ -132,16 +132,25 @@
     }
     if (b) {
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
-      const reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
+      const options = GF.upgradeOptions(state, b), reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
       $('upgrade-building').title = reason || '';
+      $('upgrade-building').firstChild.textContent = max ? '已臻化境' : '升级';
+      const bulk = $('bulk-upgrade-building');
+      bulk.hidden = options.levels < 2;
+      bulk.parentElement.classList.toggle('bulk', !bulk.hidden);
+      bulk.firstChild.textContent = '连升' + options.levels + '级';
+      bulk.classList.toggle('blocked', !!reason); bulk.setAttribute('aria-disabled', String(!!reason));
+      bulk.title = reason || '';
       const demolishReason = GF.demolishReason(state, b);
       $('demolish-building').disabled = !!demolishReason; $('demolish-building').title = demolishReason || ''; $('demolish-building').textContent = demolishReason ? '不可拆除' : '拆除';
       if (b.type === 'gate') {
         $('detail-view').querySelector('.detail-description').textContent = b.hp <= 0 ? '城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园' : '四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次';
-        $('upgrade-building').firstChild.textContent = max ? '已臻化境' : '统一升级四门至 Lv.' + (b.level + 1);
       }
-      $('upgrade-label').innerHTML = max ? '' : costHTML(GF.upgradeCost(b), true);
+      for (const [id, html] of [['upgrade-label', max ? '' : costHTML(GF.upgradeCost(b), true)], ['bulk-upgrade-label', bulk.hidden ? '' : costHTML(options.cost, true)]]) {
+        const label = $(id);
+        if (label._costHTML !== html) { label.innerHTML = html; label._costHTML = html; }
+      }
     } else for (const el of $('cards').children) {
       const reason = GF.buildReason(state, el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差 ')); el.setAttribute('aria-disabled', String(!!reason));
       const label = el.querySelector('.card-reason'); label.hidden = !reason || reason.startsWith('差 '); label.textContent = label.hidden ? '' : reason;
@@ -154,6 +163,10 @@
   }
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
+    const invasion = started && state.phase !== 'day';
+    const allDirections = state.phase === 'dusk' ? state.day % 7 === 0 : !!state.wave?.boss;
+    $('invasion-indicators').hidden = !invasion;
+    for (const el of $('invasion-indicators').children) el.hidden = !invasion || (!allDirections && Number(el.dataset.direction) !== state.direction);
     $('autoplay-status').hidden = !autoplay || !started;
     $('autoplay-status').querySelector('strong').textContent = paused ? '托管已暂停' : '托管中';
     $('autoplay-action').textContent = pilot?.lastAction || '准备经营';
@@ -162,9 +175,7 @@
     $('phase-icon').textContent = { day: '☀', dusk: '◒', night: '☾' }[state.phase];
     const remaining = state.phase === 'day' ? GF.DAY - state.time : GF.DUSK - state.time;
     $('day-fill').style.width = state.phase === 'night' ? Math.max(0, 100 * ((state.wave?.total || 1) - (state.wave?.spawned || 0) + state.enemies.length) / (state.wave?.total || 1)) + '%' : Math.max(0, remaining / (state.phase === 'day' ? GF.DAY : GF.DUSK) * 100) + '%';
-    $('countdown').textContent = state.phase === 'night' ? state.enemies.length + ' 敌' : Math.max(0, Math.ceil(remaining)) + 's';
-    $('night-warning').hidden = state.phase === 'day';
-    $('night-warning').textContent = state.phase === 'dusk' ? ['北','东','南','西'][state.direction] + '方即将来袭' : (state.wave?.boss ? '四方来袭' : ['北','东','南','西'][state.direction] + '方来袭') + ' · ' + (state.wave?.spawned || 0) + ' / ' + (state.wave?.total || 0);
+    $('countdown').textContent = state.phase === 'night' ? '' : Math.max(0, Math.ceil(remaining)) + 's';
     $('skills').hidden = state.phase !== 'night' || state.over;
     for (const el of document.querySelectorAll('[data-skill]')) {
       const id = el.dataset.skill, reason = GF.skillReason(state, id);
@@ -197,6 +208,10 @@
       const r = GF.upgrade(state, b); if (!r.ok) return blocked($('upgrade-building'), r.reason);
       tone(); toast(GF.name(b) + ' · 升至 Lv.' + b.level);
       panelKey = ''; handleEvents(); save(); refresh();
+    } else if (e.target.closest('#bulk-upgrade-building')) {
+      const r = GF.bulkUpgrade(state, b); if (!r.ok) return blocked($('bulk-upgrade-building'), r.reason);
+      tone(); panelKey = ''; handleEvents(); save(); refresh();
+      toast((b.type === 'gate' ? '四座城门' : GF.name(b)) + ' · 已连升' + r.levels + '级' + (r.reason ? ' · ' + r.reason : ''), r.reason ? 'warning' : 'info');
     } else if (e.target.closest('#demolish-building')) {
       const reason = GF.demolishReason(state, b); if (reason) return blocked($('demolish-building'), reason);
       demolishTarget = b;
@@ -235,6 +250,7 @@
     $('game').classList.add('at-title');
     $('menu-pause').setAttribute('aria-expanded', 'false');
     updateStartMenu(); $('start-single').focus();
+    refresh();
   }
   function enterGame(next) {
     autoplay = false; pilot = null;

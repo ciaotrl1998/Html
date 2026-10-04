@@ -449,7 +449,7 @@
     const d = DEFS[b.type], base = d.upgradeBase || d.cost, multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1) * Math.pow(b.type === 'shrine' ? 1.08 : d.income ? 1.12 : 1, Math.max(0, b.level - (b.type === 'shrine' ? 7 : 4)));
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
-  function upgradeReason(s, b) {
+  function upgradeReason(s, b, ignoreFunds = false) {
     if (!b || !s.buildings.includes(b)) return '建筑已不存在';
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return '仅可升级庄园内建筑';
     if (s.over) return '古坊已失守';
@@ -460,7 +460,31 @@
     }
     if (d.prev && !adjacent(s, b.x, b.y).some(n => n.type === d.prev && n.level >= b.level + 1)) return '需邻' + DEFS[d.prev].name + ' Lv' + (b.level + 1);
     if (d.required) for (const id of d.required) if (!adjacent(s, b.x, b.y).some(n => n.type === id && n.level >= b.level + 1)) return '需邻' + DEFS[id].name + ' Lv' + (b.level + 1);
-    return shortage(s, upgradeCost(b));
+    return ignoreFunds ? '' : shortage(s, upgradeCost(b));
+  }
+  function upgradeOptions(s, b) {
+    const result = { levels: 0, cost: { coins: 0, materials: 0 } };
+    if (!b || !s.buildings.includes(b)) return result;
+    const mapping = new Map(s.buildings.map(n => [n, { ...n }]));
+    const shadow = { ...s, buildings: [...mapping.values()] }, target = mapping.get(b);
+    while (!upgradeReason(shadow, target, true)) {
+      const cost = upgradeCost(target), level = target.level + 1;
+      result.levels++; result.cost.coins += cost.coins; result.cost.materials += cost.materials;
+      for (const n of target.type === 'gate' ? shadow.buildings.filter(n => n.type === 'gate') : [target]) n.level = level;
+      if (target.type === 'gate') shadow.gateLevel = level;
+    }
+    return result;
+  }
+  function bulkUpgrade(s, b) {
+    const options = upgradeOptions(s, b), cost = { coins: 0, materials: 0 };
+    let levels = 0, reason = '';
+    if (!options.levels) reason = upgradeReason(s, b);
+    for (let i = 0; i < options.levels; i++) {
+      const nextCost = upgradeCost(b), result = upgrade(s, b);
+      if (!result.ok) { reason = result.reason; break; }
+      levels++; cost.coins += nextCost.coins; cost.materials += nextCost.materials;
+    }
+    return { ok: levels > 0, levels, reason, costspent: cost };
   }
   function upgrade(s, b) {
     const reason = upgradeReason(s, b); if (reason) return { ok: false, reason };
@@ -534,16 +558,32 @@
     if (s.day === 8 && !s.celebrated) { s.celebrated = true; event(s, '七夜长明！古坊立稳根基，可继续经营抵御更强来敌', 'victory'); }
     missions(s);
   }
+  function spawnPlots(s, direction) {
+    if (!Number.isInteger(direction) || direction < 0 || direction > 3) return [];
+    const size = worldSize(s), center = worldCenter(s), plots = [];
+    for (let pos = center - 2; pos <= center + 2; pos++) {
+      const [x, y] = [[pos, 0], [size - 1, pos], [pos, size - 1], [0, pos]][direction];
+      if (terrain(x, y, s) !== 'water' && walkable(s, x, y) && !at(s, x, y)?.hp && findPath(s, { x, y }).length) plots.push({ x, y });
+    }
+    return plots;
+  }
+  function enemyLane(e) {
+    // Old saves and injected enemies gain stable lanes without advancing the simulation RNG.
+    if (e.laneX === undefined) e.laneX = ((Math.imul(e.id, 1664525) + 1013904223) >>> 0) / 4294967296 * .5 - .25;
+    if (e.laneY === undefined) e.laneY = ((Math.imul(e.id, 2246822519) + 3266489917) >>> 0) / 4294967296 * .5 - .25;
+  }
   function spawnEnemy(s) {
-    const w = s.wave, i = w.spawned++, dir = w.boss ? i % 4 : s.direction;
-    const SIZE = worldSize(s), pos = 3 + Math.floor(random(s) * (SIZE - 6));
-    const gate = estate(s)?.gates[dir];
-    const p = [[gate?.x ?? pos, 0], [SIZE - 1, gate?.y ?? pos], [gate?.x ?? pos, SIZE - 1], [0, gate?.y ?? pos]][dir];
+    const w = s.wave, i = w.spawned, dir = w.boss ? i % 4 : s.direction;
+    const plots = spawnPlots(s, dir); if (!plots.length) { w.spawned++; return; }
+    w.spawned++;
+    const SIZE = worldSize(s), p = plots[Math.floor(random(s) * plots.length)];
+    const jitter = value => value === 0 ? random(s) * .2 : value === SIZE - 1 ? value - random(s) * .2 : value + (random(s) * 2 - 1) * .28;
+    const x = jitter(p.x), y = jitter(p.y), laneX = random(s) * .5 - .25, laneY = random(s) * .5 - .25;
     const type = s.day >= 5 && i % 4 === 2 ? 'fox' : s.day >= 4 && i % 3 === 1 ? 'ghost' : 'bandit';
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (.45 + .55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.24, Math.min(7, late)) * Math.pow(1.18, Math.max(0, late - 7)) * (1 + .08 * late);
-    s.enemies.push({ id: s.nextId++, type, x: p[0], y: p[1], hp: d.hp * scale * (boss ? 4.5 : 1), maxHp: d.hp * scale * (boss ? 4.5 : 1),
-      damage: d.damage * (.3 + .7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.15, Math.min(7, late)) * Math.pow(1.12, Math.max(0, late - 7)) * (1 + .04 * late) * (boss ? 2 : 1), speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)), attack: 0, repelled: 0, slowed: 0, slowFactor: 1, boss, path: [], pathRevision: -1 });
+    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (.45 + .55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + .08 * late);
+    s.enemies.push({ id: s.nextId++, type, x, y, laneX, laneY, hp: d.hp * scale * (boss ? 4.5 : 1), maxHp: d.hp * scale * (boss ? 4.5 : 1),
+      damage: d.damage * (.3 + .7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.18, Math.min(7, late)) * Math.pow(1.15, Math.max(0, late - 7)) * (1 + .04 * late) * (boss ? 2 : 1), speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)), attack: 0, repelled: 0, slowed: 0, slowFactor: 1, boss, path: [], pathRevision: -1 });
   }
   // Breadth-first search selects the shortest route to the shrine, regardless of building durability.
   function findPath(s, e) {
@@ -562,9 +602,23 @@
     }
     if (prev[goal] === -1) return [];
     const path = []; let n = goal; while (n !== start && n !== -1) { path.unshift({ x: n % SIZE, y: Math.floor(n / SIZE) }); n = prev[n]; }
-    // Return to the nearest grid center before turning after a route invalidation.
-    if (Math.hypot(e.x - startX, e.y - startY) > .03) path.unshift({ x: startX, y: startY });
     return path;
+  }
+  function safeEnemySegment(s, e, x, y) {
+    const size = worldSize(s), sx = Math.round(e.x), sy = Math.round(e.y);
+    const clear = (tx, ty) => walkable(s, tx, ty) && !(at(s, tx, ty)?.hp > 0 && (tx !== sx || ty !== sy));
+    const samples = Math.max(1, Math.ceil(Math.hypot(x - e.x, y - e.y) / .05));
+    let lastX = sx, lastY = sy;
+    for (let i = 0; i <= samples; i++) {
+      const px = i === samples ? x : e.x + (x - e.x) * i / samples, py = i === samples ? y : e.y + (y - e.y) * i / samples;
+      if (px < 0 || py < 0 || px > size - 1 || py > size - 1) return false;
+      const tx = Math.round(px), ty = Math.round(py);
+      if (!clear(tx, ty)) return false;
+      // A tiny diagonal corner crossing must not slip between consecutive samples.
+      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
+      lastX = tx; lastY = ty;
+    }
+    return true;
   }
   function buildingGuard(s, b) {
     let guard = 0;
@@ -604,6 +658,16 @@
     });
   }
   function combat(s, dt) {
+    s.projectiles = s.projectiles.filter(p => {
+      if (p.type !== 'tower') return true;
+      const target = s.enemies.find(e => e.id === p.targetId && e.hp > 0);
+      if (!target) return false;
+      p.tx = target.x; p.ty = target.y;
+      if (p.life > 0) return true;
+      target.hp -= p.damage;
+      return false;
+    });
+    collectDead(s);
     const w = s.wave; if (!w) return;
     w.timer -= dt;
     if (w.spawned < w.total && w.timer <= 0) { spawnEnemy(s); w.timer += Math.max(.28, 1.35 - s.day * .045); }
@@ -631,8 +695,8 @@
       if (target && b.cooldown <= 0) {
         b.cooldown = d.interval; const damage = d.damage * factor(b) * defenseBoost(s);
         if (d.splash) for (const e of s.enemies) { if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === 'fox' ? 1.3 : 1); }
-        else target.hp -= damage * (b.type === 'barracks' && target.type === 'fox' ? 1.5 : 1);
-        s.projectiles.push({ x: b.type === 'barracks' ? b.soldier.x : b.x, y: b.type === 'barracks' ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: .3, total: .3 });
+        else if (b.type !== 'tower') target.hp -= damage * (b.type === 'barracks' && target.type === 'fox' ? 1.5 : 1);
+        s.projectiles.push({ x: b.type === 'barracks' ? b.soldier.x : b.x, y: b.type === 'barracks' ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: .3, total: .3, ...(b.type === 'tower' ? { targetId: target.id, damage } : {}) });
       }
     }
     collectDead(s);
@@ -642,18 +706,56 @@
       e.slowed = Math.max(0, (e.slowed || 0) - dt);
       if (e.slowed === 0) e.slowFactor = 1;
       if (e.repelled > 0) { e.repelled -= dt; continue; }
-      if (e.pathRevision !== s.revision || !e.path.length) { e.path = findPath(s, e); e.pathRevision = s.revision; }
-      const p = e.path[0]; if (!p) continue;
-      const b = at(s, p.x, p.y), dist = Math.hypot(p.x - e.x, p.y - e.y);
-      if (b && b.hp > 0 && dist <= 1.05) {
+      enemyLane(e);
+      const size = worldSize(s), laneGoal = p => ({ x: Math.max(0, Math.min(size - 1, p.x + e.laneX)), y: Math.max(0, Math.min(size - 1, p.y + e.laneY)) });
+      if (e.pathRevision !== s.revision || !e.path.length) {
+        e.path = findPath(s, e); e.pathRevision = s.revision;
+      }
+      let p = e.path[0]; if (!p) continue;
+      let b = at(s, p.x, p.y), goal = laneGoal(p);
+      const attacking = b && b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) <= 1.05;
+      if (attacking) {
         if (e.attack === 0) { hurtBuilding(s, b, e.damage); e.attack = 1; s.effects.push({ type: 'hit', x: b.x, y: b.y, life: .2, total: .2 }); }
-        continue;
       }
       const slow = e.slowed > 0 ? e.slowFactor : 1;
-      const step = Math.min(dist, e.speed * dt * slow);
-      if (dist > .001) { e.x += (p.x - e.x) / dist * step; e.y += (p.y - e.y) / dist * step; }
-      if (dist <= step + .001) e.path.shift();
+      if (!attacking) {
+        // Rejoin the lane inside the current tile before a turn that would cut a corner.
+        if (!(b?.hp > 0) && !safeEnemySegment(s, e, goal.x, goal.y)) {
+          const tile = { x: Math.round(e.x), y: Math.round(e.y) };
+          if (tile.x !== p.x || tile.y !== p.y) { e.path.unshift(tile); p = tile; b = at(s, p.x, p.y); goal = laneGoal(p); }
+        }
+        const dist = Math.hypot(goal.x - e.x, goal.y - e.y), step = Math.min(dist, e.speed * dt * slow);
+        if (dist > .001) {
+          const x = step === dist ? goal.x : e.x + (goal.x - e.x) / dist * step, y = step === dist ? goal.y : e.y + (goal.y - e.y) / dist * step;
+          if (safeEnemySegment(s, e, x, y)) { e.x = x; e.y = y; }
+          else {
+            const tile = { x: Math.round(e.x), y: Math.round(e.y) };
+            if (tile.x !== p.x || tile.y !== p.y) e.path.unshift(tile);
+          }
+        }
+        if (Math.hypot(goal.x - e.x, goal.y - e.y) <= .001) e.path.shift();
+      }
+      // Small perpendicular nudges spread a queue without changing its forward speed.
+      const dx = (attacking ? b.x : goal.x) - e.x, dy = (attacking ? b.y : goal.y) - e.y, length = Math.hypot(dx, dy);
+      if (length > .001) {
+        const nx = -dy / length, ny = dx / length; let push = 0;
+        for (const other of s.enemies) {
+          if (other === e || other.hp <= 0) continue;
+          const ox = e.x - other.x, oy = e.y - other.y, distance = Math.hypot(ox, oy);
+          if (distance < .3) push += (Math.sign(ox * nx + oy * ny) || (e.id < other.id ? -1 : 1)) * (1 - distance / .3);
+        }
+        const offset = Math.max(-1, Math.min(1, push)) * .08 * dt;
+        const x = e.x + nx * offset, y = e.y + ny * offset;
+        if (offset && (!attacking || Math.hypot(x - b.x, y - b.y) <= 1.05) && safeEnemySegment(s, e, x, y)) { e.x = x; e.y = y; }
+      }
     }
+    s.projectiles = s.projectiles.filter(p => {
+      if (p.type !== 'tower') return true;
+      const target = s.enemies.find(e => e.id === p.targetId && e.hp > 0);
+      if (!target) return false;
+      p.tx = target.x; p.ty = target.y;
+      return true;
+    });
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
   function skillReason(s, id) {
@@ -675,8 +777,8 @@
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, .25); s.time += dt; s.elapsed += dt;
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
-    for (const group of [s.effects, s.projectiles]) { for (const e of group) e.life -= dt; }
-    s.effects = s.effects.filter(e => e.life > 0); s.projectiles = s.projectiles.filter(e => e.life > 0);
+    for (const group of [s.effects, s.projectiles]) { for (const e of group) { e.life -= dt; if (e.type === 'tower' && e.life < 1e-8) e.life = 0; } }
+    s.effects = s.effects.filter(e => e.life > 0); s.projectiles = s.projectiles.filter(e => e.type === 'tower' || e.life > 0);
     for (const b of [...s.buildings]) if (dryFarm(s, b)) hurtBuilding(s, b, maxHP(b) * .05 * dt, true);
     settleIncome(s, dt);
     if (s.phase === 'day') {
@@ -687,7 +789,11 @@
     else if (s.phase === 'night') combat(s, dt);
     missions(s);
   }
-  function serialize(s) { return JSON.stringify({ ...s, events: [], projectiles: [], effects: [] }); }
+  function serialize(s) {
+    const projectiles = s.projectiles.filter(p => p.type === 'tower' && p.life > 0 && s.enemies.some(e => e.id === p.targetId && e.hp > 0))
+      .map(({ type, targetId, damage, life, total, x, y, tx, ty }) => ({ type, targetId, damage, life, total, x, y, tx, ty }));
+    return JSON.stringify({ ...s, events: [], projectiles, effects: [] });
+  }
   function restore(raw) {
     try {
       const s = JSON.parse(raw), finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
@@ -748,6 +854,8 @@
       if ((!s.over && s.buildings.filter(b => b.type === 'shrine').length !== 1) || s.buildings.filter(b => b.type === 'shrine').length > 1) return null;
       if (s.phase === 'night' && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 120 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
+        enemyLane(e);
+        if (![e.laneX, e.laneY].every(n => Number.isFinite(n) && Math.abs(n) <= .3)) return null;
         if (e.slowed === undefined) e.slowed = 0;
         if (e.slowFactor === undefined) e.slowFactor = 1;
         if (!Object.prototype.hasOwnProperty.call(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
@@ -760,6 +868,14 @@
           e.x = nearest.x; e.y = nearest.y;
         }
         e.path = []; e.pathRevision = -1;
+      }
+      if (s.projectiles === undefined) s.projectiles = [];
+      if (!Array.isArray(s.projectiles) || s.projectiles.length > 1000) return null;
+      const projectiles = [];
+      for (const p of s.projectiles) {
+        if (!p || p.type !== 'tower' || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > .3 || p.total !== .3 || ![p.x, p.y, p.tx, p.ty].every(n => finite(n) && n < SIZE)) return null;
+        const target = s.enemies.find(e => e.id === p.targetId && e.hp > 0);
+        if (target) projectiles.push({ type: 'tower', targetId: p.targetId, damage: p.damage, life: p.life, total: .3, x: p.x, y: p.y, tx: target.x, ty: target.y });
       }
       // Older saves could contain buildings in water. Move them without losing their level or earnings.
       // Reserve shore cells for farms before relocating other buildings.
@@ -780,10 +896,10 @@
       s.events = retired ? [{ text: '旧存档中 ' + retired + ' 栋已退役建筑被移除', kind: 'info' }] : [];
       if (moved) s.events.push({ text: '旧存档中 ' + moved + ' 栋建筑已迁出水域', kind: 'info' });
       if (stranded) s.events.push({ text: '岸地已满，' + stranded + ' 栋旧建筑暂保留原位', kind: 'warning' });
-      s.effects = []; s.projectiles = []; s.revision = 1; s.version = land ? 5 : 4;
+      s.effects = []; s.projectiles = projectiles; s.revision = 1; s.version = land ? 5 : 4;
       s.nextId = Math.max(0, ...s.buildings.map(b => b.id), ...s.enemies.map(e => e.id || 0)) + 1;
       return s;
     } catch { return null; }
   }
-  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, findPath, skillReason, skill, step, serialize, restore };
+  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
 });

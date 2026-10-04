@@ -38,13 +38,18 @@
     </section>
     <canvas id="map" aria-label="古坊地图"></canvas>
     <div class="vignette" aria-hidden="true"></div>
+    <div id="invasion-indicators" hidden>
+      <div class="invasion-arrow north" data-direction="0" role="img" aria-label="北方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow east" data-direction="1" role="img" aria-label="东方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow south" data-direction="2" role="img" aria-label="南方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+      <div class="invasion-arrow west" data-direction="3" role="img" aria-label="西方来袭" hidden><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M0 24L18 0L36 24Z"/></svg></div>
+    </div>
     <header class="topbar">
       <span class="seal" aria-label="古坊奇谭">坊</span>
       <div class="resource"><i class="coin-icon" aria-hidden="true"></i><div><small>铜钱</small><strong id="coins">200</strong></div></div>
       <div class="resource"><i class="material-icon" aria-hidden="true"></i><div><small>工材</small><strong id="materials">120</strong></div></div>
     </header>
     <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
-    <div id="night-warning" hidden></div>
     <div id="autoplay-status" hidden><strong>托管中</strong><span id="autoplay-action"></span></div>
     <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>可施展</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>可施展</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>可施展</small></button></div>
     <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
