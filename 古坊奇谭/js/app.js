@@ -3,15 +3,18 @@
   const $ = id => document.getElementById(id), canvas = $('map'), KEY = 'gufang-qitan-save-v1';
   let storageWarning = false, saved = null;
   try { saved = localStorage.getItem(KEY); } catch { storageWarning = true; }
-  let state = (saved && GF.restore(saved)) || GF.createState(), selected = null, paused = false, sound = false;
+  const SOUND_KEY = 'gufang-qitan-sound';
+  let state = (saved && GF.restore(saved)) || GF.createState(), selected = null, paused = true, sound = false, started = false;
+  try { sound = localStorage.getItem(SOUND_KEY) === 'on'; } catch { /* Settings are optional. */ }
   let saveStatus = storageWarning ? '本地存档不可用' : '本地自动存档';
+  let autoplay = false, pilot = null;
   let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = new Map();
   const view = { width: 390, height: 844 };
   function center() {
     cam.zoom = Math.max(.55, Math.min(.86, view.width / 550));
-    cam.x = view.width * .5 - (GF.CENTER + .5) * GFArt.T * cam.zoom;
-    cam.y = view.height * .48 - (GF.CENTER + .5) * GFArt.T * cam.zoom;
+    cam.x = view.width * .5 - (GF.worldCenter(state) + .5) * GFArt.T * cam.zoom;
+    cam.y = view.height * .48 - (GF.worldCenter(state) + .5) * GFArt.T * cam.zoom;
     clampCamera();
   }
   function resize() {
@@ -22,7 +25,7 @@
     if (!canvas._ready) { center(); canvas._ready = true; } else { cam.x += (view.width - oldW) / 2; cam.y += (view.height - oldH) / 2; clampCamera(); }
   }
   function clampCamera() {
-    const size = GF.SIZE * GFArt.T * cam.zoom, marginX = view.width * .3, marginY = Math.min(view.height * .3, 160);
+    const size = GF.worldSize(state) * GFArt.T * cam.zoom, marginX = view.width * .3, marginY = Math.min(view.height * .3, 160);
     cam.x = Math.max(marginX - size, Math.min(view.width - marginX, cam.x));
     cam.y = Math.max(150 - size, Math.min(view.height - marginY, cam.y));
   }
@@ -38,11 +41,15 @@
     try { audioContext ||= new (window.AudioContext || window.webkitAudioContext)(); audioContext.resume(); const o = audioContext.createOscillator(), g = audioContext.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(kind === 'build' ? 560 : kind === 'skill' ? 260 : 740, audioContext.currentTime); o.frequency.exponentialRampToValueAtTime(kind === 'skill' ? 80 : 880, audioContext.currentTime + .15); g.gain.setValueAtTime(.055, audioContext.currentTime); g.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + .22); o.connect(g); g.connect(audioContext.destination); o.start(); o.stop(audioContext.currentTime + .24); } catch { /* Audio is optional. */ }
   }
   function save(notify = false) {
+    if (!started) return false;
     try { localStorage.setItem(KEY, GF.serialize(state)); saveStatus = '已存档 · 此设备'; if($('save-status'))$('save-status').textContent=saveStatus; if (notify) toast('已保存'); return true; }
     catch { saveStatus = '本地存档不可用'; if($('save-status'))$('save-status').textContent=saveStatus; if (notify || !storageWarning) toast('无法保存，可在菜单导出存档', 'warning'); storageWarning = true; return false; }
   }
   function select(x, y) {
-    if (x < 0 || y < 0 || x >= GF.SIZE || y >= GF.SIZE || state.over) return;
+    if (!started) return;
+    if (x < 0 || y < 0 || x >= GF.worldSize(state) || y >= GF.worldSize(state) || state.over) return;
+    if (GF.isWall(state, x, y)) { closePanel(); toast('庄园城墙 · 不可建设、升级或拆除'); return; }
+    if (!GF.owns(state, x, y)) { closePanel(); toast('庄园外区域 · 不可建设或操作', 'warning'); return; }
     selected = { x, y }; panelKey = ''; $('cards').scrollLeft = 0; $('panel').hidden = false; $('game').classList.add('has-panel'); refresh();
   }
   function closePanel() { selected = null; panelKey = ''; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
@@ -55,11 +62,11 @@
   }
   function effect(d, b) {
     if (!d.income) return d.desc || '';
-    const building = b || { type: d.id, x: selected?.x ?? GF.CENTER, y: selected?.y ?? GF.CENTER, level: 1 };
+    const building = b || { type: d.id, x: selected?.x ?? GF.worldCenter(state), y: selected?.y ?? GF.worldCenter(state), level: 1 };
     const preview = b ? state : { ...state, buildings: [...state.buildings, building] };
     const lines = [];
-    if (d.income) lines.push(productionLine(d.resource === 'materials' ? '工材' : '铜钱', d.income * GF.factor(building), GF.income(preview, building)));
-    if (d.required) lines.push('全镇' + (d.auraResource === 'materials' ? '工材' : '铜钱') + '收入 +' + rateText(d.aura * 100) + '%');
+    if (d.income) lines.push(productionLine(d.resource === 'materials' ? '工材' : '铜钱', d.income * GF.incomeFactor(building), GF.income(preview, building)));
+    if (d.required) lines.push('全镇' + (d.auraResource === 'materials' ? '工材' : '铜钱') + '收入 +' + rateText(d.aura * GF.auraFactor(building) * 100) + '%');
     return lines.join('<br>');
   }
   function cardHTML(d) {
@@ -69,7 +76,7 @@
     return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${tag}</span><span class="card-count">${count}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(GF.buildCost(state, d.id))}</span><span class="card-effect">${description}</span></button>`;
   }
   function hideBuildCard(d, x, y) {
-    const plot = GF.terrain(x, y), nearby = GF.adjacent(state, x, y);
+    const plot = GF.terrain(x, y, state), nearby = GF.adjacent(state, x, y);
     if (plot === 'water') return true;
     if (d.cat === 'economy' && plot === 'forest' && d.id !== 'mulberry') return true;
     if (d.cat === 'economy' && plot === 'mountain' && d.id !== 'quarry') return true;
@@ -89,24 +96,28 @@
   }
   function detailHTML(b) {
     const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
-    const description = GF.dryFarm(state, b) ? '缺水：耐久每秒 -5%' : '';
-    const bonus = d.income ? rateText(Math.max(0, GF.income(state, b) - d.income * f)) : '0';
-    const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(d.income * f)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
+    const description = b.type === 'gate' ? (b.hp <= 0 ? '城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园' : '四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次') : GF.dryFarm(state, b) ? '缺水：耐久每秒 -5%' : '';
+    const name = b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.name(b), demolishReason = GF.demolishReason(state, b);
+    const base = d.income ? d.income * GF.incomeFactor(b) : 0;
+    const bonus = d.income ? rateText(Math.max(0, GF.income(state, b) - base)) : '0';
+    const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
     if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + GF.income(state, next).toFixed(1)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
-    else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${v * f}%${max ? '' : ' → ' + v * nextF + '%'}</strong></div>`; }
+    else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'tao') stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? '' : ' → ' + Math.min(150, 15 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'zhong') stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? '' : ' → ' + Math.round(GF.zhongSlow(next) * 100) + '%'}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
-    return `<div class="detail"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><p class="detail-description" ${description ? '' : 'hidden'}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
+    if (d.required) stats += `<div>全镇${d.auraResource === 'materials' ? '工材' : '铜钱'}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? '' : ' → ' + rateText(d.aura * GF.auraFactor(next) * 100) + '%'}</strong></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === 'gate' ? name + ' · 守护庄园' : d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><p class="detail-description" ${description ? '' : 'hidden'}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
-    const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly);
+    if (GF.isWall(state, x, y) || !GF.owns(state, x, y)) { closePanel(); return; }
+    const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly && !d.fixed);
     const key = `${x},${y},${b?.id || ''}`;
-    $('plot-label').textContent = b ? GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y)] + ' · 可兴建';
+    $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
     $('build-view').hidden = !!b; $('detail-view').hidden = !b;
     if (key !== panelKey) {
       panelKey = key;
@@ -123,6 +134,13 @@
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
       const reason = GF.upgradeReason(state, b), max = b.level >= GF.maxLevel(b);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
+      $('upgrade-building').title = reason || '';
+      const demolishReason = GF.demolishReason(state, b);
+      $('demolish-building').disabled = !!demolishReason; $('demolish-building').title = demolishReason || ''; $('demolish-building').textContent = demolishReason ? '不可拆除' : '拆除';
+      if (b.type === 'gate') {
+        $('detail-view').querySelector('.detail-description').textContent = b.hp <= 0 ? '城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园' : '四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次';
+        $('upgrade-building').firstChild.textContent = max ? '已臻化境' : '统一升级四门至 Lv.' + (b.level + 1);
+      }
       $('upgrade-label').innerHTML = max ? '' : costHTML(GF.upgradeCost(b), true);
     } else for (const el of $('cards').children) {
       const reason = GF.buildReason(state, el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差 ')); el.setAttribute('aria-disabled', String(!!reason));
@@ -136,6 +154,9 @@
   }
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
+    $('autoplay-status').hidden = !autoplay || !started;
+    $('autoplay-status').querySelector('strong').textContent = paused ? '托管已暂停' : '托管中';
+    $('autoplay-action').textContent = pilot?.lastAction || '准备经营';
     $('coins').textContent = fmt(state.coins); $('materials').textContent = fmt(state.materials);
     $('day-label').textContent = '第 ' + state.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[state.phase]) + (state.day % 7 === 0 ? ' · 灯会' : '');
     $('phase-icon').textContent = { day: '☀', dusk: '◒', night: '☾' }[state.phase];
@@ -157,12 +178,15 @@
     const events = state.events.splice(0); if (!events.length) return;
     const important = events.find(e => ['victory', 'defeat'].includes(e.kind));
     if (important?.kind === 'defeat') { save(); showEnd(); }
-    else if (important?.kind === 'victory') { save(); showVictory(); }
+    else if (important?.kind === 'victory') { save(); if(autoplay)toast('七夜长明 · 托管继续跑测','reward');else showVictory(); }
     else { const e = events[events.length - 1]; if (!e.text.startsWith('坊志达成')) toast(e.text, e.kind); if (e.kind === 'reward') tone('reward'); }
   }
   function blocked(el, reason) { el?.classList.remove('shake'); if (el) { void el.offsetWidth; el.classList.add('shake'); } toast(reason, 'warning'); }
   function performBuild(type, el) {
-    if (!selected) return; const r = GF.build(state, type, selected.x, selected.y);
+    if (!selected) return;
+    if (!GF.owns(state, selected.x, selected.y) || GF.isWall(state, selected.x, selected.y)) { closePanel(); toast('仅可在庄园内部建设', 'warning'); return; }
+    if (GF.DEFS[type]?.fixed) return blocked(el, '庄园固定建筑不可建造');
+    const r = GF.build(state, type, selected.x, selected.y);
     if (!r.ok) return blocked(el, r.reason);
     tone(); panelKey = ''; toast(type === 'fortune' ? '造化匣化为' + GF.name(r.building) : GF.DEFS[type].name + '已建成'); handleEvents(); save(); refresh();
   }
@@ -183,6 +207,53 @@
   for (const el of document.querySelectorAll('[data-skill]')) el.addEventListener('click', () => { const r = GF.skill(state, el.dataset.skill); if (!r.ok) return blocked(el, r.reason); tone('skill'); toast(GF.SKILLS[el.dataset.skill].name + ' · 已施展'); save(); refresh(); });
   $('close-panel').onclick = closePanel;
   $('menu-pause').onclick = showMenu;
+  function updateSound() {
+    $('start-sound').setAttribute('aria-checked', String(sound));
+    $('start-sound-label').textContent = sound ? '已开启' : '已关闭';
+  }
+  function toggleSound() {
+    sound = !sound;
+    try { localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off'); } catch { /* Keep the setting for this session. */ }
+    updateSound(); tone();
+  }
+  function readSave() {
+    try { saved = localStorage.getItem(KEY); storageWarning = false; }
+    catch { saved = null; storageWarning = true; }
+    return saved && GF.restore(saved);
+  }
+  function updateStartMenu() {
+    const loaded = readSave();
+    $('start-load').disabled = !loaded;
+    $('start-save-detail').textContent = loaded ? '第 ' + loaded.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[loaded.phase]) + (loaded.over ? ' · 已失守' : ' · 继续故事') : storageWarning ? '本地存档不可用' : saved ? '存档损坏或版本不兼容' : '暂无本地存档';
+    updateSound();
+  }
+  function showStartMenu() {
+    if (started) save();
+    autoplay = false;
+    started = false; paused = true; closePanel();
+    $('modal').hidden = true; $('start-menu').hidden = false;
+    $('game').classList.add('at-title');
+    $('menu-pause').setAttribute('aria-expanded', 'false');
+    updateStartMenu(); $('start-single').focus();
+  }
+  function enterGame(next) {
+    autoplay = false; pilot = null;
+    state = next; started = true; saveClock = 0;
+    $('start-menu').hidden = true; $('game').classList.remove('at-title');
+    closePanel(); center(); closeModal();
+  }
+  $('start-single').onclick = () => {
+    readSave();
+    if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开始菜单</button>');
+    else newGame();
+  };
+  $('start-load').onclick = () => {
+    const loaded = readSave();
+    if (!loaded) { updateStartMenu(); toast('无法读取本地存档', 'warning'); return; }
+    enterGame(loaded); toast('故人归坊 · 已续接第 ' + state.day + ' 日的灯火');
+    if (state.over) showEnd();
+  };
+  $('start-sound').onclick = toggleSound;
   function modal(html) {
     paused = true;
     $('modal-content').innerHTML = html;
@@ -191,25 +262,40 @@
     $('close-modal').focus(); refresh();
   }
   function closeModal() {
-    $('modal').hidden = true; paused = false;
+    $('modal').hidden = true; paused = !started;
     $('menu-pause').setAttribute('aria-expanded', 'false');
-    $('menu-pause').focus(); lastFrame = performance.now(); refresh();
+    (started ? $('menu-pause') : $('start-single')).focus(); lastFrame = performance.now(); refresh();
   }
   $('close-modal').onclick = closeModal;
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
   function showMenu() {
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><p id="save-status">' + saveStatus + '</p>');
+    if (!started) return;
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p>' + (GF.estate(state) ? '<p>在庄园内建设经营，升级四方城门抵御来敌。城墙与庄园外不可操作；水上道路为桥栈道。拖拽巡视，双指或滚轮缩放。</p>' : '') + '<button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
+  }
+  function autoplaySettings() {
+    const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
+    return '<section class="autoplay-settings" aria-label="托管跑测"><button class="modal-secondary" data-modal="autoplay" aria-pressed="'+autoplay+'" '+(state.over?'disabled':'')+'>'+(autoplay?'关闭托管 · 手动接管':'启用托管 · 电脑游玩')+'</button><p>自动经营、升级、防守与施法。启用即继续游戏；打开菜单或切到后台会暂停，失守后停止。</p>'+(r?'<p>累计托管 '+Math.floor(seconds/60)+' 分 '+seconds%60+' 秒 · 建造 '+r.builds+' · 升级 '+r.upgrades+' · 施法 '+Object.values(r.skills).reduce((a,b)=>a+b,0)+' 次<br>最近操作：'+r.lastAction+'</p><button class="modal-secondary autoplay-report" data-modal="autoplay-report">导出托管报告</button>':'')+'</section>';
+  }
+  function toggleAutoplay() {
+    if(state.over)return;
+    if(autoplay){autoplay=false;showMenu();toast('托管已关闭，可手动接管');return;}
+    if(!pilot)pilot=GFAutoplay.create(state);
+    autoplay=true;closePanel();closeModal();toast('托管已启用 · 电脑开始经营');
   }
   function showEnd() {
-    modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><div class="modal-stats"><div><strong>' + (state.day - 1) + '</strong><span>守过长夜</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="close">返回古坊</button>');
+    autoplay=false;
+    modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><div class="modal-stats"><div><strong>' + (state.day - 1) + '</strong><span>守过长夜</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div>'+(pilot?autoplaySettings():'')+'<button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="close">返回古坊</button>');
   }
   function showVictory() {
     modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + '</strong><span>现存建筑</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
-  function newGame(){state=GF.createState();paused=false;closePanel();center();closeModal();save();refresh();toast('青溪新雨 · 古坊的故事重新开始');}
+  function newGame(){enterGame(GF.createState());save();toast('青溪新雨 · 古坊的故事重新开始');}
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
-    if(action==='close')closeModal();if(action==='save')save(true);if(action==='sound'){sound=!sound;tone();showMenu();}
+    if(action==='close')closeModal();if(action==='save')save(true);if(action==='sound'){toggleSound();e.target.closest('[data-modal]').textContent='音效：'+(sound?'开':'关');}
+    if(action==='title')showStartMenu();
+    if(action==='autoplay')toggleAutoplay();
+    if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-托管报告-第'+state.day+'日.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
     if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast(r.dryFarms ? '已拆除，' + r.dryFarms + ' 块农田缺水，耐久持续下降' : '已拆除，返还 ' + costText(r.refund), r.dryFarms ? 'warning' : 'info');panelKey='';handleEvents();save();}refresh();}
     if(action==='cancel-demolish'){demolishTarget=null;closeModal();}
     if(action==='reset')modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
@@ -219,7 +305,7 @@
       const input=$('save-file');input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2e6){toast('存档文件过大','warning');return;}
         const loaded=GF.restore(await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsText(file);}));if(!loaded){toast('存档无效或版本不兼容，现有进度已保留','warning');return;}
         const backup=GF.serialize(state);try{localStorage.setItem(KEY+'-backup',backup);}catch{}
-        state=loaded;paused=false;closePanel();center();closeModal();save();refresh();toast('已载入第 '+state.day+' 日的古坊');if(state.over)showEnd();};input.click();
+        enterGame(loaded);save();refresh();toast('已载入第 '+state.day+' 日的古坊');if(state.over)showEnd();};input.click();
     }
   });
   let gesture=null;
@@ -248,21 +334,27 @@
   window.addEventListener('pointermove',e=>{if(!cardDrag.active)return;if(Math.abs(e.clientX-cardDrag.x)>5)cardDrag.moved=true;if(cardDrag.moved){$('cards').scrollLeft=cardDrag.scroll-(e.clientX-cardDrag.x);cardDrag.suppress=true;}});
   window.addEventListener('pointerup',()=>{if(!cardDrag.active)return;cardDrag.active=false;setTimeout(()=>cardDrag.suppress=false,0);});
   window.addEventListener('pointercancel',()=>{cardDrag.active=false;cardDrag.suppress=false;});
-  window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();if(paused)closeModal();else showMenu();}if(e.key==='Escape'){if(paused)closeModal();else closePanel();}});
+  window.addEventListener('keydown',e=>{
+    const overlay = !$('modal').hidden ? $('modal') : !started ? $('start-menu') : null;
+    if(e.key==='Tab' && overlay){
+      const buttons=[...overlay.querySelectorAll('button:not(:disabled)')].filter(el=>!el.hidden),first=buttons[0],last=buttons[buttons.length-1];
+      if(e.shiftKey && (document.activeElement===first || !overlay.contains(document.activeElement))){e.preventDefault();last?.focus();}
+      else if(!e.shiftKey && (document.activeElement===last || !overlay.contains(document.activeElement))){e.preventDefault();first?.focus();}
+    }
+    if(e.code==='Space' && started && !e.target.closest('button,input')){e.preventDefault();if(paused)closeModal();else showMenu();}
+    if(e.key==='Escape'){if(!$('modal').hidden)closeModal();else if(started)closePanel();}
+  });
   document.addEventListener('visibilitychange',()=>{hiddenPause=document.hidden;if(hiddenPause)save();lastFrame=performance.now();});
   window.addEventListener('pagehide',()=>save());window.addEventListener('resize',resize);
   if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
   function frame(now){
     const dt=lastFrame?Math.max(0,Math.min(1,(now-lastFrame)/1000)):0;lastFrame=now;
-    if(!paused&&!hiddenPause&&!state.over){let remaining=dt;while(remaining>0){const tick=Math.min(.1,remaining);GF.step(state,tick);remaining-=tick;}handleEvents();}
+    if(started&&!paused&&!hiddenPause&&!state.over){let remaining=dt;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}
     uiClock+=dt;saveClock+=dt;if(uiClock>.2){refresh();uiClock=0;}if(saveClock>8){if(!state.over)save();saveClock=0;}
-    GFArt.render(canvas,state,cam,selected,{grid:false});requestAnimationFrame(frame);
+    if(started)GFArt.render(canvas,state,cam,selected,{grid:false});requestAnimationFrame(frame);
   }
   resize();refresh();requestAnimationFrame(frame);
-  if(saved&&!GF.restore(saved))toast('旧存档无法读取，已创建新古坊；原数据将在首次存档时替换','warning');
-  else if(saved)toast('故人归坊 · 已续接第 '+state.day+' 日的灯火');
-  
-  if(state.over)showEnd();
+  showStartMenu();
   // Small public surface for regression tests and local debugging.
-  window.Gufang={get state(){return state;},get camera(){return {...cam};},get paused(){return paused;},select,refresh,screenPoint,save,setPaused(value){if(value)showMenu();else closeModal();}};
+  window.Gufang={get state(){return state;},get camera(){return {...cam};},get paused(){return paused;},get autoplay(){return autoplay;},get autoplayReport(){return pilot?.report()||null;},select,refresh,screenPoint,save,setPaused(value){if(value)showMenu();else closeModal();}};
 })();

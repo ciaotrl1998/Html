@@ -6,24 +6,87 @@ const os=require('node:os');
 const {pathToFileURL}=require('node:url');
 const {chromium}=require('playwright');
 const G=require('../js/game.js');
+const legacySave=JSON.stringify(G.createState(null));
+const initLegacySave=raw=>{if(localStorage.getItem('gufang-qitan-save-v1')===null)localStorage.setItem('gufang-qitan-save-v1',raw);};
 const root=path.join(__dirname,'..');
 const shots=process.env.GUFANG_SHOTS||path.join(os.tmpdir(),'gufang-screenshots');
 fs.mkdirSync(shots,{recursive:true});
 const url=file=>pathToFileURL(path.join(root,file)).href;
 const freeze=page=>page.evaluate(()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
+async function enterFromMenu(page){if(await page.locator("#start-menu").isVisible()){if(await page.locator("#start-load").isEnabled())await page.locator("#start-load").click();else await page.locator("#start-single").click();}}
 async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.screenPoint(x,y),[x,y]);await page.mouse.click(p.x,p.y);}
 (async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',headless:true});
   try{
+    const incomeContext=await browser.newContext({viewport:{width:390,height:844}}),incomePage=await incomeContext.newPage();
+    const incomeState=G.createState(null);incomeState.coins=incomeState.materials=100000;
+    await incomeContext.addInitScript(initLegacySave,JSON.stringify(incomeState));
+    await incomePage.goto(url('index.html'));await incomePage.waitForFunction(()=>!!window.Gufang);await enterFromMenu(incomePage);await freeze(incomePage);
+    for(const [types,cells,resource,incomes,costs] of [
+      [['tea','inn','bank'],[[6,5],[6,4],[7,4]],'铜钱',[2,5,40],[[0,98],[165,360],[2867,5000]]],
+      [['farm','mill','wine'],[[5,8],[6,9],[7,8]],'铜钱',[1,3,24],[[0,65],[110,240],[1720,3000]]],
+      [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],'工材',[1,3,24],[[95,0],[290,70],[3680,1200]]],
+      [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],'工材',[2,5,40],[[143,0],[435,105],[6134,2000]]]
+    ])for(const [i,type] of types.entries()){
+      await incomePage.evaluate(([x,y])=>Gufang.select(x,y),cells[i]);
+      const card=incomePage.locator(`[data-build="${type}"]`),bonus=i?`（+${incomes[i]/10}）`:'';
+      assert.equal(await card.locator('.card-effect').innerText(),`${resource} +${incomes[i]}${bonus}/秒`,type+' income card');
+      for(const [j,icon] of ['coin-icon','material-icon'].entries()){
+        const number=card.locator(`.cost-part:has(.${icon}) .cost-number`);
+        if(costs[i][j])assert.equal(await number.textContent(),String(costs[i][j]),type+' cost');
+        else assert.equal(await number.count(),0);
+      }
+      await incomePage.evaluate(([type,x,y])=>{if(!GF.grantBuilding(Gufang.state,type,x,y))throw Error(type+' income fixture failed');},[type,...cells[i]]);
+    }
+    await incomePage.evaluate(()=>{
+      const s=Gufang.state;s.day=7;
+      for(const [type,x,y] of [['stage',8,6],['well',9,9],['guild',9,6],['port',9,7]]){
+        const b=GF.grantBuilding(s,type,x,y,6);if(!b)throw Error(type+' aura fixture failed');
+      }
+    });
+    for(const [type,level] of [['tea',6],['bank',6],['wine',6],['tailor',6],['trade',6],['guild',6],['port',6],['shrine',14],['shrine',15]]){
+      const raw=await incomePage.evaluate(([type,level])=>{
+        const s=Gufang.state,b=s.buildings.find(b=>b.type===type);b.level=level;b.hp=GF.maxHP(b);
+        Gufang.select(b.x,b.y);return GF.serialize(s);
+      },[type,level]);
+      const s=G.restore(raw),b=s.buildings.find(b=>b.type===type),next={...b,level:level+1};
+      const base=G.DEFS[type].income*4*(type==='shrine'?1+.25*(level-3):1.65**(level-3));
+      const total=G.income(s,b),round=n=>String(Math.round((n+Number.EPSILON)*10)/10),bonus=round(total-base);
+      assert.notEqual(base,G.DEFS[type].income*G.factor(b),type+' high-level base must avoid attack factor');
+      assert.equal(await incomePage.locator('.detail-revenue').textContent(),`+${round(base)}${bonus==='0'?'':`（+${bonus}）`}/秒`,type+' base and bonus');
+      assert.equal(await incomePage.locator('.detail-revenue .income-bonus').count(),1,type+' festival/aura bonus remains visible');
+      assert.equal(await incomePage.evaluate(type=>GF.income(Gufang.state,Gufang.state.buildings.find(b=>b.type===type)),type),total,type+' actual income matches core');
+      const max=level>=G.maxLevel(b);
+      const resource=G.DEFS[type].resource==='materials'?'工材':'铜钱';
+      assert.equal(await incomePage.locator('.upgrade-stats div').filter({hasText:resource+' / 秒'}).locator('strong').textContent(),total.toFixed(1)+(max?'':' → '+G.income(s,next).toFixed(1)),type+' income upgrade preview');
+      if(max){
+        assert.equal(await incomePage.locator('#upgrade-building').innerText(),'已臻化境');
+        assert.equal(await incomePage.locator('#upgrade-label .cost-number').count(),0);
+      }else{
+        assert((await incomePage.locator('#upgrade-building').innerText()).includes('升级至 Lv.'+(level+1)));
+        const cost=G.upgradeCost(b);
+        for(const [resource,icon] of [['coins','coin-icon'],['materials','material-icon']]){
+          const number=incomePage.locator(`#upgrade-label .cost-part:has(.${icon}) .cost-number`);
+          if(cost[resource])assert.equal(await number.textContent(),String(cost[resource]),type+' upgrade '+resource);
+          else assert.equal(await number.count(),0);
+        }
+      }
+    }
+    for(const [type,label,expected] of [['well','收入加成','128% → 144%'],['stage','收入加成','19.2% → 21.6%'],['guild','全镇铜钱收入加成','32% → 36%'],['port','全镇工材收入加成','64% → 72%']]){
+      await incomePage.evaluate(type=>{const b=Gufang.state.buildings.find(b=>b.type===type);Gufang.select(b.x,b.y);},type);
+      assert.equal(await incomePage.locator('.upgrade-stats div').filter({hasText:label}).locator('strong').textContent(),expected,type+' linear aura preview');
+    }
+    await incomeContext.close();console.log('PASS all twelve industry income cards, high-level income details, linear auras and upgrade costs');
     for(const viewport of [{width:1440,height:1000},{width:390,height:844},{width:320,height:740},{width:375,height:667}]){
       const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:true}),page=await context.newPage(),errors=[];
+      await context.addInitScript(initLegacySave,legacySave);
       page.on('pageerror',e=>errors.push(e.stack));
-      await page.goto(url('index.html'));await page.waitForFunction(()=>!!window.Gufang);await page.waitForTimeout(200);
+      await page.goto(url('index.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);await page.waitForTimeout(200);
       const frame=await page.locator('#game').boundingBox();
       assert(frame.width<=480&&frame.height/frame.width>=16/9,'Always a phone-shaped portrait frame');
       assert(Math.abs(frame.x-(viewport.width-frame.width)/2)<1,'Desktop frame is centered');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-      assert.equal(await page.locator('#game button:visible').count(),1,'Only the pause/menu button is visible at startup');
+      assert.equal(await page.locator('#game button:visible').count(),1,'Only the pause/menu button is visible after entering the game');
       assert.deepEqual(await page.locator('.topbar .resource small').allTextContents(),['铜钱','工材']);
       assert.equal(await page.locator('.topbar .material-icon').count(),1);
       assert.equal(await page.locator('#prosperity').count(),0);
@@ -34,7 +97,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         ctx.fillText=function(text,x,y){texts.push({text:String(text),font:this.font,color:this.fillStyle});return oldText.apply(this,arguments);};
         ctx.fill=function(){fills.push(this.fillStyle);return oldFill.apply(this,arguments);};
         ctx.fillRect=function(){fills.push(this.fillStyle);return oldRect.apply(this,arguments);};
-        const capture=(zoom,rich,level=1)=>{texts=[];fills=[];const s=GF.createState(),shrine=s.buildings[0];shrine.level=level;shrine.hp=GF.maxHP(shrine);if(rich)s.coins=s.materials=10000;GFArt.render(canvas,s,{x:195-(GF.CENTER+.5)*GFArt.T*zoom,y:400-(GF.CENTER+.5)*GFArt.T*zoom,zoom},null);return {name:texts.some(t=>t.text==='祠堂'&&t.font.includes('Microsoft YaHei')),level:texts.some(t=>t.text==='1'&&t.font.includes('900 11px')&&t.font.includes('SimHei')&&t.color==='#f4ebd2'),level15:texts.some(t=>t.text==='15'&&t.font.includes('900 11px')&&t.color==='#f4ebd2'),levelBackground:fills.includes('#52685a'),arrow:fills.includes('#b4df63')};};
+        const capture=(zoom,rich,level=1)=>{texts=[];fills=[];const s=GF.createState(null),shrine=s.buildings[0];shrine.level=level;shrine.hp=GF.maxHP(shrine);if(rich)s.coins=s.materials=10000;GFArt.render(canvas,s,{x:195-(GF.worldCenter(s)+.5)*GFArt.T*zoom,y:400-(GF.worldCenter(s)+.5)*GFArt.T*zoom,zoom},null);return {name:texts.some(t=>t.text==='祠堂'&&t.font.includes('Microsoft YaHei')),level:texts.some(t=>t.text==='1'&&t.font.includes('900 11px')&&t.font.includes('SimHei')&&t.color==='#f4ebd2'),level15:texts.some(t=>t.text==='15'&&t.font.includes('900 11px')&&t.color==='#f4ebd2'),levelBackground:fills.includes('#52685a'),arrow:fills.includes('#b4df63')};};
         const result={far:capture(.8,false),near:capture(1,false),level15:capture(1,false,15),upgradable:capture(1,true)};canvas.remove();return result;
       });
       assert.equal(mapMarkers.far.name,false,'Building names stay hidden until the camera is close');
@@ -79,6 +142,17 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.equal(await page.locator('[data-build="port"] strong').textContent(),'百工院');
       assert((await page.locator('[data-build="guild"] .card-effect').innerText()).includes('全镇铜钱收入 +5%'));
       assert((await page.locator('[data-build="port"] .card-effect').innerText()).includes('全镇工材收入 +10%'));
+      for(const type of ['guild','port']){
+        const raw=await page.evaluate(()=>GF.serialize(Gufang.state)),s=G.restore(raw),d=G.DEFS[type];
+        const b={type,x:15,y:8,level:1};s.buildings.push(b);
+        const total=G.income(s,b),bonus=String(Math.round((total-d.income+Number.EPSILON)*10)/10);
+        const resource=d.resource==='materials'?'工材':'铜钱';
+        assert.equal((await page.locator(`[data-build="${type}"] .card-effect`).innerText()).split('\n')[0],`${resource} +${d.income}（+${bonus}）/秒`,type+' ultimate card matches core');
+        for(const [resource,icon] of [['coins','coin-icon'],['materials','material-icon']]){
+          assert.equal(await page.locator(`[data-build="${type}"] .cost-part:has(.${icon}) .cost-number`).textContent(),String(d.cost[resource]),type+' two-resource card cost');
+        }
+        assert(type==='guild'?d.cost.materials>d.cost.coins:d.cost.coins>d.cost.materials);
+      }
       assert.deepEqual(await page.evaluate(()=>Gufang.camera),camera,'Panel never moves the camera');
       assert.deepEqual(await page.locator('#map').boundingBox(),canvasBefore,'Panel overlays the map');
       await page.evaluate(()=>Gufang.select(12,4));
@@ -93,7 +167,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>Gufang.select(7,8));
       const height=(await page.locator('#panel').boundingBox()).height;
       assert.equal(await page.locator('[data-build="farm"]').count(),0,'A farm is hidden where terrain and water access reject it');
-      assert.equal(await page.locator('[data-build="tea"] .card-effect').innerText(),'铜钱 +1/秒');
+       assert.equal(await page.locator('[data-build="tea"] .card-effect').innerText(),'铜钱 +2/秒');
       await page.locator('[data-build="tea"]').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='tea').length),1);
       assert(Math.abs((await page.locator('#panel').boundingBox()).height-height)<.1);
       assert((await page.locator('#upgrade-building').innerText()).includes('升级至 Lv.2'));
@@ -105,7 +179,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>{const s=Gufang.state;s.materials=1000;const shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=2;shrine.hp=GF.maxHP(shrine);Gufang.refresh();});
       assert.equal(await page.locator('#upgrade-label .cost-number.insufficient').count(),0);
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='tea').level),2);
-      assert((await page.locator('.detail-revenue').textContent()).includes('+2/秒'));
+       assert((await page.locator('.detail-revenue').textContent()).includes('+4/秒'));
       assert.equal(await page.locator('.detail-revenue .coin-icon').count(),1);
       await page.screenshot({path:path.join(shots,`detail-v2-${viewport.width}.png`)});
       await page.evaluate(()=>{Gufang.state.coins=0;Gufang.state.materials=0;Gufang.select(7,7);});
@@ -135,7 +209,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         ctx.strokeRect=function(x,y,w,h){if(this.getLineDash().length){frames++;frameSizes.push([w,h]);}return oldRect.apply(this,arguments);};
         const capture=(selected,state=Gufang.state)=>{lines=0;frames=0;segments=[];frameSizes=[];GFArt.render(canvas,state,Gufang.camera,selected);return {lines,frames,segments,frameSizes};};
         const result={none:capture(null),empty:capture({x:6,y:6}),tea:capture({x:7,y:8}),inn:capture({x:7,y:7})};
-        const sample=GF.createState();sample.coins=sample.materials=10000;
+        const sample=GF.createState(null);sample.coins=sample.materials=1000000;
         GF.build(sample,'tea',9,7);GF.build(sample,'inn',9,8);GF.build(sample,'bank',9,9);
         for(const [type,x,y] of [['farm',5,8],['mill',6,9],['wine',7,8],['mulberry',11,3],['tower',8,7]]){
           const built=GF.build(sample,type,x,y);if(!built.ok)throw Error(type+': '+built.reason);
@@ -162,7 +236,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       for(const type of ['tower','stage','shrine'])assert.equal(overlays[type].frames,0,type+' has no range frame');
       const shootingRange=await page.evaluate(()=>{
         const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
-        const ctx=canvas.getContext('2d'),oldArc=ctx.arc,s=GF.createState();GF.grantBuilding(s,'tower',8,7,3);let radii=[];
+        const ctx=canvas.getContext('2d'),oldArc=ctx.arc,s=GF.createState(null);GF.grantBuilding(s,'tower',8,7,3);let radii=[];
         ctx.arc=function(x,y,r){radii.push(r);return oldArc.apply(this,arguments);};
         GFArt.render(canvas,s,Gufang.camera,{x:8,y:7});const selected=[...radii];radii=[];GFArt.render(canvas,s,Gufang.camera,null);canvas.remove();return {selected,closed:radii};
       });
@@ -223,7 +297,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert((await page.evaluate(()=>Gufang.camera.zoom))>z);
       }
       await page.evaluate(()=>Gufang.select(6,6));await page.locator('#close-panel').click();
-      await page.evaluate(()=>Gufang.save());await page.reload();await page.waitForFunction(()=>!!window.Gufang);await freeze(page);
+      await page.evaluate(()=>Gufang.save());await page.reload();await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);await freeze(page);
       assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='tea').level),2);
       await page.evaluate(()=>Gufang.select(6,6));
       assert(await page.locator('[data-build="tower"]').count());assert.equal(await page.locator('[data-category]').count(),0);
@@ -251,16 +325,102 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       console.log(`PASS ${viewport.width}×${viewport.height}: portrait UI, menu/pause, 1× time, build, upgrade, floats, pan/pinch, save, skills`);
       await context.close();
     }
+    for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+      const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:viewport.width===390}),page=await context.newPage(),errors=[];
+      // Freeze from startup and record storage without injecting a save or replacing the default map seed.
+      await context.addInitScript(()=>{window.startedWithoutSave=localStorage.getItem('gufang-qitan-save-v1')===null;Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});});
+      page.on('pageerror',e=>errors.push(e.stack));
+      await page.goto(url('dist/古坊奇谭.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
+      assert.equal(await page.evaluate(()=>window.startedWithoutSave),true,'Default estate starts without an old localStorage save');
+      assert.equal(await page.evaluate(()=>Gufang.state.materials),220,'New estate starts with enough materials for tea and a tower');
+      assert.deepEqual(await page.evaluate(()=>({size:GF.SIZE,center:GF.CENTER,worldSize:GF.worldSize(Gufang.state),worldCenter:GF.worldCenter(Gufang.state),legacySize:GF.worldSize(GF.createState(null)),legacyCenter:GF.worldCenter(GF.createState(null)),gates:Gufang.state.buildings.filter(b=>b.type==='gate').length})),{size:25,center:12,worldSize:25,worldCenter:12,legacySize:17,legacyCenter:8,gates:4});
+      assert(await page.locator('#startup-error').isHidden());
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      const plots=await page.evaluate(()=>{
+        const s=Gufang.state,size=GF.worldSize(s),land=GF.estate(s),center=GF.worldCenter(s),point=key=>({x:key%size,y:Math.floor(key/size)});
+        const find=(terrain,type)=>{
+          const key=[...land.cells].sort((a,b)=>Math.abs(a%size-center)+Math.abs(Math.floor(a/size)-center)-Math.abs(b%size-center)-Math.abs(Math.floor(b/size)-center)).find(key=>GF.terrain(key%size,Math.floor(key/size),s)===terrain&&!GF.buildReason(s,type,key%size,Math.floor(key/size)));
+          if(key===undefined)throw Error('No estate plot for '+terrain+'/'+type+'; seed '+s.mapSeed);
+          return point(key);
+        };
+        return {tea:find('plain','tea'),forest:find('forest','mulberry'),mountain:find('mountain','quarry'),wall:point([...land.walls][0]),outside:{x:0,y:0},gates:land.gates};
+      });
+      await page.evaluate(()=>{
+        const render=GFArt.render;
+        GFArt.render=function(canvas,s,cam,...args){
+          cam.zoom=.22;cam.x=(canvas.clientWidth-GF.worldSize(s)*GFArt.T*cam.zoom)/2;cam.y=canvas.clientHeight*.48-GF.worldSize(s)*GFArt.T*cam.zoom/2;
+          GFArt.render=render;return render(canvas,s,cam,...args);
+        };
+      });
+      await page.waitForFunction(()=>Gufang.camera.zoom===.22);
+      assert.equal(await page.evaluate(()=>{const cam=Gufang.camera,canvas=document.getElementById('map');return cam.x>=0&&cam.x+GF.worldSize(Gufang.state)*GFArt.T*cam.zoom<=canvas.clientWidth&&cam.y>=0&&cam.y+GF.worldSize(Gufang.state)*GFArt.T*cam.zoom<=canvas.clientHeight;}),true,'All 25 rows and columns fit in the runtime camera');
+      await page.screenshot({path:path.join(shots,`estate-full-${viewport.width}.png`)});
+      for(const [plot,hint] of [[plots.outside,'庄园外区域'],[plots.wall,'庄园城墙']]){
+        await mapClick(page,plots.tea.x,plots.tea.y);assert(await page.locator('#build-view').isVisible());
+        await mapClick(page,plot.x,plot.y);
+        assert(await page.locator('#panel').isHidden());assert(await page.locator('#toast').isVisible());
+        assert((await page.locator('#toast').textContent()).includes(hint));
+      }
+      await mapClick(page,plots.tea.x,plots.tea.y);
+      assert.equal(await page.locator('[data-build="gate"]').count(),0,'Fixed gates never appear as build cards');
+      assert.equal(await page.locator('[data-build="tea"]').getAttribute('aria-disabled'),'false');
+      await page.locator('[data-build="tea"]').click();
+      assert.equal(await page.evaluate(p=>GF.at(Gufang.state,p.x,p.y)?.type,plots.tea),'tea');
+      assert(await page.locator('#detail-view').isVisible());await page.locator('#close-panel').click();
+      for(const [plot,type,hidden] of [[plots.forest,'mulberry','weaver'],[plots.mountain,'quarry','kiln']]){
+        await mapClick(page,plot.x,plot.y);
+        assert.equal(await page.locator('[data-build="'+type+'"]').getAttribute('aria-disabled'),'false');
+        assert.equal(await page.locator('[data-build="'+hidden+'"]').count(),0,'Invalid terrain card is hidden');
+        assert.equal(await page.locator('[data-build="tea"],[data-build="gate"]').count(),0);
+        await page.locator('#close-panel').click();
+      }
+      await page.evaluate(()=>{const s=Gufang.state,shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=2;shrine.hp=GF.maxHP(shrine);s.coins=s.materials=10000;Gufang.refresh();});
+       const gateCost=await page.evaluate(()=>GF.upgradeCost(Gufang.state.buildings.find(b=>b.type==='gate')));
+       for(const [i,gate] of plots.gates.entries()){
+        await mapClick(page,gate.x,gate.y);
+        assert(await page.locator('#detail-view').isVisible());assert(await page.locator('#build-view').isHidden());
+        assert.equal(await page.locator('#plot-label').textContent(),['北','东','南','西'][gate.direction]+'城门');
+        assert(await page.locator('#demolish-building').isDisabled());
+         if(i===0){
+           assert.equal(await page.locator('#upgrade-building').getAttribute('aria-disabled'),'false');
+           assert((await page.locator('#upgrade-building').innerText()).includes('统一升级四门至 Lv.2'));
+           await page.locator('#upgrade-building').click();
+           assert.deepEqual(await page.evaluate(()=>({gateLevel:Gufang.state.gateLevel,levels:Gufang.state.buildings.filter(b=>b.type==='gate').map(b=>b.level),coins:Gufang.state.coins,materials:Gufang.state.materials})),{gateLevel:2,levels:[2,2,2,2],coins:10000-gateCost.coins,materials:10000-gateCost.materials});
+         }
+         assert((await page.locator('#upgrade-building').innerText()).includes('统一升级四门至 Lv.3'));
+        assert.equal(await page.evaluate(g=>GF.at(Gufang.state,g.x,g.y).level,gate),2);
+        assert.equal(await page.locator('.level-badge').textContent(),'Lv.2');
+        await page.locator('#close-panel').click();
+      }
+      await page.evaluate(()=>{const gates=Gufang.state.buildings.filter(b=>b.type==='gate');gates.forEach((g,i)=>{g.hp=i===0?0:GF.maxHP(g)-i*73;});});
+      await mapClick(page,plots.gates[0].x,plots.gates[0].y);
+      assert((await page.locator('.detail-description').textContent()).includes('城门毁损'));
+      assert((await page.locator('#detail-hp').textContent()).startsWith('0 / '));
+      assert(await page.locator('#demolish-building').isDisabled());assert(await page.locator('#build-view').isHidden());
+      await page.screenshot({path:path.join(shots,`estate-gate-destroyed-${viewport.width}.png`)});
+       const snapshot=()=>{const s=Gufang.state,land=GF.estate(s);return {mapSeed:s.mapSeed,estateSeed:s.estateSeed,gateLevel:s.gateLevel,size:GF.worldSize(s),cells:[...land.cells],walls:[...land.walls],roads:[...land.roads],gates:s.buildings.filter(b=>b.type==='gate').map(b=>({id:b.id,x:b.x,y:b.y,direction:b.direction,level:b.level,hp:b.hp})),tea:s.buildings.filter(b=>b.type==='tea').map(b=>({x:b.x,y:b.y,level:b.level,hp:b.hp}))};};
+      const saved=await page.evaluate(snapshot);assert.equal(await page.evaluate(()=>Gufang.save()),true);
+      await page.reload();await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
+      assert.deepEqual(await page.evaluate(snapshot),saved,'Estate seeds, walls, roads, four upgraded gates and damaged HP survive reload');
+      await page.evaluate(g=>Gufang.select(g.x,g.y),plots.gates[0]);
+      assert((await page.locator('.detail-description').textContent()).includes('城门毁损'));
+      assert(await page.locator('#demolish-building').isDisabled());
+      assert.deepEqual(errors,[],`No single-file estate JS errors at ${viewport.width}px`);
+      console.log(`PASS default single-file estate ${viewport.width}: 25 tiles, four gates, plot restrictions, tea, terrain UI, gate upgrades/destruction, save/reload`);
+      await context.close();
+    }
     // Reproduce the old failure in a WebView that rejects dvh, then verify both CSS and JS fallbacks.
     const compat=await browser.newPage({viewport:{width:390,height:844}}),compatErrors=[];
     compat.on('pageerror',e=>compatErrors.push(e.message));
+    await compat.context().addInitScript(initLegacySave,legacySave);
+    await compat.goto(url('index.html'));await compat.waitForFunction(()=>!!window.Gufang);await enterFromMenu(compat);
     await compat.setContent('<style>html,body{margin:0}#game{position:relative;height:100unsupported;overflow:hidden}#map{position:absolute;height:100%}</style><main id="game"><canvas id="map"></canvas></main>');
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),0,'Old dvh-only layout collapses to zero');
     const html=fs.readFileSync(path.join(root,'dist','古坊奇谭.html'),'utf8').replace(/100dvh/g,'100unsupported');
     await compat.setContent(html.replace(/<script[\s\S]*?<\/script>/gi,''));
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),844,'CSS vh fallback works before JS starts');
     await compat.evaluate(()=>{Object.hasOwn=undefined;HTMLDialogElement.prototype.showModal=undefined;Object.defineProperty(window,'visualViewport',{value:undefined,configurable:true});});
-    await compat.setContent(html);await compat.waitForFunction(()=>!!window.Gufang);
+    await compat.setContent(html);await compat.waitForFunction(()=>!!window.Gufang);await enterFromMenu(compat);
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),844,'Pixel fallback works without visualViewport');
     assert(await compat.locator('#startup-error').isHidden());await mapClick(compat,7,8);await compat.locator('[data-build="tea"]').click();
     await compat.locator('#menu-pause').click();assert(await compat.locator('#modal').isVisible());
@@ -268,9 +428,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     await compat.close();
     const standalone=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
     standalone.on('pageerror',e=>errors.push(e.message));
-    const old=G.createState();old.coins=1234;delete old.materials;old.prosperity=77;for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.materialPending;delete b.incensePending;}
+    const old=G.createState(null);old.coins=1234;delete old.materials;old.prosperity=77;for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.materialPending;delete b.incensePending;}
     await standalone.addInitScript(raw=>localStorage.setItem('gufang-qitan-save-v1',raw),JSON.stringify(old));
-    await standalone.goto(url('dist/古坊奇谭.html'));await standalone.waitForFunction(()=>!!window.Gufang);await freeze(standalone);
+    await standalone.goto(url('dist/古坊奇谭.html'));await standalone.waitForFunction(()=>!!window.Gufang);await enterFromMenu(standalone);await freeze(standalone);
     assert.equal(await standalone.evaluate(()=>Gufang.state.coins),1234);assert.equal(await standalone.evaluate(()=>Gufang.state.materials),120);assert.equal(await standalone.evaluate(()=>'prosperity' in Gufang.state),false);assert.equal(await standalone.evaluate(()=>Gufang.state.buildings[0].type),'shrine');
     await mapClick(standalone,7,8);await standalone.locator('[data-build="tea"]').click();assert.equal(await standalone.evaluate(()=>Gufang.state.buildings.length),2);
     assert.deepEqual(errors,[]);console.log('PASS offline single-file HTML and old save migration');await standalone.close();

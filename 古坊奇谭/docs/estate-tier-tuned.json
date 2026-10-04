@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "kind": "estate-tier-tuned",
+  "measuredOn": "2026-10-04",
+  "gameHash": "58c66a27acef89d7ff02de694310f3d8e390132d6f7c6d79ed4be69beafe8b1b",
+  "simulatorHash": "d8e2806a869e5cbe8b09d0db9d54832295fd5c20dd02d27aff1508c544e1dffd",
+  "primarySeeds": [1,7,42,73193,99991],
+  "extraSeeds": [3,11,23,57,101,2026,7777,12345,54321,314159],
+  "days": 35,
+  "style": "balanced",
+  "commonOptions": {"useSkills":true,"fortunes":1,"maxSeconds":42000},
+  "definitionColumns": ["type","baseIncome","coinsCost","materialsCost"],
+  "definitions": [
+    ["tea",2,0,98],["inn",5,165,360],["bank",40,2867,5000],
+    ["farm",1,0,65],["mill",3,110,240],["wine",24,1720,3000],
+    ["mulberry",1,95,0],["weaver",3,290,70],["tailor",24,3680,1200],
+    ["quarry",2,143,0],["kiln",5,435,105],["trade",40,6134,2000],
+    ["guild",240,44572,66858],["port",300,70500,37500]
+  ],
+  "round2Baseline": {
+    "artifact": "estate-tuned.json",
+    "artifactHash": "7d9f26717d543fc7a5eca9629f56eac711e13ff0cfb2f2847bb1e3a7433f7562",
+    "gameHash": "638034caa8615980a9dc5c9734a47e25beae06dca048bb291e3aaf488321cd0a",
+    "originalBaselineArtifactHash": "d79ada024cc06d8ba93d2ebb5bc8f62faaa0fec5a904a779c9f1f6f0527d9f7a",
+    "requestedDays": {"primary":35,"extra":30},
+    "outcomeColumns": ["seed","defeatNight","firstLevel9Day"],
+    "default": {
+      "clear30":4,
+      "outcomes":[[1,31,26],[7,29,25],[42,30,25],[73193,30,24],[99991,30,26],[3,null,25],[11,26,null],[23,null,25],[57,20,null],[101,null,26],[2026,24,null],[7777,29,26],[12345,30,26],[54321,26,null],[314159,26,null]]
+    },
+    "reinforced": {
+      "clear30":9,
+      "outcomes":[[1,34,27],[7,32,26],[42,32,28],[73193,32,25],[99991,27,null],[3,null,27],[11,30,null],[23,null,27],[57,27,null],[101,null,27],[2026,29,null],[7777,27,null],[12345,null,28],[54321,27,null],[314159,null,26]]
+    },
+    "notes":["Null defeatNight denotes completion of the requested 30 days, not survival through day 35.","Historical values are copied from the preserved artifact; no old game version was rerun."]
+  },
+  "outcomeColumns": ["seed","defeatNight","firstLevel9Day","shrine15Day","finalCoins","finalMaterials"],
+  "milestoneColumns": ["day","complete","coinRate","materialRate","coins","materials","averageProductionLevel","shrineLevel","gateLevel"],
+  "groups": [
+    {
+      "name":"default",
+      "options":{"towersPerGate":2,"reinforcementDay":null},
+      "clear30":4,"clear30Rate":0.26666666666666666,"clear35":0,"runs":15,
+      "outcomes":[
+        [1,31,24,24,662269,1016124],[7,29,24,24,186497,1173684],
+        [42,30,24,24,178658,490735],[73193,30,22,22,1114827,1013619],
+        [99991,30,24,24,68290,299031],[3,31,25,25,308429,1621311],
+        [11,26,null,null,69842,55410],[23,33,23,23,747002,536674],
+        [57,30,24,24,845678,766882],[101,31,25,25,398664,950047],
+        [2026,30,24,24,195670,882967],[7777,29,24,24,130448,558038],
+        [12345,30,24,24,539375,392328],[54321,30,25,25,28607,396051],
+        [314159,30,24,24,425980,369399]
+      ],
+      "milestones":[
+        {"seed":1,"rows":[[5,true,19.8,22.4,337,330,1.875,3,2],[15,true,816.228,709.492,12687,16851,5.083,10,6],[20,true,2353.186,2028.579,10312,5479,5.643,13,8]]},
+        {"seed":7,"rows":[[5,true,19.8,22.4,314,296,1.875,3,2],[15,true,863.167,493.631,1892,4816,5.636,11,6],[20,true,2481.05,1585.759,52322,33440,6,13,8]]},
+        {"seed":42,"rows":[[5,true,13.8,12.2,436,157,2,3,2],[15,true,595.812,578.292,2675,885,4.75,10,6],[20,true,2353.186,2155.983,6311,6703,5.714,13,7]]},
+        {"seed":73193,"rows":[[5,true,25.448,22.97,477,74,2,3,2],[15,true,879.843,535.817,11547,24877,5,11,7],[20,true,3352.61,2720.467,70035,99943,6.143,13,8]]},
+        {"seed":99991,"rows":[[5,true,13.8,12.2,345,81,2,3,2],[15,true,816.228,709.492,4756,10285,5.083,10,6],[20,true,2353.186,1393.33,17524,68283,6.077,13,8]]}
+      ]
+    },
+    {
+      "name":"reinforced",
+      "options":{"towersPerGate":3,"reinforcementDay":15},
+      "clear30":14,"clear30Rate":0.9333333333333333,"clear35":0,"runs":15,
+      "outcomes":[
+        [1,34,25,25,1554020,2196219],[7,32,25,25,706472,1340888],
+        [42,32,25,25,203174,270403],[73193,32,23,23,1170693,606465],
+        [99991,32,26,26,656918,873748],[3,31,26,26,812711,814890],
+        [11,26,null,null,87097,165519],[23,33,25,25,813864,1125958],
+        [57,32,26,26,87669,452345],[101,32,26,26,465750,680840],
+        [2026,32,25,25,892224,395208],[7777,33,25,25,776846,2048297],
+        [12345,32,27,27,13611,12301],[54321,33,27,27,143199,655492],
+        [314159,33,26,25,853490,722687]
+      ],
+      "milestones":[
+        {"seed":1,"rows":[[5,true,19.8,22.4,337,330,1.875,3,2],[15,true,713.892,513.849,15260,7139,4.833,10,6],[20,true,1950.155,1400.52,8437,54429,5.769,12,7]]},
+        {"seed":7,"rows":[[5,true,19.8,22.4,314,296,1.875,3,2],[15,true,816.228,447.092,18406,13477,5.273,10,6],[20,true,2273.087,1503.189,66422,29774,5.615,12,7]]},
+        {"seed":42,"rows":[[5,true,13.8,12.2,436,157,2,3,2],[15,true,503.572,513.849,5193,1412,4.667,9,6],[20,true,1950.155,1400.52,43592,36947,5.769,12,7]]},
+        {"seed":73193,"rows":[[5,true,25.448,22.97,477,74,2,3,2],[15,true,879.843,739.444,5675,9576,5.333,11,7],[20,true,2522.579,2246.518,44092,95497,5.857,13,8]]},
+        {"seed":99991,"rows":[[5,true,13.8,12.2,345,81,2,3,2],[15,true,713.892,513.849,16368,6026,4.833,10,6],[20,true,2273.507,1319.345,7426,3198,5.769,13,7]]}
+      ]
+    }
+  ],
+  "incomeShareColumns":["seed","lowPercent","endPercent","ultimatePercent"],
+  "day20IncomeShares": {
+    "default":[[1,23.868,49.559,26.573],[7,32.306,42.606,25.088],[42,25.553,48.626,25.821],[73193,27.302,43.77,28.928],[99991,29.5,56.577,13.923]],
+    "reinforced":[[1,30.196,54.81,14.995],[7,27.652,45.33,27.018],[42,30.196,54.81,14.995],[73193,28.064,47.183,24.753],[99991,26.48,59,14.519]]
+  },
+  "verification": {"runs":30,"cadence":true,"nonnegativeResources":true,"reinforcedPre15Identical":true,"noTimeouts":true,"primaryD5Round2AllMilestoneColumnsIdentical":true,"existingBalanceTestsPassed":12},
+  "notes":["All current runs requested 35 days and ended in defeat; defeatNight=30 does not clear night 30.","firstLevel9Day includes any ordinary building, including defense; it does not mean the whole economy is capped.","Income shares use fresh deterministic 20-day runs and actual G.income on their final buildings, exclude shrine, and combine both resources without valuing one against the other.","Compact rows preserve samples and outcomes, not full action audits. Historical artifacts remain unchanged."]
+}

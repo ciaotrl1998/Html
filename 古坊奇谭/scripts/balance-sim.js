@@ -8,23 +8,28 @@ const opening = [
   ['farm',5,8],['mill',6,9],['bank',8,10],['wine',7,10],
   ['tailor',10,8],['trade',10,9],['guild',8,9],['port',9,9]
 ];
-const towerPlots = [[8,6],[9,6],[7,6],[8,5],[9,5]];
+const towerPlots = [[9,8],[8,9],[6,8],[8,6],[9,6]];
 const fortunePlots = [[8,7],[6,7],[10,8]];
 function run(days=10,style='build',seed=73193) {
-  const s=G.createState(),history=[];s.seed=seed;let next=0,seconds=0,lastDay=s.day,actions=[];
+  const s=G.createState(null),history=[];s.seed=seed;let next=0,seconds=0,lastDay=s.day,actions=[];
   while(!s.over && s.day<=days && seconds<days*230){
     while(next<opening.length&&s.buildings.some(b=>b.type===opening[next][0]&&b.x===opening[next][1]&&b.y===opening[next][2]))next++;
     let defended=false;
     if(style==='balanced'&&s.phase==='night'){
       const shrine=s.buildings.find(b=>b.type==='shrine');
-      if(s.enemies.length>=8&&!G.skillReason(s,'thunder')){G.skill(s,'thunder');actions.push(`第${s.day}夜天雷`);}
+      if(s.enemies.length>=6&&!G.skillReason(s,'thunder')){G.skill(s,'thunder');actions.push(`第${s.day}夜天雷`);}
       else if(shrine&&shrine.hp<G.maxHP(shrine)*.55&&!G.skillReason(s,'repair')){G.skill(s,'repair');actions.push(`第${s.day}夜回春`);}
-      else if(s.enemies.length>=8&&!G.skillReason(s,'repel')){G.skill(s,'repel');actions.push(`第${s.day}夜驱鬼`);}
+      else if(s.enemies.length>=6&&!G.skillReason(s,'repel')){G.skill(s,'repel');actions.push(`第${s.day}夜驱鬼`);}
+    }
+    if(style==='balanced'){
+      // Shortest routes hit producers directly; fund defense and raise their HP early.
+      const b=s.buildings.find(b=>['tea','mulberry','quarry','weaver'].includes(b.type)&&b.level<3&&!G.upgradeReason(s,b));
+      if(b){G.upgrade(s,b);actions.push(`第${s.day}日升${G.DEFS[b.type].name}${b.level}`);defended=true;}
     }
     if(style==='balanced'&&next>=4){
       const target=Math.min(G.MAX_LEVEL,1+Math.floor((s.day+1)/3)),shrine=s.buildings.find(b=>b.type==='shrine');
       const shrineTarget=G.requiredShrineLevel(target);
-      if(shrine.level<shrineTarget){
+      if(!defended&&shrine.level<shrineTarget){
         if(!G.upgradeReason(s,shrine)){G.upgrade(s,shrine);actions.push(`第${s.day}日升祠堂${shrine.level}`);}
         defended=true;
       }
