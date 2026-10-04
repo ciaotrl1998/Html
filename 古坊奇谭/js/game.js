@@ -116,7 +116,7 @@
   function fortuneCandidates(s, x, y) {
     const plot = terrain(x, y);
     return Object.values(DEFS).filter(d => {
-      if (d.id === 'fortune' || d.unique || (d.limit && s.buildings.filter(b => b.type === d.id).length >= d.limit)) return false;
+      if (d.id === 'fortune' || d.unique || d.income || (d.limit && s.buildings.filter(b => b.type === d.id).length >= d.limit)) return false;
       if (d.cat === 'economy' && plot === 'forest' && d.id !== 'mulberry') return false;
       if (d.cat === 'economy' && plot === 'mountain' && d.id !== 'quarry') return false;
       if (d.id === 'farm' && plot !== 'shore' && !(plot === 'plain' && adjacent(s, x, y).some(b => b.type === 'well'))) return false;

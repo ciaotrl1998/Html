@@ -89,7 +89,9 @@
   }
   function detailHTML(b) {
     const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
-    const description = effect(d, b) + (GF.dryFarm(state, b) ? ' · 缺水：耐久每秒 -5%' : '');
+    const description = GF.dryFarm(state, b) ? '缺水：耐久每秒 -5%' : '';
+    const bonus = d.income ? rateText(Math.max(0, GF.income(state, b) - d.income * f)) : '0';
+    const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(d.income * f)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
     if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? '' : ' → ' + GF.income(state, next).toFixed(1)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
@@ -97,7 +99,7 @@
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'tao') stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? '' : ' → ' + Math.min(150, 15 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'zhong') stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? '' : ' → ' + Math.round(GF.zhongSlow(next) * 100) + '%'}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
-    return `<div class="detail"><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}${max ? ' · 满级' : ''}</span><button class="demolish-button" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '不可拆除' : '拆除'}</button></div><p class="detail-description">${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${GF.name(b)}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${b.type === 'shrine' ? 'disabled' : ''}>${b.type === 'shrine' ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${d.name}"><span>${d.chain ? d.chain + '业兴旺' : d.required ? (d.resource === 'materials' ? '百工汇聚' : '财源广进') : d.cat === 'defense' ? '守望古坊' : '人间烟火'}</span></div><div class="detail-info"><p class="detail-description" ${description ? '' : 'hidden'}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级至 Lv.' + (b.level + 1)}<small id="upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;

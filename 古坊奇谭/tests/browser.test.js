@@ -105,7 +105,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>{const s=Gufang.state;s.materials=1000;const shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=2;shrine.hp=GF.maxHP(shrine);Gufang.refresh();});
       assert.equal(await page.locator('#upgrade-label .cost-number.insufficient').count(),0);
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='tea').level),2);
-      assert((await page.locator('.detail-description').textContent()).includes('铜钱 +2/秒'));
+      assert((await page.locator('.detail-revenue').textContent()).includes('+2/秒'));
+      assert.equal(await page.locator('.detail-revenue .coin-icon').count(),1);
       await page.screenshot({path:path.join(shots,`detail-v2-${viewport.width}.png`)});
       await page.evaluate(()=>{Gufang.state.coins=0;Gufang.state.materials=0;Gufang.select(7,7);});
       const poorOrder=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build));
@@ -159,6 +160,14 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.deepEqual(overlays.well.frameSizes,[[188,188]],'well has a one-tile radius');
       assert.equal(overlays.earth.frames,1,'earth shows its three-tile guard radius');
       for(const type of ['tower','stage','shrine'])assert.equal(overlays[type].frames,0,type+' has no range frame');
+      const shootingRange=await page.evaluate(()=>{
+        const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
+        const ctx=canvas.getContext('2d'),oldArc=ctx.arc,s=GF.createState();GF.grantBuilding(s,'tower',8,7,3);let radii=[];
+        ctx.arc=function(x,y,r){radii.push(r);return oldArc.apply(this,arguments);};
+        GFArt.render(canvas,s,Gufang.camera,{x:8,y:7});const selected=[...radii];radii=[];GFArt.render(canvas,s,Gufang.camera,null);canvas.remove();return {selected,closed:radii};
+      });
+      assert(shootingRange.selected.includes((G.DEFS.tower.range+2*.35)*64),'Selected tower displays the actual level-scaled circular shooting range');
+      assert.equal(shootingRange.closed.length,0,'Closing selection hides the shooting range');
       await page.evaluate(()=>Gufang.select(7,8));
       await page.screenshot({path:path.join(shots,`selection-range-${viewport.width}.png`)});
       await page.evaluate(()=>Gufang.select(7,7));
@@ -180,8 +189,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.equal(await page.locator('[data-build="farm"] .card-effect').innerText(),'铜钱 +1（+0.4）/秒');
       await page.locator('[data-build="farm"]').click();
       assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='farm').length),2);
-      assert((await page.locator('.detail-description').textContent()).includes('铜钱 +1（+0.4）/秒'));
-      assert.equal(await page.locator('.detail-description .income-bonus').evaluate(e=>getComputedStyle(e).color),'rgb(58, 135, 78)');
+      assert((await page.locator('.detail-revenue').textContent()).includes('+1（+0.4）/秒'));
+      assert.equal(await page.locator('.detail-revenue .income-bonus').evaluate(e=>getComputedStyle(e).color),'rgb(58, 135, 78)');
       await page.locator('#close-panel').click();
       if(viewport.width===390){
         const hp=await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='farm'&&b.x===9&&b.y===9).hp);
@@ -193,8 +202,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         await page.evaluate(()=>Gufang.select(9,9));
         assert((await page.locator('.detail-description').textContent()).includes('缺水'));
         await page.evaluate(()=>{GF.grantBuilding(Gufang.state,'well',10,10);GF.grantBuilding(Gufang.state,'stage',10,9);Gufang.select(8,8);});
-        assert((await page.locator('.detail-description').textContent()).includes('铜钱 +0.8/秒'));
-        assert.equal(await page.locator('.detail-description .income-bonus').count(),0,'Rounded-zero bonus is hidden');
+        assert((await page.locator('.detail-revenue').textContent()).includes('+0.8/秒'));
+        assert.equal(await page.locator('.detail-revenue .income-bonus').count(),0,'Rounded-zero bonus is hidden');
         await page.locator('#close-panel').click();
       }
       // Multiple buildings each get an actual integer payout and a matching floating coin amount.

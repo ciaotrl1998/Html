@@ -202,6 +202,8 @@ test('fortune boxes grow exponentially and create the shrine-unlocked maximum le
   assert.equal(first.fortuneBuilt,1);assert.deepEqual(G.buildCost(first,'fortune'),{coins:162,materials:108});
   assert.deepEqual(a.building.originCost,{coins:90,materials:60});
   assert(!['home','market','fence','fortune','shrine'].includes(a.rolled));
+  assert.equal(G.DEFS[a.rolled].income,undefined,'Fortune never produces an income building');
+  for(const plot of [[7,8],[5,8],[12,4],[13,13]])assert(G.fortuneCandidates(first,...plot).every(d=>!d.income&&d.cat!=='economy'),'Production buildings stay out of every fortune pool');
 });
 test('exclusive buildings only come from fortune while retired buildings are absent',()=>{
   const s=rich();

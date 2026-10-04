@@ -150,6 +150,10 @@
     if(!b)return;
     const d=GF.DEFS[b.type],bounds=influenceBounds(b);
     c.save();
+    if(b.type==='tower'){
+      const radius=(d.range+(b.level-1)*.35)*T;
+      c.beginPath();c.arc(b.x*T+32,b.y*T+32,radius,0,Math.PI*2);c.fillStyle='#8faa6518';c.fill();c.setLineDash([7,5]);c.strokeStyle=s.phase==='night'?'#c4dca4':'#769258';c.lineWidth=2;c.stroke();
+    }
     if(bounds){
       c.fillStyle='#7f9b7510';c.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);
       c.setLineDash([7,6]);c.lineWidth=1.5;c.strokeStyle=s.phase==='night'?'#bbca9db8':'#69856eaa';
