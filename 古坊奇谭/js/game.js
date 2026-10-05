@@ -705,14 +705,15 @@
     // Inspect dependencies once, including direct edits that do not bump revision.
     const signature = JSON.stringify([w.mode, w.day, buildings.map(b => [b.type, b.x, b.y, b.level, b.owner])]);
     let cached = incomeCache.get(w);
-    if (cached?.signature !== signature) {
+    const sameBuildings = cached?.buildings?.length === buildings.length && buildings.every((b, i) => cached.buildings[i] === b);
+    if (!sameBuildings || cached.signature !== signature) {
       const groups = new Map();
       for (const b of buildings) {
         const owner = w.mode === 'coop' ? b.owner : undefined;
         if (!groups.has(owner)) groups.set(owner, []);
         groups.get(owner).push(b);
       }
-      cached = { signature, groups, players: new Map() }; incomeCache.set(w, cached);
+      cached = { signature, buildings: [...buildings], groups, players: new Map() }; incomeCache.set(w, cached);
     }
     const players = s.mode === 'coop' && s.actorId === undefined ? [playerView(s, 0), playerView(s, 1)] : [s];
     for (const player of players) {
