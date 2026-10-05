@@ -886,13 +886,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const dryFarms = b.type === "well" ? s.buildings.filter((n) => n.type === "farm" && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
     return { ok: true, refund, dryFarms };
   }
-  function income(s, b) {
+  function income(s, b, buildings) {
     var _a;
     if (s.mode === "coop" && s.actorId === void 0) s = playerView(s, (_a = b.owner) != null ? _a : 0);
     const d = DEFS[b.type];
     if (!d.income) return 0;
     let bonus = 0;
-    for (const n of s.buildings) {
+    for (const n of buildings || s.buildings) {
       const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
       if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * auraFactor(n);
       if (n.type === "well" && dist === 1 && b.type === "farm") bonus += 0.2 * auraFactor(n);
@@ -905,25 +905,46 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     r[d.resource === "materials" ? "materials" : "coins"] += income(s, b);
     return r;
   }, { coins: 0, materials: 0 });
+  const incomeCache = /* @__PURE__ */ new WeakMap();
   function settleIncome(s, dt) {
-    if (s.mode === "coop" && s.actorId === void 0) {
-      settleIncome(playerView(s, 0), dt);
-      settleIncome(playerView(s, 1), dt);
-      return;
+    var _a;
+    const w = world(s), buildings = w.buildings;
+    const signature = JSON.stringify([w.mode, w.day, buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
+    let cached = incomeCache.get(w);
+    const sameBuildings = ((_a = cached == null ? void 0 : cached.buildings) == null ? void 0 : _a.length) === buildings.length && buildings.every((b, i) => cached.buildings[i] === b);
+    if (!sameBuildings || cached.signature !== signature) {
+      const groups = /* @__PURE__ */ new Map();
+      for (const b of buildings) {
+        const owner = w.mode === "coop" ? b.owner : void 0;
+        if (!groups.has(owner)) groups.set(owner, []);
+        groups.get(owner).push(b);
+      }
+      cached = { signature, buildings: [...buildings], groups, players: /* @__PURE__ */ new Map() };
+      incomeCache.set(w, cached);
     }
-    for (const b of s.buildings) {
-      const d = DEFS[b.type];
-      if (!d.income) continue;
-      b.incomeTime += dt;
-      if (d.resource === "materials") b.materialPending += income(s, b) * dt;
-      else b.coinPending += income(s, b) * dt;
-      if (b.incomeTime < 1 - 1e-8) continue;
-      b.incomeTime = Math.max(0, b.incomeTime - 1);
-      for (const [resource, pending] of [["coins", "coinPending"], ["materials", "materialPending"]]) {
-        const paid = Math.floor(b[pending] + 1e-8);
-        b[pending] = Math.max(0, b[pending] - paid);
-        s[resource] += paid;
-        if (paid > 0) s.effects.push({ type: "income", resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: 0.95, total: 0.95 });
+    const players = s.mode === "coop" && s.actorId === void 0 ? [playerView(s, 0), playerView(s, 1)] : [s];
+    for (const player of players) {
+      const owner = player.actorId;
+      const owned = cached.groups.get(w.mode === "coop" ? owner : void 0) || [];
+      let values = cached.players.get(owner);
+      if (!values) {
+        values = owned.map((b) => income(player, b, owned));
+        cached.players.set(owner, values);
+      }
+      for (const [i, b] of owned.entries()) {
+        const d = DEFS[b.type];
+        if (!d.income) continue;
+        b.incomeTime += dt;
+        if (d.resource === "materials") b.materialPending += values[i] * dt;
+        else b.coinPending += values[i] * dt;
+        if (b.incomeTime < 1 - 1e-8) continue;
+        b.incomeTime = Math.max(0, b.incomeTime - 1);
+        for (const [resource, pending] of [["coins", "coinPending"], ["materials", "materialPending"]]) {
+          const paid = Math.floor(b[pending] + 1e-8);
+          b[pending] = Math.max(0, b[pending] - paid);
+          player[resource] += paid;
+          if (paid > 0) player.effects.push({ type: "income", resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: 0.95, total: 0.95 });
+        }
       }
     }
   }
@@ -1315,9 +1336,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const d = DEFS[b.type];
       if (!d.damage || b.type === "barracks") continue;
       b.cooldown -= dt;
+      if (b.cooldown > 0) continue;
       const range = d.range + (b.level - 1) * 0.35;
-      const enemies = s.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) <= range).sort((a, z) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(z.x - b.x, z.y - b.y));
-      const target = enemies[0];
+      let target, nearest = Infinity;
+      for (const e of s.enemies) {
+        if (e.hp <= 0) continue;
+        const distance = Math.hypot(e.x - b.x, e.y - b.y);
+        if (distance <= range && distance < nearest) {
+          target = e;
+          nearest = distance;
+        }
+      }
       if (target && b.cooldown <= 0) {
         b.cooldown = d.interval;
         const damage = d.damage * factor(b) * defenseBoost(s);
@@ -1703,6 +1732,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   "use strict";
   const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
+  const hintCaches = /* @__PURE__ */ new WeakMap();
+  const sprites = /* @__PURE__ */ new Map();
+  function drawBaked(c, key, paint) {
+    let sprite = sprites.get(key);
+    if (!sprite) {
+      sprite = document.createElement("canvas");
+      sprite.width = 256;
+      sprite.height = 256;
+      const ctx = sprite.getContext("2d");
+      ctx.scale(2, 2);
+      ctx.translate(64, 96);
+      paint(ctx);
+      sprites.set(key, sprite);
+    }
+    c.drawImage(sprite, -64, -96, 128, 128);
+  }
   const noise = (x, y, n = 0) => {
     const v = Math.sin(x * 127.1 + y * 311.7 + n * 74.7) * 43758.5453;
     return v - Math.floor(v);
@@ -1834,7 +1879,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     rect(c, -9, 15, 18, 2, "#d6d6bc");
     rect(c, -11, 17, 22, 2, "#b6bca1");
   }
-  function building(c, type, level = 1, time = 0) {
+  function building(c, type, level = 1, time = 0, baked = false) {
     level = GF.visualLevel(level);
     c.save();
     c.lineJoin = "round";
@@ -1954,11 +1999,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (type === "mill") {
         ellipse(c, 22, 6, 11, 11, "#8c8460", "#676d51");
         ellipse(c, 22, 6, 8, 8, null, "#c8ba87");
-        for (let i = 0; i < 8; i++) {
-          const a = i * Math.PI / 4 + time * 0.4;
-          line(c, [[22, 6], [22 + 10 * Math.cos(a), 6 + 10 * Math.sin(a)]], "#c2b180", 1.5);
-        }
-        ellipse(c, 22, 6, 2, 2, "#706949");
+        if (!baked) buildingAnimation(c, type, time);
       }
       if (type === "wine" || type === "kiln") {
         for (let i = 0; i < 3; i++) {
@@ -1968,7 +2009,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       if (type === "kiln") {
         rect(c, 16, -32, 6, 19, "#a18e6c");
-        for (let i = 0; i < 3; i++) ellipse(c, 19 + Math.sin(time + i) * 3, -38 - i * 7, 3 + i, 3 + i, "#e7e7cf66");
+        if (!baked) buildingAnimation(c, type, time);
       }
       if (type === "weaver" || type === "tailor") {
         line(c, [[-25, -14], [-25, 13]], "#8e7c59", 1.5);
@@ -2009,6 +2050,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
     c.restore();
+  }
+  function buildingAnimation(c, type, time) {
+    if (type === "mill") {
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4 + time * 0.4;
+        line(c, [[22, 6], [22 + 10 * Math.cos(a), 6 + 10 * Math.sin(a)]], "#c2b180", 1.5);
+      }
+      ellipse(c, 22, 6, 2, 2, "#706949");
+    }
+    if (type === "kiln") for (let i = 0; i < 3; i++) ellipse(c, 19 + Math.sin(time + i) * 3, -38 - i * 7, 3 + i, 3 + i, "#e7e7cf66");
   }
   function houseTiny(c, x, y) {
     rect(c, x - 5, y, 10, 7, "#d6d0a6");
@@ -2283,6 +2334,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, height, s.mapGeneration, s.coopLayout]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, player = s.mode === "coop" ? GF.playerView(s, options.player || 0) : s;
+    const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
+    let hints = hintCaches.get(s);
+    if (!hints || hints.key !== hintKey) {
+      hints = { key: hintKey, tiles: /* @__PURE__ */ new Map() };
+      hintCaches.set(s, hints);
+    }
+    const blockedHints = /* @__PURE__ */ new Set();
+    for (const e of s.enemies) for (let y = Math.floor(e.y) - 1; y <= Math.ceil(e.y) + 1; y++) for (let x = Math.floor(e.x) - 1; x <= Math.ceil(e.x) + 1; x++) {
+      if (Math.hypot(e.x - x, e.y - y) < 0.65) blockedHints.add(y * size + x);
+    }
     if (!ground || groundSeed !== cacheKey) {
       ground = makeGround(s);
       groundSeed = cacheKey;
@@ -2321,18 +2382,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.save();
       c.translate(x * T + 32, y * T + 32);
       if (estate && !GF.owns(s, x, y)) c.globalAlpha = 0.78;
-      if (type === "forest") {
-        tree(c, -14, 7, 0.95);
-        tree(c, 10, -8, 1.1);
-        bamboo(c, 15, 19, 0.66);
-      }
-      if (type === "mountain") {
-        stone(c, -9, 9, 1.1);
-        stone(c, 15, -4, 1.2);
-        stone(c, -13, -13, 0.6);
-      }
+      if (type === "forest") drawBaked(c, "forest", (ctx) => {
+        tree(ctx, -14, 7, 0.95);
+        tree(ctx, 10, -8, 1.1);
+        bamboo(ctx, 15, 19, 0.66);
+      });
+      if (type === "mountain") drawBaked(c, "mountain", (ctx) => {
+        stone(ctx, -9, 9, 1.1);
+        stone(ctx, 15, -4, 1.2);
+        stone(ctx, -13, -13, 0.6);
+      });
       if (type === "plain" && (x === 0 || y === 0 || x === size - 1 || y === height - 1)) {
-        if (noise(x, y) > 0.35) tree(c, 0, 8, 0.8 + noise(x, y) * 0.5, true);
+        if (noise(x, y) > 0.35) {
+          c.save();
+          c.translate(0, 8);
+          const scale = 0.8 + noise(x, y) * 0.5;
+          c.scale(scale, scale);
+          drawBaked(c, "border-tree", (ctx) => tree(ctx, 0, 0, 1, true));
+          c.restore();
+        }
       }
       if (type === "water") {
         const off = Math.sin(animationTime * 0.8 + x + y) * 2;
@@ -2361,7 +2429,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
-      building(c, b.type, b.level, animationTime);
+      drawBaked(c, "building:" + b.type + ":" + GF.visualLevel(b.level), (ctx) => building(ctx, b.type, b.level, 0, true));
+      buildingAnimation(c, b.type, animationTime);
       if (s.mode === "coop" && b.type === "shrine") {
         rect(c, -38, -57, 76, 19, b.owner === options.player ? "#3d685deb" : "#8a6647eb");
         c.font = 'bold 12px "Microsoft YaHei",sans-serif';
@@ -2435,7 +2504,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).sort((a, b) => a.unit.y - b.unit.y);
+    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => unit.x >= left && unit.x <= right && unit.y >= top && unit.y <= bottom).sort((a, b) => a.unit.y - b.unit.y);
     for (const { unit: e, soldier } of units) {
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
@@ -2454,10 +2523,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     if (night || dusk) {
       c.fillStyle = night ? "#19395878" : "#ac723222";
-      c.fillRect(0, 0, T * size, T * size);
+      c.fillRect(0, 0, T * size, T * height);
       if (night) {
         c.globalCompositeOperation = "screen";
         for (const b of s.buildings) {
+          if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
           if (["shrine", "earth", "tao", "tower", "inn"].includes(b.type)) {
             const x = b.x * T + 32, y = b.y * T + 36, g = c.createRadialGradient(x, y, 2, x, y, 64);
             g.addColorStop(0, "#d4a34536");
@@ -2471,16 +2541,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     const hintPulse = reducedMotion || options.reducedMotion === true ? 1 : 1 + 0.035 * Math.sin(animationTime * 2.4);
     for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
-      if (occupied.has(x + "," + y)) continue;
-      let best = null, bestIncome = -Infinity;
-      for (const hint of GF.buildHints(player, x, y)) {
-        if (hint.resource !== "coins" && hint.resource !== "materials") continue;
-        const preview = { type: hint.type, x, y, level: 1 };
-        const shadow = __spreadProps(__spreadValues({}, player), { buildings: [...player.buildings, preview] }), income = GF.income(shadow, preview);
-        if (!best || income > bestIncome || income === bestIncome && (hint.tier > best.tier || hint.tier === best.tier && hint.resource === "coins" && best.resource !== "coins")) {
-          best = hint;
-          bestIncome = income;
+      const tile = y * size + x;
+      if (occupied.has(x + "," + y) || blockedHints.has(tile)) continue;
+      let best = hints.tiles.get(tile);
+      if (!hints.tiles.has(tile)) {
+        let bestIncome = -Infinity;
+        best = null;
+        const town = __spreadProps(__spreadValues({}, player), { enemies: [] });
+        for (const hint of GF.buildHints(town, x, y)) {
+          if (hint.resource !== "coins" && hint.resource !== "materials") continue;
+          const preview = { type: hint.type, x, y, level: 1 };
+          const shadow = __spreadProps(__spreadValues({}, town), { buildings: [...town.buildings, preview] }), income = GF.income(shadow, preview);
+          if (!best || income > bestIncome || income === bestIncome && (hint.tier > best.tier || hint.tier === best.tier && hint.resource === "coins" && best.resource !== "coins")) {
+            best = hint;
+            bestIncome = income;
+          }
         }
+        hints.tiles.set(tile, best);
       }
       if (!best) continue;
       c.save();
