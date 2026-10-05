@@ -54,11 +54,12 @@ const original = benchmark ? execFileSync('git', ['show', 'HEAD:古坊奇谭/js/
         GF.buildHints = buildHints;
         const baseline = measure(originalArt);
         const backgroundChecks = () => {
-          const fill = CanvasRenderingContext2D.prototype.fillRect;
-          let fills = 0, liveBlur = false;
+          const fill = CanvasRenderingContext2D.prototype.fillRect,clear=CanvasRenderingContext2D.prototype.clearRect;
+          let fills = 0, liveBlur = false,patches=[];
           const draw = ctx.drawImage;
           ctx.drawImage = function () { if(this.shadowBlur>0&&this.shadowColor!=='rgba(0, 0, 0, 0)')liveBlur=true;return draw.apply(this,arguments); };
           CanvasRenderingContext2D.prototype.fillRect = function () { if(this.canvas!==canvas&&this.canvas.width>512)fills++;return fill.apply(this,arguments); };
+          CanvasRenderingContext2D.prototype.clearRect=function(x,y,w,h){if(this.canvas!==canvas&&this.canvas.width>512)patches.push({x,y,w,h});return clear.apply(this,arguments);};
           try {
             GFArt.render(canvas,s,cam,null);fills=0;
             GFArt.render(canvas,s,cam,null);const warm=fills;
@@ -67,8 +68,8 @@ const original = benchmark ? execFileSync('git', ['show', 'HEAD:古坊奇谭/js/
             fills=0;s.phase='night';GFArt.render(canvas,s,cam,null,{grid:true});const night=fills;
             fills=0;s.buildings[1].level++;GFArt.render(canvas,s,cam,null,{grid:true});const upgrade=fills;
             fills=0;s.buildings[1].x+=1;GFArt.render(canvas,s,cam,null,{grid:true});const building=fills;
-            return {warm,moved,grid,night,upgrade,building,liveBlur};
-          } finally { CanvasRenderingContext2D.prototype.fillRect=fill;ctx.drawImage=draw;s.phase='day';s.buildings[1].x-=1;s.buildings[1].level--; }
+            return {warm,moved,grid,night,upgrade,building,patches,liveBlur};
+          } finally { CanvasRenderingContext2D.prototype.fillRect=fill;CanvasRenderingContext2D.prototype.clearRect=clear;ctx.drawImage=draw;s.phase='day';s.buildings[1].x-=1;s.buildings[1].level--; }
         };
         const dynamic = type => {
           const b = s.buildings.find(b => b.type === type), camera = { x: width / 2 - (b.x * 64 + 32), y: height / 2 - (b.y * 64 + 32), zoom: 1 };
@@ -111,7 +112,9 @@ const original = benchmark ? execFileSync('git', ['show', 'HEAD:古坊奇谭/js/
       assert(result.millMoves && result.kilnMoves, 'Animated overlays still move');
       assert.equal(result.background.warm,0,'Warm frames reuse viewport scenery');
       for(const key of ['moved','grid','night','upgrade'])assert.equal(result.background[key],0,`${key} reuses baked terrain`);
-      assert(result.background.building>0,'Building occupancy invalidates terrain');
+      assert.equal(result.background.building,0,'Building occupancy never regenerates full-map terrain');
+      assert.equal(result.background.patches.length,2,'Moving one building repairs only its old and new plots');
+      assert(result.background.patches.every(p=>p.w<=128&&p.h<=128),'Terrain repairs are tile-sized with spill margin');
       assert.equal(result.background.liveBlur,false,'Live canvas never blurs the full map');
       assert.equal(result.culling.offscreen,result.culling.empty,'Offscreen effects and projectiles make no draw calls');
       assert(result.culling.onscreen>result.culling.empty,'Visible effects remain drawn');

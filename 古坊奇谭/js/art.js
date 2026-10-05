@@ -221,8 +221,18 @@
     const ctx=padded.getContext('2d');ctx.shadowColor='#40583e18';ctx.shadowBlur=35;ctx.shadowOffsetY=8;
     ctx.drawImage(canvas,48,48);
     ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.translate(48,48);
+    const base=document.createElement('canvas');base.width=padded.width;base.height=padded.height;
+    base.getContext('2d').drawImage(padded,0,0);
+    padded.base=base;padded.occupied=new Set(occupied);
     const waterRows=Array.from({length:height},()=>[]);
-    for(let y=0;y<height;y++)for(let x=0;x<size;x++){
+    for(let y=0;y<height;y++)for(let x=0;x<size;x++)if(GF.terrain(x,y,s)==='water'&&!GF.isWall(s,x,y)&&!estate?.roads.has(y*size+x))waterRows[y].push({x,outside:!!estate&&!GF.owns(s,x,y)});
+    drawGroundDecorations(ctx,s,occupied,0,0,size-1,height-1);
+    padded.waterRows=waterRows;
+    return padded;
+  }
+  function drawGroundDecorations(ctx,s,occupied,left,top,right,bottom){
+    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s);
+    for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
       if(occupied.has(x+','+y)||GF.isWall(s,x,y)||estate?.roads.has(y*size+x))continue;
       const type=GF.terrain(x,y,s);ctx.save();ctx.translate(x*T+32,y*T+32);
       const outside=!!estate&&!GF.owns(s,x,y);if(outside)ctx.globalAlpha=.78;
@@ -232,13 +242,27 @@
         ctx.translate(0,8);const scale=.8+noise(x,y)*.5;ctx.scale(scale,scale);drawBaked(ctx,'border-tree',c=>tree(c,0,0,1,true));
       }
       if(type==='water'){
-        waterRows[y].push({x,outside});
         if(noise(x,y)>.65)for(let i=0;i<4;i++)line(ctx,[[-23+i*3,22],[-25+i*3,9+noise(x,y,i)*7]],'#739575',1.3);
       }
       ctx.restore();
     }
-    padded.waterRows=waterRows;
-    return padded;
+  }
+  function updateGround(s,occupied){
+    const changed=[...ground.occupied].filter(key=>!occupied.has(key)).concat([...occupied].filter(key=>!ground.occupied.has(key)));
+    if(!changed.length)return;
+    const ctx=ground.getContext('2d'),size=GF.worldWidth(s),height=GF.worldHeight(s);
+    for(const key of changed){
+      const [x,y]=key.split(',').map(Number);
+      // Trees spill across tile edges. Restore a padded patch, then replay nearby decor in painter order.
+      const px=Math.max(0,x*T+48-32),py=Math.max(0,y*T+48-32);
+      const width=Math.min(ground.width-px,T+64),patchHeight=Math.min(ground.height-py,T+64);
+      ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(px,py,width,patchHeight);
+      ctx.drawImage(ground.base,px,py,width,patchHeight,px,py,width,patchHeight);
+      ctx.beginPath();ctx.rect(px,py,width,patchHeight);ctx.clip();ctx.translate(48,48);
+      drawGroundDecorations(ctx,s,occupied,Math.max(0,x-2),Math.max(0,y-2),Math.min(size-1,x+2),Math.min(height-1,y+2));
+      ctx.restore();
+    }
+    ground.occupied=new Set(occupied);
   }
   let ground, groundSeed;
   function healthBarY(b){
@@ -307,8 +331,8 @@
       if(Math.hypot(e.x-x,e.y-y)<.65)blockedHints.add(y*size+x);
     }
     const occupied=new Set(s.buildings.map(b=>b.x+','+b.y));
-    const groundKey=JSON.stringify([cacheKey,[...occupied].sort()]);
-    if(!ground || groundSeed!==groundKey){ground=makeGround(s,occupied);groundSeed=groundKey;}
+    if(!ground || groundSeed!==cacheKey){ground=makeGround(s,occupied);groundSeed=cacheKey;}
+    else updateGround(s,occupied);
     const c=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,dpr=canvas.width/w;
     const night=s.phase==='night',dusk=s.phase==='dusk';
     const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
@@ -333,7 +357,7 @@
       c.globalAlpha=outside?.78:1;c.strokeStyle=wave?'#e1ebd860':'#e1ebd880';c.beginPath();let segments=0;
       for(let y=top;y<=bottom;y++)for(const tile of ground.waterRows[y]){
         const x=tile.x,cx=x*T+32,cy=y*T+32;
-        if(tile.outside!==outside||x<left||x>right||!visible(cx,cy,22,11))continue;
+        if(tile.outside!==outside||x<left||x>right||occupied.has(x+','+y)||!visible(cx,cy,22,11))continue;
         const off=Math.sin(animationTime*.8+x+y)*2;
         c.moveTo(cx+(wave?8-off:-15+off),cy+(wave?10:-10));c.lineTo(cx+(wave?19-off:1+off),cy+(wave?10:-10));segments++;
       }
