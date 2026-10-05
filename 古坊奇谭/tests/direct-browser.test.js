@@ -36,8 +36,15 @@ async function sourceContext(context){
     await guest.locator('#coop-code').fill('123456'); await guest.locator('#coop-join').click();
     await guest.waitForFunction(() => document.getElementById('toast').textContent.includes('邀请码'));
     assert.equal(await guest.evaluate(() => Gufang.online), null, 'Invalid pairing text does not start a session');
+    // Copy stores the box text and paste restores it into the box.
+    await guest.evaluate(() => { window.__clip = ''; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async t => { window.__clip = String(t); }, readText: async () => window.__clip } }); });
+    await guest.locator('#coop-code').fill(invite);
+    await guest.locator('#coop-copy').click();
+    await guest.locator('#coop-code').fill('x');
+    await guest.locator('#coop-paste').click();
+    assert.equal(await guest.locator('#coop-code').inputValue(), invite, 'Paste restores the copied pairing code');
     // Guest pastes the invite and produces an answer code.
-    await guest.locator('#coop-code').fill(invite); await guest.locator('#coop-join').click();
+    await guest.locator('#coop-join').click();
     await guest.waitForFunction(old => { const value = document.getElementById('coop-code').value; return value.startsWith('GF-DIRECT-1:') && value !== old; }, invite);
     const answer = await guest.locator('#coop-code').inputValue();
     assert.equal(await guest.evaluate(code => GFDirect.unpack(code).type, answer), 'answer');

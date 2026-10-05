@@ -3905,6 +3905,32 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   $("coop-host").onclick = () => beginDirect("host");
   $("coop-join").onclick = joinDirect;
+  $("coop-copy").onclick = async () => {
+    const box = $("coop-code"), text = box.value.trim();
+    if (!text) return toast("输入框是空的", "warning");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("已复制");
+    } catch (e) {
+      box.focus();
+      box.select();
+      toast("已选中，请长按复制");
+    }
+  };
+  $("coop-paste").onclick = async () => {
+    var _a;
+    const box = $("coop-code");
+    try {
+      const text = await ((_a = navigator.clipboard) == null ? void 0 : _a.readText()) || "";
+      if (!text) return toast("剪贴板里没有可粘贴的文字", "warning");
+      box.value = text.trim();
+      box.dispatchEvent(new Event("input"));
+      toast("已粘贴");
+    } catch (e) {
+      box.focus();
+      toast("无法读取剪贴板，请长按输入框选择粘贴", "warning");
+    }
+  };
   $("coop-code").addEventListener("input", async () => {
     const session = online;
     if ((session == null ? void 0 : session.kind) !== "direct" || session.role !== "host" || session.peerConnected || session.accepting || !session.direct) return;
