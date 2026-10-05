@@ -46,6 +46,8 @@ function createServer() {
     socket.role = null;
   };
   sockets.on('connection', socket => {
+    socket.alive = true;
+    socket.on('pong', () => { socket.alive = true; });
     socket.on('message', raw => {
       let message;
       try { message = JSON.parse(String(raw)); }
@@ -71,7 +73,7 @@ function createServer() {
         socket.room.started = true;
         send(socket.room.guest, { type: 'started' });
       } else if (message.type === 'state' && socket.role === 'host' && socket.room?.started && typeof message.snapshot === 'string' && message.snapshot.length < 800000) {
-        send(socket.room.guest, { type: 'state', snapshot: message.snapshot, paused: !!message.paused });
+        send(socket.room.guest, { type: 'state', snapshot: message.snapshot, paused: !!message.paused, visuals: message.visuals });
       } else if (message.type === 'action' && socket.role === 'guest' && socket.room?.started) {
         const { id, kind, building, skill, x, y } = message;
         if (!Number.isSafeInteger(id) || !['build', 'upgrade', 'bulk', 'demolish', 'skill'].includes(kind) ||
@@ -86,7 +88,15 @@ function createServer() {
     socket.on('close', () => leave(socket));
     socket.on('error', () => leave(socket));
   });
-  return { server, sockets, rooms, close: () => new Promise(resolve => { for (const socket of sockets.clients) socket.terminate(); sockets.close(() => server.close(resolve)); }) };
+  const heartbeat = setInterval(() => {
+    for (const socket of sockets.clients) {
+      if (!socket.alive) { socket.terminate(); continue; }
+      socket.alive = false; socket.ping();
+    }
+  }, 5000);
+  heartbeat.unref();
+  sockets.on('close', () => clearInterval(heartbeat));
+  return { server, sockets, rooms, close: () => new Promise(resolve => { clearInterval(heartbeat); for (const socket of sockets.clients) socket.terminate(); sockets.close(() => server.close(resolve)); }) };
 }
 
 if (require.main === module) {
