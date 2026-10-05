@@ -44,23 +44,10 @@
         <div class="coop-divider" aria-hidden="true"><span>◇</span> 同守一方烟火 <span>◇</span></div>
         <button id="coop-seat" class="coop-seat" aria-pressed="false"><span id="coop-avatar" class="coop-avatar">候</span><strong id="coop-seat-title">等待其它玩家<small>点击席位，切换为电脑</small></strong><span class="coop-seat-switch" aria-hidden="true">⇄</span></button>
       </div>
-      <div class="coop-rules"><span>25×40 / 40×25</span><span>随机双庄园</span><span>共用一道围墙</span></div>
-      <p id="coop-note" class="coop-note" role="status">点击席位切换电脑队友，或通过同一局域网邀请另一台手机。</p>
-      <details id="lan-controls" class="lan-controls"><summary>两部手机直连 · 无需服务器</summary>
-        <p>连接同一 Wi-Fi，或一部手机开热点、另一部加入。两部手机各自打开此游戏，交换二维码配对。</p>
-        <div class="direct-actions"><button id="direct-create" class="modal-secondary">我是主机 · 生成邀请</button><button id="direct-join" class="modal-secondary">我是队友 · 接收邀请</button></div>
-        <p id="direct-status" class="direct-status" role="status">主机出示邀请二维码 → 队友识别并出示回应二维码 → 主机识别回应。</p>
-        <section id="direct-pair" hidden>
-          <div id="direct-output-area" hidden><strong id="direct-output-label">邀请二维码</strong><img id="direct-qr" alt="手机直连配对二维码" hidden><textarea id="direct-output" readonly aria-label="本机配对码" rows="2"></textarea><button id="direct-copy" class="modal-secondary">复制配对码</button></div>
-          <label id="direct-input-label" for="direct-input">对方的配对码</label><textarea id="direct-input" aria-label="对方的配对码" rows="3" placeholder="也可在这里粘贴对方的完整配对码" spellcheck="false" autocapitalize="off"></textarea>
-          <div class="direct-actions"><button id="direct-photo-button" class="modal-secondary">拍照识别二维码</button><button id="direct-file-button" class="modal-secondary">识别二维码图片</button></div>
-          <input id="direct-photo" type="file" accept="image/*" capture="environment" hidden><input id="direct-file" type="file" accept="image/*" hidden>
-          <button id="direct-apply" class="modal-primary">使用对方配对码</button>
-        </section>
-        <button id="server-toggle" class="server-toggle">使用已有服务器房间</button>
-        <div id="server-controls" hidden><p>仅适用于已经运行联机服务的网页。手机直连请使用上方二维码配对。</p><button id="lan-create" class="modal-secondary">创建服务器房间</button><div class="lan-join"><input id="lan-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" aria-label="六位房间号" placeholder="六位房间号"><button id="lan-join" class="modal-secondary">加入房间</button></div></div>
-        <strong id="lan-room" role="status"></strong><button id="lan-leave" class="modal-secondary" hidden>取消配对／关闭房间</button>
-      </details>
+      <div class="coop-connect">
+        <div class="coop-connect-actions"><button id="coop-host" class="modal-secondary">创建主机</button><button id="coop-join" class="modal-secondary">加入主机</button></div>
+        <textarea id="coop-code" class="coop-code-input" rows="3" aria-label="配对码" placeholder="主机：点击「创建主机」生成邀请码；队友：粘贴邀请码后点「加入主机」" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      </div>
       <div class="coop-lobby-actions"><button id="coop-start" class="modal-primary" disabled>等待队友就绪</button><button id="coop-back" class="modal-secondary">返回开始菜单</button><p>开始新局将替换本地进度</p></div>
     </section>
     <canvas id="map" aria-label="古坊地图"></canvas>
@@ -73,8 +60,8 @@
     </div>
     <header class="topbar">
       <span class="seal" aria-label="古坊奇谭">坊</span>
-      <div class="resource"><i class="coin-icon" aria-hidden="true"></i><div><small>铜钱</small><strong id="coins">200</strong></div></div>
-      <div class="resource"><i class="material-icon" aria-hidden="true"></i><div><small>工材</small><strong id="materials">120</strong></div></div>
+      <div class="resource"><i class="coin-icon" aria-hidden="true"></i><div><small>铜钱</small><strong id="coins">150</strong></div></div>
+      <div class="resource"><i class="material-icon" aria-hidden="true"></i><div><small>工材</small><strong id="materials">200</strong></div></div>
     </header>
     <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
     <div id="autoplay-status" hidden><strong>托管中</strong><span id="autoplay-action"></span></div>

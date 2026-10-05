@@ -32,6 +32,7 @@ const { chromium } = require('playwright');
       assert.deepEqual(await visibleDirections(), [], 'Title hides even boss warnings');
       assert(await page.locator('#invasion-indicators').evaluate(el => el.hidden));
       await page.locator('#start-single').click();
+      await page.locator('[data-choice="thunder"]').click();
       assert.deepEqual(await visibleDirections(), [], 'Day hides arrows');
       for (const phase of ['dusk', 'night']) for (let direction = 0; direction < 4; direction++) {
         await setPhase(phase, direction);

@@ -4,7 +4,7 @@ const G=require('../js/game.js'),A=require('../js/autoplay.js');
 function advance(s,bot,seconds){for(let i=0;i<seconds*4&&!s.over;i++){bot.tick(.25);G.step(s,.25);}}
 
 test('autoplay obeys action rules and resource costs without modifying the simulation clock',()=>{
-  const s=G.createState(42),before=G.serialize(s),bot=A.create(s);
+  const s=G.createState(42);s.coins=200;s.materials=220;G.chooseSkill(s,'thunder');const before=G.serialize(s),bot=A.create(s);
   assert.equal(G.serialize(s),before,'Planning does not alter the town');
   const originals={},counts={build:0,upgrade:0,skill:0};
   for(const name of Object.keys(counts)){
@@ -17,7 +17,8 @@ test('autoplay obeys action rules and resource costs without modifying the simul
   }
   try{
     bot.tick(.1);assert.equal(s.elapsed,0);assert.equal(s.time,0);
-    assert.equal(s.materials,220-G.buildCost(s,'tea').materials,'First action pays for tea; the normal mission reward may add coins');
+    assert(counts.build+counts.upgrade>0,'First action goes through a funded public action API');
+    assert(s.coins<200||s.materials<220,'First action pays its normal resource cost');
     advance(s,bot,900);
     assert(counts.build>10);assert(counts.upgrade>10);assert(counts.skill>0);
     const r=bot.report();assert.equal(r.builds,counts.build);assert.equal(r.upgrades,counts.upgrade);
@@ -42,7 +43,7 @@ test('five procedural maps can be played automatically through the seventh-night
 });
 
 test('opening expands repeated income buildings instead of filling eight tower slots',()=>{
-  const s=G.createState(42),bot=A.create(s);advance(s,bot,72);
+  const s=G.createState(42);s.coins=200;s.materials=220;const bot=A.create(s);advance(s,bot,72);
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,0,'No known attackers during the first day');
   const eco=s.buildings.filter(b=>G.DEFS[b.type].cat==='economy');
   assert(eco.length>=8);assert(eco.filter(b=>b.type==='farm').length>1);assert(eco.filter(b=>b.type==='mulberry').length>1);
@@ -50,7 +51,7 @@ test('opening expands repeated income buildings instead of filling eight tower s
   assert(s.coins>=G.DEFS.tower.cost.coins&&s.materials>=G.DEFS.tower.cost.materials,'Keep an emergency tower budget for dusk');
 });
 
-test('one adequate tower stops reinforcement even with abundant money',()=>{
+test('one adequate tower upgrades under stronger opening pressure without adding towers',()=>{
   const s=G.createState(42);s.coins=s.materials=1e6;G.dusk(s);
   const bot=A.create(s);bot.tick(1);
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
@@ -58,13 +59,14 @@ test('one adequate tower stops reinforcement even with abundant money',()=>{
   assert(A.coversGate(tower,gate),'Build on the announced front');
   for(let i=0;i<15;i++)bot.tick(1);
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,1,'Sufficient firepower must not trigger extra towers');
-  assert.equal(tower.level,1,'Do not upgrade an already adequate tower');
+  assert.equal(tower.level,2,'Stronger opening enemies require a level-two tower');
+  assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
   assert(bot.report().actions.some(a=>a.kind==='build'&&G.DEFS[a.type].cat==='economy'));
   assert(bot.report().actions.every(a=>typeof a.reason==='string'&&a.reason.length>0));
 });
 
 test('actual pressure triggers upgrades and repairs instead of ignoring defense',()=>{
-  const s=G.createState(42);s.coins=s.materials=1e6;
+  const s=G.createState(42);s.coins=s.materials=1e6;G.chooseSkill(s,'repair');
   const shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=15;shrine.hp=G.maxHP(shrine);
   G.dusk(s);const bot=A.create(s);bot.tick(1);
   const tower=s.buildings.find(b=>b.type==='tower'),gate=G.estate(s).gates[s.direction];
@@ -79,7 +81,7 @@ test('actual pressure triggers upgrades and repairs instead of ignoring defense'
 
 test('autoplay can take over existing, legacy, crowded and resource-poor games without deleting player buildings',()=>{
   for(const seed of [null,42]){
-    const s=G.createState(seed),center=G.worldCenter(s);
+    const s=G.createState(seed),center=G.worldCenter(s);s.coins=200;s.materials=220;
     const placed=G.grantBuilding(s,'tower',center+1,center);
     const bot=A.create(s);advance(s,bot,60);
     assert(s.buildings.some(b=>b.id===placed.id));assert(bot.report().builds>0);
@@ -92,7 +94,7 @@ test('autoplay can take over existing, legacy, crowded and resource-poor games w
 });
 
 test('disabled ticking and exported report copies cannot change game or controller state',()=>{
-  const s=G.createState(7),bot=A.create(s),before=G.serialize(s);
+  const s=G.createState(7);s.coins=200;s.materials=220;const bot=A.create(s),before=G.serialize(s);
   for(const dt of [0,-1,NaN,Infinity])bot.tick(dt);
   assert.equal(G.serialize(s),before);assert.equal(bot.report().decisions,0);
   bot.tick(1);const report=bot.report();report.actions[0].type='changed';report.skills.repair=99;

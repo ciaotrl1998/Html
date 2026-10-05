@@ -86,7 +86,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("barracks", "兵营", "defense", { coins: 320, materials: 240 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "自动派出民兵近战" });
   def("well", "水井", "support", { coins: 120, materials: 65 }, 250, { fortuneOnly: true, desc: "井旁平地可建农田 · 相邻农田收入 +20%" });
   def("stage", "戏台", "support", { coins: 400, materials: 300 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
-  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 0.4, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
+  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
   def("earth", "土地庙", "temple", { coins: 140, materials: 95 }, 260, { guard: 0.2, range: 3, fortuneOnly: true, desc: "三格内建筑受到伤害 -20%" });
   def("zhong", "钟馗像", "temple", { coins: 250, materials: 180 }, 430, { slow: 0.4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: "每 12 秒使全体怪物减速 40%，持续 4 秒" });
   def("tao", "道观", "temple", { coins: 450, materials: 330 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15%" });
@@ -129,7 +129,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       playerViews.set(s, views);
     }
     if (views[owner]) return views[owner];
-    const view = { actorId: owner }, personal = /* @__PURE__ */ new Set(["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "mission"]);
+    const view = { actorId: owner }, personal = /* @__PURE__ */ new Set(["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "selectedSkill", "mission"]);
     Object.defineProperty(view, "_world", { value: s });
     for (const key of Object.keys(s)) Object.defineProperty(view, key, {
       enumerable: true,
@@ -236,7 +236,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function createCoopState(mapSeed = Math.floor(Math.random() * 4294967296), layout) {
     const s = createState(mapSeed);
     const coopLayout = layout || (s.estateSeed % 2 ? "horizontal" : "vertical");
-    Object.assign(s, { version: 7, mode: "coop", worldSize: coopLayout === "horizontal" ? 40 : 25, worldHeight: coopLayout === "horizontal" ? 25 : 40, coopLayout, partner: { controller: "computer", coins: 200, materials: 220, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0 }, buildings: [], nextId: 1 });
+    Object.assign(s, { version: 7, mode: "coop", worldSize: coopLayout === "horizontal" ? 40 : 25, worldHeight: coopLayout === "horizontal" ? 25 : 40, coopLayout, partner: { controller: "computer", coins: 150, materials: 200, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, selectedSkill: null, mission: 0 }, buildings: [], nextId: 1 });
     for (const e of coopMap(s).land.estates) {
       addBuilding(s, "shrine", e.center.x, e.center.y, 1, { owner: e.owner });
       for (const g of e.gates) addBuilding(s, "gate", g.x, g.y, 1, { direction: g.direction, owner: e.owner });
@@ -555,7 +555,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   const RETIRED_TYPES = /* @__PURE__ */ new Set(["home", "market", "fence"]);
   const factor = (b) => Math.pow(GROWTH, b.level - 1);
-  const incomeFactor = (b) => b.type === "shrine" ? Math.pow(2, Math.min(2, b.level - 1)) * (1 + 0.25 * Math.max(0, b.level - 3)) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
+  const incomeFactor = (b) => b.type === "shrine" ? Math.pow(2, b.level - 1) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
   const auraFactor = (b) => Math.pow(2, Math.min(2, b.level - 1)) * (1 + 0.2 * Math.max(0, b.level - 3));
   const hpFactor = (b) => Math.pow(HP_GROWTH, b.level - 1);
   const maxLevel = (b) => (b == null ? void 0 : b.type) === "shrine" ? SHRINE_MAX_LEVEL : (b == null ? void 0 : b.type) === "gate" ? GATE_MAX_LEVEL : MAX_LEVEL;
@@ -633,8 +633,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       worldSize: mapSeed === null ? 17 : 25,
       seed: 73193,
       nextId: 1,
-      coins: 200,
-      materials: mapSeed === null ? 120 : 220,
+      coins: 150,
+      materials: 200,
       fortuneBuilt: 0,
       day: 1,
       phase: "day",
@@ -651,6 +651,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       kills: 0,
       wave: null,
       cooldowns: { repel: 0, repair: 0, thunder: 0 },
+      selectedSkill: null,
       mission: 0,
       revision: 0,
       over: false,
@@ -965,7 +966,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       muster(s, b);
     }
     const opening = Math.min(1, 0.5 + 0.5 * (s.day - 1) / 9);
-    s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + (boss ? 12 : 0)) * opening), spawned: 0, timer: 0.35, boss };
+    const escalation = 2 * (s.day - 1) + Math.floor(0.35 * (s.day - 1) ** 2);
+    s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + escalation + (boss ? 12 : 0)) * opening), spawned: 0, timer: 0.35, boss };
     if (s.mode === "coop") s.wave.total *= 2;
     event(s, boss ? "百鬼夜行！妖将与群妖从" + raidDirections(s).map((d) => ["北", "东", "南", "西"][d]).join("、") + "方来袭" : "入夜了 · 守住祠堂，灯火不熄", "warning");
   }
@@ -1028,7 +1030,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const x = jitter(p.x, SIZE2), y = jitter(p.y, worldHeight(s)), laneX = random(s) * 0.5 - 0.25, laneY = random(s) * 0.5 - 0.25;
     const type = s.day >= 5 && i % 4 === 2 ? "fox" : s.day >= 4 && i % 3 === 1 ? "ghost" : "bandit";
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === "coop" ? 2 : 1), late = Math.max(0, s.day - 14), scale = (0.45 + 0.55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + 0.08 * late);
+    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === "coop" ? 2 : 1), late = Math.max(0, s.day - 14), scale = (0.6 + 0.4 * opening) * Math.pow(1.26, Math.min(13, s.day - 1)) * Math.pow(1.32, Math.min(7, late)) * Math.pow(1.25, Math.max(0, late - 7)) * (1 + 0.08 * late);
     s.enemies.push({
       id: s.nextId++,
       type,
@@ -1038,7 +1040,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       laneY,
       hp: d.hp * scale * (boss ? 4.5 : 1),
       maxHp: d.hp * scale * (boss ? 4.5 : 1),
-      damage: d.damage * (0.3 + 0.7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.18, Math.min(7, late)) * Math.pow(1.15, Math.max(0, late - 7)) * (1 + 0.04 * late) * (boss ? 2 : 1),
+      damage: d.damage * (0.45 + 0.55 * opening) * Math.pow(1.15, Math.min(13, s.day - 1)) * Math.pow(1.22, Math.min(7, late)) * Math.pow(1.18, Math.max(0, late - 7)) * (1 + 0.04 * late) * (boss ? 2 : 1),
       speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)),
       attack: 0,
       repelled: 0,
@@ -1451,10 +1453,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     });
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
+  function chooseSkill(s, id) {
+    s = economicView(s);
+    if (typeof id !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return { ok: false, reason: "未知神技" };
+    if (s.selectedSkill !== null) return { ok: false, reason: "神技已选择，不可更换" };
+    if (s.over) return { ok: false, reason: "古坊已失守" };
+    s.selectedSkill = id;
+    return { ok: true };
+  }
   function skillReason(s, id) {
     s = economicView(s);
-    const d = SKILLS[id];
-    if (!d) return "未知神技";
+    if (typeof id !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return "未知神技";
+    if (s.selectedSkill === null) return "请先选择神技";
+    if (s.selectedSkill !== id) return "未选择此神技";
     if (s.over || s.phase !== "night") return "神技仅在夜晚使用";
     if (s.cooldowns[id] > 0) return "还需 " + Math.ceil(s.cooldowns[id]) + " 秒";
     return "";
@@ -1515,6 +1526,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     try {
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
       if (!s || typeof s !== "object") return null;
+      for (const player of s.mode === "coop" ? [s, s.partner] : [s]) {
+        if (!player || typeof player !== "object") return null;
+        if (!Object.prototype.hasOwnProperty.call(player, "selectedSkill")) player.selectedSkill = null;
+        if (player.selectedSkill !== null && (typeof player.selectedSkill !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, player.selectedSkill))) return null;
+      }
       if (s.worldSize === void 0) s.worldSize = 17;
       const coop = s.mode === "coop";
       if (s.mode !== void 0 && !coop) return null;
@@ -1706,7 +1722,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return null;
     }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, step, serialize, restore };
 });
 
 var __defProp = Object.defineProperty;
@@ -2841,6 +2857,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function create(s) {
     var _a, _b;
+    if (!s.selectedSkill) G.chooseSkill(s, "thunder");
     const size = G.worldSize(s), center = G.worldCenter(s), land = G.estate(s);
     const plots = [];
     for (let y = 0; y < G.worldHeight(s); y++) for (let x = 0; x < size; x++) {
@@ -3154,9 +3171,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (kind === "direct") {
       if ((socket == null ? void 0 : socket.readyState) === 1) socket.send(JSON.stringify({ type: "leave" }));
       setTimeout(() => socket == null ? void 0 : socket.close(), 100);
-      return;
+    } else if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    const input = $("coop-code");
+    if (input) {
+      input.readOnly = false;
+      input.value = "";
     }
-    if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
   }
   function guestAction(kind, extras = {}) {
     var _a, _b;
@@ -3168,10 +3188,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function hostAction(message) {
     if ((online == null ? void 0 : online.role) !== "host" || !online.peerConnected || !started || state.over) return;
-    if (!Number.isSafeInteger(message.id) || !Number.isInteger(message.x) || !Number.isInteger(message.y) || !["build", "upgrade", "bulk", "demolish", "skill"].includes(message.kind) || message.kind === "build" && !Object.prototype.hasOwnProperty.call(GF.DEFS, message.building) || message.kind === "skill" && !Object.prototype.hasOwnProperty.call(GF.SKILLS, message.skill)) return;
+    if (!Number.isSafeInteger(message.id) || !Number.isInteger(message.x) || !Number.isInteger(message.y) || !["build", "upgrade", "bulk", "demolish", "skill", "choose-skill"].includes(message.kind) || message.kind === "build" && !Object.prototype.hasOwnProperty.call(GF.DEFS, message.building) || ["skill", "choose-skill"].includes(message.kind) && !Object.prototype.hasOwnProperty.call(GF.SKILLS, message.skill)) return;
     const { x, y, kind } = message, mine = GF.playerView(state, 1), b = GF.at(state, x, y);
     let result = { ok: false, reason: "无法操作该地块" };
-    if (kind === "skill") result = GF.skill(mine, message.skill);
+    if (kind === "choose-skill") result = GF.chooseSkill(mine, message.skill);
+    else if (kind === "skill") result = GF.skill(mine, message.skill);
     else if (GF.owns(mine, x, y) && !GF.isWall(state, x, y)) {
       if (kind === "build") result = GF.build(mine, message.building, x, y);
       else if (b && b.owner === 1 && kind === "upgrade") result = GF.upgrade(mine, b);
@@ -3205,14 +3226,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (first) {
         enterGame(next);
         center(1);
-      }
+      } else if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
       if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
       refresh();
       if (ended || first && state.over) showEnd();
     } else if (message.type === "action" && online.role === "host") hostAction(message);
     else if (message.type === "result" && online.role === "guest") {
-      if (!message.ok) toast(message.reason || "操作未成功", "warning");
-      else {
+      if (!message.ok) {
+        toast(message.reason || "操作未成功", "warning");
+        for (const el of $("modal-content").querySelectorAll("[data-choice]")) el.disabled = false;
+      } else {
         tone();
         toast("操作成功");
       }
@@ -3256,9 +3279,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (message.type === "created" || message.type === "joined") {
         online.code = message.code;
         online.peerConnected = message.type === "created" ? false : true;
-        $("lan-code").value = message.code;
+        $("coop-code").value = message.code;
+        $("coop-code").readOnly = true;
         updateCoopSeat();
-        toast(message.type === "created" ? "房间已创建，请把房间号告诉队友" : "已加入房间，等待主机开始");
+        toast(message.type === "created" ? "主机已创建，配对码 " + message.code : "已加入房间，等待主机开始");
       } else if (message.type === "peer_joined") {
         online.peerConnected = true;
         updateCoopSeat();
@@ -3295,43 +3319,31 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     };
     updateCoopSeat();
   }
-  async function showDirectCode(session, code, label) {
-    if (online !== session) return;
-    $("direct-output-area").hidden = false;
-    $("direct-output-label").textContent = label;
-    $("direct-output").value = code;
-    $("direct-qr").hidden = true;
+  async function shareDirectCode(code, note) {
+    const box = $("coop-code");
+    box.readOnly = false;
+    box.value = code;
     try {
-      const url = await GFDirect.qr(code);
-      if (online === session) {
-        $("direct-qr").src = url;
-        $("direct-qr").hidden = false;
-        $("direct-output-area").scrollIntoView({ block: "start", behavior: "smooth" });
-      }
+      await navigator.clipboard.writeText(code);
+      toast(note + "（已复制）");
     } catch (e) {
-      if (online === session) $("direct-status").textContent = "二维码生成失败，请复制下方配对码发给对方";
+      box.focus();
+      box.select();
+      toast(note);
     }
   }
   async function beginDirect(role) {
     leaveOnline();
     computerSeat = false;
-    const session = { kind: "direct", role, code: "", socket: null, peerConnected: false, started, awaitingState: role === "guest" };
+    const session = { kind: "direct", role, code: "", socket: null, peerConnected: false, started, awaitingState: role === "guest", accepting: false };
     online = session;
-    $("server-controls").hidden = true;
-    $("direct-input").value = "";
-    $("direct-output").value = "";
-    $("direct-output-area").hidden = true;
-    $("direct-status").textContent = role === "host" ? "正在生成邀请，请稍候…" : "拍摄或导入主机的邀请二维码，也可以粘贴邀请配对码";
-    $("direct-input-label").textContent = role === "host" ? "识别队友的回应二维码，或粘贴回应配对码" : "识别主机的邀请二维码，或粘贴邀请配对码";
-    $("direct-apply").textContent = role === "host" ? "使用回应码 · 完成配对" : "使用邀请码 · 生成回应";
-    $("direct-apply").disabled = role === "host";
     try {
       session.direct = GFDirect.create(role, {
         message: (message) => {
           if (online === session) receiveOnline(message);
         },
         status: (text) => {
-          if (online === session) $("direct-status").textContent = text;
+          if (online === session) toast(text);
         },
         connected: (value) => {
           if (online !== session) return;
@@ -3345,48 +3357,42 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               onlineSend({ type: "started" });
               sendSnapshot();
             }
-          } else toast("连接中断，游戏暂停等待恢复", "warning");
+          } else toast("连接已中断，可在菜单里重新配对", "warning");
         }
       });
       session.socket = session.direct.transport;
       updateCoopSeat();
       if (role === "host") {
-        const code = await session.direct.offer();
+        const offer = await session.direct.offer();
         if (online !== session) return;
-        await showDirectCode(session, code, "第一步：让队友识别此邀请二维码");
-        if (online !== session) return;
-        $("direct-status").textContent = "邀请已生成。队友识别后会生成回应二维码，再用本机识别回应即可直连。";
-        $("direct-apply").disabled = false;
+        await shareDirectCode(offer, "邀请码已生成，复制后发给队友，再把队友的回应码粘贴到此处");
       }
     } catch (error) {
       if (online === session) {
-        $("direct-status").textContent = error.message;
         toast(error.message, "warning");
         leaveOnline();
         updateCoopSeat();
       }
     }
   }
-  async function applyDirect() {
+  async function joinDirect() {
+    if (online) return;
+    const offer = $("coop-code").value.trim();
+    if (!/^GF-DIRECT-1:/.test(offer)) return toast("请先粘贴主机的邀请码", "warning");
+    computerSeat = false;
+    await beginDirect("guest");
     const session = online;
     if ((session == null ? void 0 : session.kind) !== "direct" || !session.direct) return;
-    $("direct-apply").disabled = true;
     try {
-      if (session.role === "host") await session.direct.accept($("direct-input").value);
-      else {
-        const code = await session.direct.answer($("direct-input").value);
-        if (online !== session) return;
-        await showDirectCode(session, code, "第二步：让主机识别此回应二维码");
-        if (online !== session) return;
-        $("direct-status").textContent = "回应已生成。请主机识别上方二维码，或把回应配对码交给主机。";
-      }
+      const answer = await session.direct.answer(offer);
+      if (online !== session) return;
+      await shareDirectCode(answer, "回应码已生成，复制后发回主机");
     } catch (error) {
       if (online === session) {
-        $("direct-status").textContent = error.message;
         toast(error.message, "warning");
+        leaveOnline();
+        updateCoopSeat();
       }
-    } finally {
-      if (online === session) $("direct-apply").disabled = false;
     }
   }
   function repairDirect() {
@@ -3396,7 +3402,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("modal").hidden = true;
     $("coop-lobby").hidden = false;
     $("game").classList.add("at-title");
-    $("lan-controls").open = true;
     beginDirect(role);
   }
   let panelKey = "", lastPhase = "", lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
@@ -3666,6 +3671,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("countdown").textContent = state.phase === "night" ? "" : Math.max(0, Math.ceil(remaining)) + "s";
     $("skills").hidden = state.phase !== "night" || state.over;
     for (const el of document.querySelectorAll("[data-skill]")) {
+      el.hidden = el.dataset.skill !== playerState().selectedSkill;
       const id = el.dataset.skill, reason = GF.skillReason(playerState(), id);
       el.classList.toggle("unavailable", !!reason);
       el.setAttribute("aria-disabled", String(!!reason));
@@ -3850,6 +3856,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     center(playerOwner());
     closeModal();
   }
+  function showSkillChoice() {
+    const descriptions = { repel: "封住敌人 4 秒，造成 20 伤害", repair: "全体建筑恢复 35% 耐久", thunder: "全场雷击，阴兵 350、其余 240 伤害" }, symbols = { repel: "符", repair: "愈", thunder: "雷" };
+    modal('<div class="skill-selection"><p class="modal-kicker">本局神技 · 三选一</p><h2>择一守坊</h2><div class="skill-options">' + Object.entries(GF.SKILLS).map(([id, d]) => `<button data-modal="choose-skill" data-choice="${id}" class="skill-option"><i aria-hidden="true">${symbols[id]}</i><strong>${d.name}</strong><span>${descriptions[id]}</span><small>冷却 ${d.cooldown} 秒</small></button>`).join("") + "</div></div>");
+    $("close-modal").hidden = true;
+    $("modal-content").querySelector("[data-choice]").focus();
+  }
   $("start-single").onclick = () => {
     readSave();
     if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开始菜单</button>');
@@ -3868,20 +3880,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   $("start-sound").onclick = toggleSound;
   function updateCoopSeat() {
-    const linked = (online == null ? void 0 : online.role) === "host" && online.peerConnected, joining = (online == null ? void 0 : online.role) === "guest" && online.peerConnected, direct = (online == null ? void 0 : online.kind) === "direct";
+    const linked = (online == null ? void 0 : online.role) === "host" && online.peerConnected, joining = (online == null ? void 0 : online.role) === "guest" && online.peerConnected;
     $("coop-seat").setAttribute("aria-pressed", String(computerSeat));
     $("coop-seat").disabled = !!online;
     $("coop-seat").classList.toggle("is-ready", computerSeat || linked || joining);
     $("coop-avatar").textContent = computerSeat ? "智" : linked || joining ? "友" : "候";
-    $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : linked || joining ? "联机队友<small>已加入房间</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
-    $("coop-note").textContent = computerSeat ? "电脑将独立经营另一座庄园，与你共同抵御敌袭。" : joining ? "已连接，等待主机开始。" : linked ? "队友已就绪，可以开始合作。" : direct ? "请在下方交换邀请与回应二维码，完成手机直连。" : (online == null ? void 0 : online.code) ? "房间号 " + online.code + " · 等待队友加入。" : "点击席位切换电脑队友，或展开下方进行手机直连。";
-    $("lan-room").textContent = direct ? online.peerConnected ? "两部手机已直连" : "" : (online == null ? void 0 : online.code) ? "房间号：" + online.code + (online.peerConnected ? " · 已连接" : " · 等待连接") : "";
-    $("direct-pair").hidden = !direct || online.peerConnected;
-    $("direct-create").disabled = !!online;
-    $("direct-join").disabled = !!online;
-    $("lan-leave").hidden = !online;
-    $("lan-create").disabled = !!online;
-    $("lan-join").disabled = !!online;
+    $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : linked || joining ? "联机队友<small>已直连</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
+    $("coop-host").disabled = linked;
+    $("coop-join").disabled = linked;
     $("coop-start").disabled = !computerSeat && !linked;
     $("coop-start").textContent = computerSeat || linked ? "开始合作" : joining ? "等待主机开始" : "等待队友就绪";
   }
@@ -3889,7 +3895,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     computerSeat = false;
     $("start-menu").hidden = true;
     $("coop-lobby").hidden = false;
-    $("lan-controls").open = false;
     updateCoopSeat();
     $("coop-seat").focus();
   };
@@ -3898,60 +3903,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     computerSeat = !computerSeat;
     updateCoopSeat();
   };
-  $("direct-create").onclick = () => beginDirect("host");
-  $("direct-join").onclick = () => beginDirect("guest");
-  $("direct-apply").onclick = applyDirect;
-  $("direct-photo-button").onclick = () => $("direct-photo").click();
-  $("direct-file-button").onclick = () => $("direct-file").click();
-  for (const id of ["direct-photo", "direct-file"]) $(id).onchange = async () => {
-    const file = $(id).files[0], session = online;
-    $(id).value = "";
-    if (!file) return;
+  $("coop-host").onclick = () => beginDirect("host");
+  $("coop-join").onclick = joinDirect;
+  $("coop-code").addEventListener("input", async () => {
+    const session = online;
+    if ((session == null ? void 0 : session.kind) !== "direct" || session.role !== "host" || session.peerConnected || session.accepting || !session.direct) return;
+    const text = $("coop-code").value.trim();
+    if (!/^GF-DIRECT-1:/.test(text)) return;
+    session.accepting = true;
     try {
-      const code = await GFDirect.readImage(file);
-      if (online === session) {
-        $("direct-input").value = code;
-        await applyDirect();
-      }
-    } catch (error) {
-      if (online === session) {
-        $("direct-status").textContent = error.message;
-        toast(error.message, "warning");
-      }
-    }
-  };
-  $("direct-copy").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText($("direct-output").value);
-      toast("配对码已复制");
+      await session.direct.accept(text);
     } catch (e) {
-      $("direct-output").focus();
-      $("direct-output").select();
-      toast(document.execCommand("copy") ? "配对码已复制" : "请长按复制已选中的完整配对码");
+    } finally {
+      session.accepting = false;
     }
-  };
-  $("server-toggle").onclick = () => {
-    $("server-controls").hidden = !$("server-controls").hidden;
-  };
-  $("lan-create").onclick = () => {
-    computerSeat = false;
-    connectOnline("create");
-  };
-  $("lan-join").onclick = () => {
-    const code = $("lan-code").value.trim();
-    if (!/^\d{6}$/.test(code)) return toast("请输入六位房间号", "warning");
-    computerSeat = false;
-    connectOnline("join", code);
-  };
-  $("lan-leave").onclick = () => {
-    if (started) {
-      showStartMenu();
-      return;
-    }
-    leaveOnline();
-    updateCoopSeat();
-    toast("配对／房间已关闭");
-  };
+  });
   $("coop-back").onclick = showStartMenu;
   $("coop-start").onclick = () => {
     if (!computerSeat && !((online == null ? void 0 : online.role) === "host" && online.peerConnected)) return;
@@ -3969,6 +3935,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   function modal(html) {
     paused = true;
+    $("close-modal").hidden = false;
     $("modal-content").innerHTML = html;
     $("modal").hidden = false;
     $("menu-pause").setAttribute("aria-expanded", "true");
@@ -3977,8 +3944,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     sendSnapshot();
   }
   function closeModal() {
+    if (started && !state.over && !playerState().selectedSkill) {
+      showSkillChoice();
+      return;
+    }
     $("modal").hidden = true;
     paused = !started;
+    $("close-modal").hidden = false;
     $("menu-pause").setAttribute("aria-expanded", "false");
     (started ? $("menu-pause") : !$("coop-lobby").hidden ? $("coop-seat") : $("start-single")).focus();
     lastFrame = performance.now();
@@ -4029,19 +4001,33 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function newGame(coop = started && state.mode === "coop") {
     if ((online == null ? void 0 : online.role) === "guest") return;
-    enterGame(coop ? GF.createCoopState() : GF.createState());
+    const next = coop ? GF.createCoopState() : GF.createState();
+    enterGame(next);
     if ((online == null ? void 0 : online.role) === "host") {
       online.started = true;
       onlineSend({ type: online.kind === "direct" ? "started" : "start" });
       sendSnapshot();
     }
     save();
-    toast(coop ? "双庄共守 · 你与" + (online ? "联机" : "电脑") + "队友各守一庄" : "青溪新雨 · 古坊的故事重新开始");
   }
   $("modal-content").addEventListener("click", (e) => {
     var _a;
     const action = (_a = e.target.closest("[data-modal]")) == null ? void 0 : _a.dataset.modal;
     if (!action) return;
+    if (action === "choose-skill") {
+      const id = e.target.closest("[data-choice]").dataset.choice;
+      if ((online == null ? void 0 : online.role) === "guest") {
+        for (const el of $("modal-content").querySelectorAll("[data-choice]")) el.disabled = true;
+        guestAction("choose-skill", { skill: id });
+        return;
+      }
+      const result = GF.chooseSkill(playerState(), id);
+      if (result.ok) {
+        save();
+        closeModal();
+      }
+      return;
+    }
     if (action === "close") closeModal();
     if (action === "save") save(true);
     if (action === "sound") {
@@ -4273,7 +4259,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function frame(now) {
     const dt = lastFrame ? Math.max(0, Math.min(1, (now - lastFrame) / 1e3)) : 0;
     lastFrame = now;
-    const running = started && !paused && !hiddenPause && !state.over && (online == null ? void 0 : online.role) !== "guest" && (!online || online.peerConnected);
+    const running = started && !paused && !hiddenPause && !state.over && !!state.selectedSkill && (state.mode !== "coop" || !!state.partner.selectedSkill) && (online == null ? void 0 : online.role) !== "guest" && (!online || online.peerConnected);
     if (running) {
       simulationClock += dt;
       if (simulationClock + 1e-8 >= 1 / 30) {

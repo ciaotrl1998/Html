@@ -62,7 +62,7 @@ test('resources, building permissions, upgrades and skill cooldowns belong to ea
   advance(s, 1);
   assert(p.materials > before);
   assert.equal(s.materials, 10000);
-  G.startNight(s); assert(G.skill(p, 'thunder').ok);
+  assert(G.chooseSkill(p, 'thunder').ok);G.startNight(s); assert(G.skill(p, 'thunder').ok);
   assert.equal(s.cooldowns.thunder, 0); assert(p.cooldowns.thunder > 0);
   advance(s, .5); assert(p.cooldowns.thunder < G.SKILLS.thunder.cooldown);
 });
@@ -157,7 +157,7 @@ test('enemies on each outer flank choose that estate and shared-side attackers c
 });
 
 test('computer teammate develops only its own estate and survives save/reload', () => {
-  let s = G.createCoopState(123), pilot = A.create(G.playerView(s, 1));
+  let s = G.createCoopState(123);s.partner.coins=200;s.partner.materials=220;let pilot = A.create(G.playerView(s, 1));
   for (let i = 0; i < 1200 && !s.over; i++) {
     pilot.tick(.1); G.step(s, .1);
     if (i === 600) { s = G.restore(G.serialize(s)); assert(s); pilot = A.create(G.playerView(s, 1)); }

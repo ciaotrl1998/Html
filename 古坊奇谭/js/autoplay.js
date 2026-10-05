@@ -82,6 +82,7 @@ function layout(s, towersPerGate) {
 
 
   function create(s) {
+    if(!s.selectedSkill)G.chooseSkill(s,'thunder');
     const size=G.worldSize(s),center=G.worldCenter(s),land=G.estate(s);
     const plots=[];
     for(let y=0;y<G.worldHeight(s);y++)for(let x=0;x<size;x++){

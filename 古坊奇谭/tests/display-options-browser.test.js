@@ -41,6 +41,7 @@ async function open(browser, file, viewport, reducedMotion = 'no-preference') {
   await page.goto(pathToFileURL(path.join(root, file)).href);
   await page.waitForFunction(() => !!window.Gufang);
   await page.locator('#start-single').click();
+  await page.locator('[data-choice="thunder"]').click();
   return page;
 }
 

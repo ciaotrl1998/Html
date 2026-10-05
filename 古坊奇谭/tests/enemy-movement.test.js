@@ -193,7 +193,7 @@ test('Zhong slowdown reduces distance and repel freezes motion and attacks befor
   assert.equal(eb.slowFactor,.6);assert(eb.slowed>0);
   assert(eb.y<ea.y-.5,'slowdown causes measurably less forward travel');
   const frozen=[eb.x,eb.y],hp=eb.hp,gateHP=b.buildings.filter(n=>n.type==='gate').map(n=>n.hp);
-  assert(G.skill(b,'repel').ok);assert.equal(eb.hp,hp-20);
+  assert(G.chooseSkill(b,'repel').ok);assert(G.skill(b,'repel').ok);assert.equal(eb.hp,hp-20);
   for(let i=0;i<40;i++) checkedStep(b);
   assert.deepEqual([eb.x,eb.y],frozen);
   assert.deepEqual(b.buildings.filter(n=>n.type==='gate').map(n=>n.hp),gateHP);

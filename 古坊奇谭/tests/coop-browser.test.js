@@ -5,6 +5,8 @@ const os = require('node:os');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
+const root=path.join(__dirname,'..'),sourceOnly=process.argv.includes('--source-only')||!!process.env.GUFANG_SOURCE_ONLY;
+const layoutFailures=[];
 const shots = process.env.GUFANG_SHOTS || path.join(os.tmpdir(), 'gufang-screenshots');
 fs.mkdirSync(shots, {recursive:true});
 (async () => {
@@ -14,7 +16,8 @@ fs.mkdirSync(shots, {recursive:true});
       const context = await browser.newContext({viewport}), page = await context.newPage(), errors = [];
       await context.addInitScript(seed => { Math.random = () => seed / 4294967296; }, layout === 'vertical' ? 43 : 42);
       page.on('pageerror', e => errors.push(e.message));
-      await page.goto(pathToFileURL(path.join(__dirname, '..', viewport.width === 1440 ? 'index.html' : 'dist/古坊奇谭.html')).href);
+      await context.route('**/js/runtime.js',route=>route.fulfill({contentType:'application/javascript',body:['game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')}));
+      await page.goto(pathToFileURL(path.join(root, sourceOnly || viewport.width === 1440 ? 'index.html' : 'dist/古坊奇谭.html')).href);
       await page.waitForFunction(() => !!window.Gufang);
       await page.locator('#start-coop').click();
       assert(await page.locator('#coop-lobby').isVisible());
@@ -26,9 +29,17 @@ fs.mkdirSync(shots, {recursive:true});
       assert(await page.locator('#coop-start').isDisabled());
       await page.locator('#coop-seat').click();
       const bounds = await page.locator('#coop-lobby').evaluate(el => ({w:el.clientWidth,sw:el.scrollWidth,h:el.clientHeight,sh:el.scrollHeight}));
-      assert.equal(bounds.w,bounds.sw); assert.equal(bounds.h,bounds.sh);
+      console.log(`LAYOUT coop lobby ${viewport.width}x${viewport.height} ${layout}: ${JSON.stringify(bounds)}`);
+      try { assert.equal(bounds.w,bounds.sw); assert.equal(bounds.h,bounds.sh); }
+      catch(error) { layoutFailures.push(`${viewport.width}x${viewport.height} ${layout}: ${JSON.stringify(bounds)}; ${error.message}`); }
       await page.screenshot({path:path.join(shots,`coop-lobby-${viewport.width}-${layout}.png`)});
       await page.locator('#coop-start').click();
+      assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),null);
+      assert.equal(await page.locator('[data-modal="choose-skill"]:visible').count(),3);
+      assert(await page.locator('#close-modal').isHidden());
+      await page.locator('[data-choice="thunder"]').click();
+      assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),'thunder');
+      await page.evaluate(()=>{Gufang.state.partner.coins=Gufang.state.partner.materials=1000;});
       await page.waitForFunction(() => Gufang.partnerReport?.builds > 0);
       assert.equal(await page.evaluate(() => Gufang.state.mode),'coop');
       assert.equal(await page.evaluate(() => Gufang.state.coopLayout),layout);
@@ -67,10 +78,12 @@ fs.mkdirSync(shots, {recursive:true});
       assert.equal(await page.locator('.invasion-arrow:visible').count(),2);
       await page.locator('#menu-pause').click(); await page.locator('[data-modal="title"]').click();
       await page.locator('#start-single').click(); await page.locator('[data-modal="new"]').click();
+      await page.locator('[data-choice="thunder"]').click();
       assert.equal(await page.evaluate(() => Gufang.state.worldSize),25);
       assert(await page.locator('#coop-status').isHidden());
       assert.deepEqual(errors,[]);
-      await context.close(); console.log(`PASS coop ${viewport.width} ${layout}: rectangle, lobby, seat toggle, start, ownership, AI, pause, save/load, arrows, single-player switch`);
+      await context.close(); console.log(`PASS coop ${viewport.width} ${layout}: rectangle, seat toggle, start, ownership, AI, pause, save/load, arrows, single-player switch (lobby layout checked separately)`);
     }
   } finally { await browser.close(); }
+  assert.deepEqual(layoutFailures,[],'Coop lobby layout failures:\n'+layoutFailures.join('\n'));
 })().catch(error => {console.error(error);process.exitCode=1;});

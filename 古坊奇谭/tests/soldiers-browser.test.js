@@ -52,6 +52,7 @@ async function open(browser, file, viewport) {
   await page.goto(pathToFileURL(path.join(root, file)).href);
   await page.waitForFunction(() => !!window.Gufang);
   await page.locator('#start-single').click();
+  await page.locator('[data-choice="thunder"]').click();
   return page;
 }
 
@@ -98,7 +99,7 @@ async function scene(page, level = 2) {
     // The public legacy-map constructor supplies known traversable combat plots.
     const s = Gufang.state;
     for (const key of Object.keys(s)) delete s[key];
-    Object.assign(s, GF.createState(null));
+    Object.assign(s, GF.createState(null), {selectedSkill:'thunder'});
     s.coins = s.materials = 1e9;
     const shrine = s.buildings.find(b => b.type === 'shrine');
     shrine.level = 15; shrine.hp = GF.maxHP(shrine);

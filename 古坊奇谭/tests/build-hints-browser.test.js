@@ -25,6 +25,7 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
         await page.goto(pathToFileURL(path.join(root, file)).href);
         await page.waitForFunction(() => !!window.Gufang);
         await page.locator('#start-single').click();
+        await page.locator('[data-choice="thunder"]').click();
         const result = await page.evaluate(() => {
           const canvas = document.createElement('canvas');
           canvas.width = 390; canvas.height = 844; canvas.style.cssText = 'width:390px;height:844px'; document.body.append(canvas);

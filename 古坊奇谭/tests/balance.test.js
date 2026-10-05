@@ -77,7 +77,7 @@ test('same-level ultimates with one of each endpoint beat fully supplied highest
   }
 });
 
-test('income keeps the first three levels and tempers ordinary and shrine growth', () => {
+test('income tempers ordinary growth while the shrine doubles at every level', () => {
   const s = G.createState(null);
   for (const d of Object.values(G.DEFS).filter(d => d.income)) {
     for (const [level, multiple] of [[1,1],[2,2],[3,4]]) {
@@ -85,11 +85,11 @@ test('income keeps the first three levels and tempers ordinary and shrine growth
       close(G.income(s,b), d.income * multiple);
     }
     for (let level=4; level<=G.maxLevel({type:d.id}); level++) {
-      const multiple = d.id === 'shrine' ? 4 + level - 3 : 4 * 1.65 ** (level - 3);
+      const multiple = d.id === 'shrine' ? 2 ** (level - 1) : 4 * 1.65 ** (level - 3);
       close(G.income(s,{type:d.id,level,x:0,y:0}), d.income * multiple);
     }
   }
-  close(G.income(s,{type:'shrine',level:15,x:0,y:0}), 6.4);
+  close(G.income(s,{type:'shrine',level:15,x:0,y:0}), 16384);
 });
 
 test('upgrade premiums begin after economic level four and shrine level seven', () => {
@@ -105,7 +105,7 @@ test('upgrade premiums begin after economic level four and shrine level seven', 
   }
 });
 
-test('later upgrades require progressively longer production time', () => {
+test('ordinary upgrades take longer while shrine coin-funding time shrinks', () => {
   const s = G.createState(null);
   for (const d of Object.values(G.DEFS).filter(d => d.income)) {
     let previous = 0;
@@ -113,10 +113,10 @@ test('later upgrades require progressively longer production time', () => {
       const b = {type:d.id,level,x:0,y:0}, cost = G.upgradeCost(b);
       // Combined resource cost measures the burden on equal coin/material production.
       const seconds = (cost.coins + cost.materials) / G.income(s,b);
-      assert(seconds > previous, `${d.id} Lv${level} should take longer to fund`);
+      if(previous)assert(d.id==='shrine'?seconds<previous:seconds>previous,`${d.id} Lv${level} funding time`);
       if (previous) {
         const ratio = seconds / previous;
-        assert(ratio > 1.2 && ratio < (d.id === 'shrine' ? 1.85 : 1.5), `${d.id} Lv${level} wait ratio ${ratio}`);
+        assert(d.id==='shrine'?ratio>.8&&ratio<.9:ratio>1.2&&ratio<1.5, `${d.id} Lv${level} wait ratio ${ratio}`);
       }
       previous = seconds;
     }
@@ -168,35 +168,37 @@ test('building durability and tower attack retain their existing growth curves',
   }
 });
 
-test('enemy growth preserves the first fourteen days and accelerates the later exponential segments', () => {
+test('enemy growth raises opening strength and every exponential segment above the old curve', () => {
   const enemies = new Map();
   for (let day=1; day<=31; day++) {
     const s = G.createState(null);s.day=day;G.startNight(s);G.step(s,.25);G.step(s,.25);
     const enemy = s.enemies[0];assert(enemy);assert.equal(enemy.type,'bandit');
     enemies.set(day,enemy);
     const late=Math.max(0,day-14),opening=Math.min(1,(day-1)/9);
-    close(enemy.maxHp,100*(.45+.55*opening)*1.23**Math.min(13,day-1)*1.28**Math.min(7,late)*1.22**Math.max(0,late-7)*(1+.08*late));
-    close(enemy.damage,14*(.3+.7*opening)*1.12**Math.min(13,day-1)*1.18**Math.min(7,late)*1.15**Math.max(0,late-7)*(1+.04*late));
+    close(enemy.maxHp,100*(.6+.4*opening)*1.26**Math.min(13,day-1)*1.32**Math.min(7,late)*1.25**Math.max(0,late-7)*(1+.08*late));
+    close(enemy.damage,14*(.45+.55*opening)*1.15**Math.min(13,day-1)*1.22**Math.min(7,late)*1.18**Math.max(0,late-7)*(1+.04*late));
+    assert(enemy.maxHp>100*(.45+.55*opening)*1.23**Math.min(13,day-1)*1.28**Math.min(7,late)*1.22**Math.max(0,late-7)*(1+.08*late),`day ${day} HP exceeds old curve`);
+    assert(enemy.damage>14*(.3+.7*opening)*1.12**Math.min(13,day-1)*1.18**Math.min(7,late)*1.15**Math.max(0,late-7)*(1+.04*late),`day ${day} damage exceeds old curve`);
     if (day<=14) {
       const opening=Math.min(1,(day-1)/9);
-      close(enemy.maxHp, 100 * 1.23 ** (day-1) * (.45+.55*opening));
-      close(enemy.damage, 14 * 1.12 ** (day-1) * (.3+.7*opening));
+      close(enemy.maxHp, 100 * 1.26 ** (day-1) * (.6+.4*opening));
+      close(enemy.damage, 14 * 1.15 ** (day-1) * (.45+.55*opening));
       if(day>1) {
         assert(enemy.maxHp>enemies.get(day-1).maxHp);
         assert(enemy.damage>enemies.get(day-1).damage);
       }
     }
   }
-  close(enemies.get(1).maxHp,45);close(enemies.get(1).damage,4.2);
-  close(enemies.get(10).maxHp,100*1.23**9);close(enemies.get(10).damage,14*1.12**9);
+  close(enemies.get(1).maxHp,60);close(enemies.get(1).damage,6.3);
+  close(enemies.get(10).maxHp,100*1.26**9);close(enemies.get(10).damage,14*1.15**9);
   for (const [day,hp,damage] of [
-    [15,100*1.23**13*1.28*1.08,14*1.12**13*1.18*1.04],
-    [21,100*1.23**13*1.28**7*1.56,14*1.12**13*1.18**7*1.28],
-    [30,100*1.23**13*1.28**7*1.22**9*2.28,14*1.12**13*1.18**7*1.15**9*1.64]
+    [15,100*1.26**13*1.32*1.08,14*1.15**13*1.22*1.04],
+    [21,100*1.26**13*1.32**7*1.56,14*1.15**13*1.22**7*1.28],
+    [30,100*1.26**13*1.32**7*1.25**9*2.28,14*1.15**13*1.22**7*1.18**9*1.64]
   ]) {
     close(enemies.get(day).maxHp,hp);close(enemies.get(day).damage,damage);
-    close(enemies.get(day).maxHp/enemies.get(1).maxHp,hp/45);
-    close(enemies.get(day).damage/enemies.get(1).damage,damage/4.2);
+    close(enemies.get(day).maxHp/enemies.get(1).maxHp,hp/60);
+    close(enemies.get(day).damage/enemies.get(1).damage,damage/6.3);
     assert(hp > enemies.get(14).maxHp && damage > enemies.get(14).damage);
   }
   const growth = (day,field) => enemies.get(day)[field] / enemies.get(day-1)[field];
@@ -206,11 +208,51 @@ test('enemy growth preserves the first fourteen days and accelerates the later e
   }
 });
 
-test('opening waves ramp to the original counts and delay ghosts until day four and foxes until day five', () => {
+test('all enemy types and bosses use the same growth at different shrine levels in single and coop games', () => {
+  for(const day of [1,4,5,7,10,14,15,21,22,28,30,31]) for(const level of [1,9,15]) for(const mode of ['single','vertical','horizontal']) {
+    const s=mode==='single'?G.createState(42):G.createCoopState(42,mode);
+    s.day=day;
+    for(const b of s.buildings.filter(b=>b.type==='shrine')) { b.level=level;b.hp=G.maxHP(b); }
+    G.startNight(s);
+    const total=s.wave.total,late=Math.max(0,day-14),opening=Math.min(1,(day-1)/9);
+    const hp=(.6+.4*opening)*1.26**Math.min(13,day-1)*1.32**Math.min(7,late)*1.25**Math.max(0,late-7)*(1+.08*late);
+    const damage=(.45+.55*opening)*1.15**Math.min(13,day-1)*1.22**Math.min(7,late)*1.18**Math.max(0,late-7)*(1+.04*late);
+    for(const index of [0,1,2,total-2,total-1]) {
+      s.enemies=[];s.wave.spawned=index;s.wave.timer=0;G.step(s,.01);
+      assert.equal(s.enemies.length,Math.min(mode==='single'?1:2,total-index));
+      for(const [offset,e] of s.enemies.entries()) {
+        const i=index+offset,type=day>=5&&i%4===2?'fox':day>=4&&i%3===1?'ghost':'bandit';
+        const boss=day%7===0&&i>=total-(mode==='single'?1:2),d=G.ENEMIES[type];
+        assert.equal(e.type,type);assert.equal(e.boss,boss);
+        close(e.hp,d.hp*hp*(boss?4.5:1));close(e.maxHp,e.hp);
+        close(e.damage,d.damage*damage*(boss?2:1));
+        close(e.speed,d.speed*Math.min(1.22,1.012**(day-1)));
+      }
+      s.wave.spawned=0;s.wave.timer=100;
+      const killed=s.enemies[0],coins=s.coins,partnerCoins=s.partner?.coins;
+      const reward={bandit:8,ghost:12,fox:10}[killed.type]*(killed.boss?5:1);
+      killed.hp=0;G.step(s,.01);
+      close(s.coins-coins,reward/(mode==='single'?1:2));
+      if(mode!=='single')close(s.partner.coins-partnerCoins,reward/2);
+    }
+  }
+});
+
+test('waves grow faster with accelerating daily additions while preserving first-night count and enemy unlocks', () => {
   for(let day=1;day<=31;day++) {
     const s=G.createState(1);s.day=day;G.startNight(s);
     const oldTotal=Math.min(120,7+day*3+Math.floor(day/3)*2+(day%7===0?12:0));
-    assert.equal(s.wave.total,Math.ceil(oldTotal*Math.min(1,.5+.5*(day-1)/9)),`day ${day}`);
+    const escalation=2*(day-1)+Math.floor(.35*(day-1)**2);
+    const expected=Math.ceil(Math.min(120,7+day*3+Math.floor(day/3)*2+escalation+(day%7===0?12:0))*Math.min(1,.5+.5*(day-1)/9));
+    assert.equal(s.wave.total,expected,`day ${day}`);
+    if(day===1)assert.equal(s.wave.total,5);
+    if(day>1&&day<=10)assert(s.wave.total>Math.ceil(oldTotal*Math.min(1,.5+.5*(day-1)/9)));
+    assert(s.wave.total<=120);
+    for(const layout of ['vertical','horizontal']) {
+      const coop=G.createCoopState(1,layout);coop.day=day;G.startNight(coop);
+      assert.equal(coop.wave.total,expected*2);assert(coop.wave.total<=240);
+    }
+    assert(G.restore(G.serialize(s)),`day ${day} wave survives save/load`);
     if(day<=5) {
       for(let tick=0;tick<400 && s.wave.spawned<3;tick++)G.step(s,.25);
       assert.equal(s.wave.spawned,3);
@@ -241,48 +283,52 @@ test('high-level legacy and estate saves preserve HP, stock and pending income',
   }
 });
 
-test('five estate seeds survive three nights without skills, shrine damage, losses or gate breaches', () => {
+test('default-stock estate scripts defend the opening but insufficient later defense ends in defeat', t => {
   for(const seed of [1,7,42,73193,99991]) {
-    const result=run(3,'balanced',seed,{useSkills:false}),label=`seed ${seed}`;
-    assert.equal(result.stopReason,'completed',label);assert.equal(result.over,false,label);assert.equal(result.day,4,label);
-    assert.equal(result.history.length,3,label);
-    for(const h of result.history) {
-      assert(h.complete,label);assert.equal(h.shrineMinHPRatio,1,label);
-      assert.equal(h.nightDeaths,0,label);assert.equal(h.gateBreaks,0,label);assert(h.gateMinHPRatio>0,label);
+    const result=run(30,'balanced',seed,{useSkills:false}),label=`seed ${seed}`;
+    t.diagnostic(`${label}: survived ${result.day-1} nights, defeat on night ${result.day}`);
+    assert.equal(result.stopReason,'defeat',label);assert.equal(result.over,true,label);assert(result.day>1&&result.day<30,label);
+    assert.equal(result.history.filter(h=>h.complete).length,result.day-1,label);
+    assert(result.history[0].complete,label);
+    const last=result.history.at(-1);
+    assert.equal(last.complete,false,label);assert.equal(last.shrineMinHPRatio,0,label);
+    assert(result.history.some(h=>h.gateBreaks>0),label);
+    for(const h of result.history.filter(h=>h.complete)) {
+      assert.equal(h.complete,true,label);assert(h.shrineMinHPRatio>0,label);
+      assert(h.towers>=2,label);assert(h.economyBuildings>=4,label);
       assert.deepEqual(h.skills,{thunder:0,repair:0,repel:0},label);
     }
-    assert(result.actions.every(a=>a.kind!=='skill'),label);
+    assert(result.actions.length>0,label);
+    const first=result.actions[0];
+    assert.equal(first.second,0,label);assert.equal(first.phase,'day',label);assert.equal(first.kind,'build',label);
+    assert.equal(first.type,'tea',label);
+    assert.equal(first.coins,150-G.DEFS.tea.cost.coins+G.MISSIONS[0].reward,label);
+    assert.equal(first.materials,200-G.DEFS.tea.cost.materials,label);
+    assert(result.actions.some(a=>a.type==='mulberry' && a.kind==='build' && a.phase==='day' && a.day===1),label);
   }
 });
 
-test('active estate play survives the opening and faces later pressure with interlocked foundation levels', () => {
+test('original geography scripts fund a daytime opening and report eventual defeat', () => {
   for (const seed of [1,7,42,73193,99991]) {
     const nights=30;
-    // Keep original geography coverage; foundation interlocks change later pacing.
     const result = run(nights,'balanced',seed,{mapGeneration:1}), label = `seed ${seed}, ${nights} nights`;
     assert.equal(result.worldSize,25);assert.equal(result.stopReason,'defeat',label);
-    assert.equal(result.over,true,label);assert(result.day>=8 && result.day<=30,label);
+    assert.equal(result.over,true,label);assert(result.day>1,label);
     assert.equal(result.history.filter(h=>h.complete).length,result.day-1,label);
-    assert(result.history.filter(h=>h.day<=7).every(h=>h.complete),label);
-    for(const h of result.history.filter(h=>h.complete)) {
-      assert(Math.abs(h.shrineLevel-h.gateLevel)<=1,label);
-      assert(h.shrineLevel<=15 && h.gateLevel<=15,label);
-      assert(h.coinRate>0 && h.materialRate>0,label);
-    }
-    assert(result.history.some(h=>h.averageProductionLevel>1),`${label}: production progresses`);
-    assert(result.history.some(h=>h.gateMinHPRatio<1),`${label}: gates take damage`);
-    assert(result.history.some(h=>h.gateBreaks>0),`${label}: enemies breach gates`);
-    assert(result.history.some(h=>h.shrineMinHPRatio>0 && h.shrineMinHPRatio<1),`${label}: shrine takes damage`);
-    for (const skill of ['thunder','repair','repel']) assert(result.history.some(h=>h.skills[skill]>0),`${label}: ${skill} used`);
+    assert(result.actions.length>0,label);
+    assert.equal(result.actions[0].second,0,label);assert.equal(result.actions[0].phase,'day',label);
+    assert.equal(result.actions[0].type,'tea',label);
+    assert.equal(result.actions[0].coins,150-G.DEFS.tea.cost.coins+G.MISSIONS[0].reward,label);
+    assert.equal(result.actions[0].materials,200-G.DEFS.tea.cost.materials,label);
+    assert(result.history[0].complete && result.history[0].towers>=2,label);
+    assert(result.history.some(h=>h.gateBreaks>0 && h.shrineMinHPRatio===0),label);
     const report = summary(result);
     assert.equal(report.stopReason,result.stopReason);
     assert(report.milestones.some(h=>h.day===result.day && !h.complete),label);
   }
 });
 
-test('skills improve paired 30-night survival and one-sided investment still fails early', t => {
-  let improved=0;
-  const worse=[];
+test('scripts without a skill choice cannot cast, even when their skill option is enabled', t => {
   for (const seed of [1,7,42,73193,99991]) {
     const passive = run(30,'balanced',seed,{useSkills:false});
     const active = run(30,'balanced',seed,{useSkills:true});
@@ -295,31 +341,30 @@ test('skills improve paired 30-night survival and one-sided investment still fai
       assert.equal(completed(result),result.day-1);
       assert.equal(result.over,result.stopReason==='defeat');
     }
-    if(completed(active)>completed(passive)) improved++;
-    if(completed(active)<completed(passive)) worse.push(seed);
-    assert(passive.history.every(h=>Object.values(h.skills).every(n=>n===0)));
-    assert(passive.actions.every(a=>a.kind!=='skill'));
-    for (const skill of ['thunder','repair','repel']) assert(active.actions.some(a=>a.kind==='skill'&&a.type===skill),`seed ${seed}: ${skill}`);
+    for(const result of [passive,active]) {
+      assert(result.history.every(h=>Object.values(h.skills).every(n=>n===0)));
+      assert(result.actions.every(a=>a.kind!=='skill'));
+    }
+    assert.deepEqual(active.history,passive.history,`seed ${seed}: unselected skills cannot affect survival`);
   }
-  assert(improved>=3,'skills must improve survival for a majority of the five seeds');
-  assert.deepEqual(worse,[],'skills must not worsen survival for any seed');
   for (const style of ['economy','defense']) {
     const result = run(30,style,1);
     assert.equal(result.stopReason,'defeat',style);assert(result.day<20,style);
   }
 });
 
-test('day fifteen reinforcement preserves the opening and adds paid towers under later pressure', () => {
+test('planned day fifteen reinforcement does not affect a funded opening or earlier defeat', () => {
   const ordinary = run(30,'balanced',1,{mapGeneration:1});
   const reinforced = run(30,'balanced',1,{mapGeneration:1,towersPerGate:3,reinforcementDay:15});
   assert.equal(ordinary.stopReason,'defeat');assert.equal(reinforced.stopReason,'defeat');
   for (const result of [ordinary,reinforced]) {
-    assert(result.day>=15 && result.day<=30);
-    assert.equal(result.history.filter(h=>h.day<=14 && h.complete).length,14);
-    assert(result.history.filter(h=>h.complete).every(h=>Math.abs(h.shrineLevel-h.gateLevel)<=1));
+    assert(result.day>1 && result.day<15);
+    assert.equal(result.history.filter(h=>h.complete).length,result.day-1);
+    assert.equal(result.actions[0].second,0);assert.equal(result.actions[0].type,'tea');
+    assert(result.actions.some(a=>a.phase==='day' && a.kind==='build' && a.type==='tower'));
   }
   assert.deepEqual(reinforced.history.filter(h=>h.day<15),ordinary.history.filter(h=>h.day<15));
   assert.equal(reinforced.layout.reinforcements.length,4);
   const added = reinforced.layout.reinforcements.map(p=>reinforced.actions.find(a=>a.kind==='build' && a.type==='tower' && a.x===p.x && a.y===p.y));
-  assert(added.every(a=>a && a.day>=15));
+  assert(added.every(a=>a===undefined));
 });

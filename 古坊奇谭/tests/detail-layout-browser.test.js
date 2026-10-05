@@ -30,6 +30,7 @@ const near = (a, b, message) => assert(Math.abs(a - b) < .1, `${message}: ${a} !
           await page.goto(pathToFileURL(path.join(root, file)).href);
           await page.waitForFunction(() => !!window.Gufang);
           await page.locator('#start-single').click();
+          await page.locator('[data-choice="thunder"]').click();
           const types = await page.evaluate(() => Object.keys(GF.DEFS));
           assert.equal(types.length, 25);
           const samples = [];
@@ -37,7 +38,7 @@ const near = (a, b, message) => assert(Math.abs(a - b) < .1, `${message}: ${a} !
             await page.evaluate(({ type, level }) => {
               const s = Gufang.state;
               for (const key of Object.keys(s)) delete s[key];
-              Object.assign(s, GF.createState(null));
+              Object.assign(s, GF.createState(null), {selectedSkill:'thunder'});
               s.coins = s.materials = 1e12;
               const shrine = s.buildings[0]; shrine.level = 15; shrine.hp = GF.maxHP(shrine);
               // Fixed, unique and fortune buildings also need detail layout coverage.
@@ -94,7 +95,7 @@ const near = (a, b, message) => assert(Math.abs(a - b) < .1, `${message}: ${a} !
             await page.evaluate(() => {
               const s = Gufang.state;
               for (const key of Object.keys(s)) delete s[key];
-              Object.assign(s, GF.createState(null)); s.coins = s.materials = 1e9;
+              Object.assign(s, GF.createState(null), {selectedSkill:'repel'}); s.coins = s.materials = 1e9;
               s.buildings[0].level = 15; s.buildings[0].hp = GF.maxHP(s.buildings[0]);
               GF.grantBuilding(s, 'tower', 8, 7, 1); GF.startNight(s); s.wave.timer = 1e6; Gufang.select(8, 7);
             });
@@ -105,7 +106,9 @@ const near = (a, b, message) => assert(Math.abs(a - b) < .1, `${message}: ${a} !
             const skills = await page.locator('#skills').boundingBox();
             near(panel.y - skills.y - skills.height, 14, 'Skills 14px above panel');
             near(game.x + game.width - skills.x - skills.width, 12, 'Skills at right');
-            const buttons = await page.locator('[data-skill]').all();
+            assert.deepEqual(await page.locator('[data-skill]:visible').evaluateAll(els=>els.map(el=>el.dataset.skill)), ['repel']);
+            for (const id of ['repair','thunder']) assert.equal(await page.evaluate(id=>GF.skillReason(Gufang.state,id),id), '未选择此神技');
+            const buttons = await page.locator('[data-skill]:visible').all();
             let previous;
             for (const button of buttons) {
               const box = await button.boundingBox(); near(box.x, skills.x, 'Vertical column x');

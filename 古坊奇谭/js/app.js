@@ -37,8 +37,10 @@
   function leaveOnline() {
     if (!online) return;
     const { socket, kind } = online; online = null;
-    if (kind === 'direct') { if (socket?.readyState === 1) socket.send(JSON.stringify({type:'leave'})); setTimeout(() => socket?.close(), 100); return; }
-    if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    if (kind === 'direct') { if (socket?.readyState === 1) socket.send(JSON.stringify({ type: 'leave' })); setTimeout(() => socket?.close(), 100); }
+    else if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    const input = $('coop-code');
+    if (input) { input.readOnly = false; input.value = ''; }
   }
   function guestAction(kind, extras = {}) {
     if (!online || online.role !== 'guest' || !online.peerConnected || !started) { toast('与主机连接中，请稍候', 'warning'); return; }
@@ -47,12 +49,13 @@
   function hostAction(message) {
     if (online?.role !== 'host' || !online.peerConnected || !started || state.over) return;
     if (!Number.isSafeInteger(message.id) || !Number.isInteger(message.x) || !Number.isInteger(message.y) ||
-        !['build','upgrade','bulk','demolish','skill'].includes(message.kind) ||
+        !['build','upgrade','bulk','demolish','skill','choose-skill'].includes(message.kind) ||
         (message.kind === 'build' && !Object.prototype.hasOwnProperty.call(GF.DEFS, message.building)) ||
-        (message.kind === 'skill' && !Object.prototype.hasOwnProperty.call(GF.SKILLS, message.skill))) return;
+        (['skill','choose-skill'].includes(message.kind) && !Object.prototype.hasOwnProperty.call(GF.SKILLS, message.skill))) return;
     const { x, y, kind } = message, mine = GF.playerView(state, 1), b = GF.at(state, x, y);
     let result = { ok: false, reason: '无法操作该地块' };
-    if (kind === 'skill') result = GF.skill(mine, message.skill);
+    if (kind === 'choose-skill') result = GF.chooseSkill(mine, message.skill);
+    else if (kind === 'skill') result = GF.skill(mine, message.skill);
     else if (GF.owns(mine, x, y) && !GF.isWall(state, x, y)) {
       if (kind === 'build') result = GF.build(mine, message.building, x, y);
       else if (b && b.owner === 1 && kind === 'upgrade') result = GF.upgrade(mine, b);
@@ -74,12 +77,13 @@
       receiveVisuals(next, message, first);
       state = next; online.hostPaused = !!message.paused; online.awaitingState = false;
       if (first) { enterGame(next); center(1); }
+      else if(playerState().selectedSkill&&!$('modal').hidden&&$('modal-content').querySelector('.skill-selection'))closeModal();
       if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
       refresh();
       if (ended || (first && state.over)) showEnd();
     } else if (message.type === 'action' && online.role === 'host') hostAction(message);
     else if (message.type === 'result' && online.role === 'guest') {
-      if (!message.ok) toast(message.reason || '操作未成功', 'warning');
+      if (!message.ok) {toast(message.reason || '操作未成功', 'warning');for(const el of $('modal-content').querySelectorAll('[data-choice]'))el.disabled=false;}
       else { tone(); toast('操作成功'); }
     } else if (message.type === 'leave' && online.kind === 'direct') {
       online.peerConnected = false;
@@ -98,8 +102,8 @@
       let message; try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === 'created' || message.type === 'joined') {
         online.code = message.code; online.peerConnected = message.type === 'created' ? false : true;
-        $('lan-code').value = message.code; updateCoopSeat();
-        toast(message.type === 'created' ? '房间已创建，请把房间号告诉队友' : '已加入房间，等待主机开始');
+        $('coop-code').value = message.code; $('coop-code').readOnly = true; updateCoopSeat();
+        toast(message.type === 'created' ? '主机已创建，配对码 ' + message.code : '已加入房间，等待主机开始');
       } else if (message.type === 'peer_joined') {
         online.peerConnected = true; updateCoopSeat(); toast('队友已加入'); if (started) sendSnapshot();
       } else if (message.type === 'peer_left') {
@@ -121,69 +125,59 @@
     socket.onerror = () => { if (online?.socket === socket) toast('无法连接联机服务器，请确认设备已连接同一局域网', 'warning'); };
     updateCoopSeat();
   }
-  async function showDirectCode(session, code, label) {
-    if (online !== session) return;
-    $('direct-output-area').hidden = false; $('direct-output-label').textContent = label;
-    $('direct-output').value = code; $('direct-qr').hidden = true;
-    try { const url = await GFDirect.qr(code); if (online === session) { $('direct-qr').src = url; $('direct-qr').hidden = false; $('direct-output-area').scrollIntoView({block:'start',behavior:'smooth'}); } }
-    catch { if (online === session) $('direct-status').textContent = '二维码生成失败，请复制下方配对码发给对方'; }
+  async function shareDirectCode(code, note) {
+    const box = $('coop-code'); box.readOnly = false; box.value = code;
+    try { await navigator.clipboard.writeText(code); toast(note + '（已复制）'); }
+    catch { box.focus(); box.select(); toast(note); }
   }
   async function beginDirect(role) {
     leaveOnline(); computerSeat = false;
-    const session = { kind: 'direct', role, code: '', socket: null, peerConnected: false, started, awaitingState: role === 'guest' };
+    const session = { kind: 'direct', role, code: '', socket: null, peerConnected: false, started, awaitingState: role === 'guest', accepting: false };
     online = session;
-    $('server-controls').hidden = true; $('direct-input').value = ''; $('direct-output').value = ''; $('direct-output-area').hidden = true;
-    $('direct-status').textContent = role === 'host' ? '正在生成邀请，请稍候…' : '拍摄或导入主机的邀请二维码，也可以粘贴邀请配对码';
-    $('direct-input-label').textContent = role === 'host' ? '识别队友的回应二维码，或粘贴回应配对码' : '识别主机的邀请二维码，或粘贴邀请配对码';
-    $('direct-apply').textContent = role === 'host' ? '使用回应码 · 完成配对' : '使用邀请码 · 生成回应';
-    $('direct-apply').disabled = role === 'host';
     try {
       session.direct = GFDirect.create(role, {
         message: message => { if (online === session) receiveOnline(message); },
-        status: text => { if (online === session) $('direct-status').textContent = text; },
+        status: text => { if (online === session) toast(text); },
         connected: value => {
           if (online !== session) return;
           session.peerConnected = value; updateCoopSeat(); refresh();
           if (value) {
             toast('两部手机已直连');
-            if (role === 'host' && started) { enterGame(state); onlineSend({type:'started'}); sendSnapshot(); }
-          } else toast('连接中断，游戏暂停等待恢复', 'warning');
+            if (role === 'host' && started) { enterGame(state); onlineSend({ type: 'started' }); sendSnapshot(); }
+          } else toast('连接已中断，可在菜单里重新配对', 'warning');
         }
       });
       session.socket = session.direct.transport;
       updateCoopSeat();
       if (role === 'host') {
-        const code = await session.direct.offer();
+        const offer = await session.direct.offer();
         if (online !== session) return;
-        await showDirectCode(session, code, '第一步：让队友识别此邀请二维码');
-        if (online !== session) return;
-        $('direct-status').textContent = '邀请已生成。队友识别后会生成回应二维码，再用本机识别回应即可直连。';
-        $('direct-apply').disabled = false;
+        await shareDirectCode(offer, '邀请码已生成，复制后发给队友，再把队友的回应码粘贴到此处');
       }
     } catch (error) {
-      if (online === session) { $('direct-status').textContent = error.message; toast(error.message, 'warning'); leaveOnline(); updateCoopSeat(); }
+      if (online === session) { toast(error.message, 'warning'); leaveOnline(); updateCoopSeat(); }
     }
   }
-  async function applyDirect() {
+  async function joinDirect() {
+    if (online) return;
+    const offer = $('coop-code').value.trim();
+    if (!/^GF-DIRECT-1:/.test(offer)) return toast('请先粘贴主机的邀请码', 'warning');
+    computerSeat = false;
+    await beginDirect('guest');
     const session = online;
     if (session?.kind !== 'direct' || !session.direct) return;
-    $('direct-apply').disabled = true;
     try {
-      if (session.role === 'host') await session.direct.accept($('direct-input').value);
-      else {
-        const code = await session.direct.answer($('direct-input').value);
-        if (online !== session) return;
-        await showDirectCode(session, code, '第二步：让主机识别此回应二维码');
-        if (online !== session) return;
-        $('direct-status').textContent = '回应已生成。请主机识别上方二维码，或把回应配对码交给主机。';
-      }
-    } catch (error) { if (online === session) { $('direct-status').textContent = error.message; toast(error.message, 'warning'); } }
-    finally { if (online === session) $('direct-apply').disabled = false; }
+      const answer = await session.direct.answer(offer);
+      if (online !== session) return;
+      await shareDirectCode(answer, '回应码已生成，复制后发回主机');
+    } catch (error) {
+      if (online === session) { toast(error.message, 'warning'); leaveOnline(); updateCoopSeat(); }
+    }
   }
   function repairDirect() {
     if (online?.kind !== 'direct') return;
     const role = online.role;
-    paused = true; $('modal').hidden = true; $('coop-lobby').hidden = false; $('game').classList.add('at-title'); $('lan-controls').open = true;
+    paused = true; $('modal').hidden = true; $('coop-lobby').hidden = false; $('game').classList.add('at-title');
     beginDirect(role);
   }
   let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
@@ -362,6 +356,7 @@
     $('countdown').textContent = state.phase === 'night' ? '' : Math.max(0, Math.ceil(remaining)) + 's';
     $('skills').hidden = state.phase !== 'night' || state.over;
     for (const el of document.querySelectorAll('[data-skill]')) {
+      el.hidden = el.dataset.skill !== playerState().selectedSkill;
       const id = el.dataset.skill, reason = GF.skillReason(playerState(), id);
       el.classList.toggle('unavailable', !!reason); el.setAttribute('aria-disabled', String(!!reason));
       el.querySelector('small').textContent = playerState().cooldowns[id] > 0 ? Math.ceil(playerState().cooldowns[id]) + ' 秒' : '可施展';
@@ -449,6 +444,11 @@
     $('start-menu').hidden = true; $('coop-lobby').hidden = true; $('game').classList.remove('at-title');
     closePanel(); center(playerOwner()); closeModal();
   }
+  function showSkillChoice(){
+    const descriptions={repel:'封住敌人 4 秒，造成 20 伤害',repair:'全体建筑恢复 35% 耐久',thunder:'全场雷击，阴兵 350、其余 240 伤害'},symbols={repel:'符',repair:'愈',thunder:'雷'};
+    modal('<div class="skill-selection"><p class="modal-kicker">本局神技 · 三选一</p><h2>择一守坊</h2><div class="skill-options">'+Object.entries(GF.SKILLS).map(([id,d])=>`<button data-modal="choose-skill" data-choice="${id}" class="skill-option"><i aria-hidden="true">${symbols[id]}</i><strong>${d.name}</strong><span>${descriptions[id]}</span><small>冷却 ${d.cooldown} 秒</small></button>`).join('')+'</div></div>');
+    $('close-modal').hidden=true;$('modal-content').querySelector('[data-choice]').focus();
+  }
   $('start-single').onclick = () => {
     readSave();
     if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开始菜单</button>');
@@ -462,42 +462,31 @@
   };
   $('start-sound').onclick = toggleSound;
   function updateCoopSeat() {
-    const linked = online?.role === 'host' && online.peerConnected, joining = online?.role === 'guest' && online.peerConnected, direct = online?.kind === 'direct';
+    const linked = online?.role === 'host' && online.peerConnected, joining = online?.role === 'guest' && online.peerConnected;
     $('coop-seat').setAttribute('aria-pressed', String(computerSeat));
     $('coop-seat').disabled = !!online;
     $('coop-seat').classList.toggle('is-ready', computerSeat || linked || joining);
     $('coop-avatar').textContent = computerSeat ? '智' : linked || joining ? '友' : '候';
-    $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已加入房间</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
-    $('coop-note').textContent = computerSeat ? '电脑将独立经营另一座庄园，与你共同抵御敌袭。' : joining ? '已连接，等待主机开始。' : linked ? '队友已就绪，可以开始合作。' : direct ? '请在下方交换邀请与回应二维码，完成手机直连。' : online?.code ? '房间号 ' + online.code + ' · 等待队友加入。' : '点击席位切换电脑队友，或展开下方进行手机直连。';
-    $('lan-room').textContent = direct ? (online.peerConnected ? '两部手机已直连' : '') : online?.code ? '房间号：' + online.code + (online.peerConnected ? ' · 已连接' : ' · 等待连接') : '';
-    $('direct-pair').hidden = !direct || online.peerConnected;
-    $('direct-create').disabled = !!online; $('direct-join').disabled = !!online;
-    $('lan-leave').hidden = !online;
-    $('lan-create').disabled = !!online;
-    $('lan-join').disabled = !!online;
+    $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已直连</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
+    $('coop-host').disabled = linked;
+    $('coop-join').disabled = linked;
     $('coop-start').disabled = !computerSeat && !linked;
     $('coop-start').textContent = computerSeat || linked ? '开始合作' : joining ? '等待主机开始' : '等待队友就绪';
   }
-  $('start-coop').onclick = () => { computerSeat = false; $('start-menu').hidden = true; $('coop-lobby').hidden = false; $('lan-controls').open = false; updateCoopSeat(); $('coop-seat').focus(); };
+  $('start-coop').onclick = () => { computerSeat = false; $('start-menu').hidden = true; $('coop-lobby').hidden = false; updateCoopSeat(); $('coop-seat').focus(); };
   $('coop-seat').onclick = () => { if (online) return; computerSeat = !computerSeat; updateCoopSeat(); };
-  $('direct-create').onclick = () => beginDirect('host');
-  $('direct-join').onclick = () => beginDirect('guest');
-  $('direct-apply').onclick = applyDirect;
-  $('direct-photo-button').onclick = () => $('direct-photo').click();
-  $('direct-file-button').onclick = () => $('direct-file').click();
-  for (const id of ['direct-photo','direct-file']) $(id).onchange = async () => {
-    const file = $(id).files[0], session = online; $(id).value = ''; if (!file) return;
-    try { const code = await GFDirect.readImage(file); if (online === session) { $('direct-input').value = code; await applyDirect(); } }
-    catch (error) { if (online === session) { $('direct-status').textContent = error.message; toast(error.message, 'warning'); } }
-  };
-  $('direct-copy').onclick = async () => {
-    try { await navigator.clipboard.writeText($('direct-output').value); toast('配对码已复制'); }
-    catch { $('direct-output').focus(); $('direct-output').select(); toast(document.execCommand('copy') ? '配对码已复制' : '请长按复制已选中的完整配对码'); }
-  };
-  $('server-toggle').onclick = () => { $('server-controls').hidden = !$('server-controls').hidden; };
-  $('lan-create').onclick = () => { computerSeat = false; connectOnline('create'); };
-  $('lan-join').onclick = () => { const code = $('lan-code').value.trim(); if (!/^\d{6}$/.test(code)) return toast('请输入六位房间号', 'warning'); computerSeat = false; connectOnline('join', code); };
-  $('lan-leave').onclick = () => { if(started){showStartMenu();return;}leaveOnline(); updateCoopSeat(); toast('配对／房间已关闭'); };
+  $('coop-host').onclick = () => beginDirect('host');
+  $('coop-join').onclick = joinDirect;
+  $('coop-code').addEventListener('input', async () => {
+    const session = online;
+    if (session?.kind !== 'direct' || session.role !== 'host' || session.peerConnected || session.accepting || !session.direct) return;
+    const text = $('coop-code').value.trim();
+    if (!/^GF-DIRECT-1:/.test(text)) return;
+    session.accepting = true;
+    try { await session.direct.accept(text); }
+    catch { /* Still incomplete or a stale code; wait for the completed answer. */ }
+    finally { session.accepting = false; }
+  });
   $('coop-back').onclick = showStartMenu;
   $('coop-start').onclick = () => {
     if (!computerSeat && !(online?.role === 'host' && online.peerConnected)) return;
@@ -509,13 +498,16 @@
   $('coop-ally').onclick = () => { closePanel(); center(1 - playerOwner()); };
   function modal(html) {
     paused = true;
+    $('close-modal').hidden=false;
     $('modal-content').innerHTML = html;
     $('modal').hidden = false;
     $('menu-pause').setAttribute('aria-expanded', 'true');
     $('close-modal').focus(); refresh(); sendSnapshot();
   }
   function closeModal() {
+    if(started&&!state.over&&!playerState().selectedSkill){showSkillChoice();return;}
     $('modal').hidden = true; paused = !started;
+    $('close-modal').hidden=false;
     $('menu-pause').setAttribute('aria-expanded', 'false');
     (started ? $('menu-pause') : !$('coop-lobby').hidden ? $('coop-seat') : $('start-single')).focus(); lastFrame = performance.now(); refresh(); sendSnapshot();
   }
@@ -523,9 +515,9 @@
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
   function showMenu() {
     if (!started) return;
-    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>' + (online.kind==='direct'?'手机直连':'房间 '+online.code) + ' · 进度保存在主机设备</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online.kind==='direct'?'<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>':'') + '<button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
+    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>' + (online.kind === 'direct' ? '手机直连' : '房间 ' + online.code) + ' · 进度保存在主机设备</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online.kind === 'direct' ? '<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>' : '') + '<button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
     modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
-    if (online?.kind === 'direct') $('modal-content').insertAdjacentHTML('beforeend','<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>');
+    if (online?.kind === 'direct') $('modal-content').insertAdjacentHTML('beforeend', '<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>');
   }
   function autoplaySettings() {
     const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
@@ -545,9 +537,14 @@
   function showVictory() {
     modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + '</strong><span>现存建筑</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
-  function newGame(coop = started && state.mode === 'coop'){if(online?.role==='guest')return;enterGame(coop ? GF.createCoopState() : GF.createState());if(online?.role==='host'){online.started=true;onlineSend({type:online.kind==='direct'?'started':'start'});sendSnapshot();}save();toast(coop ? '双庄共守 · 你与' + (online ? '联机' : '电脑') + '队友各守一庄' : '青溪新雨 · 古坊的故事重新开始');}
+  function newGame(coop = started && state.mode === 'coop'){if(online?.role==='guest')return;const next=coop?GF.createCoopState():GF.createState();enterGame(next);if(online?.role==='host'){online.started=true;onlineSend({type:online.kind==='direct'?'started':'start'});sendSnapshot();}save();}
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
+    if(action==='choose-skill'){
+      const id=e.target.closest('[data-choice]').dataset.choice;
+      if(online?.role==='guest'){for(const el of $('modal-content').querySelectorAll('[data-choice]'))el.disabled=true;guestAction('choose-skill',{skill:id});return;}
+      const result=GF.chooseSkill(playerState(),id);if(result.ok){save();closeModal();}return;
+    }
     if(action==='close')closeModal();if(action==='save')save(true);if(action==='sound'){toggleSound();e.target.closest('[data-modal]').textContent='音效：'+(sound?'开':'关');}
     if(action==='title')showStartMenu();
     if(action==='direct-repair')repairDirect();
@@ -617,7 +614,7 @@
   if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
   function frame(now){
     const dt=lastFrame?Math.max(0,Math.min(1,(now-lastFrame)/1000)):0;lastFrame=now;
-    const running=started&&!paused&&!hiddenPause&&!state.over&&online?.role!=='guest'&&(!online||online.peerConnected);
+    const running=started&&!paused&&!hiddenPause&&!state.over&&!!state.selectedSkill&&(state.mode!=='coop'||!!state.partner.selectedSkill)&&online?.role!=='guest'&&(!online||online.peerConnected);
     if(running){simulationClock+=dt;
       // Keep simulation work independent of 90/120 Hz displays without losing elapsed time.
       if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}if(partnerPilot){try{partnerPilot.tick(tick);}catch(error){showMenu();toast('电脑队友已暂停：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}

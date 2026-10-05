@@ -333,18 +333,23 @@ test('day fifteen starts the later enemy growth segment',()=>{
   const enemyAt=day=>{const s=G.createState(null);s.day=day;G.startNight(s);G.step(s,.25);G.step(s,.25);return s.enemies[0];};
   const first=enemyAt(1),late=enemyAt(15);
   assert(first&&late);
-  assert.equal(first.maxHp,45);assert(Math.abs(first.damage-4.2)<1e-8);
-  assert(Math.abs(late.maxHp-100*Math.pow(1.23,13)*1.28*1.08)<1e-8);
-  assert(Math.abs(late.damage-14*Math.pow(1.12,13)*1.18*1.04)<1e-8);
-  assert(Math.abs(late.maxHp/first.maxHp-Math.pow(1.23,13)*1.28*1.08/.45)<1e-8);
-  assert(Math.abs(late.damage/first.damage-Math.pow(1.12,13)*1.18*1.04/.3)<1e-8);
+  assert.equal(first.maxHp,60);assert(Math.abs(first.damage-6.3)<1e-8);
+  assert(Math.abs(late.maxHp-100*Math.pow(1.26,13)*1.32*1.08)<1e-8);
+  assert(Math.abs(late.damage-14*Math.pow(1.15,13)*1.22*1.04)<1e-8);
+  assert(Math.abs(late.maxHp/first.maxHp-Math.pow(1.26,13)*1.32*1.08/.6)<1e-8);
+  assert(Math.abs(late.damage/first.damage-Math.pow(1.15,13)*1.22*1.04/.45)<1e-8);
   assert(late.speed>first.speed);
 });
 test('skills enforce night and cooldown without incense or building unlocks',()=>{
-  const s=rich();assert.equal('incense' in s,false);assert.equal(G.skill(s,'repair').ok,false);
-  G.dusk(s);G.startNight(s);
-  const base=s.buildings[0];base.hp=900;assert(G.skill(s,'repair').ok);assert.equal(base.hp,1530);assert.equal(G.skill(s,'repair').ok,false);
-  advance(s,1);const hp=s.enemies[0].hp;assert(G.skill(s,'repel').ok);assert.equal(s.enemies[0].hp,hp-20);assert(s.enemies[0].repelled>0);assert(G.skill(s,'thunder').ok);assert.equal(s.enemies.length,0);
+  for(const id of Object.keys(G.SKILLS)) {
+    const s=rich();assert.equal('incense' in s,false);assert(G.chooseSkill(s,id).ok);assert.equal(G.skill(s,id).ok,false);
+    G.dusk(s);G.startNight(s);advance(s,1);
+    const base=s.buildings[0];base.hp=900;const hp=s.enemies[0].hp;
+    assert(G.skill(s,id).ok);assert.equal(G.skill(s,id).ok,false);
+    if(id==='repair')assert.equal(base.hp,1530);
+    if(id==='repel'){assert.equal(s.enemies[0].hp,hp-20);assert(s.enemies[0].repelled>0);}
+    if(id==='thunder')assert.equal(s.enemies.length,0);
+  }
 });
 test('night permits the same building construction, upgrade and demolition as day',()=>{
   const s=rich();setShrineLevel(s,2);const farm=build(s,'farm',5,8);G.dusk(s);
@@ -366,13 +371,13 @@ test('night permits the same building construction, upgrade and demolition as da
 });
 test('festival awards and boss wave occur every seventh day',()=>{
   const s=rich();s.day=6;G.startNight(s);s.wave.spawned=s.wave.total;advance(s,.1);assert.equal(s.day,7);assert(s.events.some(e=>e.text.includes('上元灯会')));
-  const base=s.buildings[0];assert(Math.abs(G.income(s,base)-0.5)<1e-8);base.hp=100000;G.startNight(s);assert(s.wave.boss);advance(s,60);assert(s.enemies.some(e=>e.boss));
+  const base=s.buildings[0];assert(Math.abs(G.income(s,base)-1.25)<1e-8);base.hp=100000;G.startNight(s);assert(s.wave.boss);advance(s,60);assert(s.enemies.some(e=>e.boss));
 });
 test('main base destruction ends the game and freezes simulation',()=>{
   const s=rich();s.buildings[0].hp=1;G.startNight(s);advance(s,120);assert(s.over);const coins=s.coins;advance(s,10);assert.equal(s.coins,coins);
 });
 test('save restores construction, clock, enemies and cooldowns; rejects malformed data',()=>{
-  const s=rich();build(s,'tea',7,8);G.startNight(s);advance(s,4);G.skill(s,'repel');
+  const s=rich();assert(G.chooseSkill(s,'repel').ok);build(s,'tea',7,8);G.startNight(s);advance(s,4);assert(G.skill(s,'repel').ok);
   const recovered=G.restore(G.serialize(s));assert(recovered);assert.equal(recovered.coins,s.coins);assert.equal(recovered.time,s.time);assert.equal(recovered.buildings.length,2);assert.equal(recovered.enemies.length,s.enemies.length);assert.equal(recovered.cooldowns.repel,s.cooldowns.repel);
   const legacyEnemy=JSON.parse(G.serialize(s));for(const e of legacyEnemy.enemies){delete e.slowed;delete e.slowFactor;}
   assert.deepEqual(recovered.enemies.map(e=>[e.x,e.y,e.laneX,e.laneY]),s.enemies.map(e=>[e.x,e.y,e.laneX,e.laneY]));
@@ -385,30 +390,31 @@ test('save restores construction, clock, enemies and cooldowns; rejects malforme
 test('income settles once per building per second, with exact coin floating amounts',()=>{
   const s=rich();const tea=build(s,'tea',7,8),before=s.coins;
   advance(s,.9);assert.equal(s.coins,before);assert.equal(s.effects.filter(e=>e.type==='income').length,0);
-   advance(s,.1);assert.equal(s.coins,before+2);assert.equal('incense' in s,false);
-   const floats=s.effects.filter(e=>e.type==='income');assert.equal(floats.length,1);assert.equal(floats.find(e=>e.buildingId===tea.id).amount,2);
-   advance(s,.5);assert.equal(s.coins,before+2);assert(s.effects.find(e=>e.buildingId===tea.id).life<.5);
-   advance(s,.5);assert.equal(s.coins,before+4);assert.equal(s.effects.filter(e=>e.type==='income').length,1);
+   advance(s,.1);assert.equal(s.coins,before+3);assert.equal('incense' in s,false);
+   const floats=s.effects.filter(e=>e.type==='income');assert.equal(floats.length,2);assert.equal(floats.find(e=>e.buildingId===tea.id).amount,2);
+   assert.equal(floats.find(e=>e.buildingId===s.buildings[0].id).amount,1);
+   advance(s,.5);assert.equal(s.coins,before+3);assert(s.effects.find(e=>e.buildingId===tea.id).life<.5);
+   advance(s,.5);assert.equal(s.coins,before+6);assert.equal(s.effects.filter(e=>e.type==='income').length,2);
 });
 test('each newly built building waits a full second before its first payout',()=>{
   const s=rich();advance(s,.8);const tea=build(s,'tea',7,8),before=s.coins;
-  advance(s,.2);assert.equal(s.coins,before);assert(!s.effects.some(e=>e.buildingId===tea.id));
-   advance(s,.8);assert.equal(s.coins,before+2);assert(s.effects.some(e=>e.buildingId===tea.id&&e.amount===2));
+  advance(s,.2);assert.equal(s.coins,before+1);assert(!s.effects.some(e=>e.buildingId===tea.id));
+   advance(s,.8);assert.equal(s.coins,before+3);assert(s.effects.some(e=>e.buildingId===tea.id&&e.amount===2));
 });
 test('fractional income is retained across payouts, upgrades and save reloads',()=>{
   const s=rich();setShrineLevel(s,2);const tea=build(s,'tea',7,8);G.upgrade(s,tea);const before=s.coins;
    advance(s,1);assert.equal(s.effects.find(e=>e.buildingId===tea.id).amount,4);
   const copy=G.restore(G.serialize(s));assert(copy);advance(copy,19);
-   // 4 × 20 = 80 tea coins, plus 16 coins from the Lv2 shrine.
-   assert.equal(copy.coins,before+96);
+   // 4 × 20 = 80 tea coins, plus 40 coins from the Lv2 shrine.
+   assert.equal(copy.coins,before+120);
   const partial=rich();build(partial,'tea',7,8);advance(partial,.6);const amount=partial.coins;
-   const restored=G.restore(G.serialize(partial));advance(restored,.3);assert.equal(restored.coins,amount);advance(restored,.1);assert.equal(restored.coins,amount+2);
+   const restored=G.restore(G.serialize(partial));advance(restored,.3);assert.equal(restored.coins,amount);advance(restored,.1);assert.equal(restored.coins,amount+3);
 });
 test('v1 saves without income counters migrate without losing buildings or money',()=>{
   const s=rich();build(s,'tea',7,8);const old=JSON.parse(G.serialize(s));old.version=1;
   for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.incensePending;}
   const restored=G.restore(JSON.stringify(old));assert(restored);assert.equal(restored.version,4);assert.equal(restored.buildings.length,2);assert.equal(restored.coins,s.coins);assert.equal('incense' in restored,false);
-   advance(restored,1);assert.equal(restored.coins,s.coins+2);
+   advance(restored,1);assert.equal(restored.coins,s.coins+3);
 });
 test('old level-three saves retain durability percentage after the growth rebalance',()=>{
   const s=rich(),tea=build(s,'tea',7,8),old=JSON.parse(G.serialize(s));
@@ -432,7 +438,7 @@ test('old saves remove retired buildings without invalidating the town',()=>{
 });
 test('two-resource chains have the intended costs, production and formula upgrades',()=>{
   const fresh=G.createState(null);
-  assert.deepEqual({coins:fresh.coins,materials:fresh.materials,fortuneBuilt:fresh.fortuneBuilt},{coins:200,materials:120,fortuneBuilt:0});
+  assert.deepEqual({coins:fresh.coins,materials:fresh.materials,fortuneBuilt:fresh.fortuneBuilt},{coins:150,materials:200,fortuneBuilt:0});
   assert.equal('prosperity' in fresh,false);
   for(const d of Object.values(G.DEFS)){assert.equal('prosperity' in d,false);assert.equal('unlock' in d,false);}
   for(const type of ['tea','inn','bank','farm','mill','wine']) assert.equal(G.DEFS[type].resource,'coins');
@@ -467,21 +473,24 @@ test('two-resource chains have the intended costs, production and formula upgrad
     });
   }
 });
-test('new estates can fund an opening tea and tower while legacy stock stays unchanged',()=>{
-  assert.equal(G.createState(null).materials,120);
+test('default estates can immediately fund tea or towers on legal plots',()=>{
+  assert.equal(G.createState(null).materials,200);
   for(const seed of [1,7,42,73193,99991]){
-    const s=G.createState(seed);assert.equal(s.coins,200);assert.equal(s.materials,220);
+    const s=G.createState(seed);assert.equal(s.coins,150);assert.equal(s.materials,200);
     const size=G.worldSize(s),plots=[...G.estate(s).cells].map(key=>[key%size,Math.floor(key/size)]);
     for(const type of ['tea','tower']){
-      const plot=plots.find(([x,y])=>!G.buildReason(s,type,x,y));assert(plot,type+' opening plot');
-      build(s,type,...plot);
+      const plot=plots.find(([x,y])=>!G.buildReason(s,type,x,y,true));assert(plot,type+' opening plot');
+      const opening=G.restore(G.serialize(s)),cost=G.buildCost(opening,type);
+      assert.equal(G.buildReason(opening,type,...plot),'');assert(G.build(opening,type,...plot).ok);
+      const reward=G.MISSIONS.slice(s.mission,opening.mission).reduce((sum,m)=>sum+m.reward,0);
+      assert.deepEqual([opening.coins,opening.materials],[150-cost.coins+reward,200-cost.materials]);
     }
-    assert.equal(s.coins,165);assert.equal(s.materials,52);
-    const loaded=G.restore(G.serialize(s));assert(loaded);assert.equal(loaded.materials,52);
+    assert.equal(s.coins,150);assert.equal(s.materials,200);
+    const loaded=G.restore(G.serialize(s));assert(loaded);assert.deepEqual([loaded.coins,loaded.materials],[150,200]);
   }
 });
 test('construction and upgrading check and deduct each resource atomically',()=>{
-  const s=G.createState(null),coins=s.coins,materials=s.materials;
+  const s=G.createState(null);s.coins=200;s.materials=120;const coins=s.coins,materials=s.materials;
   s.materials=0;assert.match(G.buildReason(s,'tea',7,8),/工材/);assert.equal(G.build(s,'tea',7,8).ok,false);assert.equal(s.coins,coins);
   s.materials=materials;const tea=build(s,'tea',7,8);assert.equal(s.materials,materials-G.DEFS.tea.cost.materials);assert(s.coins>=coins);
   setShrineLevel(s,2);const before={coins:s.coins,materials:s.materials};s.materials=0;assert.match(G.upgradeReason(s,tea),/工材/);assert.equal(G.upgrade(s,tea).ok,false);assert.equal(s.coins,before.coins);
@@ -491,7 +500,7 @@ test('construction and upgrading check and deduct each resource atomically',()=>
 test('silk and craft pay materials once per building-second and survive save migration',()=>{
   const s=rich();setShrineLevel(s,2);const mulberry=build(s,'mulberry',11,3),coins=s.coins,materials=s.materials;
   advance(s,.9);assert.equal(s.materials,materials);assert.equal(s.effects.filter(e=>e.buildingId===mulberry.id).length,0);
-   advance(s,.1);assert.equal(s.materials,materials+1);assert.equal(s.coins,coins);
+   advance(s,.1);assert.equal(s.materials,materials+1);assert.equal(s.coins,coins+2);
    assert.deepEqual(s.effects.filter(e=>e.buildingId===mulberry.id).map(e=>[e.resource,e.amount]),[['materials',1]]);
   G.upgrade(s,mulberry);advance(s,.5);
   const restored=G.restore(G.serialize(s));assert(restored);const next=restored.buildings.find(b=>b.id===mulberry.id);
@@ -501,9 +510,18 @@ test('silk and craft pay materials once per building-second and survive save mig
   const migrated=G.restore(JSON.stringify(legacy));assert(migrated);assert.equal(migrated.materials,120);
   const migratedTree=migrated.buildings.find(b=>b.id===mulberry.id);assert.equal(migratedTree.materialPending,.45);assert.equal(migratedTree.coinPending,0);
 });
-test('legacy simulation survives the first seven nights while undefended growth collapses',()=>{
+test('legacy scripted opening funds production and survives night one without guaranteeing seven nights',t=>{
   const {run}=require('../scripts/balance-sim.js');
   const rush=run(10,'build'),runs=[1,7,42,73193,99991].map(seed=>run(7,'balanced',seed));
   assert(rush.over,'Ignoring defenses should eventually lose the town');
-  assert(runs.every(r=>!r.over&&r.day===8),'Active legacy play should survive the first seven nights across seeds');
+  assert(runs.some(result=>result.over),'The old defense plan must expose later defeat risk');
+  for(const result of runs){
+    t.diagnostic(`legacy seed ${result.seed}: day ${result.day}, defeated=${result.over}`);
+    assert(result.day>1,'The funded opening survives the first night');
+    if(result.over){assert(result.day<=7);assert.equal(result.history.at(-1).shrineHP,0);}
+    else {assert.equal(result.day,8);assert(result.history.at(-1).shrineHP>0);}
+    assert(result.nextPlan>=4,'Default stock funds the first four opening buildings');
+    assert(result.history[0].materialRate>0,'The first day establishes material production');
+    assert.equal(result.history[0].shrineHP,1800);
+  }
 });

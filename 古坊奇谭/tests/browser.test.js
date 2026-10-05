@@ -6,7 +6,7 @@ const os=require('node:os');
 const {pathToFileURL}=require('node:url');
 const {chromium}=require('playwright');
 const G=require('../js/game.js');
-const legacySave=JSON.stringify(G.createState(null));
+const legacySave=JSON.stringify({...G.createState(null),selectedSkill:'repel',coins:200,materials:120});
 const initLegacySave=raw=>{if(localStorage.getItem('gufang-qitan-save-v1')===null)localStorage.setItem('gufang-qitan-save-v1',raw);};
 const root=path.join(__dirname,'..');
 const sourceOnly=process.argv.includes('--source-only')||!!process.env.GUFANG_SOURCE_ONLY;
@@ -15,14 +15,14 @@ fs.mkdirSync(shots,{recursive:true});
 const url=file=>pathToFileURL(path.join(root,sourceOnly?'index.html':file)).href;
 async function sourceContext(context){await context.route('**/js/runtime.js',route=>route.fulfill({contentType:'application/javascript',body:['game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')}));}
 const freeze=page=>page.evaluate(()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
-async function enterFromMenu(page){if(await page.locator("#start-menu").isVisible()){if(await page.locator("#start-load").isEnabled())await page.locator("#start-load").click();else await page.locator("#start-single").click();}}
+async function enterFromMenu(page){if(await page.locator("#start-menu").isVisible()){if(await page.locator("#start-load").isEnabled())await page.locator("#start-load").click();else {await page.locator("#start-single").click();await page.locator('[data-choice="thunder"]').click();}}}
 async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.screenPoint(x,y),[x,y]);await page.mouse.click(p.x,p.y);}
 (async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',headless:true});
   try{
     const incomeContext=await browser.newContext({viewport:{width:390,height:844}}),incomePage=await incomeContext.newPage();
     await sourceContext(incomeContext);
-    const incomeState=G.createState(null);incomeState.coins=incomeState.materials=100000;
+    const incomeState=G.createState(null);incomeState.selectedSkill='thunder';incomeState.coins=incomeState.materials=100000;
     await incomeContext.addInitScript(initLegacySave,JSON.stringify(incomeState));
     await incomePage.goto(url('index.html'));await incomePage.waitForFunction(()=>!!window.Gufang);await enterFromMenu(incomePage);await freeze(incomePage);
     for(const [types,cells,resource,incomes,costs] of [
@@ -53,9 +53,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         Gufang.select(b.x,b.y);return GF.serialize(s);
       },[type,level]);
       const s=G.restore(raw),b=s.buildings.find(b=>b.type===type),next={...b,level:level+1};
-      const base=G.DEFS[type].income*4*(type==='shrine'?1+.25*(level-3):1.65**(level-3));
+      const base=G.DEFS[type].income*(type==='shrine'?2**(level-1):4*1.65**(level-3));
       const total=G.income(s,b),round=n=>String(Math.round((n+Number.EPSILON)*10)/10),bonus=round(total-base);
-      assert.notEqual(base,G.DEFS[type].income*G.factor(b),type+' high-level base must avoid attack factor');
+      if(type!=='shrine')assert.notEqual(base,G.DEFS[type].income*G.factor(b),type+' high-level base must avoid attack factor');
       assert.equal(await incomePage.locator('.detail-revenue').textContent(),`+${round(base)}${bonus==='0'?'':`（+${bonus}）`}/秒`,type+' base and bonus');
       assert.equal(await incomePage.locator('.detail-revenue .income-bonus').count(),1,type+' festival/aura bonus remains visible');
       assert.equal(await incomePage.evaluate(type=>GF.income(Gufang.state,Gufang.state.buildings.find(b=>b.type===type)),type),total,type+' actual income matches core');
@@ -281,8 +281,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         assert.equal(await page.locator('.detail-description').count(),0);
         assert((await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='farm'&&b.x===9&&b.y===9).hp))<hp,'Dry farm damage remains in the core');
         await page.evaluate(()=>{GF.grantBuilding(Gufang.state,'well',10,10);GF.grantBuilding(Gufang.state,'stage',10,9);Gufang.select(8,8);});
-        assert((await page.locator('.detail-revenue').textContent()).includes('+0.8/秒'));
-        assert.equal(await page.locator('.detail-revenue .income-bonus').count(),0,'Rounded-zero bonus is hidden');
+        assert((await page.locator('.detail-revenue').textContent()).includes('+2（+0.1）/秒'));
+        assert.equal(await page.locator('.detail-revenue .income-bonus').count(),1,'Shrine stage bonus remains visible with doubled income');
         await page.locator('#close-panel').click();
       }
       // Multiple buildings each get an actual integer payout and a matching floating coin amount.
@@ -307,7 +307,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>Gufang.select(6,6));
       assert(await page.locator('[data-build="tower"]').count());assert.equal(await page.locator('[data-category]').count(),0);
       await page.locator('#close-panel').click();
-      await page.evaluate(()=>{const s=Gufang.state;s.coins=10000;s.materials=10000;GF.startNight(s);for(let i=0;i<100;i++)GF.step(s,.1);Gufang.refresh();});
+       await page.evaluate(()=>{const s=Gufang.state;s.coins=10000;s.materials=10000;GF.startNight(s);for(let i=0;i<100;i++)GF.step(s,.1);Gufang.refresh();});
+       assert.deepEqual(await page.locator('[data-skill]:visible').evaluateAll(els=>els.map(el=>el.dataset.skill)),['repel']);
       await page.locator('[data-skill="repel"]').click();assert((await page.evaluate(()=>Gufang.state.cooldowns.repel))>0);assert.equal(await page.evaluate(()=>'incense' in Gufang.state),false);
       if(viewport.width===390){
         await page.evaluate(()=>Gufang.select(6,6));
@@ -342,7 +343,14 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       page.on('pageerror',e=>errors.push(e.stack));
       await page.goto(url('dist/古坊奇谭.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
       assert.equal(await page.evaluate(()=>window.startedWithoutSave),true,'Default estate starts without an old localStorage save');
-      assert.equal(await page.evaluate(()=>Gufang.state.materials),220,'New estate starts with enough materials for tea and a tower');
+       assert.deepEqual(await page.evaluate(()=>[Gufang.state.coins,Gufang.state.materials]),[150,200],'New estate starts with 150 coins and 200 materials');
+       assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),'thunder');
+       await page.evaluate(()=>{GF.startNight(Gufang.state);Gufang.refresh();});
+       assert.deepEqual(await page.locator('[data-skill]:visible').evaluateAll(els=>els.map(el=>el.dataset.skill)),['thunder']);
+       await page.locator('[data-skill="thunder"]').click();
+       assert(await page.evaluate(()=>Gufang.state.cooldowns.thunder>0));
+       await page.evaluate(()=>{Gufang.state.phase='day';Gufang.state.wave=null;Gufang.refresh();});
+       await page.evaluate(()=>{Gufang.state.coins=Gufang.state.materials=10000;Gufang.refresh();});
       assert.deepEqual(await page.evaluate(()=>({size:GF.SIZE,center:GF.CENTER,worldSize:GF.worldSize(Gufang.state),worldCenter:GF.worldCenter(Gufang.state),legacySize:GF.worldSize(GF.createState(null)),legacyCenter:GF.worldCenter(GF.createState(null)),gates:Gufang.state.buildings.filter(b=>b.type==='gate').length})),{size:25,center:12,worldSize:25,worldCenter:12,legacySize:17,legacyCenter:8,gates:4});
       assert(await page.locator('#startup-error').isHidden());
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -441,9 +449,24 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     const standalone=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
     await sourceContext(standalone.context());
     standalone.on('pageerror',e=>errors.push(e.message));
-    const old=G.createState(null);old.coins=1234;delete old.materials;old.prosperity=77;for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.materialPending;delete b.incensePending;}
+    const old=G.createState(null);old.coins=1234;delete old.selectedSkill;delete old.materials;old.prosperity=77;for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.materialPending;delete b.incensePending;}
     await standalone.addInitScript(raw=>localStorage.setItem('gufang-qitan-save-v1',raw),JSON.stringify(old));
     await standalone.goto(url('dist/古坊奇谭.html'));await standalone.waitForFunction(()=>!!window.Gufang);await enterFromMenu(standalone);await freeze(standalone);
+    assert.equal(await standalone.evaluate(()=>Gufang.state.selectedSkill),null);
+    assert(await standalone.locator('[data-modal="choose-skill"]').first().isVisible());
+    assert.equal(await standalone.evaluate(()=>Gufang.paused),true);
+    assert(await standalone.locator('#close-modal').isHidden());
+    await standalone.keyboard.press('Escape');
+    await standalone.locator('#modal').click({position:{x:1,y:1}});
+    assert.equal(await standalone.locator('[data-modal="choose-skill"]:visible').count(),3);
+    await standalone.locator('[data-modal="choose-skill"][data-choice="repair"]').click();
+    assert.equal(await standalone.evaluate(()=>Gufang.state.selectedSkill),'repair');
+    assert(await standalone.locator('#modal').isHidden());
+    await standalone.evaluate(()=>{GF.startNight(Gufang.state);Gufang.refresh();});
+    assert.deepEqual(await standalone.locator('[data-skill]:visible').evaluateAll(els=>els.map(el=>el.dataset.skill)),['repair']);
+    await standalone.locator('[data-skill="repair"]').click();
+    assert(await standalone.evaluate(()=>Gufang.state.cooldowns.repair>0));
+    await standalone.evaluate(()=>{Gufang.state.phase='day';Gufang.state.wave=null;Gufang.refresh();});
     assert.equal(await standalone.evaluate(()=>Gufang.state.coins),1234);assert.equal(await standalone.evaluate(()=>Gufang.state.materials),120);assert.equal(await standalone.evaluate(()=>'prosperity' in Gufang.state),false);assert.equal(await standalone.evaluate(()=>Gufang.state.buildings[0].type),'shrine');
     await mapClick(standalone,7,8);await standalone.locator('[data-build="tea"]').click();assert.equal(await standalone.evaluate(()=>Gufang.state.buildings.length),2);
     assert.deepEqual(errors,[]);console.log(sourceOnly?'PASS source HTML and old save migration':'PASS offline single-file HTML and old save migration');await standalone.close();

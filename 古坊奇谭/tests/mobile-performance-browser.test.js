@@ -64,6 +64,7 @@ async function open(browser, options, manual = true) {
   await page.goto(pathToFileURL(path.join(root, process.argv.includes('--built') ? 'dist/古坊奇谭.html' : 'index.html')).href);
   await page.waitForFunction(() => !!window.Gufang, null, { polling: 20 });
   await page.evaluate(() => document.getElementById('start-single').click());
+  await page.evaluate(() => document.querySelector('[data-choice="thunder"]').click());
   return page;
 }
 

@@ -42,7 +42,7 @@
   def('barracks', '兵营', 'defense', { coins: 320, materials: 240 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '自动派出民兵近战' });
   def('well', '水井', 'support', { coins: 120, materials: 65 }, 250, { fortuneOnly: true, desc: '井旁平地可建农田 · 相邻农田收入 +20%' });
   def('stage', '戏台', 'support', { coins: 400, materials: 300 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
-  def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: .4, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
+  def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
   def('earth', '土地庙', 'temple', { coins: 140, materials: 95 }, 260, { guard: .2, range: 3, fortuneOnly: true, desc: '三格内建筑受到伤害 -20%' });
   def('zhong', '钟馗像', 'temple', { coins: 250, materials: 180 }, 430, { slow: .4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: '每 12 秒使全体怪物减速 40%，持续 4 秒' });
   def('tao', '道观', 'temple', { coins: 450, materials: 330 }, 380, { powerAura: .15, fortuneOnly: true, desc: '全镇防御建筑攻击 +15%' });
@@ -84,7 +84,7 @@
     let views = playerViews.get(s);
     if (!views) { views = []; playerViews.set(s, views); }
     if (views[owner]) return views[owner];
-    const view = { actorId: owner }, personal = new Set(['coins', 'materials', 'fortuneBuilt', 'gateLevel', 'cooldowns', 'mission']);
+    const view = { actorId: owner }, personal = new Set(['coins', 'materials', 'fortuneBuilt', 'gateLevel', 'cooldowns', 'selectedSkill', 'mission']);
     Object.defineProperty(view, '_world', { value: s });
     for (const key of Object.keys(s)) Object.defineProperty(view, key, { enumerable: true,
       get() { return key === 'buildings' ? s.buildings.filter(b => b.owner === owner) : personal.has(key) && owner === 1 ? s.partner[key] : s[key]; },
@@ -175,7 +175,7 @@
   function createCoopState(mapSeed = Math.floor(Math.random() * 4294967296), layout) {
     const s = createState(mapSeed);
     const coopLayout = layout || (s.estateSeed % 2 ? 'horizontal' : 'vertical');
-    Object.assign(s, { version: 7, mode: 'coop', worldSize: coopLayout === 'horizontal' ? 40 : 25, worldHeight: coopLayout === 'horizontal' ? 25 : 40, coopLayout, partner: { controller: 'computer', coins: 200, materials: 220, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0 }, buildings: [], nextId: 1 });
+    Object.assign(s, { version: 7, mode: 'coop', worldSize: coopLayout === 'horizontal' ? 40 : 25, worldHeight: coopLayout === 'horizontal' ? 25 : 40, coopLayout, partner: { controller: 'computer', coins: 150, materials: 200, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, selectedSkill: null, mission: 0 }, buildings: [], nextId: 1 });
     for (const e of coopMap(s).land.estates) {
       addBuilding(s, 'shrine', e.center.x, e.center.y, 1, { owner: e.owner });
       for (const g of e.gates) addBuilding(s, 'gate', g.x, g.y, 1, { direction: g.direction, owner: e.owner });
@@ -462,7 +462,7 @@
   const isPrereq = (d, nd) => d.chain ? nd.id === d.prev : !!d.required?.includes(nd.id);
   const RETIRED_TYPES = new Set(['home', 'market', 'fence']);
   const factor = b => Math.pow(GROWTH, b.level - 1);
-  const incomeFactor = b => b.type === 'shrine' ? Math.pow(2, Math.min(2, b.level - 1)) * (1 + .25 * Math.max(0, b.level - 3)) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
+  const incomeFactor = b => b.type === 'shrine' ? Math.pow(2, b.level - 1) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
   const auraFactor = b => Math.pow(2, Math.min(2, b.level - 1)) * (1 + .2 * Math.max(0, b.level - 3));
   const hpFactor = b => Math.pow(HP_GROWTH, b.level - 1);
   const maxLevel = b => b?.type === 'shrine' ? SHRINE_MAX_LEVEL : b?.type === 'gate' ? GATE_MAX_LEVEL : MAX_LEVEL;
@@ -506,9 +506,9 @@
     return addBuilding(s, type, x, y, Math.min(level, maxLevel({ type })), originCost ? { originCost } : {});
   }
   function createState(mapSeed = Math.floor(Math.random() * 4294967296), mapGeneration = 2) {
-    const s = { version: mapSeed === null ? 4 : 5, worldSize: mapSeed === null ? 17 : 25, seed: 73193, nextId: 1, coins: 200, materials: mapSeed === null ? 120 : 220, fortuneBuilt: 0, day: 1, phase: 'day', time: 0, elapsed: 0, repairTime: 0,
+    const s = { version: mapSeed === null ? 4 : 5, worldSize: mapSeed === null ? 17 : 25, seed: 73193, nextId: 1, coins: 150, materials: 200, fortuneBuilt: 0, day: 1, phase: 'day', time: 0, elapsed: 0, repairTime: 0,
       direction: 0, buildings: [], enemies: [], soldiers: [], projectiles: [], effects: [], events: [], kills: 0, wave: null,
-      cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0, revision: 0, over: false, celebrated: false };
+      cooldowns: { repel: 0, repair: 0, thunder: 0 }, selectedSkill: null, mission: 0, revision: 0, over: false, celebrated: false };
     if (mapSeed !== null) { s.mapSeed = mapSeed >>> 0; s.estateSeed = (Math.imul(s.mapSeed, 2246822519) ^ 3266489917) >>> 0; s.gateLevel = 1; }
     if (mapSeed !== null && mapGeneration === 2) s.mapGeneration = 2;
     const center = worldCenter(s);
@@ -746,7 +746,8 @@
     s.soldiers = []; cleanSoldiers(s);
     for (const b of s.buildings) if (b.type === 'barracks') { b.musteredCount = 0; muster(s, b); }
     const opening = Math.min(1, .5 + .5 * (s.day - 1) / 9);
-    s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + (boss ? 12 : 0)) * opening), spawned: 0, timer: .35, boss };
+    const escalation = 2 * (s.day - 1) + Math.floor(.35 * (s.day - 1) ** 2);
+    s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + escalation + (boss ? 12 : 0)) * opening), spawned: 0, timer: .35, boss };
     if (s.mode === 'coop') s.wave.total *= 2;
     event(s, boss ? '百鬼夜行！妖将与群妖从' + raidDirections(s).map(d => ['北','东','南','西'][d]).join('、') + '方来袭' : '入夜了 · 守住祠堂，灯火不熄', 'warning');
   }
@@ -790,9 +791,9 @@
     const x = jitter(p.x, SIZE), y = jitter(p.y, worldHeight(s)), laneX = random(s) * .5 - .25, laneY = random(s) * .5 - .25;
     const type = s.day >= 5 && i % 4 === 2 ? 'fox' : s.day >= 4 && i % 3 === 1 ? 'ghost' : 'bandit';
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === 'coop' ? 2 : 1), late = Math.max(0, s.day - 14), scale = (.45 + .55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + .08 * late);
+    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === 'coop' ? 2 : 1), late = Math.max(0, s.day - 14), scale = (.6 + .4 * opening) * Math.pow(1.26, Math.min(13, s.day - 1)) * Math.pow(1.32, Math.min(7, late)) * Math.pow(1.25, Math.max(0, late - 7)) * (1 + .08 * late);
     s.enemies.push({ id: s.nextId++, type, x, y, laneX, laneY, hp: d.hp * scale * (boss ? 4.5 : 1), maxHp: d.hp * scale * (boss ? 4.5 : 1),
-      damage: d.damage * (.3 + .7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.18, Math.min(7, late)) * Math.pow(1.15, Math.max(0, late - 7)) * (1 + .04 * late) * (boss ? 2 : 1), speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)), attack: 0, repelled: 0, slowed: 0, slowFactor: 1, boss, path: [], pathRevision: -1 });
+      damage: d.damage * (.45 + .55 * opening) * Math.pow(1.15, Math.min(13, s.day - 1)) * Math.pow(1.22, Math.min(7, late)) * Math.pow(1.18, Math.max(0, late - 7)) * (1 + .04 * late) * (boss ? 2 : 1), speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)), attack: 0, repelled: 0, slowed: 0, slowFactor: 1, boss, path: [], pathRevision: -1 });
     if (targetGate) Object.assign(s.enemies[s.enemies.length - 1], { targetGateId: targetGate.id, targetOwner: targetGate.owner });
   }
   // Breadth-first search selects the shortest route to the shrine, regardless of building durability.
@@ -1096,9 +1097,19 @@
     });
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
+  function chooseSkill(s, id) {
+    s = economicView(s);
+    if (typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return { ok: false, reason: '未知神技' };
+    if (s.selectedSkill !== null) return { ok: false, reason: '神技已选择，不可更换' };
+    if (s.over) return { ok: false, reason: '古坊已失守' };
+    s.selectedSkill = id;
+    return { ok: true };
+  }
   function skillReason(s, id) {
     s = economicView(s);
-    const d = SKILLS[id]; if (!d) return '未知神技';
+    if (typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return '未知神技';
+    if (s.selectedSkill === null) return '请先选择神技';
+    if (s.selectedSkill !== id) return '未选择此神技';
     if (s.over || s.phase !== 'night') return '神技仅在夜晚使用';
     if (s.cooldowns[id] > 0) return '还需 ' + Math.ceil(s.cooldowns[id]) + ' 秒';
     return '';
@@ -1140,6 +1151,11 @@
     try {
       const s = JSON.parse(raw), finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
       if (!s || typeof s !== 'object') return null;
+      for (const player of s.mode === 'coop' ? [s, s.partner] : [s]) {
+        if (!player || typeof player !== 'object') return null;
+        if (!Object.prototype.hasOwnProperty.call(player, 'selectedSkill')) player.selectedSkill = null;
+        if (player.selectedSkill !== null && (typeof player.selectedSkill !== 'string' || !Object.prototype.hasOwnProperty.call(SKILLS, player.selectedSkill))) return null;
+      }
       if (s.worldSize === undefined) s.worldSize = 17;
       const coop = s.mode === 'coop';
       if (s.mode !== undefined && !coop) return null;
@@ -1315,5 +1331,5 @@
       return s;
     } catch { return null; }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, step, serialize, restore };
 });

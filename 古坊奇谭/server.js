@@ -76,10 +76,10 @@ function createServer() {
         send(socket.room.guest, { type: 'state', snapshot: message.snapshot, paused: !!message.paused, visuals: message.visuals });
       } else if (message.type === 'action' && socket.role === 'guest' && socket.room?.started) {
         const { id, kind, building, skill, x, y } = message;
-        if (!Number.isSafeInteger(id) || !['build', 'upgrade', 'bulk', 'demolish', 'skill'].includes(kind) ||
+        if (!Number.isSafeInteger(id) || !['build', 'upgrade', 'bulk', 'demolish', 'skill', 'choose-skill'].includes(kind) ||
             !Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x > 49 || y > 49 ||
             (kind === 'build' && (typeof building !== 'string' || building.length > 30)) ||
-            (kind === 'skill' && (typeof skill !== 'string' || skill.length > 20))) return;
+            (['skill', 'choose-skill'].includes(kind) && (typeof skill !== 'string' || skill.length > 20))) return;
         send(socket.room.host, { type: 'action', id, kind, building, skill, x, y });
       } else if (message.type === 'result' && socket.role === 'host' && socket.room?.started && Number.isSafeInteger(message.id)) {
         send(socket.room.guest, { type: 'result', id: message.id, ok: !!message.ok, reason: String(message.reason || '').slice(0, 120) });

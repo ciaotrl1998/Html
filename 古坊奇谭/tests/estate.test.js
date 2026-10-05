@@ -240,7 +240,7 @@ test('repair delays a destroyed gate while occupied or being crossed and invalid
     gate.hp = 0;G.startNight(s);s.wave.spawned = s.wave.total;
     const e = attacker(s,gate.x,gate.y - offset);e.path = [{x:gate.x,y:gate.y}];e.pathRevision = s.revision;s.enemies = [e];
     const revision = s.revision;
-    assert.equal(G.skill(s,'repair').ok,true);assert.equal(gate.hp,0);assert.equal(s.revision,revision);
+    assert(G.chooseSkill(s,'repair').ok);assert.equal(G.skill(s,'repair').ok,true);assert.equal(gate.hp,0);assert.equal(s.revision,revision);
     assert.equal(e.pathRevision,revision);
     e.y = 0;e.path = [{x:24,y:24}];s.cooldowns.repair = 0;
     assert.equal(G.skill(s,'repair').ok,true);

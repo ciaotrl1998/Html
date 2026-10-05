@@ -28,6 +28,7 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
           await page.goto(pathToFileURL(path.join(root, file)).href);
           await page.waitForFunction(() => !!window.Gufang);
           await page.locator('#start-single').click();
+          await page.locator('[data-choice="thunder"]').click();
           const single = page.locator('#upgrade-building'), bulk = page.locator('#bulk-upgrade-building');
           const text = button => button.evaluate(el => el.firstChild.textContent);
           const select = type => page.evaluate(type => {
