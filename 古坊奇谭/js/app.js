@@ -571,7 +571,12 @@
         enterGame(loaded);save();refresh();toast('已载入第 '+state.day+' 日的古坊');if(state.over)showEnd();};input.click();
     }
   });
-  let gesture=null;
+  let gesture=null, suppressMapClick=false;
+  // A panel opened on pointerup must not receive that gesture's retargeted click.
+  document.addEventListener('pointerdown',()=>{suppressMapClick=false;},true);
+  document.addEventListener('click',e=>{
+    if(suppressMapClick&&e.detail>0){e.preventDefault();e.stopImmediatePropagation();}
+  },true);
   canvas.addEventListener('pointerdown',e=>{
     if(e.button!==0&&e.pointerType==='mouse')return;canvas.setPointerCapture(e.pointerId);const p=localPoint(e);pointers.set(e.pointerId,p);
     if(pointers.size===1)gesture={x:p.x,y:p.y,lastX:p.x,lastY:p.y,dragged:false,multi:false};
@@ -584,7 +589,7 @@
   });
   function pointerEnd(e){
     if(!pointers.has(e.pointerId))return;const click=gesture&&!gesture.dragged&&!gesture.multi&&e.type!=='pointercancel';pointers.delete(e.pointerId);
-    if(click){const p=localPoint(e),x=Math.floor((p.x-cam.x)/cam.zoom/GFArt.T),y=Math.floor((p.y-cam.y)/cam.zoom/GFArt.T);select(x,y);}
+    if(click){suppressMapClick=true;const p=localPoint(e),x=Math.floor((p.x-cam.x)/cam.zoom/GFArt.T),y=Math.floor((p.y-cam.y)/cam.zoom/GFArt.T);select(x,y);}
     if(pointers.size===1){const p=[...pointers.values()][0];gesture.lastX=p.x;gesture.lastY=p.y;}
     if(!pointers.size)gesture=null;
   }

@@ -4316,7 +4316,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       input.click();
     }
   });
-  let gesture = null;
+  let gesture = null, suppressMapClick = false;
+  document.addEventListener("pointerdown", () => {
+    suppressMapClick = false;
+  }, true);
+  document.addEventListener("click", (e) => {
+    if (suppressMapClick && e.detail > 0) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
   canvas.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     canvas.setPointerCapture(e.pointerId);
@@ -4359,6 +4368,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const click = gesture && !gesture.dragged && !gesture.multi && e.type !== "pointercancel";
     pointers.delete(e.pointerId);
     if (click) {
+      suppressMapClick = true;
       const p = localPoint(e), x = Math.floor((p.x - cam.x) / cam.zoom / GFArt.T), y = Math.floor((p.y - cam.y) / cam.zoom / GFArt.T);
       select(x, y);
     }
