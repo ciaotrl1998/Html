@@ -20,7 +20,7 @@ async function open(browser, file, viewport, reducedMotion = 'no-preference') {
   }));
   // A fresh context isolates storage; do not clear it on reload, which would mask persistence bugs.
   await context.addInitScript(() => {
-    Object.defineProperty(document, 'hidden', { get: () => true, configurable: true });
+    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
     window.renderGrids = [];
     Object.defineProperty(window, 'GFArt', {
       configurable: true,
@@ -205,13 +205,14 @@ async function marker(page, reduced = false) {
               const canvas = document.createElement('canvas');
               canvas.width = 390; canvas.height = 844; canvas.style.cssText = 'width:390px;height:844px'; document.body.append(canvas);
               try {
-                const c = canvas.getContext('2d'), original = c.stroke, s = GF.createState(null);
-                let strokes = [];
-                c.stroke = function () { if (Math.abs(this.lineWidth - 1.4) < 1e-6 && this.getLineDash().length) strokes.push({ color: this.strokeStyle, dash: this.getLineDash() }); return original.apply(this, arguments); };
+                 const c = canvas.getContext('2d'), original = CanvasRenderingContext2D.prototype.stroke, s = GF.createState(null);
+                 let strokes = [];
+                 CanvasRenderingContext2D.prototype.stroke = function () { if (Math.abs(this.lineWidth - 1.4) < 1e-6 && this.getLineDash().length) strokes.push({ color: this.strokeStyle, dash: this.getLineDash() }); return original.apply(this, arguments); };
                 const capture = (phase, enabled) => { s.phase = phase; strokes = []; GFArt.render(canvas, s, { x: 0, y: 0, zoom: .3 }, null, { grid: enabled }); return strokes; };
                 c.strokeStyle = '#5d785055'; const dayColor = c.strokeStyle;
                 c.strokeStyle = '#c6d7a855'; const nightColor = c.strokeStyle;
-                return { day: capture('day', true), night: capture('night', true), off: capture('day', false), dayColor, nightColor, count: (GF.worldSize(s) + 1) * 2 };
+                 try { return { day: capture('day', true), night: capture('night', true), off: capture('day', false), dayColor, nightColor, count: 1 }; }
+                 finally { CanvasRenderingContext2D.prototype.stroke = original; }
               } finally { canvas.remove(); }
             });
             assert.equal(grid.day.length, grid.count); assert.equal(grid.night.length, grid.count);
@@ -220,9 +221,9 @@ async function marker(page, reduced = false) {
               assert.deepEqual(stroke.dash, [4, 4]);
               assert.equal(stroke.color, phase === 'day' ? grid.dayColor : grid.nightColor);
             }
-            const waitGrid = async value => {
-              await page.evaluate(() => { window.renderGrids = []; });
-              await page.waitForFunction(value => window.renderGrids.length >= 2 && window.renderGrids.every(v => v === value), value);
+             const waitGrid = async value => {
+               await page.evaluate(() => { window.renderGrids = []; window.dispatchEvent(new Event('resize')); });
+               await page.waitForFunction(value => window.renderGrids.length >= 1 && window.renderGrids.every(v => v === value), value);
             };
             const snapshot = () => page.evaluate(() => ({ time: Gufang.state.time, elapsed: Gufang.state.elapsed, coins: Gufang.state.coins, materials: Gufang.state.materials }));
             await waitGrid(true);

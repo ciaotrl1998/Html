@@ -189,6 +189,8 @@
   let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = new Map();
   const view = { width: 390, height: 844 };
+  const mobileRendering = window.matchMedia('(pointer: coarse)').matches;
+  let simulationClock = 0, lastRenderKey = '';
   function center(owner = 0) {
     cam.zoom = Math.max(.55, Math.min(.86, view.width / 550));
     const home = state.mode === 'coop' ? GF.estate(GF.playerView(state, owner)).center : {x:GF.worldCenter(state),y:GF.worldCenter(state)};
@@ -198,9 +200,10 @@
   }
   function resize() {
     GufangBoot.layout();
-    const ratio = Math.min(devicePixelRatio || 1, 2), oldW = view.width, oldH = view.height;
+    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1.25 : 2), oldW = view.width, oldH = view.height;
     view.width = $('game').clientWidth; view.height = $('game').clientHeight;
     canvas.width = Math.round(view.width * ratio); canvas.height = Math.round(view.height * ratio);
+    lastRenderKey = '';
     if (!canvas._ready) { center(); canvas._ready = true; } else { cam.x += (view.width - oldW) / 2; cam.y += (view.height - oldH) / 2; clampCamera(); }
   }
   function clampCamera() {
@@ -609,11 +612,22 @@
   if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
   function frame(now){
     const dt=lastFrame?Math.max(0,Math.min(1,(now-lastFrame)/1000)):0;lastFrame=now;
-    if(started&&!paused&&!hiddenPause&&!state.over&&online?.role!=='guest'&&(!online||online.peerConnected)){let remaining=dt;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}if(partnerPilot){try{partnerPilot.tick(tick);}catch(error){showMenu();toast('电脑队友已暂停：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}
+    const running=started&&!paused&&!hiddenPause&&!state.over&&online?.role!=='guest'&&(!online||online.peerConnected);
+    if(running){simulationClock+=dt;
+      // Keep simulation work independent of 90/120 Hz displays without losing elapsed time.
+      if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}if(partnerPilot){try{partnerPilot.tick(tick);}catch(error){showMenu();toast('电脑队友已暂停：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}
+    }else simulationClock=0;
     syncClock+=dt;if(syncClock>(online?.kind==='direct' ? 0.1 : 0.25)){sendSnapshot();syncClock=0;}
     uiClock+=dt;saveClock+=dt;if(uiClock>.2){refresh();uiClock=0;}if(saveClock>8){if(!state.over)save();saveClock=0;}
-    if(started){const guest=online?.role==='guest',offset=guest&&!online.hostPaused&&online.peerConnected?Math.min(.2,Math.max(0,(now-remoteAt)/1000)):0;
-      GFArt.render(canvas,state,cam,selected,{grid,player:playerOwner(),online:!!online,...(guest?{unitPosition:remotePosition,animationTime:state.elapsed+offset,effects:remoteEffects.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0),projectiles:remoteProjectiles.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0)}:{})});}requestAnimationFrame(frame);
+    if(started&&!hiddenPause){const guest=online?.role==='guest',offset=guest&&!online.hostPaused&&online.peerConnected?Math.min(.2,Math.max(0,(now-remoteAt)/1000)):0;
+      // Advance local animation between simulation batches; stopped views only redraw when dirty.
+      const animationTime=state.elapsed+(guest?offset:running&&!paused&&!state.over?simulationClock:0);
+      const renderKey=[state.mapSeed,state.estateSeed,state.day,animationTime,state.revision,state.phase,state.over,playerState().coins,playerState().materials,cam.x,cam.y,cam.zoom,selected?.x,selected?.y,grid,playerOwner(),remoteAt].join('|');
+      if(renderKey!==lastRenderKey||offset>0){
+        GFArt.render(canvas,state,cam,selected,{grid,player:playerOwner(),online:!!online,animationTime,...(guest?{unitPosition:remotePosition,effects:remoteEffects.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0),projectiles:remoteProjectiles.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0)}:{})});
+        lastRenderKey=renderKey;
+      }
+    }requestAnimationFrame(frame);
   }
   resize();refresh();requestAnimationFrame(frame);
   showStartMenu();

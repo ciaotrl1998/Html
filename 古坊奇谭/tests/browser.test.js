@@ -333,8 +333,12 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
       const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:viewport.width===390}),page=await context.newPage(),errors=[];
       await sourceContext(context);
-      // Freeze from startup and record storage without injecting a save or replacing the default map seed.
-      await context.addInitScript(()=>{window.startedWithoutSave=localStorage.getItem('gufang-qitan-save-v1')===null;Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});});
+       // Freeze simulation, not rendering: hidden pages intentionally skip all drawing.
+       await context.addInitScript(()=>{
+         window.startedWithoutSave=localStorage.getItem('gufang-qitan-save-v1')===null;
+         Object.defineProperty(document,'hidden',{get:()=>false,configurable:true});
+         let game;Object.defineProperty(window,'GF',{configurable:true,get:()=>game,set(value){value.step=()=>{};game=value;}});
+       });
       page.on('pageerror',e=>errors.push(e.stack));
       await page.goto(url('dist/古坊奇谭.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
       assert.equal(await page.evaluate(()=>window.startedWithoutSave),true,'Default estate starts without an old localStorage save');

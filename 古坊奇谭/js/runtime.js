@@ -2100,7 +2100,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     thumbs.set(key, url);
     return url;
   }
-  function makeGround(s) {
+  function makeGround(s, occupied) {
     const size = GF.worldWidth(s), height = GF.worldHeight(s), center = GF.worldCenter(s), estate = GF.estate(s);
     const canvas = document.createElement("canvas");
     canvas.width = size * T;
@@ -2261,7 +2261,50 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.restore();
       }
     }
-    return canvas;
+    const padded = document.createElement("canvas");
+    padded.width = canvas.width + 96;
+    padded.height = canvas.height + 96;
+    const ctx = padded.getContext("2d");
+    ctx.shadowColor = "#40583e18";
+    ctx.shadowBlur = 35;
+    ctx.shadowOffsetY = 8;
+    ctx.drawImage(canvas, 48, 48);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.translate(48, 48);
+    const waterRows = Array.from({ length: height }, () => []);
+    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) {
+      if (occupied.has(x + "," + y) || GF.isWall(s, x, y) || (estate == null ? void 0 : estate.roads.has(y * size + x))) continue;
+      const type = GF.terrain(x, y, s);
+      ctx.save();
+      ctx.translate(x * T + 32, y * T + 32);
+      const outside = !!estate && !GF.owns(s, x, y);
+      if (outside) ctx.globalAlpha = 0.78;
+      if (type === "forest") drawBaked(ctx, "forest", (c2) => {
+        tree(c2, -14, 7, 0.95);
+        tree(c2, 10, -8, 1.1);
+        bamboo(c2, 15, 19, 0.66);
+      });
+      if (type === "mountain") drawBaked(ctx, "mountain", (c2) => {
+        stone(c2, -9, 9, 1.1);
+        stone(c2, 15, -4, 1.2);
+        stone(c2, -13, -13, 0.6);
+      });
+      if (type === "plain" && (x === 0 || y === 0 || x === size - 1 || y === height - 1) && noise(x, y) > 0.35) {
+        ctx.translate(0, 8);
+        const scale = 0.8 + noise(x, y) * 0.5;
+        ctx.scale(scale, scale);
+        drawBaked(ctx, "border-tree", (c2) => tree(c2, 0, 0, 1, true));
+      }
+      if (type === "water") {
+        waterRows[y].push({ x, outside });
+        if (noise(x, y) > 0.65) for (let i = 0; i < 4; i++) line(ctx, [[-23 + i * 3, 22], [-25 + i * 3, 9 + noise(x, y, i) * 7]], "#739575", 1.3);
+      }
+      ctx.restore();
+    }
+    padded.waterRows = waterRows;
+    return padded;
   }
   let ground, groundSeed;
   function healthBarY(b) {
@@ -2344,74 +2387,68 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const e of s.enemies) for (let y = Math.floor(e.y) - 1; y <= Math.ceil(e.y) + 1; y++) for (let x = Math.floor(e.x) - 1; x <= Math.ceil(e.x) + 1; x++) {
       if (Math.hypot(e.x - x, e.y - y) < 0.65) blockedHints.add(y * size + x);
     }
-    if (!ground || groundSeed !== cacheKey) {
-      ground = makeGround(s);
-      groundSeed = cacheKey;
+    const occupied = new Set(s.buildings.map((b) => b.x + "," + b.y));
+    const groundKey = JSON.stringify([cacheKey, [...occupied].sort()]);
+    if (!ground || groundSeed !== groundKey) {
+      ground = makeGround(s, occupied);
+      groundSeed = groundKey;
     }
     const c = canvas.getContext("2d"), w = canvas.clientWidth, h = canvas.clientHeight, dpr = canvas.width / w;
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    c.clearRect(0, 0, w, h);
     const night = s.phase === "night", dusk = s.phase === "dusk";
+    const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
+    const visible = (x, y, rx, ry = rx) => x + rx >= -cam.x / cam.zoom && x - rx <= (w - cam.x) / cam.zoom && y + ry >= -cam.y / cam.zoom && y - ry <= (h - cam.y) / cam.zoom;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = night ? "#31494a" : dusk ? "#b9b89b" : "#d5dcc5";
     c.fillRect(0, 0, w, h);
     c.save();
     c.translate(cam.x, cam.y);
     c.scale(cam.zoom, cam.zoom);
-    for (let i = 0; i < Math.ceil(size * T / 99) + 5; i++) {
-      const x = i * 99 - 180;
-      poly(c, [[x, -5], [x + 60, -110 - noise(i, 4) * 170], [x + 160, -5]], night ? "#3f5754" : "#aebda04d");
-      poly(c, [[x - 90, height * T + 10], [x - 20, height * T + 100 + noise(i, 2) * 70], [x + 90, height * T + 10]], night ? "#3f5754" : "#aebda03b");
+    if (cam.y / cam.zoom > -1 || (h - cam.y) / cam.zoom > height * T) {
+      for (let i = Math.max(0, Math.floor((-cam.x / cam.zoom + 20) / 99)); i < Math.ceil(size * T / 99) + 5 && i * 99 - 180 < (w - cam.x) / cam.zoom; i++) {
+        const x = i * 99 - 180;
+        if (cam.y / cam.zoom > -1) poly(c, [[x, -5], [x + 60, -110 - noise(i, 4) * 170], [x + 160, -5]], night ? "#3f5754" : "#aebda04d");
+        if ((h - cam.y) / cam.zoom > height * T) poly(c, [[x - 90, height * T + 10], [x - 20, height * T + 100 + noise(i, 2) * 70], [x + 90, height * T + 10]], night ? "#3f5754" : "#aebda03b");
+      }
     }
-    c.shadowColor = "#40583e18";
-    c.shadowBlur = 35;
-    c.shadowOffsetY = 8;
-    c.drawImage(ground, 0, 0);
-    c.shadowColor = "transparent";
-    const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
-    const occupied = new Set(s.buildings.map((b) => b.x + "," + b.y));
+    const gx = Math.max(0, Math.floor(-cam.x / cam.zoom + 48)), gy = Math.max(0, Math.floor(-cam.y / cam.zoom + 48));
+    const gw = Math.min(ground.width, Math.ceil((w - cam.x) / cam.zoom + 48) + 1) - gx, gh = Math.min(ground.height, Math.ceil((h - cam.y) / cam.zoom + 48) + 1) - gy;
+    if (gw > 0 && gh > 0) c.drawImage(ground, gx, gy, gw, gh, gx - 48, gy - 48, gw, gh);
     if (options.grid) {
-      const color = night ? "#c6d7a855" : "#5d785055";
+      c.strokeStyle = night ? "#c6d7a855" : "#5d785055";
+      c.lineWidth = 1.4;
+      c.lineCap = "round";
       c.setLineDash([4, 4]);
-      for (let i = 0; i <= size; i++) line(c, [[i * T, 0], [i * T, height * T]], color, 1.4);
-      for (let i = 0; i <= height; i++) line(c, [[0, i * T], [size * T, i * T]], color, 1.4);
+      c.beginPath();
+      for (let i = left; i <= right + 1; i++) {
+        c.moveTo(i * T, top * T);
+        c.lineTo(i * T, (bottom + 1) * T);
+      }
+      for (let i = top; i <= bottom + 1; i++) {
+        c.moveTo(left * T, i * T);
+        c.lineTo((right + 1) * T, i * T);
+      }
+      c.stroke();
       c.setLineDash([]);
     }
-    for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
-      if (occupied.has(x + "," + y) || GF.isWall(s, x, y) || (estate == null ? void 0 : estate.roads.has(y * size + x))) continue;
-      const type = GF.terrain(x, y, s);
-      c.save();
-      c.translate(x * T + 32, y * T + 32);
-      if (estate && !GF.owns(s, x, y)) c.globalAlpha = 0.78;
-      if (type === "forest") drawBaked(c, "forest", (ctx) => {
-        tree(ctx, -14, 7, 0.95);
-        tree(ctx, 10, -8, 1.1);
-        bamboo(ctx, 15, 19, 0.66);
-      });
-      if (type === "mountain") drawBaked(c, "mountain", (ctx) => {
-        stone(ctx, -9, 9, 1.1);
-        stone(ctx, 15, -4, 1.2);
-        stone(ctx, -13, -13, 0.6);
-      });
-      if (type === "plain" && (x === 0 || y === 0 || x === size - 1 || y === height - 1)) {
-        if (noise(x, y) > 0.35) {
-          c.save();
-          c.translate(0, 8);
-          const scale = 0.8 + noise(x, y) * 0.5;
-          c.scale(scale, scale);
-          drawBaked(c, "border-tree", (ctx) => tree(ctx, 0, 0, 1, true));
-          c.restore();
-        }
-      }
-      if (type === "water") {
+    c.save();
+    c.lineWidth = 0.9;
+    c.lineCap = "round";
+    for (const outside of [false, true]) for (const wave of [0, 1]) {
+      c.globalAlpha = outside ? 0.78 : 1;
+      c.strokeStyle = wave ? "#e1ebd860" : "#e1ebd880";
+      c.beginPath();
+      let segments = 0;
+      for (let y = top; y <= bottom; y++) for (const tile of ground.waterRows[y]) {
+        const x = tile.x, cx = x * T + 32, cy = y * T + 32;
+        if (tile.outside !== outside || x < left || x > right || !visible(cx, cy, 22, 11)) continue;
         const off = Math.sin(animationTime * 0.8 + x + y) * 2;
-        line(c, [[-15 + off, -10], [1 + off, -10]], "#e1ebd880", 0.9);
-        line(c, [[8 - off, 10], [19 - off, 10]], "#e1ebd860", 0.9);
-        if (noise(x, y) > 0.65) {
-          for (let i = 0; i < 4; i++) line(c, [[-23 + i * 3, 22], [-25 + i * 3, 9 + noise(x, y, i) * 7]], "#739575", 1.3);
-        }
+        c.moveTo(cx + (wave ? 8 - off : -15 + off), cy + (wave ? 10 : -10));
+        c.lineTo(cx + (wave ? 19 - off : 1 + off), cy + (wave ? 10 : -10));
+        segments++;
       }
-      c.restore();
+      if (segments) c.stroke();
     }
+    c.restore();
     if (selected) {
       const px = selected.x * T, py = selected.y * T;
       rect(c, px + 2, py + 2, T - 4, T - 4, "#fbebaf30");
@@ -2425,8 +2462,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.fillText("+", px + 32, py + 40);
       }
     }
-    for (const b of [...s.buildings].sort((a, b2) => a.y - b2.y)) {
-      if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
+    for (const b of s.buildings.filter((b2) => visible(b2.x * T + 32, b2.y * T + 32, 64, 96)).sort((a, b2) => a.y - b2.y)) {
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
       drawBaked(c, "building:" + b.type + ":" + GF.visualLevel(b.level), (ctx) => building(ctx, b.type, b.level, 0, true));
@@ -2504,7 +2540,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => unit.x >= left && unit.x <= right && unit.y >= top && unit.y <= bottom).sort((a, b) => a.unit.y - b.unit.y);
+    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 48 : 30)).sort((a, b) => a.unit.y - b.unit.y);
     for (const { unit: e, soldier } of units) {
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
@@ -2523,11 +2559,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     if (night || dusk) {
       c.fillStyle = night ? "#19395878" : "#ac723222";
-      c.fillRect(0, 0, T * size, T * height);
+      c.fillRect(left * T, top * T, (right - left + 1) * T, (bottom - top + 1) * T);
       if (night) {
         c.globalCompositeOperation = "screen";
         for (const b of s.buildings) {
-          if (b.x < left || b.x > right || b.y < top || b.y > bottom) continue;
+          if (!visible(b.x * T + 32, b.y * T + 36, 64)) continue;
           if (["shrine", "earth", "tao", "tower", "inn"].includes(b.type)) {
             const x = b.x * T + 32, y = b.y * T + 36, g = c.createRadialGradient(x, y, 2, x, y, 64);
             g.addColorStop(0, "#d4a34536");
@@ -2542,7 +2578,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const hintPulse = reducedMotion || options.reducedMotion === true ? 1 : 1 + 0.035 * Math.sin(animationTime * 2.4);
     for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
       const tile = y * size + x;
-      if (occupied.has(x + "," + y) || blockedHints.has(tile)) continue;
+      if (occupied.has(x + "," + y) || blockedHints.has(tile) || !visible(x * T + 32, y * T + 32, 29)) continue;
       let best = hints.tiles.get(tile);
       if (!hints.tiles.has(tile)) {
         let bestIncome = -Infinity;
@@ -2591,6 +2627,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     drawSelection(c, s, selected);
     for (const p of options.projectiles || s.projectiles) {
       const f = 1 - p.life / p.total, x = (p.x + (p.tx - p.x) * f) * T + 32, y = (p.y + (p.ty - p.y) * f) * T + 22;
+      if (!visible(x, y, Math.abs((p.tx - p.x) * 5) + 5, Math.abs((p.ty - p.y) * 5) + 40)) continue;
       if (p.type === "rock") {
         ellipse(c, x, y - Math.sin(f * Math.PI) * 35, 4, 4, "#c6c4a2");
       } else {
@@ -2599,6 +2636,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     for (const e of options.effects || s.effects) {
       const x = e.x * T + 32, y = e.y * T + 32, f = 1 - e.life / e.total;
+      const radius = ["income", "coin"].includes(e.type) ? Math.max(64, ("+" + e.amount).length * 14 / cam.zoom) : ["hit", "soldier-hit"].includes(e.type) ? 24 : e.type === "thunder" ? 120 : 24 + f * 480;
+      if (!visible(x, y, radius)) continue;
       c.save();
       c.globalAlpha = 1 - f;
       if (e.type === "thunder") {
@@ -3333,6 +3372,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   let panelKey = "", lastPhase = "", lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = /* @__PURE__ */ new Map();
   const view = { width: 390, height: 844 };
+  const mobileRendering = window.matchMedia("(pointer: coarse)").matches;
+  let simulationClock = 0, lastRenderKey = "";
   function center(owner = 0) {
     cam.zoom = Math.max(0.55, Math.min(0.86, view.width / 550));
     const home = state.mode === "coop" ? GF.estate(GF.playerView(state, owner)).center : { x: GF.worldCenter(state), y: GF.worldCenter(state) };
@@ -3342,11 +3383,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function resize() {
     GufangBoot.layout();
-    const ratio = Math.min(devicePixelRatio || 1, 2), oldW = view.width, oldH = view.height;
+    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1.25 : 2), oldW = view.width, oldH = view.height;
     view.width = $("game").clientWidth;
     view.height = $("game").clientHeight;
     canvas.width = Math.round(view.width * ratio);
     canvas.height = Math.round(view.height * ratio);
+    lastRenderKey = "";
     if (!canvas._ready) {
       center();
       canvas._ready = true;
@@ -4191,34 +4233,39 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function frame(now) {
     const dt = lastFrame ? Math.max(0, Math.min(1, (now - lastFrame) / 1e3)) : 0;
     lastFrame = now;
-    if (started && !paused && !hiddenPause && !state.over && (online == null ? void 0 : online.role) !== "guest" && (!online || online.peerConnected)) {
-      let remaining = dt;
-      while (remaining > 0 && !paused && !state.over) {
-        const tick = Math.min(0.1, remaining);
-        if (autoplay) {
-          try {
-            if (pilot.tick(tick)) panelKey = "";
-          } catch (error) {
-            autoplay = false;
-            showMenu();
-            toast("托管已停止：" + error.message, "warning");
-            break;
+    const running = started && !paused && !hiddenPause && !state.over && (online == null ? void 0 : online.role) !== "guest" && (!online || online.peerConnected);
+    if (running) {
+      simulationClock += dt;
+      if (simulationClock + 1e-8 >= 1 / 30) {
+        let remaining = simulationClock;
+        simulationClock = 0;
+        while (remaining > 0 && !paused && !state.over) {
+          const tick = Math.min(0.1, remaining);
+          if (autoplay) {
+            try {
+              if (pilot.tick(tick)) panelKey = "";
+            } catch (error) {
+              autoplay = false;
+              showMenu();
+              toast("托管已停止：" + error.message, "warning");
+              break;
+            }
           }
-        }
-        if (partnerPilot) {
-          try {
-            partnerPilot.tick(tick);
-          } catch (error) {
-            showMenu();
-            toast("电脑队友已暂停：" + error.message, "warning");
-            break;
+          if (partnerPilot) {
+            try {
+              partnerPilot.tick(tick);
+            } catch (error) {
+              showMenu();
+              toast("电脑队友已暂停：" + error.message, "warning");
+              break;
+            }
           }
+          GF.step(state, tick);
+          remaining -= tick;
         }
-        GF.step(state, tick);
-        remaining -= tick;
+        handleEvents();
       }
-      handleEvents();
-    }
+    } else simulationClock = 0;
     syncClock += dt;
     if (syncClock > ((online == null ? void 0 : online.kind) === "direct" ? 0.1 : 0.25)) {
       sendSnapshot();
@@ -4234,9 +4281,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!state.over) save();
       saveClock = 0;
     }
-    if (started) {
+    if (started && !hiddenPause) {
       const guest = (online == null ? void 0 : online.role) === "guest", offset = guest && !online.hostPaused && online.peerConnected ? Math.min(0.2, Math.max(0, (now - remoteAt) / 1e3)) : 0;
-      GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online }, guest ? { unitPosition: remotePosition, animationTime: state.elapsed + offset, effects: remoteEffects.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0), projectiles: remoteProjectiles.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0) } : {}));
+      const animationTime = state.elapsed + (guest ? offset : running && !paused && !state.over ? simulationClock : 0);
+      const renderKey = [state.mapSeed, state.estateSeed, state.day, animationTime, state.revision, state.phase, state.over, playerState().coins, playerState().materials, cam.x, cam.y, cam.zoom, selected == null ? void 0 : selected.x, selected == null ? void 0 : selected.y, grid, playerOwner(), remoteAt].join("|");
+      if (renderKey !== lastRenderKey || offset > 0) {
+        GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online, animationTime }, guest ? { unitPosition: remotePosition, effects: remoteEffects.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0), projectiles: remoteProjectiles.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0) } : {}));
+        lastRenderKey = renderKey;
+      }
     }
     requestAnimationFrame(frame);
   }

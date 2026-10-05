@@ -154,7 +154,11 @@ async function ui(page) {
     b.level = 1; b.hp = GF.maxHP(b); Gufang.select(b.x, b.y);
   });
   await page.evaluate(() => { GF.startNight(Gufang.state); Gufang.state.wave.timer = 1e6; Gufang.refresh(); });
-  let frame = await page.evaluate(() => captureSoldiers());
+   const captureBarracks = () => page.evaluate(() => {
+     const b=Gufang.state.buildings.find(b=>b.type==='barracks'),canvas=document.getElementById('map'),zoom=Gufang.camera.zoom;
+     return captureSoldiers({x:canvas.clientWidth/2-(b.x*64+32)*zoom,y:canvas.clientHeight/2-(b.y*64+32)*zoom,zoom});
+   });
+   let frame = await captureBarracks();
   assert.equal(frame.units.length, 1, 'Level one automatically recruits one real entity');
   drawn(frame, 'level one night');
   const direct = await page.evaluate(() => {
@@ -174,7 +178,7 @@ async function ui(page) {
   assert.equal(actual.building.level, 2); assert.equal(actual.soldiers.length, 2);
   assert.equal(actual.soldiers[0].hp, actual.soldiers[0].maxHp / 2);
   assert.deepEqual(await stats(), await expectedStats(), 'Upgraded detail refreshes exact next stats');
-  frame = await page.evaluate(() => captureSoldiers()); drawn(frame, 'level two night');
+   frame = await captureBarracks(); drawn(frame, 'level two night');
   const layout = await page.locator('.detail').evaluate(el => ({ overflow: document.documentElement.scrollWidth > innerWidth,
     statsOverflow: el.querySelector('.upgrade-stats').scrollWidth > el.querySelector('.upgrade-stats').clientWidth }));
   assert(!layout.overflow && !layout.statsOverflow, JSON.stringify(layout));

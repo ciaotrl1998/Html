@@ -136,7 +136,7 @@
     }
     const url=c.toDataURL();thumbs.set(key,url);return url;
   }
-  function makeGround(s){
+  function makeGround(s,occupied){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
     const canvas=document.createElement('canvas');canvas.width=size*T;canvas.height=height*T;const c=canvas.getContext('2d');
     for(let y=0;y<height;y++)for(let x=0;x<size;x++){
@@ -216,7 +216,29 @@
         c.restore();
       }
     }
-    return canvas;
+    // Bake the large map shadow once instead of blurring a map-sized surface every frame.
+    const padded=document.createElement('canvas');padded.width=canvas.width+96;padded.height=canvas.height+96;
+    const ctx=padded.getContext('2d');ctx.shadowColor='#40583e18';ctx.shadowBlur=35;ctx.shadowOffsetY=8;
+    ctx.drawImage(canvas,48,48);
+    ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.translate(48,48);
+    const waterRows=Array.from({length:height},()=>[]);
+    for(let y=0;y<height;y++)for(let x=0;x<size;x++){
+      if(occupied.has(x+','+y)||GF.isWall(s,x,y)||estate?.roads.has(y*size+x))continue;
+      const type=GF.terrain(x,y,s);ctx.save();ctx.translate(x*T+32,y*T+32);
+      const outside=!!estate&&!GF.owns(s,x,y);if(outside)ctx.globalAlpha=.78;
+      if(type==='forest')drawBaked(ctx,'forest',c=>{tree(c,-14,7,.95);tree(c,10,-8,1.1);bamboo(c,15,19,.66);});
+      if(type==='mountain')drawBaked(ctx,'mountain',c=>{stone(c,-9,9,1.1);stone(c,15,-4,1.2);stone(c,-13,-13,.6);});
+      if(type==='plain'&&(x===0||y===0||x===size-1||y===height-1)&&noise(x,y)>.35){
+        ctx.translate(0,8);const scale=.8+noise(x,y)*.5;ctx.scale(scale,scale);drawBaked(ctx,'border-tree',c=>tree(c,0,0,1,true));
+      }
+      if(type==='water'){
+        waterRows[y].push({x,outside});
+        if(noise(x,y)>.65)for(let i=0;i<4;i++)line(ctx,[[-23+i*3,22],[-25+i*3,9+noise(x,y,i)*7]],'#739575',1.3);
+      }
+      ctx.restore();
+    }
+    padded.waterRows=waterRows;
+    return padded;
   }
   let ground, groundSeed;
   function healthBarY(b){
@@ -284,28 +306,42 @@
     for(const e of s.enemies)for(let y=Math.floor(e.y)-1;y<=Math.ceil(e.y)+1;y++)for(let x=Math.floor(e.x)-1;x<=Math.ceil(e.x)+1;x++){
       if(Math.hypot(e.x-x,e.y-y)<.65)blockedHints.add(y*size+x);
     }
-    if(!ground || groundSeed!==cacheKey){ground=makeGround(s);groundSeed=cacheKey;}
+    const occupied=new Set(s.buildings.map(b=>b.x+','+b.y));
+    const groundKey=JSON.stringify([cacheKey,[...occupied].sort()]);
+    if(!ground || groundSeed!==groundKey){ground=makeGround(s,occupied);groundSeed=groundKey;}
     const c=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,dpr=canvas.width/w;
-    c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
-    const night=s.phase==='night',dusk=s.phase==='dusk';c.fillStyle=night?'#31494a':dusk?'#b9b89b':'#d5dcc5';c.fillRect(0,0,w,h);
+    const night=s.phase==='night',dusk=s.phase==='dusk';
+    const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
+    const visible=(x,y,rx,ry=rx)=>x+rx>=-cam.x/cam.zoom&&x-rx<=(w-cam.x)/cam.zoom&&y+ry>=-cam.y/cam.zoom&&y-ry<=(h-cam.y)/cam.zoom;
+    c.setTransform(dpr,0,0,dpr,0,0);
+    c.fillStyle=night?'#31494a':dusk?'#b9b89b':'#d5dcc5';c.fillRect(0,0,w,h);
     c.save();c.translate(cam.x,cam.y);c.scale(cam.zoom,cam.zoom);
     // Soft ink mountain silhouettes outside the map.
-    for(let i=0;i<Math.ceil(size*T/99)+5;i++){const x=i*99-180;poly(c,[[x,-5],[x+60,-110-noise(i,4)*170],[x+160,-5]],night?'#3f5754':'#aebda04d');poly(c,[[x-90,height*T+10],[x-20,height*T+100+noise(i,2)*70],[x+90,height*T+10]],night?'#3f5754':'#aebda03b');}
-    c.shadowColor='#40583e18';c.shadowBlur=35;c.shadowOffsetY=8;c.drawImage(ground,0,0);c.shadowColor='transparent';
-    const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
-    const occupied=new Set(s.buildings.map(b=>b.x+','+b.y));
-    if(options.grid){const color=night?'#c6d7a855':'#5d785055';c.setLineDash([4,4]);for(let i=0;i<=size;i++)line(c,[[i*T,0],[i*T,height*T]],color,1.4);for(let i=0;i<=height;i++)line(c,[[0,i*T],[size*T,i*T]],color,1.4);c.setLineDash([]);}
-    for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
-      if(occupied.has(x+','+y)||GF.isWall(s,x,y)||estate?.roads.has(y*size+x))continue;const type=GF.terrain(x,y,s);c.save();c.translate(x*T+32,y*T+32);if(estate&&!GF.owns(s,x,y))c.globalAlpha=.78;
-      if(type==='forest')drawBaked(c,'forest',ctx=>{tree(ctx,-14,7,.95);tree(ctx,10,-8,1.1);bamboo(ctx,15,19,.66);});
-      if(type==='mountain')drawBaked(c,'mountain',ctx=>{stone(ctx,-9,9,1.1);stone(ctx,15,-4,1.2);stone(ctx,-13,-13,.6);});
-      if(type==='plain'&&(x===0||y===0||x===size-1||y===height-1)){if(noise(x,y)>.35){c.save();c.translate(0,8);const scale=.8+noise(x,y)*.5;c.scale(scale,scale);drawBaked(c,'border-tree',ctx=>tree(ctx,0,0,1,true));c.restore();}}
-      if(type==='water'){const off=Math.sin(animationTime*.8+x+y)*2;line(c,[[-15+off,-10],[1+off,-10]],'#e1ebd880',.9);line(c,[[8-off,10],[19-off,10]],'#e1ebd860',.9);if(noise(x,y)>.65){for(let i=0;i<4;i++)line(c,[[-23+i*3,22],[-25+i*3,9+noise(x,y,i)*7]],'#739575',1.3);}}
-      c.restore();
+    if(cam.y/cam.zoom> -1||(h-cam.y)/cam.zoom>height*T){for(let i=Math.max(0,Math.floor((-cam.x/cam.zoom+20)/99));i<Math.ceil(size*T/99)+5&&i*99-180<(w-cam.x)/cam.zoom;i++){const x=i*99-180;if(cam.y/cam.zoom> -1)poly(c,[[x,-5],[x+60,-110-noise(i,4)*170],[x+160,-5]],night?'#3f5754':'#aebda04d');if((h-cam.y)/cam.zoom>height*T)poly(c,[[x-90,height*T+10],[x-20,height*T+100+noise(i,2)*70],[x+90,height*T+10]],night?'#3f5754':'#aebda03b');}}
+    // Crop in world space so a close-up does not submit the entire map texture.
+    const gx=Math.max(0,Math.floor(-cam.x/cam.zoom+48)),gy=Math.max(0,Math.floor(-cam.y/cam.zoom+48));
+    const gw=Math.min(ground.width,Math.ceil((w-cam.x)/cam.zoom+48)+1)-gx,gh=Math.min(ground.height,Math.ceil((h-cam.y)/cam.zoom+48)+1)-gy;
+    if(gw>0&&gh>0)c.drawImage(ground,gx,gy,gw,gh,gx-48,gy-48,gw,gh);
+    if(options.grid){c.strokeStyle=night?'#c6d7a855':'#5d785055';c.lineWidth=1.4;c.lineCap='round';c.setLineDash([4,4]);c.beginPath();
+      for(let i=left;i<=right+1;i++){c.moveTo(i*T,top*T);c.lineTo(i*T,(bottom+1)*T);}
+      for(let i=top;i<=bottom+1;i++){c.moveTo(left*T,i*T);c.lineTo((right+1)*T,i*T);}
+      c.stroke();c.setLineDash([]);
     }
+    // Batch all visible ripple segments by opacity instead of saving/stroking each tile.
+    c.save();c.lineWidth=.9;c.lineCap='round';
+    for(const outside of [false,true])for(const wave of [0,1]){
+      c.globalAlpha=outside?.78:1;c.strokeStyle=wave?'#e1ebd860':'#e1ebd880';c.beginPath();let segments=0;
+      for(let y=top;y<=bottom;y++)for(const tile of ground.waterRows[y]){
+        const x=tile.x,cx=x*T+32,cy=y*T+32;
+        if(tile.outside!==outside||x<left||x>right||!visible(cx,cy,22,11))continue;
+        const off=Math.sin(animationTime*.8+x+y)*2;
+        c.moveTo(cx+(wave?8-off:-15+off),cy+(wave?10:-10));c.lineTo(cx+(wave?19-off:1+off),cy+(wave?10:-10));segments++;
+      }
+      if(segments)c.stroke();
+    }
+    c.restore();
     if(selected){const px=selected.x*T,py=selected.y*T;rect(c,px+2,py+2,T-4,T-4,'#fbebaf30');c.strokeStyle='#b59451';c.lineWidth=1.5;c.strokeRect(px+2,py+2,T-4,T-4);if(!GF.at(s,selected.x,selected.y)){c.font='23px serif';c.textAlign='center';c.fillStyle='#9c8448';c.fillText('+',px+32,py+40);}}
-    for(const b of [...s.buildings].sort((a,b)=>a.y-b.y)){
-      if(b.x<left||b.x>right||b.y<top||b.y>bottom)continue;
+    for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
       drawBaked(c,'building:'+b.type+':'+GF.visualLevel(b.level),ctx=>building(ctx,b.type,b.level,0,true));
       buildingAnimation(c,b.type,animationTime);
@@ -328,15 +364,15 @@
       c.restore();
     }
     // Units use their own positions, even when their barracks is offscreen.
-    const units=[...s.enemies.map(unit=>({unit,soldier:false})),...s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:true}))].map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>unit.x>=left&&unit.x<=right&&unit.y>=top&&unit.y<=bottom).sort((a,b)=>a.unit.y-b.unit.y);
+    const units=[...s.enemies.map(unit=>({unit,soldier:false})),...s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:true}))].map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?48:30)).sort((a,b)=>a.unit.y-b.unit.y);
     for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);person(c,soldier?'soldier':e.type,animationTime,e.repelled>0);if(e.slowed>0)ellipse(c,0,2,13,18,'#8bb7a029','#76a08f');c.restore();}
     // Keep health bars above all unit bodies during close combat.
     for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);rect(c,-14,-27,28,4.5,soldier?'#254a31':'#273e3480',soldier?'#c9dfaa':null);rect(c,-13,-26,26*Math.max(0,Math.min(1,e.hp/e.maxHp)),2.5,soldier?'#91c967':'#bb775a');c.restore();}
-    if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(0,0,T*size,T*height);if(night){c.globalCompositeOperation='screen';for(const b of s.buildings){if(b.x<left||b.x>right||b.y<top||b.y>bottom)continue;if(['shrine','earth','tao','tower','inn'].includes(b.type)){const x=b.x*T+32,y=b.y*T+36,g=c.createRadialGradient(x,y,2,x,y,64);g.addColorStop(0,'#d4a34536');g.addColorStop(1,'#d4a34500');c.fillStyle=g;c.fillRect(x-64,y-64,128,128);}}c.globalCompositeOperation='source-over';}}
+    if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);if(night){c.globalCompositeOperation='screen';for(const b of s.buildings){if(!visible(b.x*T+32,b.y*T+36,64))continue;if(['shrine','earth','tao','tower','inn'].includes(b.type)){const x=b.x*T+32,y=b.y*T+36,g=c.createRadialGradient(x,y,2,x,y,64);g.addColorStop(0,'#d4a34536');g.addColorStop(1,'#d4a34500');c.fillStyle=g;c.fillRect(x-64,y-64,128,128);}}c.globalCompositeOperation='source-over';}}
     const hintPulse=reducedMotion||options.reducedMotion===true?1:1+.035*Math.sin(animationTime*2.4);
     for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
       const tile=y*size+x;
-      if(occupied.has(x+','+y)||blockedHints.has(tile))continue;
+      if(occupied.has(x+','+y)||blockedHints.has(tile)||!visible(x*T+32,y*T+32,29))continue;
       let best=hints.tiles.get(tile);
       if(!hints.tiles.has(tile)){
         let bestIncome=-Infinity;best=null;
@@ -366,8 +402,10 @@
       c.stroke();c.restore();
     }
     drawSelection(c,s,selected);
-    for(const p of options.projectiles||s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(p.type==='rock'){ellipse(c,x,y-Math.sin(f*Math.PI)*35,4,4,'#c6c4a2');}else{line(c,[[x,y],[x-(p.tx-p.x)*5,y-(p.ty-p.y)*5]],p.type==='barracks'?'#f5e5a1':'#f6e8bf',2);}}
-    for(const e of options.effects||s.effects){const x=e.x*T+32,y=e.y*T+32,f=1-e.life/e.total;c.save();c.globalAlpha=1-f;
+    for(const p of options.projectiles||s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(!visible(x,y,Math.abs((p.tx-p.x)*5)+5,Math.abs((p.ty-p.y)*5)+40))continue;if(p.type==='rock'){ellipse(c,x,y-Math.sin(f*Math.PI)*35,4,4,'#c6c4a2');}else{line(c,[[x,y],[x-(p.tx-p.x)*5,y-(p.ty-p.y)*5]],p.type==='barracks'?'#f5e5a1':'#f6e8bf',2);}}
+    for(const e of options.effects||s.effects){const x=e.x*T+32,y=e.y*T+32,f=1-e.life/e.total;
+      const radius=['income','coin'].includes(e.type)?Math.max(64,('+'+e.amount).length*14/cam.zoom):['hit','soldier-hit'].includes(e.type)?24:e.type==='thunder'?120:24+f*480;
+      if(!visible(x,y,radius))continue;c.save();c.globalAlpha=1-f;
       if(e.type==='thunder'){line(c,[[x+15,y-120],[x-10,y-70],[x+7,y-70],[x-5,y]],'#faf3b0',3);ellipse(c,x,y,22,12,'#eee4a344');}
       else if(e.type==='zhong-pulse'){ellipse(c,x,y,24+f*480,16+f*480,null,'#8eb8a0');}
       else if(e.type==='income'||e.type==='coin'){
