@@ -46,8 +46,7 @@
       </div>
       <div class="coop-connect">
         <div class="coop-connect-actions"><button id="coop-host" class="modal-secondary">创建主机</button><button id="coop-join" class="modal-secondary">加入主机</button></div>
-        <textarea id="coop-code" class="coop-code-input" rows="3" aria-label="配对码" placeholder="主机：点击「创建主机」生成邀请码；队友：粘贴邀请码后点「加入主机」" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-        <div class="coop-code-actions"><button id="coop-copy" class="modal-secondary">复制</button><button id="coop-paste" class="modal-secondary">粘贴</button></div>
+        <input id="coop-code" class="coop-code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" aria-label="六位房间号" placeholder="输入 6 位房号" autocomplete="off" spellcheck="false">
       </div>
       <div class="coop-lobby-actions"><button id="coop-start" class="modal-primary" disabled>等待队友就绪</button><button id="coop-back" class="modal-secondary">返回开始菜单</button><p>开始新局将替换本地进度</p></div>
     </section>

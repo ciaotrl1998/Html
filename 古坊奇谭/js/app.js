@@ -11,40 +11,79 @@
   try { sound = localStorage.getItem(SOUND_KEY) === 'on'; } catch { /* Settings are optional. */ }
   let saveStatus = storageWarning ? '本地存档不可用' : '本地自动存档';
   let autoplay = false, pilot = null, partnerPilot = null, computerSeat = false;
-  let online = null, syncClock = 0, actionId = 0;
+  let online = null, syncClock = 0, motionClock = 0, actionId = 0;
   let remoteMotion = new Map(), remoteAt = 0, remoteSpan = 100, remoteEffects = [], remoteProjectiles = [];
+  let guestClockBase = 0, guestTimeBase = 0, guestClockAt = 0;
+  const guestLive = () => online?.role === 'guest' && !online.hostPaused && online.peerConnected ? guestClockBase + (performance.now() - guestClockAt) / 1000 : guestClockBase;
   function remotePosition(unit, soldier) {
     const motion = remoteMotion.get((soldier ? 's' : 'e') + unit.id);
     if (!motion) return unit;
     const fraction = Math.max(0, Math.min(1, (performance.now() - remoteAt) / remoteSpan));
     return { x: motion.x + (unit.x - motion.x) * fraction, y: motion.y + (unit.y - motion.y) * fraction };
   }
-  function receiveVisuals(next, message, reset) {
+  // Capture where every unit is currently drawn so the next packet interpolates from it.
+  function beginRemoteFrame(maxSpan = 400, minSpan = 60) {
     const now = performance.now(), positions = new Map();
-    if (!reset) for (const [units, soldier] of [[state.enemies,false],[state.soldiers,true]]) for (const unit of units) positions.set((soldier?'s':'e')+unit.id,remotePosition(unit,soldier));
-    remoteMotion = positions; remoteSpan = Math.max(60,Math.min(200,now-remoteAt)); remoteAt = now;
-    const clean = (items, projectile) => Array.isArray(items) ? items.slice(-500).filter(e => e && typeof e.type==='string' && e.type.length<24 && ['x','y','life','total'].every(k=>Number.isFinite(e[k])) && Math.abs(e.x)<100 && Math.abs(e.y)<100 && e.life>0 && e.total>0 && e.total<=10 && e.life<=e.total && (!projectile || ['tx','ty'].every(k=>Number.isFinite(e[k])&&Math.abs(e[k])<100))).map(e=>({type:e.type,x:e.x,y:e.y,life:e.life,total:e.total,tx:e.tx,ty:e.ty,amount:Number.isFinite(e.amount)?e.amount:0,resource:e.resource==='materials'?'materials':'coins'})) : [];
-    remoteEffects = clean(message.visuals?.effects, false);
-    remoteProjectiles = clean(message.visuals?.projectiles || next.projectiles, true);
+    for (const [units, soldier] of [[state.enemies,false],[state.soldiers,true]]) for (const unit of units) positions.set((soldier?'s':'e')+unit.id, remotePosition(unit, soldier));
+    remoteMotion = positions; remoteSpan = Math.max(minSpan, Math.min(maxSpan, now - remoteAt)); remoteAt = now;
+  }
+  const cleanVisuals = (items, projectile) => Array.isArray(items) ? items.slice(-500).filter(e => e && typeof e.type==='string' && e.type.length<24 && ['x','y','life','total'].every(k=>Number.isFinite(e[k])) && Math.abs(e.x)<100 && Math.abs(e.y)<100 && e.life>0 && e.total>0 && e.total<=10 && e.life<=e.total && (!projectile || ['tx','ty'].every(k=>Number.isFinite(e[k])&&Math.abs(e[k])<100))).map(e=>({type:e.type,x:e.x,y:e.y,life:e.life,total:e.total,tx:e.tx,ty:e.ty,amount:Number.isFinite(e.amount)?e.amount:0,resource:e.resource==='materials'?'materials':'coins'})) : [];
+  function receiveVisuals(next, message, reset) {
+    if (reset) { remoteMotion = new Map(); remoteSpan = 100; remoteAt = performance.now(); }
+    else beginRemoteFrame();
+    remoteEffects = cleanVisuals(message.visuals?.effects, false);
+    remoteProjectiles = cleanVisuals(message.visuals?.projectiles || next.projectiles, true);
+  }
+  function applyUnitMotion(units, rows) {
+    if (!Array.isArray(rows)) return;
+    const byId = new Map();
+    for (const row of rows) if (Array.isArray(row) && Number.isFinite(row[0])) byId.set(row[0], row);
+    for (const unit of units) { const row = byId.get(unit.id); if (row && Number.isFinite(row[1]) && Number.isFinite(row[2])) { unit.x = row[1]; unit.y = row[2]; } }
+  }
+  // Lightweight high-frequency packet: unit positions plus the freshest effects/projectiles.
+  function applyMotion(message) {
+    beginRemoteFrame(400, 50);
+    applyUnitMotion(state.enemies, message.e);
+    applyUnitMotion(state.soldiers, message.s);
+    if (message.fx) remoteEffects = cleanVisuals(message.fx, false);
+    if (message.p) remoteProjectiles = cleanVisuals(message.p, true);
   }
   const playerOwner = () => online?.role === 'guest' ? 1 : 0;
   const playerState = () => state.mode === 'coop' ? GF.playerView(state, playerOwner()) : state;
   const onlineSend = message => { if (online?.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); };
   function sendSnapshot() {
     if (online?.role !== 'host' || !online.peerConnected || !started || online.socket.readyState !== WebSocket.OPEN || online.socket.bufferedAmount > 300000) return;
-    onlineSend({ type: 'state', snapshot: GF.serialize(state), paused: paused || hiddenPause, visuals: { effects: state.effects.slice(-300), projectiles: state.projectiles.slice(-500) } });
+    onlineSend({ type: 'state', snapshot: GF.serialize(state), paused: paused || hiddenPause, visuals: { effects: state.effects.slice(-120), projectiles: state.projectiles.slice(-300) } });
+  }
+  function sendMotion() {
+    if (online?.role !== 'host' || !online.peerConnected || !started || online.socket.readyState !== WebSocket.OPEN || online.socket.bufferedAmount > 200000) return;
+    const round = n => Math.round(n * 100) / 100;
+    const units = list => list.map(u => [u.id, round(u.x), round(u.y)]);
+    const effects = state.effects.slice(-80).map(e => ({ type: e.type, x: round(e.x), y: round(e.y), life: round(e.life), total: e.total, amount: e.amount, resource: e.resource }));
+    const projectiles = state.projectiles.slice(-250).map(e => ({ type: e.type, x: round(e.x), y: round(e.y), tx: Number.isFinite(e.tx) ? round(e.tx) : round(e.x), ty: Number.isFinite(e.ty) ? round(e.ty) : round(e.y), life: round(e.life), total: e.total }));
+    onlineSend({ type: 'motion', e: units(state.enemies), s: units(state.soldiers), fx: effects, p: projectiles });
   }
   function leaveOnline() {
     if (!online) return;
-    const { socket, kind } = online; online = null;
-    if (kind === 'direct') { if (socket?.readyState === 1) socket.send(JSON.stringify({ type: 'leave' })); setTimeout(() => socket?.close(), 100); }
-    else if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    const { socket } = online; online = null;
+    if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
     const input = $('coop-code');
     if (input) { input.readOnly = false; input.value = ''; }
   }
   function guestAction(kind, extras = {}) {
-    if (!online || online.role !== 'guest' || !online.peerConnected || !started) { toast('与主机连接中，请稍候', 'warning'); return; }
-    onlineSend({ type: 'action', id: ++actionId, kind, x: selected?.x ?? 0, y: selected?.y ?? 0, ...extras });
+    if (!online || online.role !== 'guest' || !online.peerConnected || !started) { toast('与主机连接中，请稍候', 'warning'); return { ok: false }; }
+    // Optimistically apply our own action so the guest estate reacts immediately; the host authority
+    // reconciles it on the next snapshot (and resends immediately if it rejects the action).
+    const mine = playerState(), x = extras.x ?? selected?.x ?? 0, y = extras.y ?? selected?.y ?? 0;
+    let result = { ok: false, reason: '无法操作该地块' };
+    if (kind === 'choose-skill') result = GF.chooseSkill(mine, extras.skill);
+    else if (kind === 'skill') result = GF.skill(mine, extras.skill);
+    else if (kind === 'build') result = GF.build(mine, extras.building, x, y);
+    else { const b = GF.at(state, x, y); if (b && b.owner === 1) { if (kind === 'upgrade') result = GF.upgrade(mine, b); else if (kind === 'bulk') result = GF.bulkUpgrade(mine, b); else if (kind === 'demolish') result = GF.demolish(mine, b); } }
+    onlineSend({ type: 'action', id: ++actionId, kind, x, y, ...extras });
+    if (result.ok) { panelKey = ''; handleEvents(); refresh(); }
+    else if (result.reason) toast(result.reason, 'warning');
+    return result;
   }
   function hostAction(message) {
     if (online?.role !== 'host' || !online.peerConnected || !started || state.over) return;
@@ -64,6 +103,7 @@
     }
     onlineSend({ type: 'result', id: message.id, ok: !!result.ok, reason: result.reason || '' });
     if (result.ok) { panelKey = ''; handleEvents(); save(); refresh(); sendSnapshot(); }
+    else sendSnapshot(); // Roll the guest's optimistic prediction back quickly.
   }
   function receiveOnline(message) {
     if (!online) return;
@@ -76,20 +116,18 @@
       const ended = !state.over && next.over;
       receiveVisuals(next, message, first);
       state = next; online.hostPaused = !!message.paused; online.awaitingState = false;
+      guestClockBase = next.elapsed; guestTimeBase = next.time; guestClockAt = performance.now();
       if (first) { enterGame(next); center(1); }
       else if(playerState().selectedSkill&&!$('modal').hidden&&$('modal-content').querySelector('.skill-selection'))closeModal();
       if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
       refresh();
       if (ended || (first && state.over)) showEnd();
-    } else if (message.type === 'action' && online.role === 'host') hostAction(message);
+    } else if (message.type === 'motion' && online.role === 'guest') applyMotion(message);
+    else if (message.type === 'action' && online.role === 'host') hostAction(message);
     else if (message.type === 'result' && online.role === 'guest') {
       if (!message.ok) {toast(message.reason || '操作未成功', 'warning');for(const el of $('modal-content').querySelectorAll('[data-choice]'))el.disabled=false;}
       else { tone(); toast('操作成功'); }
-    } else if (message.type === 'leave' && online.kind === 'direct') {
-      online.peerConnected = false;
-      if (online.role === 'guest') { showStartMenu(); toast('主机已退出直连'); }
-      else { updateCoopSeat(); toast('队友已退出，游戏暂停等待重新配对', 'warning'); }
-    } else if (message.type === 'error' && online.kind === 'server') { toast(message.message || '联机失败', 'warning'); if (started) showStartMenu(); else { leaveOnline(); updateCoopSeat(); } }
+    } else if (message.type === 'error') { toast(message.message || '联机失败', 'warning'); if (started) showStartMenu(); else { leaveOnline(); updateCoopSeat(); } }
   }
   function connectOnline(kind, code = '') {
     if (!/^https?:$/.test(location.protocol)) { toast('联机需要通过局域网服务器打开游戏', 'warning'); return; }
@@ -124,61 +162,6 @@
     };
     socket.onerror = () => { if (online?.socket === socket) toast('无法连接联机服务器，请确认设备已连接同一局域网', 'warning'); };
     updateCoopSeat();
-  }
-  async function shareDirectCode(code, note) {
-    const box = $('coop-code'); box.readOnly = false; box.value = code;
-    try { await navigator.clipboard.writeText(code); toast(note + '（已复制）'); }
-    catch { box.focus(); box.select(); toast(note); }
-  }
-  async function beginDirect(role) {
-    leaveOnline(); computerSeat = false;
-    const session = { kind: 'direct', role, code: '', socket: null, peerConnected: false, started, awaitingState: role === 'guest', accepting: false };
-    online = session;
-    try {
-      session.direct = GFDirect.create(role, {
-        message: message => { if (online === session) receiveOnline(message); },
-        status: text => { if (online === session) toast(text); },
-        connected: value => {
-          if (online !== session) return;
-          session.peerConnected = value; updateCoopSeat(); refresh();
-          if (value) {
-            toast('两部手机已直连');
-            if (role === 'host' && started) { enterGame(state); onlineSend({ type: 'started' }); sendSnapshot(); }
-          } else toast('连接已中断，可在菜单里重新配对', 'warning');
-        }
-      });
-      session.socket = session.direct.transport;
-      updateCoopSeat();
-      if (role === 'host') {
-        const offer = await session.direct.offer();
-        if (online !== session) return;
-        await shareDirectCode(offer, '邀请码已生成，复制后发给队友，再把队友的回应码粘贴到此处');
-      }
-    } catch (error) {
-      if (online === session) { toast(error.message, 'warning'); leaveOnline(); updateCoopSeat(); }
-    }
-  }
-  async function joinDirect() {
-    if (online) return;
-    const offer = $('coop-code').value.trim();
-    if (!/^GF-DIRECT-1:/.test(offer)) return toast('请先粘贴主机的邀请码', 'warning');
-    computerSeat = false;
-    await beginDirect('guest');
-    const session = online;
-    if (session?.kind !== 'direct' || !session.direct) return;
-    try {
-      const answer = await session.direct.answer(offer);
-      if (online !== session) return;
-      await shareDirectCode(answer, '回应码已生成，复制后发回主机');
-    } catch (error) {
-      if (online === session) { toast(error.message, 'warning'); leaveOnline(); updateCoopSeat(); }
-    }
-  }
-  function repairDirect() {
-    if (online?.kind !== 'direct') return;
-    const role = online.role;
-    paused = true; $('modal').hidden = true; $('coop-lobby').hidden = false; $('game').classList.add('at-title');
-    beginDirect(role);
   }
   let panelKey = '', lastPhase = '', lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = new Map();
@@ -343,7 +326,7 @@
     $('invasion-indicators').hidden = !invasion;
     for (const el of $('invasion-indicators').children) el.hidden = !invasion || !directions.includes(Number(el.dataset.direction));
     $('coop-status').hidden = !started || state.mode !== 'coop';
-    $('coop-action').textContent = online ? (online.peerConnected ? (online.hostPaused || (online.role==='host' && paused) ? '主机已暂停 · ' : '联机中 · ') + (online.kind==='direct' ? '手机直连' : '房间 ' + online.code) : '等待队友重新连接') : (paused ? '队友已暂停' : '电脑队友：' + (partnerPilot?.lastAction || '准备经营'));
+    $('coop-action').textContent = online ? (online.peerConnected ? (online.hostPaused || (online.role==='host' && paused) ? '主机已暂停 · ' : '联机中 · ') + '房间 ' + online.code : '等待队友重新连接') : (paused ? '队友已暂停' : '电脑队友：' + (partnerPilot?.lastAction || '准备经营'));
     $('coop-home').textContent = '我的庄园'; $('coop-ally').textContent = online ? '队友庄园' : '电脑庄园';
     $('autoplay-status').hidden = !autoplay || !started;
     $('autoplay-status').querySelector('strong').textContent = paused ? '托管已暂停' : '托管中';
@@ -351,7 +334,8 @@
     $('coins').textContent = fmt(playerState().coins); $('materials').textContent = fmt(playerState().materials);
     $('day-label').textContent = '第 ' + state.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[state.phase]) + (state.day % 7 === 0 ? ' · 灯会' : '');
     $('phase-icon').textContent = { day: '☀', dusk: '◒', night: '☾' }[state.phase];
-    const remaining = state.phase === 'day' ? GF.DAY - state.time : GF.DUSK - state.time;
+    const liveTime = online?.role === 'guest' && !online.hostPaused && online.peerConnected ? guestTimeBase + (performance.now() - guestClockAt) / 1000 : state.time;
+    const remaining = state.phase === 'day' ? GF.DAY - liveTime : GF.DUSK - liveTime;
     $('day-fill').style.width = state.phase === 'night' ? Math.max(0, 100 * ((state.wave?.total || 1) - (state.wave?.spawned || 0) + state.enemies.length) / (state.wave?.total || 1)) + '%' : Math.max(0, remaining / (state.phase === 'day' ? GF.DAY : GF.DUSK) * 100) + '%';
     $('countdown').textContent = state.phase === 'night' ? '' : Math.max(0, Math.ceil(remaining)) + 's';
     $('skills').hidden = state.phase !== 'night' || state.over;
@@ -467,41 +451,17 @@
     $('coop-seat').disabled = !!online;
     $('coop-seat').classList.toggle('is-ready', computerSeat || linked || joining);
     $('coop-avatar').textContent = computerSeat ? '智' : linked || joining ? '友' : '候';
-    $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已直连</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
-    $('coop-host').disabled = linked;
-    $('coop-join').disabled = linked;
+    $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已加入房间</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
+    $('coop-host').disabled = !!online;
+    $('coop-join').disabled = !!online;
+    $('coop-code').readOnly = !!online;
     $('coop-start').disabled = !computerSeat && !linked;
     $('coop-start').textContent = computerSeat || linked ? '开始合作' : joining ? '等待主机开始' : '等待队友就绪';
   }
   $('start-coop').onclick = () => { computerSeat = false; $('start-menu').hidden = true; $('coop-lobby').hidden = false; updateCoopSeat(); $('coop-seat').focus(); };
   $('coop-seat').onclick = () => { if (online) return; computerSeat = !computerSeat; updateCoopSeat(); };
-  $('coop-host').onclick = () => beginDirect('host');
-  $('coop-join').onclick = joinDirect;
-  $('coop-copy').onclick = async () => {
-    const box = $('coop-code'), text = box.value.trim();
-    if (!text) return toast('输入框是空的', 'warning');
-    try { await navigator.clipboard.writeText(text); toast('已复制'); }
-    catch { box.focus(); box.select(); toast('已选中，请长按复制'); }
-  };
-  $('coop-paste').onclick = async () => {
-    const box = $('coop-code');
-    try {
-      const text = (await navigator.clipboard?.readText()) || '';
-      if (!text) return toast('剪贴板里没有可粘贴的文字', 'warning');
-      box.value = text.trim(); box.dispatchEvent(new Event('input'));
-      toast('已粘贴');
-    } catch { box.focus(); toast('无法读取剪贴板，请长按输入框选择粘贴', 'warning'); }
-  };
-  $('coop-code').addEventListener('input', async () => {
-    const session = online;
-    if (session?.kind !== 'direct' || session.role !== 'host' || session.peerConnected || session.accepting || !session.direct) return;
-    const text = $('coop-code').value.trim();
-    if (!/^GF-DIRECT-1:/.test(text)) return;
-    session.accepting = true;
-    try { await session.direct.accept(text); }
-    catch { /* Still incomplete or a stale code; wait for the completed answer. */ }
-    finally { session.accepting = false; }
-  });
+  $('coop-host').onclick = () => { computerSeat = false; connectOnline('create'); };
+  $('coop-join').onclick = () => { const code = $('coop-code').value.trim(); if (!/^\d{6}$/.test(code)) return toast('请输入六位房号', 'warning'); computerSeat = false; connectOnline('join', code); };
   $('coop-back').onclick = showStartMenu;
   $('coop-start').onclick = () => {
     if (!computerSeat && !(online?.role === 'host' && online.peerConnected)) return;
@@ -530,9 +490,8 @@
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
   function showMenu() {
     if (!started) return;
-    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>' + (online.kind === 'direct' ? '手机直连' : '房间 ' + online.code) + ' · 进度保存在主机设备</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online.kind === 'direct' ? '<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>' : '') + '<button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
+    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 进度保存在主机设备</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
     modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
-    if (online?.kind === 'direct') $('modal-content').insertAdjacentHTML('beforeend', '<button class="modal-secondary" data-modal="direct-repair">重新配对 · 保留本局</button>');
   }
   function autoplaySettings() {
     const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
@@ -552,7 +511,7 @@
   function showVictory() {
     modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + '</strong><span>现存建筑</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
-  function newGame(coop = started && state.mode === 'coop'){if(online?.role==='guest')return;const next=coop?GF.createCoopState():GF.createState();enterGame(next);if(online?.role==='host'){online.started=true;onlineSend({type:online.kind==='direct'?'started':'start'});sendSnapshot();}save();}
+  function newGame(coop = started && state.mode === 'coop'){if(online?.role==='guest')return;const next=coop?GF.createCoopState():GF.createState();enterGame(next);if(online?.role==='host'){online.started=true;onlineSend({type:'start'});sendSnapshot();}save();}
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
     if(action==='choose-skill'){
@@ -562,7 +521,6 @@
     }
     if(action==='close')closeModal();if(action==='save')save(true);if(action==='sound'){toggleSound();e.target.closest('[data-modal]').textContent='音效：'+(sound?'开':'关');}
     if(action==='title')showStartMenu();
-    if(action==='direct-repair')repairDirect();
     if(action==='grid'){
       grid=!grid;
       try{localStorage.setItem(GRID_KEY,grid?'on':'off');}catch{ /* Keep the setting for this session. */ }
@@ -634,11 +592,12 @@
       // Keep simulation work independent of 90/120 Hz displays without losing elapsed time.
       if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}if(partnerPilot){try{partnerPilot.tick(tick);}catch(error){showMenu();toast('电脑队友已暂停：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}
     }else simulationClock=0;
-    syncClock+=dt;if(syncClock>(online?.kind==='direct' ? 0.1 : 0.25)){sendSnapshot();syncClock=0;}
+    syncClock+=dt;if(syncClock>0.5){sendSnapshot();syncClock=0;}
+    if(online?.role==='host'&&online.peerConnected&&started&&!paused&&!hiddenPause&&!state.over){motionClock+=dt;if(motionClock>=0.05){sendMotion();motionClock=0;}}else motionClock=0;
     uiClock+=dt;saveClock+=dt;if(uiClock>.2){refresh();uiClock=0;}if(saveClock>8){if(!state.over)save();saveClock=0;}
-    if(started&&!hiddenPause){const guest=online?.role==='guest',offset=guest&&!online.hostPaused&&online.peerConnected?Math.min(.2,Math.max(0,(now-remoteAt)/1000)):0;
+    if(started&&!hiddenPause){const guest=online?.role==='guest',offset=guest&&!online.hostPaused&&online.peerConnected?Math.min(.4,Math.max(0,(now-remoteAt)/1000)):0;
       // Advance local animation between simulation batches; stopped views only redraw when dirty.
-      const animationTime=state.elapsed+(guest?offset:running&&!paused&&!state.over?simulationClock:0);
+      const animationTime=guest?guestLive():state.elapsed+(running&&!paused&&!state.over?simulationClock:0);
       const renderKey=[state.mapSeed,state.estateSeed,state.day,animationTime,state.revision,state.phase,state.over,playerState().coins,playerState().materials,cam.x,cam.y,cam.zoom,selected?.x,selected?.y,grid,playerOwner(),remoteAt].join('|');
       if(renderKey!==lastRenderKey||offset>0){
         GFArt.render(canvas,state,cam,selected,{grid,player:playerOwner(),online:!!online,animationTime,...(guest?{unitPosition:remotePosition,effects:remoteEffects.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0),projectiles:remoteProjectiles.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0)}:{})});

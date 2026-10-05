@@ -57,9 +57,9 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 
 @media(max-height:600px){.coop-lobby{padding-top:12px;padding-bottom:8px}.coop-lobby .coop-seats{margin:6px 0}.coop-lobby .coop-seat{padding:10px}.coop-lobby .coop-lobby-actions p{display:none}}
 .coop-connect{width:100%;max-width:310px;z-index:1;margin:0 0 12px;padding:12px;border:1px solid #c9d1bc;border-radius:5px;background:#f6f5e9;flex-shrink:0}
-.coop-connect-actions,.coop-code-actions{display:flex;gap:8px}
-.coop-code-actions{margin-top:8px}
-.coop-connect-actions button,.coop-code-actions button{flex:1;min-width:0;width:auto;margin:0;padding:11px 6px;font-size:12px}
-.coop-code-input{display:block;box-sizing:border-box;width:100%;min-height:64px;margin-top:8px;padding:9px 8px;border:1px solid #b4bfa8;border-radius:4px;background:#fffdf3;color:#405640;font:11px/1.5 ui-monospace,Consolas,monospace;resize:vertical;overflow-wrap:anywhere}
-.coop-code-input::placeholder{font-size:11px;color:#9aa38a}
-@media(max-height:600px){.coop-connect{padding:6px 10px;margin-bottom:2px}.coop-connect-actions button,.coop-code-actions button{padding:7px 6px}.coop-code-input{min-height:34px;margin-top:4px;padding:6px 8px}.coop-code-actions{margin-top:4px}}
+.coop-connect-actions{display:flex;gap:8px}
+.coop-connect-actions button{flex:1;min-width:0;width:auto;margin:0;padding:11px 6px;font-size:12px}
+.coop-code-input{display:block;box-sizing:border-box;width:100%;margin-top:8px;padding:11px 8px;border:1px solid #b4bfa8;border-radius:4px;background:#fffdf3;color:#405640;text-align:center;font:600 20px/1.2 ui-monospace,Consolas,monospace;letter-spacing:6px}
+.coop-code-input::placeholder{font-size:12px;font-weight:400;letter-spacing:2px;color:#9aa38a}
+.coop-code-input[readonly]{background:#eef0e2;color:#5c6f50}
+@media(max-height:600px){.coop-connect{padding:8px 10px;margin-bottom:3px}.coop-connect-actions button{padding:9px 6px}.coop-code-input{margin-top:6px;padding:8px 8px;font-size:18px}}

@@ -7,10 +7,9 @@
     "build": "node build.js",
     "serve": "node server.js",
     "test:performance": "node tests/render-performance-browser.test.js && node tests/terrain-patches-browser.test.js && node tests/mobile-performance-browser.test.js",
-    "test:direct": "node tests/direct-browser.test.js",
     "test:rules-browser": "node tests/new-game-rules-browser.test.js",
     "test": "node --test tests/game.test.js tests/terrain.test.js tests/estate.test.js tests/balance.test.js tests/autoplay.test.js tests/enemy-movement.test.js tests/upgrades-projectiles.test.js tests/soldiers.test.js tests/foundation-hints.test.js tests/coop.test.js tests/performance.test.js tests/new-game-rules.test.js",
-    "test:browser": "node tests/start-menu.test.js && node tests/autoplay-browser.test.js && node tests/browser.test.js && node tests/invasion-browser.test.js && node tests/bulk-upgrade-browser.test.js && node tests/display-options-browser.test.js && node tests/soldiers-browser.test.js && node tests/build-hints-browser.test.js && node tests/detail-layout-browser.test.js && node tests/coop-browser.test.js && node tests/direct-browser.test.js"
+    "test:browser": "node tests/start-menu.test.js && node tests/autoplay-browser.test.js && node tests/browser.test.js && node tests/invasion-browser.test.js && node tests/bulk-upgrade-browser.test.js && node tests/display-options-browser.test.js && node tests/soldiers-browser.test.js && node tests/build-hints-browser.test.js && node tests/detail-layout-browser.test.js && node tests/coop-browser.test.js && node tests/lan-browser.test.js"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

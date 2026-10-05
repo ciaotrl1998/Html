@@ -74,6 +74,9 @@ function createServer() {
         send(socket.room.guest, { type: 'started' });
       } else if (message.type === 'state' && socket.role === 'host' && socket.room?.started && typeof message.snapshot === 'string' && message.snapshot.length < 800000) {
         send(socket.room.guest, { type: 'state', snapshot: message.snapshot, paused: !!message.paused, visuals: message.visuals });
+      } else if (message.type === 'motion' && socket.role === 'host' && socket.room?.started) {
+        const cap = (list, max) => Array.isArray(list) ? list.slice(0, max) : undefined;
+        send(socket.room.guest, { type: 'motion', e: cap(message.e, 400), s: cap(message.s, 400), fx: cap(message.fx, 120), p: cap(message.p, 300) });
       } else if (message.type === 'action' && socket.role === 'guest' && socket.room?.started) {
         const { id, kind, building, skill, x, y } = message;
         if (!Number.isSafeInteger(id) || !['build', 'upgrade', 'bulk', 'demolish', 'skill', 'choose-skill'].includes(kind) ||
