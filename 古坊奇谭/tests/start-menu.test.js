@@ -20,7 +20,7 @@ const url = file => pathToFileURL(path.join(__dirname, '..', file)).href;
       await page.waitForFunction(() => !!window.Gufang);
       assert(await page.locator('#start-menu').isVisible());
       assert.equal(await page.locator('#game button:visible').count(), 4);
-      assert(await page.locator('#start-coop').isDisabled());
+      assert(await page.locator('#start-coop').isEnabled());
       assert(await page.locator('#start-load').isDisabled());
       const before = await page.evaluate(() => GF.serialize(Gufang.state));
       await page.keyboard.press('Escape');

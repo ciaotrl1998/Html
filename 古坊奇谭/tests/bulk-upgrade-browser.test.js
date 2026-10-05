@@ -70,14 +70,38 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
 
           await select('shrine');
           await page.evaluate(() => { Gufang.state.coins = Gufang.state.materials = 0; Gufang.refresh(); });
-          const shrineTotal = await costs('shrine', 14);
-          assert(await bulk.isVisible(), 'Zero funds do not hide structurally available bulk');
-          assert.equal(await text(bulk), '连升14级');
-          await assertCost('bulk-upgrade-label', shrineTotal, { coins: 0, materials: 0 });
-          assert.equal(await bulk.getAttribute('aria-disabled'), 'true');
-          const zero = await snapshot(), zeroButton = await bulk.boundingBox();
+          assert(await bulk.isHidden(), 'Shrine never exposes bulk, even with zero funds');
+          await assertCost('upgrade-label', await costs('shrine', 1), { coins: 0, materials: 0 });
+          assert.equal(await single.getAttribute('aria-disabled'), 'true');
+          const zero = await snapshot(), zeroButton = await single.boundingBox();
           await page.mouse.click(zeroButton.x + zeroButton.width / 2, zeroButton.y + zeroButton.height / 2);
           assert.deepEqual(await snapshot(), zero, 'Zero affordable levels leave all levels, HP and resources unchanged');
+
+          await page.evaluate(() => { Gufang.state.coins = Gufang.state.materials = 1e12; Gufang.refresh(); });
+          for (let level = 2; level <= 15; level++) for (const type of ['shrine', 'gate']) {
+            await select(type);
+            assert(await bulk.isHidden(), type + ' only supports single upgrades');
+            assert.equal(await page.locator('.detail-actions.bulk').count(), 0);
+            assert.equal(await single.getAttribute('aria-disabled'), 'false');
+            const cost = await costs(type, 1), before = await snapshot();
+            await assertCost('upgrade-label', cost); await single.click();
+            const after = await snapshot();
+            assert.equal(after.coins, before.coins - cost.coins);
+            assert.equal(after.materials, before.materials - cost.materials);
+            assert.deepEqual(await page.evaluate(() => ({ shrine: GF.shrineLevel(Gufang.state), gate: Gufang.state.gateLevel, gates: Gufang.state.buildings.filter(b => b.type === 'gate').map(b => b.level) })),
+              { shrine: level, gate: type === 'shrine' ? level - 1 : level, gates: Array(4).fill(type === 'shrine' ? level - 1 : level) });
+            assert(await bulk.isHidden());
+            if (level < 15 && type === 'shrine') {
+              assert.equal(await single.getAttribute('aria-disabled'), 'true', 'Leading foundation cannot gain a second level');
+              const blocked = await snapshot(), bounds = await single.boundingBox();
+              await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+              assert.deepEqual(await snapshot(), blocked);
+            }
+            if (level === 15) {
+              assert.equal(await text(single), '已臻化境');
+              assert.equal(await page.locator('#upgrade-label .cost-number').count(), 0);
+            }
+          }
 
           // Changing prerequisites must update this panel without replacing its buttons.
           await select('inn');
@@ -85,7 +109,10 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
             window.bulkNode = document.getElementById('bulk-upgrade-building');
             window.singleNode = document.getElementById('upgrade-building');
             const s = Gufang.state, shrine = s.buildings.find(b => b.type === 'shrine');
-            shrine.level = 15; shrine.hp = GF.maxHP(shrine); Gufang.refresh();
+            shrine.level = 15; shrine.hp = GF.maxHP(shrine);
+            s.gateLevel = 15;
+            for (const gate of s.buildings.filter(b => b.type === 'gate')) { gate.level = 15; gate.hp = GF.maxHP(gate); }
+            Gufang.refresh();
           });
           assert(await bulk.isHidden(), 'Neighbor prerequisite still blocks bulk with high shrine');
           await page.evaluate(() => {
@@ -123,13 +150,6 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
           assert(await bulk.isHidden(), 'One remaining level hides bulk');
 
           await select('gate');
-          assert.equal(await text(single), '升级'); assert.equal(await text(bulk), '连升8级');
-          assert.equal(await page.locator('.detail-actions.bulk #upgrade-building,.detail-actions.bulk #bulk-upgrade-building').count(), 2, 'Gate single and bulk buttons share the bulk action group');
-          const gateTotal = await costs('gate', 8), beforeGates = await snapshot();
-          await assertCost('bulk-upgrade-label', gateTotal); await bulk.click();
-          assert.deepEqual(await page.evaluate(() => ({ level: Gufang.state.gateLevel, gates: Gufang.state.buildings.filter(b => b.type === 'gate').map(b => b.level) })), { level: 9, gates: [9, 9, 9, 9] });
-          const afterGates = await snapshot();
-          assert.equal(afterGates.coins, beforeGates.coins - gateTotal.coins); assert.equal(afterGates.materials, beforeGates.materials - gateTotal.materials);
           assert(await bulk.isHidden()); assert.equal(await text(single), '已臻化境');
           assert.equal(await page.locator('#upgrade-label .cost-number').count(), 0);
 

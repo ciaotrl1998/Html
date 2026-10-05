@@ -30,11 +30,24 @@
       </svg>
       <nav class="start-actions" aria-label="开始菜单">
         <button id="start-single" class="start-button start-primary"><span class="start-button-icon" aria-hidden="true">启</span><span>单人模式<small>新建古坊 · 开启一段故事</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
-        <button id="start-coop" class="start-button" disabled><span class="start-button-icon" aria-hidden="true">伴</span><span>合作模式<small>与友同守一方灯火</small></span><span class="start-badge">暂未开放</span></button>
+        <button id="start-coop" class="start-button"><span class="start-button-icon" aria-hidden="true">伴</span><span>合作模式<small>双庄相依 · 共守长明</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
         <button id="start-load" class="start-button" disabled><span class="start-button-icon" aria-hidden="true">续</span><span>读档<small id="start-save-detail">暂无本地存档</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
         <button id="start-sound" class="start-button start-sound" role="switch" aria-checked="false" aria-label="音效"><span>音效<span id="start-sound-label">已关闭</span></span><i class="sound-switch" aria-hidden="true"></i></button>
       </nav>
       <footer class="start-footer"><span aria-hidden="true">◆</span> 守一座古坊，留万家灯火 <span aria-hidden="true">◆</span></footer>
+    </section>
+    <section id="coop-lobby" class="start-menu coop-lobby" aria-labelledby="coop-title" hidden>
+      <div class="start-border" aria-hidden="true"></div>
+      <header class="start-heading"><p class="start-eyebrow">两庄相邻 · 一同守夜</p><h1 id="coop-title">共守<span>古坊</span></h1><p class="start-subtitle">一墙相隔，灯火相照。</p></header>
+      <div class="coop-seats">
+        <div class="coop-seat is-ready"><span class="coop-avatar">主</span><strong>你<small>第一庄园 · 已就绪</small></strong><span class="coop-ready">就绪</span></div>
+        <div class="coop-divider" aria-hidden="true"><span>◇</span> 同守一方烟火 <span>◇</span></div>
+        <button id="coop-seat" class="coop-seat" aria-pressed="false"><span id="coop-avatar" class="coop-avatar">候</span><strong id="coop-seat-title">等待其它玩家<small>点击席位，切换为电脑</small></strong><span class="coop-seat-switch" aria-hidden="true">⇄</span></button>
+      </div>
+      <div class="coop-rules"><span>25×40 / 40×25</span><span>随机双庄园</span><span>共用一道围墙</span></div>
+      <p id="coop-note" class="coop-note" role="status">点击席位切换电脑队友，或通过同一局域网邀请另一台手机。</p>
+      <details id="lan-controls" class="lan-controls"><summary>两台手机联机</summary><p>两台手机打开同一个局域网地址；一人创建房间，另一人输入房间号加入。</p><button id="lan-create" class="modal-secondary">创建房间</button><div class="lan-join"><input id="lan-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" aria-label="六位房间号" placeholder="六位房间号"><button id="lan-join" class="modal-secondary">加入房间</button></div><strong id="lan-room" role="status"></strong></details>
+      <div class="coop-lobby-actions"><button id="coop-start" class="modal-primary" disabled>等待队友就绪</button><button id="coop-back" class="modal-secondary">返回开始菜单</button><p>开始新局将替换本地进度</p></div>
     </section>
     <canvas id="map" aria-label="古坊地图"></canvas>
     <div class="vignette" aria-hidden="true"></div>
@@ -51,6 +64,7 @@
     </header>
     <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
     <div id="autoplay-status" hidden><strong>托管中</strong><span id="autoplay-action"></span></div>
+    <div id="coop-status" hidden><div class="coop-view-buttons"><button id="coop-home">我的庄园</button><button id="coop-ally">电脑庄园</button></div><span id="coop-action"></span></div>
     <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>可施展</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>可施展</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>可施展</small></button></div>
     <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
     <div id="toast" role="status" aria-live="polite"></div>

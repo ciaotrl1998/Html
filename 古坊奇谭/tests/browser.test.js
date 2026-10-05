@@ -9,9 +9,11 @@ const G=require('../js/game.js');
 const legacySave=JSON.stringify(G.createState(null));
 const initLegacySave=raw=>{if(localStorage.getItem('gufang-qitan-save-v1')===null)localStorage.setItem('gufang-qitan-save-v1',raw);};
 const root=path.join(__dirname,'..');
+const sourceOnly=process.argv.includes('--source-only')||!!process.env.GUFANG_SOURCE_ONLY;
 const shots=process.env.GUFANG_SHOTS||path.join(os.tmpdir(),'gufang-screenshots');
 fs.mkdirSync(shots,{recursive:true});
-const url=file=>pathToFileURL(path.join(root,file)).href;
+const url=file=>pathToFileURL(path.join(root,sourceOnly?'index.html':file)).href;
+async function sourceContext(context){await context.route('**/js/runtime.js',route=>route.fulfill({contentType:'application/javascript',body:['game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')}));}
 const freeze=page=>page.evaluate(()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
 async function enterFromMenu(page){if(await page.locator("#start-menu").isVisible()){if(await page.locator("#start-load").isEnabled())await page.locator("#start-load").click();else await page.locator("#start-single").click();}}
 async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.screenPoint(x,y),[x,y]);await page.mouse.click(p.x,p.y);}
@@ -19,6 +21,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
   const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',headless:true});
   try{
     const incomeContext=await browser.newContext({viewport:{width:390,height:844}}),incomePage=await incomeContext.newPage();
+    await sourceContext(incomeContext);
     const incomeState=G.createState(null);incomeState.coins=incomeState.materials=100000;
     await incomeContext.addInitScript(initLegacySave,JSON.stringify(incomeState));
     await incomePage.goto(url('index.html'));await incomePage.waitForFunction(()=>!!window.Gufang);await enterFromMenu(incomePage);await freeze(incomePage);
@@ -79,6 +82,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     await incomeContext.close();console.log('PASS all twelve industry income cards, high-level income details, linear auras and upgrade costs');
     for(const viewport of [{width:1440,height:1000},{width:390,height:844},{width:320,height:740},{width:375,height:667}]){
       const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:true}),page=await context.newPage(),errors=[];
+      await sourceContext(context);
       await context.addInitScript(initLegacySave,legacySave);
       page.on('pageerror',e=>errors.push(e.stack));
       await page.goto(url('index.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);await page.waitForTimeout(200);
@@ -205,7 +209,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         const ctx=canvas.getContext('2d'),oldStroke=ctx.stroke,oldRect=ctx.strokeRect,oldBegin=ctx.beginPath,oldLineTo=ctx.lineTo;let lines=0,frames=0,segments=[],frameSizes=[],pathSegments=0;
         ctx.beginPath=function(){pathSegments=0;return oldBegin.apply(this,arguments);};
         ctx.lineTo=function(){pathSegments++;return oldLineTo.apply(this,arguments);};
-        ctx.stroke=function(){if(this.getLineDash().length&&pathSegments){lines++;segments.push(pathSegments);}return oldStroke.apply(this,arguments);};
+        ctx.stroke=function(){if(this.getLineDash().length&&pathSegments&&Math.abs(this.lineWidth-1.4)>1e-6){lines++;segments.push(pathSegments);}return oldStroke.apply(this,arguments);};
         ctx.strokeRect=function(x,y,w,h){if(this.getLineDash().length){frames++;frameSizes.push([w,h]);}return oldRect.apply(this,arguments);};
         const capture=(selected,state=Gufang.state)=>{lines=0;frames=0;segments=[];frameSizes=[];GFArt.render(canvas,state,Gufang.camera,selected);return {lines,frames,segments,frameSizes};};
         const result={none:capture(null),empty:capture({x:6,y:6}),tea:capture({x:7,y:8}),inn:capture({x:7,y:7})};
@@ -274,7 +278,8 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         await page.evaluate(()=>{for(let i=0;i<10;i++)GF.step(Gufang.state,.1);Gufang.refresh();});
         assert((await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='farm'&&b.x===9&&b.y===9).hp))<hp);
         await page.evaluate(()=>Gufang.select(9,9));
-        assert((await page.locator('.detail-description').textContent()).includes('缺水'));
+        assert.equal(await page.locator('.detail-description').count(),0);
+        assert((await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='farm'&&b.x===9&&b.y===9).hp))<hp,'Dry farm damage remains in the core');
         await page.evaluate(()=>{GF.grantBuilding(Gufang.state,'well',10,10);GF.grantBuilding(Gufang.state,'stage',10,9);Gufang.select(8,8);});
         assert((await page.locator('.detail-revenue').textContent()).includes('+0.8/秒'));
         assert.equal(await page.locator('.detail-revenue .income-bonus').count(),0,'Rounded-zero bonus is hidden');
@@ -327,6 +332,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     }
     for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
       const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:viewport.width===390}),page=await context.newPage(),errors=[];
+      await sourceContext(context);
       // Freeze from startup and record storage without injecting a save or replacing the default map seed.
       await context.addInitScript(()=>{window.startedWithoutSave=localStorage.getItem('gufang-qitan-save-v1')===null;Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});});
       page.on('pageerror',e=>errors.push(e.stack));
@@ -394,7 +400,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       }
       await page.evaluate(()=>{const gates=Gufang.state.buildings.filter(b=>b.type==='gate');gates.forEach((g,i)=>{g.hp=i===0?0:GF.maxHP(g)-i*73;});});
       await mapClick(page,plots.gates[0].x,plots.gates[0].y);
-      assert((await page.locator('.detail-description').textContent()).includes('城门毁损'));
+      assert.equal(await page.locator('.detail-description').count(),0);
       assert((await page.locator('#detail-hp').textContent()).startsWith('0 / '));
       assert(await page.locator('#demolish-building').isDisabled());assert(await page.locator('#build-view').isHidden());
       await page.screenshot({path:path.join(shots,`estate-gate-destroyed-${viewport.width}.png`)});
@@ -403,20 +409,22 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.reload();await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
       assert.deepEqual(await page.evaluate(snapshot),saved,'Estate seeds, walls, roads, four upgraded gates and damaged HP survive reload');
       await page.evaluate(g=>Gufang.select(g.x,g.y),plots.gates[0]);
-      assert((await page.locator('.detail-description').textContent()).includes('城门毁损'));
+      assert.equal(await page.locator('.detail-description').count(),0);
+      assert((await page.locator('#detail-hp').textContent()).startsWith('0 / '));
       assert(await page.locator('#demolish-building').isDisabled());
       assert.deepEqual(errors,[],`No single-file estate JS errors at ${viewport.width}px`);
-      console.log(`PASS default single-file estate ${viewport.width}: 25 tiles, four gates, plot restrictions, tea, terrain UI, gate upgrades/destruction, save/reload`);
+      console.log(`PASS default ${sourceOnly?'source':'single-file'} estate ${viewport.width}: 25 tiles, four gates, plot restrictions, tea, terrain UI, gate upgrades/destruction, save/reload`);
       await context.close();
     }
     // Reproduce the old failure in a WebView that rejects dvh, then verify both CSS and JS fallbacks.
     const compat=await browser.newPage({viewport:{width:390,height:844}}),compatErrors=[];
+    await sourceContext(compat.context());
     compat.on('pageerror',e=>compatErrors.push(e.message));
     await compat.context().addInitScript(initLegacySave,legacySave);
     await compat.goto(url('index.html'));await compat.waitForFunction(()=>!!window.Gufang);await enterFromMenu(compat);
     await compat.setContent('<style>html,body{margin:0}#game{position:relative;height:100unsupported;overflow:hidden}#map{position:absolute;height:100%}</style><main id="game"><canvas id="map"></canvas></main>');
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),0,'Old dvh-only layout collapses to zero');
-    const html=fs.readFileSync(path.join(root,'dist','古坊奇谭.html'),'utf8').replace(/100dvh/g,'100unsupported');
+    const html=(sourceOnly?fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<link[^>]+href="css\/style.css"[^>]*>/,()=>'<style>'+fs.readFileSync(path.join(root,'css','style.css'),'utf8')+'</style>').replace(/<script[^>]+src="js\/(boot|runtime).js"[^>]*><\/script>/g,'').replace('</body>',()=>'<script>'+['boot','game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')+'</script></body>'):fs.readFileSync(path.join(root,'dist','古坊奇谭.html'),'utf8')).replace(/100dvh/g,'100unsupported');
     await compat.setContent(html.replace(/<script[\s\S]*?<\/script>/gi,''));
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),844,'CSS vh fallback works before JS starts');
     await compat.evaluate(()=>{Object.hasOwn=undefined;HTMLDialogElement.prototype.showModal=undefined;Object.defineProperty(window,'visualViewport',{value:undefined,configurable:true});});
@@ -427,13 +435,14 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     assert.deepEqual(compatErrors,[]);console.log('PASS legacy Android compatibility simulation: no dvh, no Object.hasOwn, no native dialog, no visualViewport');
     await compat.close();
     const standalone=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
+    await sourceContext(standalone.context());
     standalone.on('pageerror',e=>errors.push(e.message));
     const old=G.createState(null);old.coins=1234;delete old.materials;old.prosperity=77;for(const b of old.buildings){delete b.incomeTime;delete b.coinPending;delete b.materialPending;delete b.incensePending;}
     await standalone.addInitScript(raw=>localStorage.setItem('gufang-qitan-save-v1',raw),JSON.stringify(old));
     await standalone.goto(url('dist/古坊奇谭.html'));await standalone.waitForFunction(()=>!!window.Gufang);await enterFromMenu(standalone);await freeze(standalone);
     assert.equal(await standalone.evaluate(()=>Gufang.state.coins),1234);assert.equal(await standalone.evaluate(()=>Gufang.state.materials),120);assert.equal(await standalone.evaluate(()=>'prosperity' in Gufang.state),false);assert.equal(await standalone.evaluate(()=>Gufang.state.buildings[0].type),'shrine');
     await mapClick(standalone,7,8);await standalone.locator('[data-build="tea"]').click();assert.equal(await standalone.evaluate(()=>Gufang.state.buildings.length),2);
-    assert.deepEqual(errors,[]);console.log('PASS offline single-file HTML and old save migration');await standalone.close();
+    assert.deepEqual(errors,[]);console.log(sourceOnly?'PASS source HTML and old save migration':'PASS offline single-file HTML and old save migration');await standalone.close();
   }finally{await browser.close();}
   console.log('Screenshots: '+shots);
 })().catch(e=>{console.error(e);process.exitCode=1;});

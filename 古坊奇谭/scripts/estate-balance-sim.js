@@ -75,6 +75,12 @@ function run(days=30,style='balanced',seed=73193,options={}) {
   }
   function audit() { return {phase:s.phase,direction:s.direction,coins:s.coins,materials:s.materials}; }
   function upgrade(b) {
+    if(b && ['shrine','gate'].includes(b.type)) {
+      const reason=G.upgradeReason(s,b,true);
+      const type=b.type==='shrine'&&reason.startsWith('需城门')?'gate':b.type==='gate'&&reason.startsWith('需祠堂')?'shrine':null;
+      // Pay for one real upgrade of the lagging foundation, without recursion.
+      if(type)b=s.buildings.find(n=>n.type===type && n.level<b.level);
+    }
     if (!b || G.upgradeReason(s,b)) return false;
     if (!G.upgrade(s,b).ok) return false;
     totalUpgrades++;daily.upgrades++;

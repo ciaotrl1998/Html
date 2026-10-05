@@ -43,14 +43,24 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 .build-card.poor .card-price{color:#9e8147}.card-price .cost-number.insufficient{color:#9d382f}
 .detail-actions.bulk{gap:8px;align-items:stretch}.detail-actions.bulk .upgrade-button{flex:1 1 0;min-width:0;flex-direction:column;gap:4px;padding:5px 4px;font-size:12px;line-height:1.2}.detail-actions.bulk .upgrade-button small{width:100%;min-width:0;font-size:10px}.detail-actions.bulk .cost-parts{flex-wrap:wrap;gap:2px 6px}.detail-actions.bulk .cost-part{min-width:0;gap:3px}.detail-actions.bulk .cost-number{overflow-wrap:anywhere}.detail-actions.bulk .coin-icon,.detail-actions.bulk .material-icon{width:12px;height:12px}.detail-actions.bulk .coin-icon:after{top:1px;left:1px}@media(max-width:360px){.detail-actions.bulk .upgrade-button small{font-size:9px}.detail-actions.bulk .cost-parts{gap:2px 4px}}
 .detail{gap:12px;padding:12px 14px}.detail-art{width:65px;flex-basis:65px}.detail-title{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 8px;align-items:center;margin-bottom:9px}.detail-title h3{font-size:20px;white-space:nowrap}.detail-title .level-badge{justify-self:start;font-size:10px}.detail-title .demolish-button{justify-self:end;font-size:11px;margin:0}.detail-revenue{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:wrap;color:#526d45}.detail-revenue strong{font-size:18px;font-weight:700;line-height:1.2}.detail-revenue small{font-size:10px}.detail-revenue .income-bonus{font-size:12px}.detail-revenue .coin-icon,.detail-revenue .material-icon{width:15px;height:15px}.detail-revenue .coin-icon{border-width:3px}.detail-revenue .coin-icon:after{width:3px;height:3px;top:2px;left:2px}.detail-description{font-size:11px;line-height:1.4;margin-bottom:7px}.health-row{font-size:10px;flex-wrap:wrap;gap:5px}.health-track{flex:1;min-width:25px;height:5px}.upgrade-stats{font-size:10px;gap:12px;margin-top:10px;flex-wrap:wrap}.upgrade-stats strong{font-size:13px;font-weight:600;margin-top:4px}.detail-info{height:auto;min-height:130px}.detail-actions{height:48px}.upgrade-button{font-size:13px}.upgrade-button small{font-size:11px}@media(max-width:360px){.detail{gap:9px;padding-left:11px;padding-right:11px}.detail-art{width:56px;flex-basis:56px}.detail-title h3{font-size:18px}.detail-revenue strong{font-size:17px}.detail-revenue .income-bonus{font-size:11px}.upgrade-stats{gap:10px}.upgrade-stats strong{font-size:12px}}
-.bottom-panel{bottom:100px;bottom:calc(100px + env(safe-area-inset-bottom,0px));height:var(--panel-height);padding-bottom:0;border-bottom:1px solid #d4d8c4;border-radius:12px}
-#skills,.has-panel #skills{bottom:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5}
+#skills{right:12px;flex-direction:column;gap:8px;bottom:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:5}.has-panel #skills{bottom:calc(var(--panel-height) + 14px);bottom:calc(var(--panel-height) + 14px + env(safe-area-inset-bottom,0px))}
 .detail{display:grid;grid-template-columns:104px minmax(0,1fr);grid-template-rows:30px minmax(0,1fr) 56px;align-content:start;gap:8px 12px;height:calc(var(--panel-height) - 49px);padding:12px 14px}
 .detail-title{grid-column:1/-1;display:flex;flex-wrap:nowrap;gap:7px;margin:0;min-width:0}.detail-title h3{flex-shrink:0}.detail-title .level-badge{flex-shrink:0}.detail-title .demolish-button{margin-left:auto;flex-shrink:0}.detail-revenue{justify-content:flex-start;flex-wrap:nowrap;white-space:nowrap}.detail-revenue strong{white-space:nowrap}
-.detail-art{grid-column:1;grid-row:2/4;width:104px;height:auto;min-height:0;overflow:hidden;align-items:flex-start;padding-top:2px}.detail-art img{width:128px;height:150px;max-width:none;flex-shrink:0;object-fit:contain}.detail-art>span{bottom:7px;font-size:10px}
-.detail-info{grid-column:2;grid-row:2;min-height:0;height:auto;overflow:auto;padding-top:4px}.health-row{gap:4px;font-size:9px}.upgrade-stats{gap:8px;font-size:9px;margin-top:8px}.upgrade-stats strong{font-size:12px}
-.detail-actions,.detail-actions.bulk{grid-column:2;grid-row:3;display:flex;gap:8px;height:56px;align-items:stretch;min-width:0}.detail-actions .upgrade-button,.detail-actions.bulk .upgrade-button{flex:1 1 0;min-width:0;flex-direction:column;gap:5px;height:56px;padding:5px 4px;font-size:12px;line-height:1.2}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{width:100%;min-width:0;font-size:10px;margin:0}.detail-actions .cost-parts{flex-wrap:wrap;gap:2px 5px}.detail-actions .cost-part{min-width:0;gap:3px}.detail-actions .cost-number{overflow-wrap:anywhere}.detail-actions .coin-icon,.detail-actions .material-icon{width:12px;height:12px}.detail-actions .coin-icon:after{top:1px;left:1px}
-@media(max-width:360px){.detail{grid-template-columns:88px minmax(0,1fr);gap:8px 9px;padding-left:11px;padding-right:11px}.detail-art{width:88px}.detail-art img{width:112px;height:144px}.detail-title{gap:4px}.detail-title h3{font-size:17px}.detail-title .level-badge{font-size:9px;padding:3px 4px}.detail-revenue{gap:3px}.detail-revenue strong{font-size:16px}.detail-revenue .income-bonus{font-size:10px}.detail-title .demolish-button{font-size:10px}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{font-size:9px}}
+.detail-art{grid-column:1;grid-row:2/4;width:100%;height:auto;min-height:0;overflow:hidden;align-items:center;padding:0}.detail-art img{width:100%;height:100%;max-width:100%;max-height:100%;min-height:0;flex-shrink:1;object-fit:contain}
+.detail-info{grid-column:2;grid-row:2;display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0;min-height:0;height:auto;overflow:hidden;padding-top:4px}.health-row{gap:4px;font-size:9px;flex-wrap:nowrap;white-space:nowrap}.upgrade-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:max-content;align-content:start;gap:8px;font-size:9px;margin-top:8px;min-height:0;overflow:auto}.upgrade-stats>div{white-space:nowrap}.upgrade-stats strong{font-size:12px;white-space:nowrap}
+.detail-actions,.detail-actions.bulk{grid-column:2;grid-row:3;display:flex;gap:8px;height:56px;align-items:stretch;min-width:0}.detail-actions .upgrade-button,.detail-actions.bulk .upgrade-button{flex:1 1 0;min-width:0;flex-direction:column;gap:5px;height:56px;padding:5px 4px;font-size:12px;line-height:1.2;white-space:nowrap}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{width:100%;min-width:0;font-size:10px;margin:0;overflow:auto}.detail-actions .cost-parts,.detail-actions.bulk .cost-parts{flex-wrap:nowrap;gap:2px 5px;width:max-content;min-width:100%}.detail-actions .cost-part{min-width:0;gap:3px}.detail-actions .cost-number{overflow-wrap:normal;white-space:nowrap}.detail-actions .coin-icon,.detail-actions .material-icon{width:12px;height:12px}.detail-actions .coin-icon:after{top:1px;left:1px}
+@media(max-width:360px){.detail{grid-template-columns:88px minmax(0,1fr);gap:8px 9px;padding-left:11px;padding-right:11px}.detail-art{width:88px}.detail-title{gap:4px}.detail-title h3{font-size:17px}.detail-title .level-badge{font-size:9px;padding:3px 4px}.detail-revenue{gap:3px}.detail-revenue strong{font-size:16px}.detail-revenue .income-bonus{font-size:10px}.detail-title .demolish-button{font-size:10px}.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{font-size:9px}}
+.invasion-arrow svg{animation:invasion-north 1.6s ease-in-out infinite}.invasion-arrow.east svg{animation-name:invasion-east}.invasion-arrow.south svg{animation-name:invasion-south}.invasion-arrow.west svg{animation-name:invasion-west}
+@keyframes invasion-north{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes invasion-east{0%,100%{transform:rotate(90deg)}50%{transform:translateX(2px) rotate(90deg)}}
+@keyframes invasion-south{0%,100%{transform:rotate(180deg)}50%{transform:translateY(2px) rotate(180deg)}}
+@keyframes invasion-west{0%,100%{transform:rotate(-90deg)}50%{transform:translateX(-2px) rotate(-90deg)}}
+@media(prefers-reduced-motion:reduce){.invasion-arrow svg{animation:none!important}}
+.detail-title .detail-revenue{flex:1;min-width:0;gap:3px}.detail-title .detail-revenue strong{font-size:14px;overflow:hidden;text-overflow:ellipsis}.detail-title .detail-revenue .income-bonus{font-size:11px}.detail-title .detail-revenue small{font-size:9px;flex-shrink:0}.detail-title .detail-revenue .coin-icon,.detail-title .detail-revenue .material-icon{width:12px;height:12px;flex-shrink:0}.detail-title .detail-revenue .coin-icon:after{width:2px;height:2px;left:2px;top:2px}.upgrade-stats>div{min-width:0}.upgrade-stats strong{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:360px){.detail-title .detail-revenue strong{font-size:12px}.detail-title .detail-revenue .income-bonus{font-size:9px}}
+.detail-actions .upgrade-button small,.detail-actions.bulk .upgrade-button small{overflow:hidden;line-height:1.2}.detail-actions .cost-parts,.detail-actions.bulk .cost-parts{width:100%;min-width:0;flex-wrap:wrap;line-height:1.2}.detail-actions .cost-number{overflow-wrap:anywhere;white-space:normal}
+.coop-lobby{padding-top:clamp(36px,8vh,70px)}.coop-lobby .start-heading h1{font-size:42px}.coop-seats{width:100%;max-width:310px;margin:34px 0 24px;z-index:1}.coop-seat{width:100%;display:flex;align-items:center;gap:13px;padding:20px 15px;border:1px dashed #b4bba1;border-radius:5px;background:#faf8ed;color:#53634c;text-align:left}.coop-seat strong{flex:1;font-size:16px;font-weight:500}.coop-seat small{display:block;font-size:10px;color:#879077;margin-top:8px;line-height:1.6}.coop-seat.is-ready{border:1px solid #9eaf91;background:#edf0df}.coop-avatar{display:grid;place-items:center;width:40px;height:44px;border:1px solid #bcc7aa;color:#657d55;font:24px KaiTi,serif;flex-shrink:0}.coop-ready{font-size:10px;color:#648052}.coop-seat-switch{font-size:22px;color:#909b7e}.coop-divider{text-align:center;font-size:10px;color:#a0a48a;padding:16px;letter-spacing:2px}.coop-divider span{color:#b7a06f}.coop-rules{display:flex;justify-content:center;gap:10px;font-size:10px;color:#78856b;flex-wrap:wrap}.coop-rules span{border-bottom:1px solid #cbd0b9;padding-bottom:6px}.coop-note{font-size:11px;text-align:center;line-height:1.9;color:#8b9076;margin:18px 0;max-width:290px}.coop-lobby-actions{width:100%;max-width:310px;margin-top:auto;padding-top:8px;z-index:1}.coop-lobby-actions p{text-align:center;font-size:9px;color:#939780;margin-top:13px}.coop-lobby-actions button:disabled{background:#d9decb;color:#8b957e;cursor:default}#coop-status{position:absolute;top:218px;top:calc(218px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px}.coop-view-buttons{display:flex;gap:5px;pointer-events:auto}.coop-view-buttons button{font-size:10px;padding:7px 10px;border:1px solid #b3c2a6;border-radius:4px;background:#f3f2e5ee;color:#4c6650}#coop-ally{color:#896341;border-color:#cabc9e}#coop-action{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;color:#627051;background:#f3f2e5dd;border-radius:3px;padding:4px 7px}.at-title>#coop-status{visibility:hidden}@media(max-height:650px){.coop-lobby{padding-top:32px}.coop-lobby .start-heading h1{font-size:34px}.coop-seats{margin:20px 0 16px}.coop-seat{padding:14px}.coop-divider{padding:10px}.coop-note{margin:12px 0}}
+@media(max-height:650px){.coop-lobby .start-heading h1{margin-top:10px;margin-bottom:8px}.coop-lobby .coop-seats{margin-top:14px;margin-bottom:12px}}
 
 </style>
   
@@ -76,11 +86,23 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
       </svg>
       <nav class="start-actions" aria-label="开始菜单">
         <button id="start-single" class="start-button start-primary"><span class="start-button-icon" aria-hidden="true">启</span><span>单人模式<small>新建古坊 · 开启一段故事</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
-        <button id="start-coop" class="start-button" disabled><span class="start-button-icon" aria-hidden="true">伴</span><span>合作模式<small>与友同守一方灯火</small></span><span class="start-badge">暂未开放</span></button>
+        <button id="start-coop" class="start-button"><span class="start-button-icon" aria-hidden="true">伴</span><span>合作模式<small>双庄相依 · 共守长明</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
         <button id="start-load" class="start-button" disabled><span class="start-button-icon" aria-hidden="true">续</span><span>读档<small id="start-save-detail">暂无本地存档</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
         <button id="start-sound" class="start-button start-sound" role="switch" aria-checked="false" aria-label="音效"><span>音效<span id="start-sound-label">已关闭</span></span><i class="sound-switch" aria-hidden="true"></i></button>
       </nav>
       <footer class="start-footer"><span aria-hidden="true">◆</span> 守一座古坊，留万家灯火 <span aria-hidden="true">◆</span></footer>
+    </section>
+    <section id="coop-lobby" class="start-menu coop-lobby" aria-labelledby="coop-title" hidden>
+      <div class="start-border" aria-hidden="true"></div>
+      <header class="start-heading"><p class="start-eyebrow">两庄相邻 · 一同守夜</p><h1 id="coop-title">共守<span>古坊</span></h1><p class="start-subtitle">一墙相隔，灯火相照。</p></header>
+      <div class="coop-seats">
+        <div class="coop-seat is-ready"><span class="coop-avatar">主</span><strong>你<small>第一庄园 · 已就绪</small></strong><span class="coop-ready">就绪</span></div>
+        <div class="coop-divider" aria-hidden="true"><span>◇</span> 同守一方烟火 <span>◇</span></div>
+        <button id="coop-seat" class="coop-seat" aria-pressed="false"><span id="coop-avatar" class="coop-avatar">候</span><strong id="coop-seat-title">等待其它玩家<small>点击席位，切换为电脑</small></strong><span class="coop-seat-switch" aria-hidden="true">⇄</span></button>
+      </div>
+      <div class="coop-rules"><span>25×40 / 40×25</span><span>随机双庄园</span><span>共用一道围墙</span></div>
+      <p id="coop-note" class="coop-note" role="status">联机尚未开放。点击上方席位，邀请电脑一同守夜。</p>
+      <div class="coop-lobby-actions"><button id="coop-start" class="modal-primary" disabled>等待队友就绪</button><button id="coop-back" class="modal-secondary">返回开始菜单</button><p>开始新局将替换本地进度</p></div>
     </section>
     <canvas id="map" aria-label="古坊地图"></canvas>
     <div class="vignette" aria-hidden="true"></div>
@@ -97,6 +119,7 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
     </header>
     <section class="daybar" aria-label="时间"><span id="phase-icon" aria-hidden="true">☀</span><strong id="day-label">第 1 日 · 白昼</strong><div class="day-progress"><i id="day-fill"></i></div><span id="countdown">72s</span><button id="menu-pause" aria-label="暂停并打开菜单">Ⅱ</button></section>
     <div id="autoplay-status" hidden><strong>托管中</strong><span id="autoplay-action"></span></div>
+    <div id="coop-status" hidden><div class="coop-view-buttons"><button id="coop-home">我的庄园</button><button id="coop-ally">电脑庄园</button></div><span id="coop-action"></span></div>
     <div id="skills" hidden><button data-skill="repel"><i>符</i><strong>驱鬼符</strong><small>可施展</small></button><button data-skill="repair"><i>愈</i><strong>回春诀</strong><small>可施展</small></button><button data-skill="thunder"><i>雷</i><strong>九霄天雷</strong><small>可施展</small></button></div>
     <section id="panel" class="bottom-panel" hidden aria-label="建筑操作面板"><div class="panel-grip"></div><div class="panel-heading"><span id="plot-label">平地</span><button id="close-panel" aria-label="关闭建筑面板">×</button></div><div id="build-view"><div id="cards" class="cards"></div></div><div id="detail-view" hidden></div></section>
     <div id="toast" role="status" aria-live="polite"></div>
@@ -157,12 +180,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   else root.GF = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function() {
   "use strict";
-  const SIZE = 25, CENTER = 12, DAY = 72, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15;
+  const SIZE = 25, CENTER = 12, DAY = 72, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15, GATE_MAX_LEVEL = 15;
   const worldSize = (s) => {
     var _a;
     return (_a = s == null ? void 0 : s.worldSize) != null ? _a : s ? 25 : 17;
   };
+  const worldWidth = worldSize;
+  const worldHeight = (s) => {
+    var _a;
+    return (_a = s == null ? void 0 : s.worldHeight) != null ? _a : worldWidth(s);
+  };
   const worldCenter = (s) => Math.floor(worldSize(s) / 2);
+  const worldCenterY = (s) => Math.floor(worldHeight(s) / 2);
   const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 2.15;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
@@ -234,11 +263,145 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (x >= 11 && x <= 15 && y >= 11 && y <= 15) return "mountain";
     return "plain";
   }
-  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldSize(s) && y < worldSize(s);
+  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
   const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
   const NEIGHBORS8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const playerViews = /* @__PURE__ */ new WeakMap(), coopMaps = /* @__PURE__ */ new WeakMap();
+  const world = (s) => (s == null ? void 0 : s._world) || s;
+  function playerView(s, owner = 0) {
+    s = world(s);
+    if (s.mode !== "coop") return s;
+    let views = playerViews.get(s);
+    if (!views) {
+      views = [];
+      playerViews.set(s, views);
+    }
+    if (views[owner]) return views[owner];
+    const view = { actorId: owner }, personal = /* @__PURE__ */ new Set(["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "mission"]);
+    Object.defineProperty(view, "_world", { value: s });
+    for (const key of Object.keys(s)) Object.defineProperty(view, key, {
+      enumerable: true,
+      get() {
+        return key === "buildings" ? s.buildings.filter((b) => b.owner === owner) : personal.has(key) && owner === 1 ? s.partner[key] : s[key];
+      },
+      set(value) {
+        if (key === "buildings") s.buildings = [...s.buildings.filter((b) => b.owner !== owner), ...value];
+        else if (personal.has(key) && owner === 1) s.partner[key] = value;
+        else s[key] = value;
+      }
+    });
+    return views[owner] = view;
+  }
+  const economicView = (s) => s.mode === "coop" && s.actorId === void 0 ? playerView(s) : s;
+  function coopMap(s) {
+    s = world(s);
+    const cached = coopMaps.get(s);
+    if (cached) return cached;
+    const horizontal = s.coopLayout === "horizontal", gap = -1;
+    const width = worldWidth(s), height = worldHeight(s);
+    const sources = [createState(s.mapSeed), createState(Math.imul(s.mapSeed, 1664525) + 1013904223 >>> 0)];
+    const originals = sources.map((source, owner) => {
+      const original = estate(source), cells = new Set(original.cells);
+      const axes = [...cells].map((k) => horizontal ? k % 25 : Math.floor(k / 25));
+      const face = owner === 0 ? Math.max(...axes) : Math.min(...axes);
+      for (const key of [...cells]) {
+        const axis = horizontal ? key % 25 : Math.floor(key / 25), cross = horizontal ? Math.floor(key / 25) : key % 25;
+        for (let n = Math.min(axis, face); n <= Math.max(axis, face); n++) cells.add(horizontal ? cross * 25 + n : n * 25 + cross);
+      }
+      const walls = /* @__PURE__ */ new Set();
+      for (const k of cells) for (const [dx, dy] of NEIGHBORS8) if (!cells.has(k + dy * 25 + dx)) walls.add(k + dy * 25 + dx);
+      for (const g of original.gates) walls.delete(g.y * 25 + g.x);
+      return __spreadProps(__spreadValues({}, original), { cells, walls });
+    });
+    const bounds = originals.map((land) => {
+      const keys = [...land.cells, ...land.walls, ...land.gates.map((g) => g.y * 25 + g.x)];
+      return { min: Math.min(...keys.map((k) => horizontal ? k % 25 : Math.floor(k / 25))), max: Math.max(...keys.map((k) => horizontal ? k % 25 : Math.floor(k / 25))) };
+    });
+    const length = bounds.reduce((n, b) => n + b.max - b.min + 1, gap), start = Math.floor(((horizontal ? width : height) - length) / 2);
+    const terrainCells = Array(width * height).fill("plain"), estates = [];
+    let cursor = start;
+    for (let owner = 0; owner < 2; owner++) {
+      const original = originals[owner], source = sources[owner];
+      const offset = cursor - bounds[owner].min, dx = horizontal ? offset : Math.floor(width / 2) - 12, dy = horizontal ? Math.floor(height / 2) - 12 : offset;
+      cursor += bounds[owner].max - bounds[owner].min + 1 + gap;
+      const convert = (key) => (Math.floor(key / 25) + dy) * width + key % 25 + dx;
+      const cells = new Set([...original.cells].map(convert));
+      const walls = new Set([...original.walls, ...original.gates.map((g) => g.y * 25 + g.x)].map(convert));
+      const center = { x: 12 + dx, y: 12 + dy };
+      const inward = horizontal ? owner === 0 ? 1 : 3 : owner === 0 ? 2 : 0;
+      const gates = original.gates.filter((g) => g.direction !== inward).map((g) => __spreadProps(__spreadValues({}, g), { x: g.x + dx, y: g.y + dy, owner }));
+      const inner = owner === 0 ? bounds[owner].max - 2 : bounds[owner].min + 2;
+      for (const g of gates) {
+        if (horizontal ? g.direction % 2 === 0 : g.direction % 2 === 1) {
+          const line = [...original.cells].filter((k) => (horizontal ? k % 25 : Math.floor(k / 25)) === inner);
+          if (horizontal) {
+            g.x = inner + dx;
+            g.y = (g.direction === 0 ? Math.min(...line.map((k) => Math.floor(k / 25))) - 1 : Math.max(...line.map((k) => Math.floor(k / 25))) + 1) + dy;
+          } else {
+            g.y = inner + dy;
+            g.x = (g.direction === 3 ? Math.min(...line.map((k) => k % 25)) - 1 : Math.max(...line.map((k) => k % 25)) + 1) + dx;
+          }
+        }
+        walls.delete(g.y * width + g.x);
+      }
+      const roads = new Set([...original.roads].filter((k) => original.cells.has(k)).map(convert));
+      const root = center.y * width + center.x, queue = [root], parents = /* @__PURE__ */ new Map([[root, null]]);
+      for (let i = 0; i < queue.length; i++) for (const delta of [-width, 1, width, -1]) {
+        const next = queue[i] + delta;
+        if (cells.has(next) && !parents.has(next)) {
+          parents.set(next, queue[i]);
+          queue.push(next);
+        }
+      }
+      for (const g of gates) {
+        const [gx, gy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][g.direction];
+        let key = (g.y - gy) * width + g.x - gx;
+        while (key != null) {
+          roads.add(key);
+          key = parents.get(key);
+        }
+        roads.add(g.y * width + g.x);
+      }
+      for (const key of [...original.cells, ...original.walls]) terrainCells[convert(key)] = baseTerrain(key % 25, Math.floor(key / 25), source);
+      for (const g of gates) terrainCells[g.y * width + g.x] = "plain";
+      estates.push({ owner, cells, walls, gates, roads, center });
+    }
+    const merge = (property) => [].concat(...estates.map((e) => Array.from(e[property])));
+    const combined = { cells: new Set(merge("cells")), walls: new Set(merge("walls")), gates: merge("gates"), roads: new Set(merge("roads")), estates, gap: 0, sharedWall: new Set([...estates[0].walls].filter((k) => estates[1].walls.has(k))) };
+    for (const g of combined.gates) {
+      const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][g.direction];
+      for (let x = g.x + dx, y = g.y + dy; x >= 0 && y >= 0 && x < width && y < height; x += dx, y += dy) {
+        const key = y * width + x;
+        if (combined.walls.has(key) || combined.cells.has(key)) break;
+        combined.roads.add(key);
+        terrainCells[key] = "plain";
+      }
+    }
+    const value = { land: combined, terrain: terrainCells };
+    coopMaps.set(s, value);
+    return value;
+  }
+  function createCoopState(mapSeed = Math.floor(Math.random() * 4294967296), layout) {
+    const s = createState(mapSeed);
+    const coopLayout = layout || (s.estateSeed % 2 ? "horizontal" : "vertical");
+    Object.assign(s, { version: 7, mode: "coop", worldSize: coopLayout === "horizontal" ? 40 : 25, worldHeight: coopLayout === "horizontal" ? 25 : 40, coopLayout, partner: { controller: "computer", coins: 200, materials: 220, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0 }, buildings: [], nextId: 1 });
+    for (const e of coopMap(s).land.estates) {
+      addBuilding(s, "shrine", e.center.x, e.center.y, 1, { owner: e.owner });
+      for (const g of e.gates) addBuilding(s, "gate", g.x, g.y, 1, { direction: g.direction, owner: e.owner });
+    }
+    return s;
+  }
+  function raidOptions(s) {
+    return s.coopLayout === "horizontal" ? [[0], [2], [3, 1]] : [[3], [1], [0, 2]];
+  }
+  function raidDirections(s) {
+    var _a;
+    if (s.mode === "coop") return raidOptions(s)[s.direction];
+    return (s.phase === "dusk" ? s.day % 7 === 0 : (_a = s.wave) == null ? void 0 : _a.boss) ? [0, 1, 2, 3] : [s.direction];
+  }
   const terrainCache = /* @__PURE__ */ new WeakMap();
   function generatedTerrain(s) {
+    if (s.mode === "coop") return coopMap(s).terrain;
     const cached = terrainCache.get(s);
     if ((cached == null ? void 0 : cached.seed) === s.mapSeed && cached.size === worldSize(s) && cached.generation === s.mapGeneration) return cached.cells;
     if (s.mapGeneration === 2) return variedTerrain(s);
@@ -435,6 +598,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const estateCache = /* @__PURE__ */ new WeakMap();
   function estate(s) {
+    if ((s == null ? void 0 : s.mode) === "coop") {
+      const land = coopMap(s).land;
+      return s.actorId === void 0 ? land : land.estates[s.actorId];
+    }
     if ((s == null ? void 0 : s.estateSeed) === void 0) return null;
     const cached = estateCache.get(s);
     if ((cached == null ? void 0 : cached.seed) === s.estateSeed && cached.mapSeed === s.mapSeed && cached.generation === s.mapGeneration) return cached.value;
@@ -515,12 +682,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function isWall(s, x, y) {
     var _a;
-    return inside(x, y, s) && !!((_a = estate(s)) == null ? void 0 : _a.walls.has(y * worldSize(s) + x));
+    return inside(x, y, s) && !!((_a = estate(world(s))) == null ? void 0 : _a.walls.has(y * worldSize(s) + x));
   }
   function walkable(s, x, y) {
     var _a;
     if (!inside(x, y, s) || isWall(s, x, y)) return false;
-    return terrain(x, y, s) !== "water" || !!((_a = estate(s)) == null ? void 0 : _a.roads.has(y * worldSize(s) + x));
+    return terrain(x, y, s) !== "water" || !!((_a = estate(world(s))) == null ? void 0 : _a.roads.has(y * worldSize(s) + x));
   }
   function terrain(x, y, s) {
     if (!inside(x, y, s)) return "plain";
@@ -539,10 +706,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const incomeFactor = (b) => b.type === "shrine" ? Math.pow(2, Math.min(2, b.level - 1)) * (1 + 0.25 * Math.max(0, b.level - 3)) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
   const auraFactor = (b) => Math.pow(2, Math.min(2, b.level - 1)) * (1 + 0.2 * Math.max(0, b.level - 3));
   const hpFactor = (b) => Math.pow(HP_GROWTH, b.level - 1);
-  const maxLevel = (b) => (b == null ? void 0 : b.type) === "shrine" ? SHRINE_MAX_LEVEL : MAX_LEVEL;
+  const maxLevel = (b) => (b == null ? void 0 : b.type) === "shrine" ? SHRINE_MAX_LEVEL : (b == null ? void 0 : b.type) === "gate" ? GATE_MAX_LEVEL : MAX_LEVEL;
   const shrineLevel = (s) => {
     var _a;
-    return ((_a = s.buildings.find((b) => b.type === "shrine")) == null ? void 0 : _a.level) || 0;
+    return ((_a = economicView(s).buildings.find((b) => b.type === "shrine")) == null ? void 0 : _a.level) || 0;
   };
   const requiredShrineLevel = (level) => SHRINE_REQUIREMENTS[Math.min(MAX_LEVEL, Math.max(1, level))];
   const unlockedBuildingLevel = (s) => {
@@ -552,19 +719,58 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return unlocked;
   };
   const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
+  const soldierLimit = (b) => Math.max(1, Math.min(MAX_LEVEL, b.level));
+  const soldierHP = (b) => Math.round(120 * hpFactor(b));
+  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s);
+  const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(b) * soldierDamage(s, b)));
+  function muster(s, b) {
+    var _a;
+    if (s.phase !== "night" || b.type !== "barracks" || b.hp <= 0 || !walkable(s, b.x, b.y)) return;
+    s.soldiers || (s.soldiers = []);
+    (_a = b.musteredCount) != null ? _a : b.musteredCount = 0;
+    while (b.musteredCount < soldierLimit(b)) {
+      s.soldiers.push({
+        id: s.nextId++,
+        barracksId: b.id,
+        x: b.x,
+        y: b.y,
+        hp: soldierHP(b),
+        maxHp: soldierHP(b),
+        level: b.level,
+        attack: 0,
+        path: [],
+        pathRevision: -1,
+        targetId: null
+      });
+      b.musteredCount++;
+    }
+  }
+  function cleanSoldiers(s) {
+    s.soldiers = (s.soldiers || []).filter((u) => u.hp > 0 && s.buildings.some((b) => b.id === u.barracksId && b.type === "barracks" && b.hp > 0));
+    for (const e of s.enemies) if (e.soldierTargetId != null && !s.soldiers.some((u) => u.id === e.soldierTargetId)) {
+      delete e.soldierTargetId;
+      e.path = [];
+      e.pathRevision = -1;
+      delete e.chaseTile;
+    }
+  }
   const visualLevel = (level) => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = (b) => {
     var _a;
     return ((_a = DEFS[b.type].names) == null ? void 0 : _a[visualLevel(b.level) - 1]) || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? "兴盛" : "鼎盛") + DEFS[b.type].name);
   };
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
+    var _a, _b;
     const b = __spreadValues({ id: s.nextId++, type, x, y, level, hp: Math.round(DEFS[type].hp * Math.pow(HP_GROWTH, level - 1)), cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 }, extra);
-    s.buildings.push(b);
+    if (s.mode === "coop") b.owner = (_b = (_a = extra.owner) != null ? _a : s.actorId) != null ? _b : 0;
+    world(s).buildings.push(b);
     s.revision++;
+    muster(s, b);
     return b;
   }
   function grantBuilding(s, type, x, y, level = unlockedBuildingLevel(s), originCost) {
     var _a;
+    s = economicView(s);
     if (!DEFS[type] || type === "fortune" || DEFS[type].unique || DEFS[type].fixed || !owns(s, x, y) || isWall(s, x, y) || ((_a = estate(s)) == null ? void 0 : _a.gates.some((g) => g.x === x && g.y === y)) || terrain(x, y, s) === "water" || at(s, x, y)) return null;
     return addBuilding(s, type, x, y, Math.min(level, maxLevel({ type })), originCost ? { originCost } : {});
   }
@@ -586,6 +792,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       direction: 0,
       buildings: [],
       enemies: [],
+      soldiers: [],
       projectiles: [],
       effects: [],
       events: [],
@@ -624,12 +831,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function buildCost(s, type) {
     var _a;
+    s = economicView(s);
     if (type !== "fortune") return ((_a = DEFS[type]) == null ? void 0 : _a.cost) || { coins: 0, materials: 0 };
     const multiple = Math.pow(1.8, s.fortuneBuilt || 0);
     return { coins: Math.ceil(DEFS.fortune.cost.coins * multiple), materials: Math.ceil(DEFS.fortune.cost.materials * multiple) };
   }
   function fortuneCandidates(s, x, y) {
     var _a;
+    s = economicView(s);
     if (!owns(s, x, y) || isWall(s, x, y) || ((_a = estate(s)) == null ? void 0 : _a.gates.some((g) => g.x === x && g.y === y)) || at(s, x, y) || terrain(x, y, s) === "water") return [];
     const plot = terrain(x, y, s);
     return Object.values(DEFS).filter((d) => {
@@ -641,8 +850,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return true;
     });
   }
-  function buildReason(s, type, x, y) {
+  function buildReason(s, type, x, y, ignoreFunds = false) {
     var _a;
+    s = economicView(s);
     const d = DEFS[type];
     if (!d) return "未知建筑";
     if (s.over) return "古坊已失守";
@@ -655,7 +865,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (s.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
     if (d.unique) return "祠堂仅此一座";
     if (d.fortuneOnly) return "仅可由造化匣获得";
-    if (type === "fortune") return fortuneCandidates(s, x, y).length ? shortage(s, buildCost(s, type)) : "此地无可造化建筑";
+    if (type === "fortune") return fortuneCandidates(s, x, y).length ? ignoreFunds ? "" : shortage(s, buildCost(s, type)) : "此地无可造化建筑";
     if (d.limit && s.buildings.filter((b) => b.type === type).length >= d.limit) return "已达上限（" + d.limit + "座）";
     if (d.cat === "economy" && plot === "forest" && type !== "mulberry") return "林地仅可建桑园";
     if (d.cat === "economy" && plot === "mountain" && type !== "quarry") return "山地仅可建石场";
@@ -669,7 +879,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const missing = d.required.filter((id) => !nearby.has(id));
       if (missing.length) return "需紧邻" + missing.map((id) => DEFS[id].name).join("、");
     }
-    return shortage(s, buildCost(s, type));
+    return ignoreFunds ? "" : shortage(s, buildCost(s, type));
+  }
+  function buildHints(s, x, y) {
+    return Object.values(DEFS).filter((d) => d.cat === "economy" && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true)).map((d) => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = "info") {
     s.events.push({ text, kind });
@@ -677,6 +890,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function missions(s) {
     var _a;
+    if (s.mode === "coop" && s.actorId === void 0) {
+      missions(playerView(s, 0));
+      missions(playerView(s, 1));
+      return;
+    }
     while ((_a = MISSIONS[s.mission]) == null ? void 0 : _a.test(s)) {
       const m = MISSIONS[s.mission++];
       s.coins += m.reward;
@@ -684,6 +902,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   function build(s, type, x, y) {
+    s = economicView(s);
     const reason = buildReason(s, type, x, y);
     if (reason) return { ok: false, reason };
     const cost = buildCost(s, type);
@@ -705,12 +924,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
   function upgradeReason(s, b, ignoreFunds = false) {
+    var _a;
+    s = economicView(s);
     if (!b || !s.buildings.includes(b)) return "建筑已不存在";
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可升级庄园内建筑";
     if (s.over) return "古坊已失守";
     const d = DEFS[b.type];
     if (b.level >= maxLevel(b)) return "已达最高等级";
-    if (b.type !== "shrine") {
+    if (estate(s) && (b.type === "shrine" || b.type === "gate")) {
+      const otherType = b.type === "shrine" ? "gate" : "shrine";
+      const current = ((_a = s.buildings.find((n) => n.type === otherType)) == null ? void 0 : _a.level) || 0;
+      if (b.level + 1 > current + 1) return "需" + (otherType === "gate" ? "城门" : "祠堂") + " Lv" + b.level + "（当前 Lv" + current + "）";
+    }
+    if (b.type !== "shrine" && b.type !== "gate") {
       const required = requiredShrineLevel(b.level + 1), current = shrineLevel(s);
       if (current < required) return "需祠堂 Lv" + required + "（当前 Lv" + current + "）";
     }
@@ -721,8 +947,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return ignoreFunds ? "" : shortage(s, upgradeCost(b));
   }
   function upgradeOptions(s, b) {
+    s = economicView(s);
     const result = { levels: 0, cost: { coins: 0, materials: 0 } };
     if (!b || !s.buildings.includes(b)) return result;
+    if (b.type === "shrine" || b.type === "gate") {
+      if (!upgradeReason(s, b, true)) {
+        result.levels = 1;
+        result.cost = upgradeCost(b);
+      }
+      return result;
+    }
     const mapping = new Map(s.buildings.map((n) => [n, __spreadValues({}, n)]));
     const shadow = __spreadProps(__spreadValues({}, s), { buildings: [...mapping.values()] }), target = mapping.get(b);
     while (!upgradeReason(shadow, target, true)) {
@@ -736,6 +970,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return result;
   }
   function bulkUpgrade(s, b) {
+    s = economicView(s);
+    if ((b == null ? void 0 : b.type) === "shrine" || (b == null ? void 0 : b.type) === "gate") return { ok: false, levels: 0, reason: "仅可单级升级", costspent: { coins: 0, materials: 0 } };
     const options = upgradeOptions(s, b), cost = { coins: 0, materials: 0 };
     let levels = 0, reason = "";
     if (!options.levels) reason = upgradeReason(s, b);
@@ -752,6 +988,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return { ok: levels > 0, levels, reason, costspent: cost };
   }
   function upgrade(s, b) {
+    s = economicView(s);
     const reason = upgradeReason(s, b);
     if (reason) return { ok: false, reason };
     pay(s, upgradeCost(b));
@@ -763,11 +1000,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       target.hp = maxHP(target) * ratio;
     }
     if (b.type === "gate") s.gateLevel = level;
+    if (b.type === "barracks") {
+      for (const u of s.soldiers || []) if (u.barracksId === b.id) {
+        const ratio = u.hp / u.maxHp;
+        u.level = b.level;
+        u.maxHp = soldierHP(b);
+        u.hp = u.maxHp * ratio;
+      }
+      muster(s, b);
+    }
     s.revision++;
     missions(s);
     return { ok: true };
   }
   function demolishReason(s, b) {
+    s = economicView(s);
     if (!b || !s.buildings.includes(b) || b.type === "shrine") return "祠堂不可拆除";
     if (b.type === "gate") return "城门不可拆除";
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可拆除庄园内建筑";
@@ -775,6 +1022,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return "";
   }
   function demolish(s, b) {
+    s = economicView(s);
     const reason = demolishReason(s, b);
     if (reason) return { ok: false, reason };
     const cost = b.originCost || DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * 0.4), materials: Math.floor(cost.materials * 0.4) };
@@ -782,10 +1030,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.materials += refund.materials;
     s.buildings = s.buildings.filter((n) => n !== b);
     s.revision++;
+    if (b.type === "barracks") cleanSoldiers(world(s));
     const dryFarms = b.type === "well" ? s.buildings.filter((n) => n.type === "farm" && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
     return { ok: true, refund, dryFarms };
   }
   function income(s, b) {
+    var _a;
+    if (s.mode === "coop" && s.actorId === void 0) s = playerView(s, (_a = b.owner) != null ? _a : 0);
     const d = DEFS[b.type];
     if (!d.income) return 0;
     let bonus = 0;
@@ -797,12 +1048,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     return d.income * incomeFactor(b) * (1 + Math.min(2, bonus)) * (s.day % 7 === 0 ? 1.25 : 1);
   }
-  const rates = (s) => s.buildings.reduce((r, b) => {
+  const rates = (s) => economicView(s).buildings.reduce((r, b) => {
     const d = DEFS[b.type];
     r[d.resource === "materials" ? "materials" : "coins"] += income(s, b);
     return r;
   }, { coins: 0, materials: 0 });
   function settleIncome(s, dt) {
+    if (s.mode === "coop" && s.actorId === void 0) {
+      settleIncome(playerView(s, 0), dt);
+      settleIncome(playerView(s, 1), dt);
+      return;
+    }
     for (const b of s.buildings) {
       const d = DEFS[b.type];
       if (!d.income) continue;
@@ -822,16 +1078,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function dusk(s) {
     s.phase = "dusk";
     s.time = 0;
-    s.direction = Math.floor(random(s) * 4);
-    event(s, "暮色将至 · 今夜来敌在" + ["北", "东", "南", "西"][s.direction] + "方", "warning");
+    s.direction = Math.floor(random(s) * (s.mode === "coop" ? 3 : 4));
+    event(s, "暮色将至 · 今夜来敌在" + raidDirections(s).map((d) => ["北", "东", "南", "西"][d]).join("、") + "方", "warning");
   }
   function startNight(s) {
     s.phase = "night";
     s.time = 0;
     const boss = s.day % 7 === 0;
+    s.soldiers = [];
+    cleanSoldiers(s);
+    for (const b of s.buildings) if (b.type === "barracks") {
+      b.musteredCount = 0;
+      muster(s, b);
+    }
     const opening = Math.min(1, 0.5 + 0.5 * (s.day - 1) / 9);
     s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + (boss ? 12 : 0)) * opening), spawned: 0, timer: 0.35, boss };
-    event(s, boss ? "百鬼夜行！妖将与群妖从四方来袭" : "入夜了 · 守住祠堂，灯火不熄", "warning");
+    if (s.mode === "coop") s.wave.total *= 2;
+    event(s, boss ? "百鬼夜行！妖将与群妖从" + raidDirections(s).map((d) => ["北", "东", "南", "西"][d]).join("、") + "方来袭" : "入夜了 · 守住祠堂，灯火不熄", "warning");
   }
   function dawn(s) {
     s.day++;
@@ -841,9 +1104,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.enemies = [];
     s.projectiles = [];
     s.repairTime = 0;
+    s.soldiers = [];
+    for (const b of s.buildings) delete b.musteredCount;
     const reward = 40 + s.day * 8;
     s.coins += reward;
     event(s, "平安入晓 · 守夜赏钱 +" + reward, "reward");
+    if (s.mode === "coop") s.partner.coins += reward + (s.day % 7 === 0 ? 180 : 0);
     if (s.day % 7 === 0) {
       s.coins += 180;
       event(s, "上元灯会 · 收入 +25%，获赠 180 铜钱", "reward");
@@ -857,9 +1123,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function spawnPlots(s, direction) {
     var _a;
     if (!Number.isInteger(direction) || direction < 0 || direction > 3) return [];
-    const size = worldSize(s), center = worldCenter(s), plots = [];
+    const size = worldWidth(s), height = worldHeight(s), center = direction % 2 ? worldCenterY(s) : worldCenter(s), plots = [];
     for (let pos = center - 2; pos <= center + 2; pos++) {
-      const [x, y] = [[pos, 0], [size - 1, pos], [pos, size - 1], [0, pos]][direction];
+      const [x, y] = [[pos, 0], [size - 1, pos], [pos, height - 1], [0, pos]][direction];
       if (terrain(x, y, s) !== "water" && walkable(s, x, y) && !((_a = at(s, x, y)) == null ? void 0 : _a.hp) && findPath(s, { x, y }).length) plots.push({ x, y });
     }
     return plots;
@@ -868,20 +1134,28 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (e.laneX === void 0) e.laneX = (Math.imul(e.id, 1664525) + 1013904223 >>> 0) / 4294967296 * 0.5 - 0.25;
     if (e.laneY === void 0) e.laneY = (Math.imul(e.id, 2246822519) + 3266489917 >>> 0) / 4294967296 * 0.5 - 0.25;
   }
+  function raidGates(s, direction) {
+    return s.buildings.filter((b) => b.type === "gate" && b.direction === direction).sort((a, b) => {
+      var _a, _b;
+      return ((_a = a.owner) != null ? _a : 0) - ((_b = b.owner) != null ? _b : 0) || a.id - b.id;
+    });
+  }
   function spawnEnemy(s) {
-    const w = s.wave, i = w.spawned, dir = w.boss ? i % 4 : s.direction;
+    const w = s.wave, i = w.spawned, directions = raidDirections(s), dir = directions[i % directions.length];
     const plots = spawnPlots(s, dir);
     if (!plots.length) {
       w.spawned++;
       return;
     }
     w.spawned++;
+    const gates = s.mode === "coop" ? raidGates(s, dir) : [];
+    const targetGate = gates.length ? gates[Math.floor(i / directions.length) % gates.length] : null;
     const SIZE2 = worldSize(s), p = plots[Math.floor(random(s) * plots.length)];
-    const jitter = (value) => value === 0 ? random(s) * 0.2 : value === SIZE2 - 1 ? value - random(s) * 0.2 : value + (random(s) * 2 - 1) * 0.28;
-    const x = jitter(p.x), y = jitter(p.y), laneX = random(s) * 0.5 - 0.25, laneY = random(s) * 0.5 - 0.25;
+    const jitter = (value, limit) => value === 0 ? random(s) * 0.2 : value === limit - 1 ? value - random(s) * 0.2 : value + (random(s) * 2 - 1) * 0.28;
+    const x = jitter(p.x, SIZE2), y = jitter(p.y, worldHeight(s)), laneX = random(s) * 0.5 - 0.25, laneY = random(s) * 0.5 - 0.25;
     const type = s.day >= 5 && i % 4 === 2 ? "fox" : s.day >= 4 && i % 3 === 1 ? "ghost" : "bandit";
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (0.45 + 0.55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + 0.08 * late);
+    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === "coop" ? 2 : 1), late = Math.max(0, s.day - 14), scale = (0.45 + 0.55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + 0.08 * late);
     s.enemies.push({
       id: s.nextId++,
       type,
@@ -901,14 +1175,53 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       path: [],
       pathRevision: -1
     });
+    if (targetGate) Object.assign(s.enemies[s.enemies.length - 1], { targetGateId: targetGate.id, targetOwner: targetGate.owner });
   }
-  function findPath(s, e) {
-    const SIZE2 = worldSize(s);
-    const base = s.buildings.find((b) => b.type === "shrine");
+  function findPath(s, e, destination, passBuildings = true) {
+    var _a;
+    s = world(s);
+    const SIZE2 = worldWidth(s), height = worldHeight(s);
+    if (s.mode === "coop" && !destination) {
+      const land = estate(s), key = Math.round(e.y) * SIZE2 + Math.round(e.x);
+      const entered = land.estates.find((a) => a.cells.has(key));
+      if (entered) {
+        const owner = Number.isInteger(e.targetOwner) ? e.targetOwner : entered.owner;
+        const shrine = s.buildings.find((b) => b.type === "shrine" && b.owner === owner);
+        return shrine ? findPath(s, e, shrine) : [];
+      }
+      const assigned = s.buildings.find((b) => b.type === "gate" && b.id === e.targetGateId);
+      const choices = assigned ? [assigned] : s.buildings.filter((b) => b.type === "gate");
+      const queue2 = [key], parents = /* @__PURE__ */ new Map([[key, null]]), gates = new Map(choices.map((g) => [g.y * SIZE2 + g.x, g]));
+      for (let i = 0; i < queue2.length; i++) {
+        const k = queue2[i], gate = gates.get(k);
+        if (gate) {
+          const path2 = [];
+          let p = k;
+          while (parents.get(p) != null) {
+            path2.unshift({ x: p % SIZE2, y: Math.floor(p / SIZE2) });
+            p = parents.get(p);
+          }
+          const shrine = s.buildings.find((b) => b.type === "shrine" && b.owner === gate.owner);
+          e.targetGateId = gate.id;
+          e.targetOwner = gate.owner;
+          return shrine ? path2.concat(findPath(s, gate, shrine) || []) : [];
+        }
+        for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+          const x = k % SIZE2 + dx, y = Math.floor(k / SIZE2) + dy, next = y * SIZE2 + x;
+          if (walkable(s, x, y) && !parents.has(next) && !land.cells.has(next)) {
+            parents.set(next, k);
+            queue2.push(next);
+          }
+        }
+      }
+      return [];
+    }
+    const base = destination || s.buildings.find((b) => b.type === "shrine");
     if (!base) return [];
-    const startX = Math.max(0, Math.min(SIZE2 - 1, Math.round(e.x))), startY = Math.max(0, Math.min(SIZE2 - 1, Math.round(e.y)));
-    const start = startY * SIZE2 + startX, goal = base.y * SIZE2 + base.x, prev = Array(SIZE2 * SIZE2).fill(-1), queue = [start];
+    const startX = Math.max(0, Math.min(SIZE2 - 1, Math.round(e.x))), startY = Math.max(0, Math.min(height - 1, Math.round(e.y)));
+    const start = startY * SIZE2 + startX, goal = Math.round(base.y) * SIZE2 + Math.round(base.x), prev = Array(SIZE2 * height).fill(-1), queue = [start];
     prev[start] = start;
+    if (!walkable(s, startX, startY) || !walkable(s, Math.round(base.x), Math.round(base.y))) return destination ? null : [];
     for (let i = 0; i < queue.length; i++) {
       const current = queue[i];
       if (current === goal) break;
@@ -916,12 +1229,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
         if (!walkable(s, nx, ny)) continue;
         const next = ny * SIZE2 + nx;
+        if (!passBuildings && ((_a = at(s, nx, ny)) == null ? void 0 : _a.hp) > 0) continue;
         if (prev[next] !== -1) continue;
         prev[next] = current;
         queue.push(next);
       }
     }
-    if (prev[goal] === -1) return [];
+    if (prev[goal] === -1) return destination ? null : [];
     const path = [];
     let n = goal;
     while (n !== start && n !== -1) {
@@ -929,6 +1243,120 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       n = prev[n];
     }
     return path;
+  }
+  function findSoldierPath(s, unit, target) {
+    return findPath(s, unit, target, true);
+  }
+  function safeUnitSegment(s, unit, x, y, passBuildings) {
+    const clear = (tx, ty) => {
+      var _a;
+      return walkable(s, tx, ty) && (passBuildings || !(((_a = at(s, tx, ty)) == null ? void 0 : _a.hp) > 0));
+    };
+    const samples = Math.max(1, Math.ceil(Math.hypot(x - unit.x, y - unit.y) / 0.025));
+    let lastX = Math.round(unit.x), lastY = Math.round(unit.y);
+    for (let i = 0; i <= samples; i++) {
+      const px = unit.x + (x - unit.x) * i / samples, py = unit.y + (y - unit.y) * i / samples;
+      const tx = Math.round(px), ty = Math.round(py);
+      if (px < 0 || py < 0 || px > worldWidth(s) - 1 || py > worldHeight(s) - 1 || !clear(tx, ty)) return false;
+      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
+      lastX = tx;
+      lastY = ty;
+    }
+    return true;
+  }
+  function moveUnit(s, unit, target, speed, dt, passBuildings) {
+    let goal = unit.path[0] || target;
+    if (!safeUnitSegment(s, unit, goal.x, goal.y, passBuildings)) {
+      const tile = { x: Math.round(unit.x), y: Math.round(unit.y) };
+      if (tile.x !== goal.x || tile.y !== goal.y) goal = tile;
+    }
+    const distance = Math.hypot(goal.x - unit.x, goal.y - unit.y), step2 = Math.min(distance, speed * dt);
+    if (distance > 1e-3) {
+      const x = unit.x + (goal.x - unit.x) / distance * step2, y = unit.y + (goal.y - unit.y) / distance * step2;
+      if (safeUnitSegment(s, unit, x, y, passBuildings)) {
+        unit.x = x;
+        unit.y = y;
+      }
+    }
+    if (unit.path.length && Math.hypot(unit.path[0].x - unit.x, unit.path[0].y - unit.y) <= 1e-3) unit.path.shift();
+  }
+  function soldierCombat(s, dt) {
+    var _a;
+    cleanSoldiers(s);
+    for (const u of s.soldiers) {
+      u.attack = Math.max(0, u.attack - dt);
+      const candidates = s.enemies.filter((e) => e.hp > 0).sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
+      let target = null;
+      for (const e of candidates) {
+        const tile = Math.round(e.x) + "," + Math.round(e.y);
+        if (u.targetId === e.id && u.targetTile === tile && u.pathRevision === s.revision) {
+          target = e;
+          break;
+        }
+        const path = findSoldierPath(s, u, e);
+        if (path !== null) {
+          target = e;
+          u.path = path;
+          u.pathRevision = s.revision;
+          u.targetTile = tile;
+          break;
+        }
+      }
+      u.targetId = (_a = target == null ? void 0 : target.id) != null ? _a : null;
+      if (!target) {
+        u.path = [];
+        continue;
+      }
+      if (Math.hypot(target.x - u.x, target.y - u.y) > 0.75 || !safeUnitSegment(s, u, target.x, target.y, true)) moveUnit(s, u, target, 2.2, dt, true);
+      if (u.attack <= 1e-8 && Math.hypot(target.x - u.x, target.y - u.y) <= 0.75 && safeUnitSegment(s, u, target.x, target.y, true)) {
+        const b = s.buildings.find((b2) => b2.id === u.barracksId);
+        target.hp -= soldierDamage(s, b) * (target.type === "fox" ? 1.5 : 1);
+        u.attack = 1;
+        if (target.soldierTargetId !== u.id) {
+          target.path = [];
+          target.pathRevision = -1;
+          delete target.chaseTile;
+        }
+        target.soldierTargetId = u.id;
+        s.projectiles.push({ x: u.x, y: u.y, tx: target.x, ty: target.y, type: "barracks", life: 0.3, total: 0.3 });
+      }
+    }
+  }
+  function chaseSoldier(s, e, dt) {
+    var _a;
+    const u = s.soldiers.find((u2) => u2.id === e.soldierTargetId && u2.hp > 0);
+    if (!u || Math.hypot(u.x - e.x, u.y - e.y) > 8) return false;
+    const tile = Math.round(u.x) + "," + Math.round(u.y);
+    if (e.chaseTile !== tile || e.pathRevision !== s.revision) {
+      let path = findPath(s, e, u, false);
+      if (path === null) {
+        const candidates = [];
+        for (const [dx, dy] of NEIGHBORS8) {
+          const x = Math.round(u.x) + dx, y = Math.round(u.y) + dy;
+          if (walkable(s, x, y) && !(((_a = at(s, x, y)) == null ? void 0 : _a.hp) > 0)) candidates.push({ x, y });
+        }
+        candidates.sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
+        for (const p of candidates) {
+          path = findPath(s, e, p, false);
+          if (path !== null) break;
+        }
+      }
+      if (path === null) return false;
+      e.path = path;
+      e.pathRevision = s.revision;
+      e.chaseTile = tile;
+    }
+    if (Math.hypot(u.x - e.x, u.y - e.y) <= 0.75 && safeUnitSegment(s, e, u.x, u.y, false)) {
+      if (e.attack <= 1e-8) {
+        u.hp -= e.damage;
+        e.attack = 1;
+        s.effects.push({ type: "hit", x: u.x, y: u.y, life: 0.2, total: 0.2 });
+      }
+      return true;
+    }
+    if (!e.path.length && !safeUnitSegment(s, e, u.x, u.y, false)) return false;
+    moveUnit(s, e, u, e.speed * (e.slowed > 0 ? e.slowFactor : 1), dt, false);
+    return true;
   }
   function safeEnemySegment(s, e, x, y) {
     const size = worldSize(s), sx = Math.round(e.x), sy = Math.round(e.y);
@@ -940,7 +1368,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     let lastX = sx, lastY = sy;
     for (let i = 0; i <= samples; i++) {
       const px = i === samples ? x : e.x + (x - e.x) * i / samples, py = i === samples ? y : e.y + (y - e.y) * i / samples;
-      if (px < 0 || py < 0 || px > size - 1 || py > size - 1) return false;
+      if (px < 0 || py < 0 || px > size - 1 || py > worldHeight(s) - 1) return false;
       const tx = Math.round(px), ty = Math.round(py);
       if (!clear(tx, ty)) return false;
       if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
@@ -966,6 +1394,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (b.hp > 0) return;
     if (b.type === "gate") b.hp = 0;
     else s.buildings = s.buildings.filter((n) => n !== b);
+    if (b.type === "barracks") cleanSoldiers(s);
     s.revision++;
     event(s, DEFS[b.type].name + "被摧毁", "warning");
     if (b.type === "shrine") {
@@ -985,9 +1414,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     b.hp = Math.min(maxHP(b), b.hp + amount);
   }
   function collectDead(s) {
+    s = world(s);
     s.enemies = s.enemies.filter((e) => {
       if (e.hp > 0) return true;
-      s.coins += ENEMIES[e.type].reward * (e.boss ? 5 : 1);
+      const reward = ENEMIES[e.type].reward * (e.boss ? 5 : 1);
+      if (s.mode === "coop") {
+        s.coins += reward / 2;
+        s.partner.coins += reward / 2;
+      } else s.coins += reward;
       s.kills++;
       s.effects.push({ type: "coin", amount: ENEMIES[e.type].reward * (e.boss ? 5 : 1), x: e.x, y: e.y, life: 0.7, total: 0.7 });
       return false;
@@ -1010,6 +1444,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     w.timer -= dt;
     if (w.spawned < w.total && w.timer <= 0) {
       spawnEnemy(s);
+      if (s.mode === "coop" && w.spawned < w.total) spawnEnemy(s);
       w.timer += Math.max(0.28, 1.35 - s.day * 0.045);
     }
     for (const b of s.buildings) if (b.type === "zhong") {
@@ -1026,30 +1461,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     for (const b of s.buildings) {
       const d = DEFS[b.type];
-      if (!d.damage) continue;
+      if (!d.damage || b.type === "barracks") continue;
       b.cooldown -= dt;
       const range = d.range + (b.level - 1) * 0.35;
       const enemies = s.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) <= range).sort((a, z) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(z.x - b.x, z.y - b.y));
       const target = enemies[0];
-      if (b.type === "barracks") {
-        b.soldier || (b.soldier = { x: b.x, y: b.y });
-        const dest = target || b, dist = Math.hypot(dest.x - b.soldier.x, dest.y - b.soldier.y), step2 = Math.min(dist, dt * 2.2);
-        if (dist) {
-          b.soldier.x += (dest.x - b.soldier.x) / dist * step2;
-          b.soldier.y += (dest.y - b.soldier.y) / dist * step2;
-        }
-        if (!target || dist > 0.65) continue;
-      }
       if (target && b.cooldown <= 0) {
         b.cooldown = d.interval;
         const damage = d.damage * factor(b) * defenseBoost(s);
         if (d.splash) for (const e of s.enemies) {
           if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === "fox" ? 1.3 : 1);
         }
-        else if (b.type !== "tower") target.hp -= damage * (b.type === "barracks" && target.type === "fox" ? 1.5 : 1);
-        s.projectiles.push(__spreadValues({ x: b.type === "barracks" ? b.soldier.x : b.x, y: b.type === "barracks" ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: 0.3, total: 0.3 }, b.type === "tower" ? { targetId: target.id, damage } : {}));
+        else if (b.type !== "tower") target.hp -= damage;
+        s.projectiles.push(__spreadValues({ x: b.x, y: b.y, tx: target.x, ty: target.y, type: b.type, life: 0.3, total: 0.3 }, b.type === "tower" ? { targetId: target.id, damage } : {}));
       }
     }
+    soldierCombat(s, dt);
     collectDead(s);
     for (const e of s.enemies) {
       if (s.over) break;
@@ -1061,7 +1488,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         continue;
       }
       enemyLane(e);
-      const size = worldSize(s), laneGoal = (p2) => ({ x: Math.max(0, Math.min(size - 1, p2.x + e.laneX)), y: Math.max(0, Math.min(size - 1, p2.y + e.laneY)) });
+      const nearby = s.soldiers.filter((u) => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) <= 1 && safeUnitSegment(s, e, u.x, u.y, false)).sort((a, b2) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b2.x - e.x, b2.y - e.y))[0];
+      if (nearby && e.soldierTargetId !== nearby.id) {
+        e.soldierTargetId = nearby.id;
+        e.path = [];
+        e.pathRevision = -1;
+        delete e.chaseTile;
+      }
+      if (e.soldierTargetId != null) {
+        if (chaseSoldier(s, e, dt)) continue;
+        delete e.soldierTargetId;
+        delete e.chaseTile;
+        e.path = [];
+        e.pathRevision = -1;
+      }
+      const size = worldWidth(s), laneGoal = (p2) => ({ x: Math.max(0, Math.min(size - 1, p2.x + e.laneX)), y: Math.max(0, Math.min(worldHeight(s) - 1, p2.y + e.laneY)) });
       if (e.pathRevision !== s.revision || !e.path.length) {
         e.path = findPath(s, e);
         e.pathRevision = s.revision;
@@ -1118,6 +1559,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
     }
+    cleanSoldiers(s);
     s.projectiles = s.projectiles.filter((p) => {
       if (p.type !== "tower") return true;
       const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
@@ -1129,6 +1571,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
   function skillReason(s, id) {
+    s = economicView(s);
     const d = SKILLS[id];
     if (!d) return "未知神技";
     if (s.over || s.phase !== "night") return "神技仅在夜晚使用";
@@ -1136,6 +1579,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return "";
   }
   function skill(s, id) {
+    s = economicView(s);
     const reason = skillReason(s, id);
     if (reason) return { ok: false, reason };
     s.cooldowns[id] = SKILLS[id].cooldown;
@@ -1148,7 +1592,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       e.hp -= e.type === "ghost" ? 350 : 240;
       s.effects.push({ type: "thunder", x: e.x, y: e.y, life: 0.7, total: 0.7 });
     }
-    s.effects.push({ type: id, x: worldCenter(s), y: worldCenter(s), life: 1, total: 1 });
+    s.effects.push({ type: id, x: worldCenter(s), y: worldCenterY(s), life: 1, total: 1 });
     collectDead(s);
     return { ok: true };
   }
@@ -1158,6 +1602,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.time += dt;
     s.elapsed += dt;
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
+    if (s.mode === "coop") for (const id in s.partner.cooldowns) s.partner.cooldowns[id] = Math.max(0, s.partner.cooldowns[id] - dt);
     for (const group of [s.effects, s.projectiles]) {
       for (const e of group) {
         e.life -= dt;
@@ -1180,6 +1625,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     missions(s);
   }
   function serialize(s) {
+    s = world(s);
     const projectiles = s.projectiles.filter((p) => p.type === "tower" && p.life > 0 && s.enemies.some((e) => e.id === p.targetId && e.hp > 0)).map(({ type, targetId, damage, life, total, x, y, tx, ty }) => ({ type, targetId, damage, life, total, x, y, tx, ty }));
     return JSON.stringify(__spreadProps(__spreadValues({}, s), { events: [], projectiles, effects: [] }));
   }
@@ -1189,10 +1635,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
       if (!s || typeof s !== "object") return null;
       if (s.worldSize === void 0) s.worldSize = 17;
-      if (![17, 25].includes(s.worldSize)) return null;
-      const SIZE2 = worldSize(s);
-      if (s.mapGeneration !== void 0 && (s.mapGeneration !== 2 || SIZE2 !== 25 || s.version !== 5 || s.mapSeed === void 0 || s.estateSeed === void 0)) return null;
-      if (s.estateSeed !== void 0 && (SIZE2 !== 25 || !Number.isInteger(s.estateSeed) || s.estateSeed < 0 || s.estateSeed > 4294967295 || s.mapSeed === void 0)) return null;
+      const coop = s.mode === "coop";
+      if (s.mode !== void 0 && !coop) return null;
+      if (s.actorId !== void 0 || s._world !== void 0) return null;
+      if (coop !== [6, 7].includes(s.version)) return null;
+      if (coop) {
+        if (s.version === 6) {
+          if (s.worldSize !== 40 || s.worldHeight !== void 0 && s.worldHeight !== 40) return null;
+        } else {
+          const longSide = Math.max(s.worldSize, s.worldHeight);
+          if (![40, 50].includes(longSide) || s.worldSize !== (s.coopLayout === "horizontal" ? longSide : 25) || s.worldHeight !== (s.coopLayout === "horizontal" ? 25 : longSide)) return null;
+        }
+      } else if (![17, 25].includes(s.worldSize) || s.worldHeight !== void 0 && s.worldHeight !== s.worldSize) return null;
+      if (coop) {
+        const p = s.partner;
+        if (s.mapGeneration !== 2 || !["horizontal", "vertical"].includes(s.coopLayout) || !p || p.controller !== "computer" || !["coins", "materials"].every((k) => finite(p[k])) || !Number.isInteger(p.fortuneBuilt) || p.fortuneBuilt < 0 || !Number.isInteger(p.mission) || p.mission < 0 || p.mission > MISSIONS.length || !p.cooldowns || !Object.keys(SKILLS).every((k) => finite(p.cooldowns[k])) || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || s.direction > 2) return null;
+      }
+      const SIZE2 = worldWidth(s), HEIGHT = worldHeight(s);
+      if (s.mapGeneration !== void 0 && (s.mapGeneration !== 2 || !coop && (SIZE2 !== 25 || s.version !== 5) || s.mapSeed === void 0 || s.estateSeed === void 0)) return null;
+      if (s.estateSeed !== void 0 && (!coop && SIZE2 !== 25 || !Number.isInteger(s.estateSeed) || s.estateSeed < 0 || s.estateSeed > 4294967295 || s.mapSeed === void 0)) return null;
       if (s.version === 5 && (SIZE2 !== 25 || s.estateSeed === void 0)) return null;
       if (s.version < 5 && (SIZE2 !== 17 || s.estateSeed !== void 0)) return null;
       if (s.materials === void 0) s.materials = 120;
@@ -1200,13 +1661,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       delete s.incense;
       if (s.fortuneBuilt === void 0) s.fortuneBuilt = 0;
       if (s.mapSeed !== void 0 && (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295)) return null;
-      if (![1, 2, 3, 4, 5].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !Number.isInteger(s.fortuneBuilt) || s.fortuneBuilt < 0 || !Number.isInteger(s.day) || s.day < 1 || !["day", "dusk", "night"].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== "boolean") return null;
-      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE2 * SIZE2 || !Array.isArray(s.enemies) || s.enemies.length > 150 || !s.cooldowns || !Object.keys(SKILLS).every((k) => finite(s.cooldowns[k]))) return null;
+      if (![1, 2, 3, 4, 5, 6, 7].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !Number.isInteger(s.fortuneBuilt) || s.fortuneBuilt < 0 || !Number.isInteger(s.day) || s.day < 1 || !["day", "dusk", "night"].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== "boolean") return null;
+      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE2 * HEIGHT || !Array.isArray(s.enemies) || s.enemies.length > (coop ? 300 : 150) || !s.cooldowns || !Object.keys(SKILLS).every((k) => finite(s.cooldowns[k]))) return null;
+      const legacySoldiers = s.soldiers === void 0;
+      if (legacySoldiers) s.soldiers = [];
+      if (!Array.isArray(s.soldiers) || s.soldiers.length > Math.min(SIZE2 * HEIGHT * MAX_LEVEL, 1500)) return null;
+      const ids = /* @__PURE__ */ new Set();
+      for (const entity of [...s.buildings, ...s.enemies, ...s.soldiers]) {
+        if (!entity || !Number.isSafeInteger(entity.id) || entity.id < 1 || ids.has(entity.id)) return null;
+        ids.add(entity.id);
+      }
       const retired = s.buildings.filter((b) => RETIRED_TYPES.has(b.type)).length;
       s.buildings = s.buildings.filter((b) => !RETIRED_TYPES.has(b.type));
       const cells = /* @__PURE__ */ new Set(), land = estate(s);
       for (const b of s.buildings) {
         if (!Object.prototype.hasOwnProperty.call(DEFS, b.type)) return null;
+        if (coop && (![0, 1].includes(b.owner) || !owns(playerView(s, b.owner), b.x, b.y))) return null;
         const legacyGrowth = s.version === 1 ? 1.65 : 1.3;
         const savedMaxLevel = s.version === 1 ? DEFS[b.type].max || 3 : s.version === 2 ? MAX_LEVEL : maxLevel(b);
         const savedMaxHP = s.version < 3 ? Math.round(DEFS[b.type].hp * Math.pow(legacyGrowth, b.level - 1)) : maxHP(b);
@@ -1214,7 +1684,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (b.type === "gate") {
           if (!(land == null ? void 0 : land.gates.some((g) => g.x === b.x && g.y === b.y && g.direction === b.direction))) return null;
         } else if (land && (!land.cells.has(b.y * SIZE2 + b.x) || terrain(b.x, b.y, s) === "water")) return null;
-        if (land && b.type === "shrine" && (b.x !== worldCenter(s) || b.y !== worldCenter(s))) return null;
+        const shrineCenter = coop ? land.estates[b.owner].center : { x: worldCenter(s), y: worldCenter(s) };
+        if (land && b.type === "shrine" && (b.x !== shrineCenter.x || b.y !== shrineCenter.y)) return null;
         if (s.version < 3) b.hp = Math.max(1e-3, b.hp / savedMaxHP * maxHP(b));
         if (b.materialPending === void 0) {
           b.materialPending = DEFS[b.type].resource === "materials" ? b.coinPending || 0 : 0;
@@ -1236,11 +1707,27 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         cells.add(key);
         b.cooldown = 0;
         delete b.soldier;
+        if (b.type === "barracks") {
+          if (b.musteredCount === void 0) {
+            if (!legacySoldiers && s.phase === "night") return null;
+            b.musteredCount = s.phase === "night" ? soldierLimit(b) : 0;
+          }
+          if (!Number.isInteger(b.musteredCount) || b.musteredCount < 0 || b.musteredCount > soldierLimit(b)) return null;
+          if (s.phase !== "night") delete b.musteredCount;
+        } else delete b.musteredCount;
       }
-      if (land && s.buildings.filter((b) => b.type === "gate").length !== 4) return null;
-      if (land) {
+      if (land && s.buildings.filter((b) => b.type === "gate").length !== (coop ? 6 : 4)) return null;
+      if (coop) {
+        for (const owner of [0, 1]) {
+          const p = playerView(s, owner), gates = p.buildings.filter((b) => b.type === "gate");
+          if (gates.length !== 3 || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || gates.some((b) => b.level !== p.gateLevel)) return null;
+          const count = p.buildings.filter((b) => b.type === "shrine").length;
+          if (count > 1 || !s.over && count !== 1) return null;
+        }
+      }
+      if (land && !coop) {
         const gates = s.buildings.filter((b) => b.type === "gate");
-        if (s.gateLevel !== void 0 && (!Number.isInteger(s.gateLevel) || s.gateLevel < 1 || s.gateLevel > MAX_LEVEL || gates.some((b) => b.level !== s.gateLevel))) return null;
+        if (s.gateLevel !== void 0 && (!Number.isInteger(s.gateLevel) || s.gateLevel < 1 || s.gateLevel > GATE_MAX_LEVEL || gates.some((b) => b.level !== s.gateLevel))) return null;
         s.gateLevel = (_a = s.gateLevel) != null ? _a : Math.max(...gates.map((b) => b.level));
         for (const gate of gates) {
           const ratio = gate.hp / maxHP(gate);
@@ -1248,17 +1735,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           gate.hp = maxHP(gate) * ratio;
         }
       }
-      if (!s.over && s.buildings.filter((b) => b.type === "shrine").length !== 1 || s.buildings.filter((b) => b.type === "shrine").length > 1) return null;
-      if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 120 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
+      if (!coop && (!s.over && s.buildings.filter((b) => b.type === "shrine").length !== 1 || s.buildings.filter((b) => b.type === "shrine").length > 1)) return null;
+      if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > (coop ? 240 : 120) || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
         enemyLane(e);
+        if (coop) {
+          if (e.targetGateId !== void 0) {
+            const gate = s.buildings.find((b) => b.id === e.targetGateId && b.type === "gate");
+            if (!gate || e.targetOwner !== gate.owner) return null;
+          } else if (e.targetOwner !== void 0 && ![0, 1].includes(e.targetOwner)) return null;
+        } else if (e.targetGateId !== void 0 || e.targetOwner !== void 0) return null;
         if (![e.laneX, e.laneY].every((n) => Number.isFinite(n) && Math.abs(n) <= 0.3)) return null;
         if (e.slowed === void 0) e.slowed = 0;
         if (e.slowFactor === void 0) e.slowFactor = 1;
-        if (!Object.prototype.hasOwnProperty.call(ENEMIES, e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE2 || !finite(e.y) || e.y >= SIZE2 || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
+        if (!Object.prototype.hasOwnProperty.call(ENEMIES, e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE2 || !finite(e.y) || e.y >= HEIGHT || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
         if (!walkable(s, Math.round(e.x), Math.round(e.y))) {
           let nearest = null;
-          for (let y = 0; y < SIZE2; y++) for (let x = 0; x < SIZE2; x++) if (walkable(s, x, y)) {
+          for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE2; x++) if (walkable(s, x, y)) {
             const distance = (x - e.x) ** 2 + (y - e.y) ** 2;
             if (!nearest || distance < nearest.distance) nearest = { x, y, distance };
           }
@@ -1272,7 +1765,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!Array.isArray(s.projectiles) || s.projectiles.length > 1e3) return null;
       const projectiles = [];
       for (const p of s.projectiles) {
-        if (!p || p.type !== "tower" || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > 0.3 || p.total !== 0.3 || ![p.x, p.y, p.tx, p.ty].every((n) => finite(n) && n < SIZE2)) return null;
+        if (!p || p.type !== "tower" || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > 0.3 || p.total !== 0.3 || ![p.x, p.tx].every((n) => finite(n) && n < SIZE2) || ![p.y, p.ty].every((n) => finite(n) && n < HEIGHT)) return null;
         const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
         if (target) projectiles.push({ type: "tower", targetId: p.targetId, damage: p.damage, life: p.life, total: 0.3, x: p.x, y: p.y, tx: target.x, ty: target.y });
       }
@@ -1280,7 +1773,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let moved = 0, stranded = 0;
       for (const b of s.buildings.filter((b2) => !land && terrain(b2.x, b2.y, s) === "water").sort((a, z) => Number(z.type === "farm") - Number(a.type === "farm") || a.id - z.id)) {
         const candidates = [];
-        for (let y = 0; y < SIZE2; y++) for (let x = 0; x < SIZE2; x++) {
+        for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE2; x++) {
           const land2 = terrain(x, y, s);
           if (land2 === "water" || b.type === "farm" && land2 !== "shore" || occupiedLand.has(x + "," + y)) continue;
           candidates.push({ x, y, score: dist8(b.x, b.y, x, y) * 100 + (Math.abs(b.x - x) + Math.abs(b.y - y)) * 2 + (land2 === "shore" && b.type !== "farm" ? 1 : 0) });
@@ -1295,24 +1788,68 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         occupiedLand.add(b.x + "," + b.y);
         moved++;
       }
+      if (s.phase !== "night" && s.soldiers.length) return null;
+      const livingCounts = /* @__PURE__ */ new Map();
+      for (const u of s.soldiers) {
+        const b = s.buildings.find((b2) => b2.id === u.barracksId && b2.type === "barracks" && b2.hp > 0);
+        if (!b || !Number.isSafeInteger(u.barracksId) || !finite(u.x) || u.x > SIZE2 - 1 || !finite(u.y) || u.y > HEIGHT - 1 || u.level !== b.level || u.maxHp !== soldierHP(b) || !finite(u.hp) || u.hp <= 0 || u.hp > u.maxHp || !finite(u.attack) || u.attack > 1 || u.targetId != null && (!Number.isSafeInteger(u.targetId) || u.targetId < 1)) return null;
+        const count = (livingCounts.get(b.id) || 0) + 1;
+        livingCounts.set(b.id, count);
+        if (count > b.musteredCount || count > soldierLimit(b)) return null;
+        if (!walkable(s, Math.round(u.x), Math.round(u.y))) {
+          if (!walkable(s, b.x, b.y)) return null;
+          u.x = b.x;
+          u.y = b.y;
+        }
+        if (!s.enemies.some((e) => e.id === u.targetId)) u.targetId = null;
+        u.path = [];
+        u.pathRevision = -1;
+        delete u.targetTile;
+      }
+      for (const e of s.enemies) {
+        if (e.soldierTargetId != null && (!Number.isSafeInteger(e.soldierTargetId) || e.soldierTargetId < 1)) return null;
+        if (!s.soldiers.some((u) => u.id === e.soldierTargetId)) delete e.soldierTargetId;
+        delete e.chaseTile;
+      }
       s.events = retired ? [{ text: "旧存档中 " + retired + " 栋已退役建筑被移除", kind: "info" }] : [];
       if (moved) s.events.push({ text: "旧存档中 " + moved + " 栋建筑已迁出水域", kind: "info" });
       if (stranded) s.events.push({ text: "岸地已满，" + stranded + " 栋旧建筑暂保留原位", kind: "warning" });
       s.effects = [];
       s.projectiles = projectiles;
       s.revision = 1;
-      s.version = land ? 5 : 4;
-      s.nextId = Math.max(0, ...s.buildings.map((b) => b.id), ...s.enemies.map((e) => e.id || 0)) + 1;
+      s.version = coop ? s.version : land ? 5 : 4;
+      s.nextId = Math.max(0, ...ids) + 1;
+      if (!Number.isSafeInteger(s.nextId)) return null;
       return s;
     } catch (e) {
       return null;
     }
   }
-  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
 });
 
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function() {
   "use strict";
+  const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
   const noise = (x, y, n = 0) => {
     const v = Math.sin(x * 127.1 + y * 311.7 + n * 74.7) * 43758.5453;
@@ -1629,24 +2166,44 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function thumbnail(type, level = 1) {
     const key = type + GF.visualLevel(level);
     if (thumbs.has(key)) return thumbs.get(key);
-    const c = document.createElement("canvas");
-    c.width = 180;
-    c.height = 150;
-    const ctx = c.getContext("2d");
-    ctx.translate(90, 99);
+    const source = document.createElement("canvas");
+    source.width = 240;
+    source.height = 260;
+    const ctx = source.getContext("2d");
+    ctx.translate(120, 190);
     ctx.scale(2, 2);
     building(ctx, type, level);
+    const pixels = ctx.getImageData(0, 0, source.width, source.height).data;
+    let left = source.width, top = source.height, right = -1, bottom = -1;
+    for (let y = 0; y < source.height; y++) for (let x = 0; x < source.width; x++) {
+      if (!pixels[(y * source.width + x) * 4 + 3]) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+    const c = document.createElement("canvas");
+    c.width = 180;
+    c.height = 210;
+    if (right >= left) {
+      left = Math.max(0, left - 1);
+      top = Math.max(0, top - 1);
+      right = Math.min(source.width - 1, right + 1);
+      bottom = Math.min(source.height - 1, bottom + 1);
+      const width = right - left + 1, height = bottom - top + 1, padding = 6, scale = Math.min((c.width - padding * 2) / width, (c.height - padding * 2) / height);
+      c.getContext("2d").drawImage(source, left, top, width, height, (c.width - width * scale) / 2, (c.height - height * scale) / 2, width * scale, height * scale);
+    }
     const url = c.toDataURL();
     thumbs.set(key, url);
     return url;
   }
   function makeGround(s) {
-    const size = GF.worldSize(s), center = GF.worldCenter(s), estate = GF.estate(s);
+    const size = GF.worldWidth(s), height = GF.worldHeight(s), center = GF.worldCenter(s), estate = GF.estate(s);
     const canvas = document.createElement("canvas");
     canvas.width = size * T;
-    canvas.height = size * T;
+    canvas.height = height * T;
     const c = canvas.getContext("2d");
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) {
       const type = GF.terrain(x, y, s), px = x * T, py = y * T;
       rect(c, px, py, T, T, palette[type]);
       if (type === "water") {
@@ -1741,7 +2298,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       for (let y = center - 2; y <= center + 2; y++) rect(c, center * T + 25, y * T, 14, T, "#dcd8b74a");
       for (let x = center - 2; x <= center + 2; x++) rect(c, x * T, center * T + 27, T, 12, "#dcd8b74a");
     } else {
-      const has = (set, x, y) => x >= 0 && y >= 0 && x < size && y < size && set.has(y * size + x);
+      const has = (set, x, y) => x >= 0 && y >= 0 && x < size && y < height && set.has(y * size + x);
       for (const index of estate.roads) {
         const x = index % size, y = Math.floor(index / size), px = x * T, py = y * T, water = GF.terrain(x, y, s) === "water";
         const north = has(estate.roads, x, y - 1), south = has(estate.roads, x, y + 1), east = has(estate.roads, x + 1, y), west = has(estate.roads, x - 1, y);
@@ -1823,7 +2380,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const radius = d.cat === "economy" ? d.radius : b.type === "earth" ? d.range : 1;
     if (radius === 0) return null;
     const x = Math.max(2, (b.x - radius) * T + 2), y = Math.max(2, (b.y - radius) * T + 2);
-    const right = Math.min(GF.worldSize(s) * T - 2, (b.x + radius + 1) * T - 2), bottom = Math.min(GF.worldSize(s) * T - 2, (b.y + radius + 1) * T - 2);
+    const right = Math.min(GF.worldWidth(s) * T - 2, (b.x + radius + 1) * T - 2), bottom = Math.min(GF.worldHeight(s) * T - 2, (b.y + radius + 1) * T - 2);
     return { x, y, width: right - x, height: bottom - y };
   }
   function directChainLink(consumer, producer) {
@@ -1871,7 +2428,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
-    const size = GF.worldSize(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, s.mapGeneration]);
+    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, height, s.mapGeneration, s.coopLayout]);
     if (!ground || groundSeed !== cacheKey) {
       ground = makeGround(s);
       groundSeed = cacheKey;
@@ -1888,23 +2445,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (let i = 0; i < Math.ceil(size * T / 99) + 5; i++) {
       const x = i * 99 - 180;
       poly(c, [[x, -5], [x + 60, -110 - noise(i, 4) * 170], [x + 160, -5]], night ? "#3f5754" : "#aebda04d");
-      poly(c, [[x - 90, size * T + 10], [x - 20, size * T + 100 + noise(i, 2) * 70], [x + 90, size * T + 10]], night ? "#3f5754" : "#aebda03b");
+      poly(c, [[x - 90, height * T + 10], [x - 20, height * T + 100 + noise(i, 2) * 70], [x + 90, height * T + 10]], night ? "#3f5754" : "#aebda03b");
     }
     c.shadowColor = "#40583e18";
     c.shadowBlur = 35;
     c.shadowOffsetY = 8;
     c.drawImage(ground, 0, 0);
     c.shadowColor = "transparent";
-    const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(size - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
+    const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
     const occupied = new Set(s.buildings.map((b) => b.x + "," + b.y));
     if (options.grid) {
-      c.strokeStyle = "#5d78502b";
-      c.lineWidth = 0.7;
-      c.setLineDash([2, 4]);
-      for (let i = 0; i <= size; i++) {
-        line(c, [[i * T, 0], [i * T, size * T]], "#5d785026", 0.7);
-        line(c, [[0, i * T], [size * T, i * T]], "#5d785026", 0.7);
-      }
+      const color = night ? "#c6d7a855" : "#5d785055";
+      c.setLineDash([4, 4]);
+      for (let i = 0; i <= size; i++) line(c, [[i * T, 0], [i * T, height * T]], color, 1.4);
+      for (let i = 0; i <= height; i++) line(c, [[0, i * T], [size * T, i * T]], color, 1.4);
       c.setLineDash([]);
     }
     for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
@@ -1923,7 +2477,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         stone(c, 15, -4, 1.2);
         stone(c, -13, -13, 0.6);
       }
-      if (type === "plain" && (x === 0 || y === 0 || x === size - 1 || y === size - 1)) {
+      if (type === "plain" && (x === 0 || y === 0 || x === size - 1 || y === height - 1)) {
         if (noise(x, y) > 0.35) tree(c, 0, 8, 0.8 + noise(x, y) * 0.5, true);
       }
       if (type === "water") {
@@ -1954,6 +2508,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
       building(c, b.type, b.level, s.elapsed);
+      if (s.mode === "coop" && b.type === "shrine") {
+        rect(c, -38, -57, 76, 19, b.owner === 0 ? "#3d685deb" : "#8a6647eb");
+        c.font = 'bold 12px "Microsoft YaHei",sans-serif';
+        c.textAlign = "center";
+        c.fillStyle = "#fff4d9";
+        c.fillText(b.owner === 0 ? "你的庄园" : "电脑庄园", 0, -43);
+      }
       if (b.type === "gate") {
         if (b.hp <= 0) {
           poly(c, [[-16, -6], [-5, 1], [-10, 20], [12, 20], [5, 4], [17, -6]], "#34443bee");
@@ -1980,7 +2541,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         rect(c, -21, y, 42, 3, "#61775c66");
         rect(c, -21, y, 42 * Math.max(0, b.hp / GF.maxHP(b)), 3, b.hp / GF.maxHP(b) > 0.35 ? "#819d64" : "#b06a4e");
       }
-      if (!GF.upgradeReason(s, b)) poly(c, [[11, -5], [17, -11], [23, -5], [20, -5], [20, 0], [14, 0], [14, -5]], "#b4df63", "#496a38", 1.2);
+      if (!GF.upgradeReason(s, b)) {
+        const bob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(s.elapsed * 3 + (b.id || 0) * 2.399963229728653) * 2.5;
+        c.save();
+        c.translate(0, bob);
+        poly(c, [[11, -5], [17, -11], [23, -5], [20, -5], [20, 0], [14, 0], [14, -5]], "#b4df63", "#496a38", 1.2);
+        c.restore();
+      }
       const levelLabel = String(b.level), badgeWidth = 16, badgeX = 25 - badgeWidth;
       c.beginPath();
       c.moveTo(badgeX + 2, 5);
@@ -2013,21 +2580,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         poly(c, [[-23, 10], [-19, 14], [-23, 18], [-27, 14]], "#c5a25d");
       }
       c.restore();
-      if (b.type === "barracks" && b.soldier && night) {
-        c.save();
-        c.translate(b.soldier.x * T + 32, b.soldier.y * T + 32);
-        person(c, "soldier", s.elapsed);
-        c.restore();
-      }
     }
-    for (const e of s.enemies) {
+    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].sort((a, b) => a.unit.y - b.unit.y);
+    for (const { unit: e, soldier } of units) {
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      person(c, e.type, s.elapsed, e.repelled > 0);
+      person(c, soldier ? "soldier" : e.type, s.elapsed, e.repelled > 0);
       if (e.slowed > 0) ellipse(c, 0, 2, 13, 18, "#8bb7a029", "#76a08f");
-      rect(c, -13, -26, 26, 2.5, "#273e3480");
-      rect(c, -13, -26, 26 * Math.max(0, e.hp / e.maxHp), 2.5, "#bb775a");
+      c.restore();
+    }
+    for (const { unit: e, soldier } of units) {
+      c.save();
+      c.translate(e.x * T + 32, e.y * T + 32);
+      if (e.boss) c.scale(1.6, 1.6);
+      rect(c, -14, -27, 28, 4.5, soldier ? "#254a31" : "#273e3480", soldier ? "#c9dfaa" : null);
+      rect(c, -13, -26, 26 * Math.max(0, Math.min(1, e.hp / e.maxHp)), 2.5, soldier ? "#91c967" : "#bb775a");
       c.restore();
     }
     if (night || dusk) {
@@ -2046,6 +2614,48 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         c.globalCompositeOperation = "source-over";
       }
+    }
+    const hintPulse = reducedMotion || options.reducedMotion === true ? 1 : 1 + 0.035 * Math.sin(s.elapsed * 2.4);
+    for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
+      if (occupied.has(x + "," + y)) continue;
+      let best = null, bestIncome = -Infinity;
+      for (const hint of GF.buildHints(s, x, y)) {
+        if (hint.resource !== "coins" && hint.resource !== "materials") continue;
+        const preview = { type: hint.type, x, y, level: 1 };
+        const shadow = __spreadProps(__spreadValues({}, s), { buildings: [...s.buildings, preview] }), income = GF.income(shadow, preview);
+        if (!best || income > bestIncome || income === bestIncome && (hint.tier > best.tier || hint.tier === best.tier && hint.resource === "coins" && best.resource !== "coins")) {
+          best = hint;
+          bestIncome = income;
+        }
+      }
+      if (!best) continue;
+      c.save();
+      c.translate(x * T + 32, y * T + 32);
+      c.scale(hintPulse, hintPulse);
+      c.strokeStyle = best.resource === "coins" ? "#f5d978" : "#d7b8f0";
+      c.lineWidth = 3.5;
+      c.lineCap = "butt";
+      c.lineJoin = "miter";
+      c.globalAlpha = 0.7;
+      c.shadowColor = "transparent";
+      c.shadowBlur = 0;
+      c.beginPath();
+      for (let layer = 0; layer < (best.tier >= 2 ? 2 : 1); layer++) {
+        const halfWidth = 26 - layer * 6, arm = layer ? 8 : 12;
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+          c.moveTo(sx * (halfWidth - arm), sy * halfWidth);
+          c.lineTo(sx * halfWidth, sy * halfWidth);
+          c.lineTo(sx * halfWidth, sy * (halfWidth - arm));
+        }
+      }
+      if (best.tier === 3) {
+        c.moveTo(-5, 0);
+        c.lineTo(5, 0);
+        c.moveTo(0, -5);
+        c.lineTo(0, 5);
+      }
+      c.stroke();
+      c.restore();
     }
     drawSelection(c, s, selected);
     for (const p of s.projectiles) {
@@ -2091,6 +2701,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           ellipse(c, cx, -5, 4.2, 4.2, null, "#fae3a2");
           rect(c, cx - 1.7, -6.7, 3.4, 3.4, "#61724a", "#b18e4c");
         }
+      } else if (e.type === "soldier-hit") {
+        line(c, [[x - 10 + f * 8, y + 5], [x + 12, y - 13 + f * 8]], "#f5e5a1", 2);
+        line(c, [[x - 5, y - 9], [x + 5, y + 1]], "#c9dfaa", 1.5);
       } else if (e.type === "hit") {
         ellipse(c, x, y, 20, 20, "#ae674066");
       } else {
@@ -2230,7 +2843,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a, _b;
     const size = G.worldSize(s), center = G.worldCenter(s), land = G.estate(s);
     const plots = [];
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    for (let y = 0; y < G.worldHeight(s); y++) for (let x = 0; x < size; x++) {
       if (G.owns(s, x, y) && !G.isWall(s, x, y) && G.terrain(x, y, s) !== "water" && !(land == null ? void 0 : land.gates.some((g) => g.x === x && g.y === y))) plots.push({ x, y });
     }
     let planned = null;
@@ -2263,7 +2876,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const r = G.build(s, type, p.x, p.y);
       return r.ok && record("build", r.rolled || type, r.building);
     }
+    function upgradeFoundation(b) {
+      if (!b || !["shrine", "gate"].includes(b.type)) return b;
+      const reason = G.upgradeReason(s, b, true);
+      const type = b.type === "shrine" && reason.startsWith("需城门") ? "gate" : b.type === "gate" && reason.startsWith("需祠堂") ? "shrine" : null;
+      if (!type) return b;
+      return s.buildings.find((n) => n.type === type && n.level < b.level);
+    }
     function upgrade(b) {
+      b = upgradeFoundation(b);
       return b && !G.upgradeReason(s, b) && G.upgrade(s, b).ok && record("upgrade", b.type, b);
     }
     function towerPlots() {
@@ -2325,14 +2946,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const reason = G.upgradeReason(s, b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), cost = G.upgradeCost(b);
         const increase = gain(s.buildings.map((n) => n === b ? next : n));
         if (!reason || reason.startsWith("差 ")) options.push({ score: increase / Math.max(1, value(cost)), cost, run: () => upgrade(b), reason: "升级" + G.DEFS[b.type].name + "，提高单位投入收益" });
-        else if (reason.startsWith("需祠堂") && shrineBuilding && !G.upgradeReason(s, shrineBuilding)) {
+        else if (reason.startsWith("需祠堂") && shrineBuilding) {
+          const foundation = upgradeFoundation(shrineBuilding);
+          if (!foundation || G.upgradeReason(s, foundation, true)) continue;
           const required = G.requiredShrineLevel(next.level), total = __spreadValues({}, cost);
           for (let level = shrineBuilding.level; level < required; level++) {
             const c = G.upgradeCost(__spreadProps(__spreadValues({}, shrineBuilding), { level }));
             total.coins += c.coins;
             total.materials += c.materials;
           }
-          options.push({ score: increase / Math.max(1, value(total)), cost: G.upgradeCost(shrineBuilding), run: () => upgrade(shrineBuilding), reason: "提升祠堂，解锁产业升级" });
+          const gate = s.buildings.find((n) => n.type === "gate");
+          if (gate) for (let level = gate.level; level < required - 1; level++) {
+            const c = G.upgradeCost(__spreadProps(__spreadValues({}, gate), { level }));
+            total.coins += c.coins;
+            total.materials += c.materials;
+          }
+          options.push({ score: increase / Math.max(1, value(total)), cost: G.upgradeCost(foundation), run: () => upgrade(shrineBuilding), reason: "提升祠堂与城门，解锁产业升级" });
         }
       }
       options.sort((a, b) => b.score - a.score);
@@ -2362,18 +2991,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         } else forecast = { hp: 45, total: 5, interval: 1.3 };
         forecastDay = s.day;
       }
-      const boss = s.day % 7 === 0, pending = s.phase === "night" ? Math.max(0, (((_d = s.wave) == null ? void 0 : _d.total) || 0) - (((_e = s.wave) == null ? void 0 : _e.spawned) || 0)) : forecast.total;
+      const boss = s.day % 7 === 0 && s.mode !== "coop", directions = G.raidDirections(s), pending = s.phase === "night" ? Math.max(0, (((_d = s.wave) == null ? void 0 : _d.total) || 0) - (((_e = s.wave) == null ? void 0 : _e.spawned) || 0)) : forecast.total;
       const damage = (b) => G.DEFS[b.type].damage * G.factor(b) * G.defenseBoost(s) / G.DEFS[b.type].interval;
       const covers = (b, g) => Math.hypot(b.x - g.x, b.y - g.y) <= G.DEFS[b.type].range + (b.level - 1) * 0.35;
       const needs = [];
       for (const gate of gates) {
-        const enemies = s.enemies.filter((e) => gates.reduce((a, b) => Math.hypot(e.x - a.x, e.y - a.y) <= Math.hypot(e.x - b.x, e.y - b.y) ? a : b) === gate);
-        if (!boss && gate.direction !== s.direction && !enemies.length) continue;
+        const enemies = s.enemies.filter((e) => e.targetGateId != null ? s.buildings.some((b) => b.id === e.targetGateId && b.x === gate.x && b.y === gate.y) : gates.reduce((a, b) => Math.hypot(e.x - a.x, e.y - a.y) <= Math.hypot(e.x - b.x, e.y - b.y) ? a : b) === gate);
+        if (!directions.includes(gate.direction) && !enemies.length) continue;
         if (!pending && !enemies.length) continue;
         const defenders = s.buildings.filter((b) => G.DEFS[b.type].damage && covers(b, gate)), firepower = defenders.reduce((n, b) => n + damage(b), 0);
         const nearEnemies = enemies.filter((e) => Math.hypot(e.x - gate.x, e.y - gate.y) < 4);
         const gateBuilding = s.buildings.find((b) => b.type === "gate" && b.direction === gate.direction), health = gateBuilding ? gateBuilding.hp / G.maxHP(gateBuilding) : 1;
-        const remaining = (boss ? pending / 4 : pending) + enemies.length;
+        const remaining = pending / (s.mode === "coop" ? 2 : boss ? 4 : 1) + enemies.length;
         const sustained = forecast.hp * (s.day >= 4 ? 1.45 : 1) / forecast.interval * 0.6 * (boss ? 0.6 : 1) * Math.min(1, remaining / 5);
         const urgent = nearEnemies.reduce((n, e) => n + e.hp, 0) / (health < 0.5 ? 4 : 10);
         const target = Math.max(sustained, urgent);
@@ -2396,7 +3025,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const locked = defenders.some((b) => G.upgradeReason(s, b).startsWith("需祠堂"));
         if (locked && upgrade(shrineBuilding)) return true;
         if (defenders.some((b) => b.level < G.maxLevel(b)) && !urgent) {
-          const costs = locked && shrineBuilding ? [G.upgradeCost(shrineBuilding)] : defenders.filter((b) => b.level < G.maxLevel(b)).map(G.upgradeCost);
+          const foundation = locked && upgradeFoundation(shrineBuilding);
+          const costs = foundation ? [G.upgradeCost(foundation)] : defenders.filter((b) => b.level < G.maxLevel(b)).map(G.upgradeCost);
           costs.sort((a, b) => a.coins + a.materials - b.coins - b.materials);
           defenseBudget = costs[0] || G.DEFS.tower.cost;
           continue;
@@ -2414,7 +3044,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (s.phase !== "night") return false;
       const damaged = s.buildings.some((b) => b.hp / G.maxHP(b) < 0.6);
       const pressure = s.enemies.filter((e) => gates.some((g) => Math.hypot(e.x - g.x, e.y - g.y) < 2)).length;
-      const nearShrine = s.enemies.some((e) => Math.hypot(e.x - center, e.y - center) < 3);
+      const shrine = s.buildings.find((b) => b.type === "shrine");
+      const nearShrine = shrine && s.enemies.some((e) => Math.hypot(e.x - shrine.x, e.y - shrine.y) < 3);
       for (const [id, wanted] of [["repair", damaged], ["thunder", s.enemies.length >= 5 || nearShrine], ["repel", pressure >= 3 || nearShrine]]) {
         if (wanted && !G.skillReason(s, id) && G.skill(s, id).ok) {
           decisionReason = "按当前战况施法";
@@ -2474,20 +3105,27 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     storageWarning = true;
   }
   const SOUND_KEY = "gufang-qitan-sound";
+  const GRID_KEY = "gufang-qitan-grid";
+  let grid = true;
+  try {
+    grid = localStorage.getItem(GRID_KEY) !== "off";
+  } catch (e) {
+  }
   let state = saved && GF.restore(saved) || GF.createState(), selected = null, paused = true, sound = false, started = false;
   try {
     sound = localStorage.getItem(SOUND_KEY) === "on";
   } catch (e) {
   }
   let saveStatus = storageWarning ? "本地存档不可用" : "本地自动存档";
-  let autoplay = false, pilot = null;
+  let autoplay = false, pilot = null, partnerPilot = null, computerSeat = false;
   let panelKey = "", lastPhase = "", lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = /* @__PURE__ */ new Map();
   const view = { width: 390, height: 844 };
-  function center() {
+  function center(owner = 0) {
     cam.zoom = Math.max(0.55, Math.min(0.86, view.width / 550));
-    cam.x = view.width * 0.5 - (GF.worldCenter(state) + 0.5) * GFArt.T * cam.zoom;
-    cam.y = view.height * 0.48 - (GF.worldCenter(state) + 0.5) * GFArt.T * cam.zoom;
+    const home = state.mode === "coop" ? GF.estate(GF.playerView(state, owner)).center : { x: GF.worldCenter(state), y: GF.worldCenter(state) };
+    cam.x = view.width * 0.5 - (home.x + 0.5) * GFArt.T * cam.zoom;
+    cam.y = view.height * 0.48 - (home.y + 0.5) * GFArt.T * cam.zoom;
     clampCamera();
   }
   function resize() {
@@ -2507,9 +3145,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   function clampCamera() {
-    const size = GF.worldSize(state) * GFArt.T * cam.zoom, marginX = view.width * 0.3, marginY = Math.min(view.height * 0.3, 160);
+    const size = GF.worldWidth(state) * GFArt.T * cam.zoom, height = GF.worldHeight(state) * GFArt.T * cam.zoom, marginX = view.width * 0.3, marginY = Math.min(view.height * 0.3, 160);
     cam.x = Math.max(marginX - size, Math.min(view.width - marginX, cam.x));
-    cam.y = Math.max(150 - size, Math.min(view.height - marginY, cam.y));
+    cam.y = Math.max(150 - height, Math.min(view.height - marginY, cam.y));
   }
   function zoom(factor, x = view.width / 2, y = view.height / 2) {
     const old = cam.zoom;
@@ -2568,10 +3206,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function select(x, y) {
     if (!started) return;
-    if (x < 0 || y < 0 || x >= GF.worldSize(state) || y >= GF.worldSize(state) || state.over) return;
+    if (x < 0 || y < 0 || x >= GF.worldWidth(state) || y >= GF.worldHeight(state) || state.over) return;
     if (GF.isWall(state, x, y)) {
       closePanel();
       toast("庄园城墙 · 不可建设、升级或拆除");
+      return;
+    }
+    if (state.mode === "coop" && GF.owns(GF.playerView(state, 1), x, y)) {
+      closePanel();
+      toast("电脑队友的庄园 · 由队友自行经营");
       return;
     }
     if (!GF.owns(state, x, y)) {
@@ -2601,6 +3244,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function effect(d, b) {
     var _a, _b;
+    if (d.id === "barracks") return `自动派出${GF.soldierLimit(b || { type: d.id, level: 1 })}名民兵`;
     if (!d.income) return d.desc || "";
     const building = b || { type: d.id, x: (_a = selected == null ? void 0 : selected.x) != null ? _a : GF.worldCenter(state), y: (_b = selected == null ? void 0 : selected.y) != null ? _b : GF.worldCenter(state), level: 1 };
     const preview = b ? state : __spreadProps(__spreadValues({}, state), { buildings: [...state.buildings, building] });
@@ -2612,7 +3256,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function cardHTML(d) {
     const description = d.id === "well" ? "井旁平地可建农田<br>相邻农田收入 +20%" : effect(d);
     const tag = d.chain || (d.required ? "终" : d.id === "fortune" ? "造" : { defense: "防", support: "民", temple: "神" }[d.cat] || "坊");
-    const count = d.id === "fortune" ? `次数${state.fortuneBuilt}` : `${state.buildings.filter((b) => b.type === d.id).length}/${d.limit || "∞"}`;
+    const count = d.id === "fortune" ? `次数${state.fortuneBuilt}` : `${GF.playerView(state).buildings.filter((b) => b.type === d.id).length}/${d.limit || "∞"}`;
     return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${tag}</span><span class="card-count">${count}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(GF.buildCost(state, d.id))}</span><span class="card-effect">${description}</span></button>`;
   }
   function hideBuildCard(d, x, y) {
@@ -2636,13 +3280,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function detailHTML(b) {
     const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), nextF = GF.factor(next);
-    const description = b.type === "gate" ? b.hp <= 0 ? "城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园" : "四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次" : GF.dryFarm(state, b) ? "缺水：耐久每秒 -5%" : "";
     const name = b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : GF.name(b), demolishReason = GF.demolishReason(state, b);
     const base = d.income ? d.income * GF.incomeFactor(b) : 0;
     const bonus = d.income ? rateText(Math.max(0, GF.income(state, b) - base)) : "0";
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === "materials" ? "material-icon" : "coin-icon"}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === "0" ? "" : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : "";
     let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
     if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(state, b).toFixed(1)}${max ? "" : " → " + GF.income(state, next).toFixed(1)}</strong></div>`;
+    else if (b.type === "barracks") stats += `<div>出兵上限<strong>${GF.soldierLimit(b)}${max ? "" : " → " + GF.soldierLimit(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(state, b)}${max ? "" : " → " + GF.soldierPower(state, next)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (["well", "stage"].includes(b.type)) {
       const v = { well: 20, stage: 3 }[b.type];
@@ -2651,7 +3295,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     else if (b.type === "tao") stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? "" : " → " + Math.min(150, 15 * nextF) + "%"}</strong></div>`;
     else if (b.type === "zhong") stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? "" : " → " + Math.round(GF.zhongSlow(next) * 100) + "%"}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === "materials" ? "工材" : "铜钱"}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? "" : " → " + rateText(d.aura * GF.auraFactor(next) * 100) + "%"}</strong></div>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"><span>${b.type === "gate" ? name + " · 守护庄园" : d.chain ? d.chain + "业兴旺" : d.required ? d.resource === "materials" ? "百工汇聚" : "财源广进" : d.cat === "defense" ? "守望古坊" : "人间烟火"}</span></div><div class="detail-info"><p class="detail-description" ${description ? "" : "hidden"}>${description}</p><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button></div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button></div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
@@ -2661,7 +3305,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     const buildableDefs = Object.values(GF.DEFS).filter((d) => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""}`;
+    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""},${(b == null ? void 0 : b.type) === "barracks" ? GF.soldierPower(state, b) : ""}`;
     $("plot-label").textContent = b ? b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y, state)] + " · 可兴建";
     $("build-view").hidden = !!b;
     $("detail-view").hidden = !b;
@@ -2684,7 +3328,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       $("upgrade-building").title = reason || "";
       $("upgrade-building").firstChild.textContent = max ? "已臻化境" : "升级";
       const bulk = $("bulk-upgrade-building");
-      bulk.hidden = options.levels < 2;
+      bulk.hidden = b.type === "shrine" || b.type === "gate" || options.levels < 2;
       bulk.parentElement.classList.toggle("bulk", !bulk.hidden);
       bulk.firstChild.textContent = "连升" + options.levels + "级";
       bulk.classList.toggle("blocked", !!reason);
@@ -2694,9 +3338,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       $("demolish-building").disabled = !!demolishReason;
       $("demolish-building").title = demolishReason || "";
       $("demolish-building").textContent = demolishReason ? "不可拆除" : "拆除";
-      if (b.type === "gate") {
-        $("detail-view").querySelector(".detail-description").textContent = b.hp <= 0 ? "城门毁损 · 通道已敞开，升级不恢复耐久，修复后可继续守护庄园" : "四座城门共用等级 · 升级一次同步提升四门，费用仅扣一次";
-      }
       for (const [id, html] of [["upgrade-label", max ? "" : costHTML(GF.upgradeCost(b), true)], ["bulk-upgrade-label", bulk.hidden ? "" : costHTML(options.cost, true)]]) {
         const label = $(id);
         if (label._costHTML !== html) {
@@ -2721,11 +3362,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     const invasion = started && state.phase !== "day";
-    const allDirections = state.phase === "dusk" ? state.day % 7 === 0 : !!((_a = state.wave) == null ? void 0 : _a.boss);
+    const directions = GF.raidDirections(state);
     $("invasion-indicators").hidden = !invasion;
-    for (const el of $("invasion-indicators").children) el.hidden = !invasion || !allDirections && Number(el.dataset.direction) !== state.direction;
+    for (const el of $("invasion-indicators").children) el.hidden = !invasion || !directions.includes(Number(el.dataset.direction));
+    $("coop-status").hidden = !started || state.mode !== "coop";
+    $("coop-action").textContent = paused ? "队友已暂停" : "电脑队友：" + ((partnerPilot == null ? void 0 : partnerPilot.lastAction) || "准备经营");
     $("autoplay-status").hidden = !autoplay || !started;
     $("autoplay-status").querySelector("strong").textContent = paused ? "托管已暂停" : "托管中";
     $("autoplay-action").textContent = (pilot == null ? void 0 : pilot.lastAction) || "准备经营";
@@ -2734,7 +3377,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("day-label").textContent = "第 " + state.day + " 日 · " + { day: "白昼", dusk: "黄昏", night: "长夜" }[state.phase] + (state.day % 7 === 0 ? " · 灯会" : "");
     $("phase-icon").textContent = { day: "☀", dusk: "◒", night: "☾" }[state.phase];
     const remaining = state.phase === "day" ? GF.DAY - state.time : GF.DUSK - state.time;
-    $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_b = state.wave) == null ? void 0 : _b.total) || 1) - (((_c = state.wave) == null ? void 0 : _c.spawned) || 0) + state.enemies.length) / (((_d = state.wave) == null ? void 0 : _d.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
+    $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_a = state.wave) == null ? void 0 : _a.total) || 1) - (((_b = state.wave) == null ? void 0 : _b.spawned) || 0) + state.enemies.length) / (((_c = state.wave) == null ? void 0 : _c.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
     $("countdown").textContent = state.phase === "night" ? "" : Math.max(0, Math.ceil(remaining)) + "s";
     $("skills").hidden = state.phase !== "night" || state.over;
     for (const el of document.querySelectorAll("[data-skill]")) {
@@ -2810,6 +3453,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       save();
       refresh();
     } else if (e.target.closest("#bulk-upgrade-building")) {
+      if (b.type === "shrine" || b.type === "gate") return;
       const r = GF.bulkUpgrade(state, b);
       if (!r.ok) return blocked($("bulk-upgrade-building"), r.reason);
       tone();
@@ -2868,11 +3512,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function showStartMenu() {
     if (started) save();
     autoplay = false;
+    partnerPilot = null;
     started = false;
     paused = true;
     closePanel();
     $("modal").hidden = true;
     $("start-menu").hidden = false;
+    $("coop-lobby").hidden = true;
     $("game").classList.add("at-title");
     $("menu-pause").setAttribute("aria-expanded", "false");
     updateStartMenu();
@@ -2885,7 +3531,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     state = next;
     started = true;
     saveClock = 0;
+    partnerPilot = state.mode === "coop" ? GFAutoplay.create(GF.playerView(state, 1)) : null;
     $("start-menu").hidden = true;
+    $("coop-lobby").hidden = true;
     $("game").classList.remove("at-title");
     closePanel();
     center();
@@ -2908,6 +3556,41 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (state.over) showEnd();
   };
   $("start-sound").onclick = toggleSound;
+  function updateCoopSeat() {
+    $("coop-seat").setAttribute("aria-pressed", String(computerSeat));
+    $("coop-seat").classList.toggle("is-ready", computerSeat);
+    $("coop-avatar").textContent = computerSeat ? "智" : "候";
+    $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
+    $("coop-note").textContent = computerSeat ? "电脑将独立经营另一座庄园，与你共同抵御敌袭。" : "联机尚未开放。点击上方席位，邀请电脑一同守夜。";
+    $("coop-start").disabled = !computerSeat;
+    $("coop-start").textContent = computerSeat ? "开始合作" : "等待队友就绪";
+  }
+  $("start-coop").onclick = () => {
+    computerSeat = false;
+    $("start-menu").hidden = true;
+    $("coop-lobby").hidden = false;
+    updateCoopSeat();
+    $("coop-seat").focus();
+  };
+  $("coop-seat").onclick = () => {
+    computerSeat = !computerSeat;
+    updateCoopSeat();
+  };
+  $("coop-back").onclick = showStartMenu;
+  $("coop-start").onclick = () => {
+    if (!computerSeat) return;
+    readSave();
+    if (saved) modal('<p class="modal-kicker">双庄共守</p><h2>开启合作新局？</h2><p>将与电脑队友开始合作，并替换本地存档。</p><button class="modal-primary" data-modal="coop-new">开始合作</button><button class="modal-secondary" data-modal="close">返回等待界面</button>');
+    else newGame(true);
+  };
+  $("coop-home").onclick = () => {
+    closePanel();
+    center(0);
+  };
+  $("coop-ally").onclick = () => {
+    closePanel();
+    center(1);
+  };
   function modal(html) {
     paused = true;
     $("modal-content").innerHTML = html;
@@ -2920,7 +3603,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("modal").hidden = true;
     paused = !started;
     $("menu-pause").setAttribute("aria-expanded", "false");
-    (started ? $("menu-pause") : $("start-single")).focus();
+    (started ? $("menu-pause") : !$("coop-lobby").hidden ? $("coop-seat") : $("start-single")).focus();
     lastFrame = performance.now();
     refresh();
   }
@@ -2930,7 +3613,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   });
   function showMenu() {
     if (!started) return;
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + " 日</p>" + (GF.estate(state) ? "<p>在庄园内建设经营，升级四方城门抵御来敌。城墙与庄园外不可操作；水上道路为桥栈道。拖拽巡视，双指或滚轮缩放。</p>" : "") + '<button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
   }
   function autoplaySettings() {
     const r = pilot == null ? void 0 : pilot.report(), seconds = Math.floor((r == null ? void 0 : r.activeSeconds) || 0);
@@ -2944,7 +3627,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       toast("托管已关闭，可手动接管");
       return;
     }
-    if (!pilot) pilot = GFAutoplay.create(state);
+    if (!pilot) pilot = GFAutoplay.create(GF.playerView(state));
     autoplay = true;
     closePanel();
     closeModal();
@@ -2957,10 +3640,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function showVictory() {
     modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + "</strong><span>现存建筑</span></div><div><strong>" + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
-  function newGame() {
-    enterGame(GF.createState());
+  function newGame(coop = started && state.mode === "coop") {
+    enterGame(coop ? GF.createCoopState() : GF.createState());
     save();
-    toast("青溪新雨 · 古坊的故事重新开始");
+    toast(coop ? "双庄共守 · 你与电脑队友各守一庄" : "青溪新雨 · 古坊的故事重新开始");
   }
   $("modal-content").addEventListener("click", (e) => {
     var _a;
@@ -2973,6 +3656,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       e.target.closest("[data-modal]").textContent = "音效：" + (sound ? "开" : "关");
     }
     if (action === "title") showStartMenu();
+    if (action === "grid") {
+      grid = !grid;
+      try {
+        localStorage.setItem(GRID_KEY, grid ? "on" : "off");
+      } catch (e2) {
+      }
+      const button = e.target.closest("[data-modal]");
+      button.textContent = "地图网格：" + (grid ? "开" : "关");
+      button.setAttribute("aria-pressed", String(grid));
+    }
     if (action === "autoplay") toggleAutoplay();
     if (action === "autoplay-report" && pilot) {
       const report = __spreadProps(__spreadValues({}, pilot.report()), { enabled: autoplay, finalSave: JSON.parse(GF.serialize(state)) }), blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
@@ -3001,6 +3694,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     if (action === "reset") modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
     if (action === "new") newGame();
+    if (action === "coop-new") newGame(true);
     if (action === "menu") showMenu();
     if (action === "export") {
       const blob = new Blob([GF.serialize(state)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
@@ -3131,7 +3825,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     cardDrag.suppress = false;
   });
   window.addEventListener("keydown", (e) => {
-    const overlay = !$("modal").hidden ? $("modal") : !started ? $("start-menu") : null;
+    const overlay = !$("modal").hidden ? $("modal") : !$("coop-lobby").hidden ? $("coop-lobby") : !started ? $("start-menu") : null;
     if (e.key === "Tab" && overlay) {
       const buttons = [...overlay.querySelectorAll("button:not(:disabled)")].filter((el) => !el.hidden), first = buttons[0], last = buttons[buttons.length - 1];
       if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
@@ -3149,6 +3843,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     if (e.key === "Escape") {
       if (!$("modal").hidden) closeModal();
+      else if (!$("coop-lobby").hidden) showStartMenu();
       else if (started) closePanel();
     }
   });
@@ -3177,6 +3872,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             break;
           }
         }
+        if (partnerPilot) {
+          try {
+            partnerPilot.tick(tick);
+          } catch (error) {
+            showMenu();
+            toast("电脑队友已暂停：" + error.message, "warning");
+            break;
+          }
+        }
         GF.step(state, tick);
         remaining -= tick;
       }
@@ -3192,7 +3896,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!state.over) save();
       saveClock = 0;
     }
-    if (started) GFArt.render(canvas, state, cam, selected, { grid: false });
+    if (started) GFArt.render(canvas, state, cam, selected, { grid });
     requestAnimationFrame(frame);
   }
   resize();
@@ -3209,6 +3913,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return autoplay;
   }, get autoplayReport() {
     return (pilot == null ? void 0 : pilot.report()) || null;
+  }, get partnerReport() {
+    return (partnerPilot == null ? void 0 : partnerPilot.report()) || null;
   }, select, refresh, screenPoint, save, setPaused(value) {
     if (value) showMenu();
     else closeModal();

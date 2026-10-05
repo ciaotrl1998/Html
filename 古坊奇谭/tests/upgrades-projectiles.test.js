@@ -167,7 +167,7 @@ test('upgrade preview ignores zero resources, sums next prices and never mutates
   const shrineScene=scene(null,1), shrine=shrineScene.buildings[0];
   shrineScene.coins=shrineScene.materials=0;
   const shrineBefore=structuredClone(shrineScene);
-  assert.deepEqual(G.upgradeOptions(shrineScene,shrine),{levels:14,cost:cost('shrine',1,15)});
+  assert.deepEqual(G.upgradeOptions(shrineScene,shrine),{levels:1,cost:cost('shrine',1,2)});
   assert.deepEqual(shrineScene,shrineBefore);
 });
 
@@ -230,20 +230,27 @@ test('bulk upgrade stops at either exhausted resource and preserves damaged HP r
   }
 });
 
-test('four gates upgrade together for one price, full or partial, retaining full, damaged and broken ratios',()=>{
-  for(const partial of [false,true]) {
-    const s=scene(42), gates=s.buildings.filter(b=>b.type==='gate'), ratios=[1,.6,0,.23];
+test('four gates alternate single upgrades with the shrine to level fifteen for one price and retain HP ratios',()=>{
+    const s=scene(42,1), shrine=s.buildings[0], gates=s.buildings.filter(b=>b.type==='gate'), ratios=[1,.6,0,.23];
     gates.forEach((b,i)=>b.hp=G.maxHP(b)*ratios[i]);
-    const targetLevel=partial?4:9, budget=cost('gate',1,targetLevel);
-    if(partial) s.materials=budget.materials;
+    const targetLevel=15, budget=cost('gate',1,targetLevel), shrineBudget=cost('shrine',1,targetLevel);
     const before=structuredClone(s);
-    for(const gate of gates) assert.deepEqual(G.upgradeOptions(s,gate),{levels:8,cost:cost('gate',1,9)});
+    for(const gate of gates) assert.deepEqual(G.upgradeOptions(s,gate),{levels:1,cost:cost('gate',1,2)});
     assert.deepEqual(s,before);
-    const result=G.bulkUpgrade(s,gates[2]);
-    assert.equal(result.ok,true);assert.equal(result.levels,targetLevel-1);
-    assert.deepEqual(result.costspent,budget);assert.equal(s.gateLevel,targetLevel);
-    assert.equal(Boolean(result.reason),partial);
+    for(let level=2;level<=targetLevel;level++) {
+      assert(G.upgrade(s,shrine).ok);
+      assert(G.upgrade(s,gates[(level-2)%4]).ok);
+      assert.equal(s.gateLevel,level);
+      assert(gates.every(b=>b.level===level));
+    }
     gates.forEach((b,i)=>{assert.equal(b.level,targetLevel);close(b.hp/G.maxHP(b),ratios[i]);});
-    for(const key of ['coins','materials']) assert.equal(s[key],before[key]-budget[key]);
-  }
+    for(const key of ['coins','materials']) assert.equal(s[key],before[key]-budget[key]-shrineBudget[key]);
+    const loaded=G.restore(G.serialize(s));assert(loaded);
+    assert.equal(loaded.gateLevel,targetLevel);
+    assert(loaded.buildings.filter(b=>b.type==='gate').every(b=>b.level===targetLevel));
+      assert.equal(G.upgradeReason(s,gates[0]),'已达最高等级');
+      assert.equal(G.upgradeOptions(s,gates[0]).levels,0);
+      const invalid=JSON.parse(G.serialize(s));invalid.gateLevel=16;
+      for(const gate of invalid.buildings.filter(b=>b.type==='gate')){gate.level=16;gate.hp=G.maxHP(gate);}
+      assert.equal(G.restore(JSON.stringify(invalid)),null);
 });

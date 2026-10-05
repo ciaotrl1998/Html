@@ -5,9 +5,13 @@
   else root.GF = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const SIZE = 25, CENTER = 12, DAY = 72, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15;
+  const SIZE = 25, CENTER = 12, DAY = 72, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15, GATE_MAX_LEVEL = 15;
   const worldSize = s => s?.worldSize ?? (s ? 25 : 17);
+  // worldSize remains the row stride (width) for existing callers and square saves.
+  const worldWidth = worldSize;
+  const worldHeight = s => s?.worldHeight ?? worldWidth(s);
   const worldCenter = s => Math.floor(worldSize(s) / 2);
+  const worldCenterY = s => Math.floor(worldHeight(s) / 2);
   const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 2.15;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: '平地', shore: '水岸', water: '水域', forest: '林地', mountain: '山地' };
@@ -67,12 +71,125 @@
     if (x >= 11 && x <= 15 && y >= 11 && y <= 15) return 'mountain';
     return 'plain';
   }
-  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldSize(s) && y < worldSize(s);
+  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
   // 相邻含斜角：切比雪夫距离 1。
   const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
   const NEIGHBORS8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  // Player views share the battlefield but expose only one estate's economy.
+  const playerViews = new WeakMap(), coopMaps = new WeakMap();
+  const world = s => s?._world || s;
+  function playerView(s, owner = 0) {
+    s = world(s);
+    if (s.mode !== 'coop') return s;
+    let views = playerViews.get(s);
+    if (!views) { views = []; playerViews.set(s, views); }
+    if (views[owner]) return views[owner];
+    const view = { actorId: owner }, personal = new Set(['coins', 'materials', 'fortuneBuilt', 'gateLevel', 'cooldowns', 'mission']);
+    Object.defineProperty(view, '_world', { value: s });
+    for (const key of Object.keys(s)) Object.defineProperty(view, key, { enumerable: true,
+      get() { return key === 'buildings' ? s.buildings.filter(b => b.owner === owner) : personal.has(key) && owner === 1 ? s.partner[key] : s[key]; },
+      set(value) {
+        if (key === 'buildings') s.buildings = [...s.buildings.filter(b => b.owner !== owner), ...value];
+        else if (personal.has(key) && owner === 1) s.partner[key] = value;
+        else s[key] = value;
+      }
+    });
+    return views[owner] = view;
+  }
+  const economicView = s => s.mode === 'coop' && s.actorId === undefined ? playerView(s) : s;
+  function coopMap(s) {
+    s = world(s);
+    const cached = coopMaps.get(s); if (cached) return cached;
+    // Facing wall lines overlap by exactly one tile: one shared divider, no lane.
+    const horizontal = s.coopLayout === 'horizontal', gap = -1;
+    const width = worldWidth(s), height = worldHeight(s);
+    const sources = [createState(s.mapSeed), createState((Math.imul(s.mapSeed, 1664525) + 1013904223) >>> 0)];
+    const originals = sources.map((source, owner) => {
+      const original = estate(source), cells = new Set(original.cells);
+      const axes = [...cells].map(k => horizontal ? k % 25 : Math.floor(k / 25));
+      const face = owner === 0 ? Math.max(...axes) : Math.min(...axes);
+      // Straighten only the common face; the other three edges keep their random contour.
+      for (const key of [...cells]) {
+        const axis = horizontal ? key % 25 : Math.floor(key / 25), cross = horizontal ? Math.floor(key / 25) : key % 25;
+        for (let n = Math.min(axis, face); n <= Math.max(axis, face); n++) cells.add(horizontal ? cross * 25 + n : n * 25 + cross);
+      }
+      const walls = new Set();
+      for (const k of cells) for (const [dx, dy] of NEIGHBORS8) if (!cells.has(k + dy * 25 + dx)) walls.add(k + dy * 25 + dx);
+      for (const g of original.gates) walls.delete(g.y * 25 + g.x);
+      return { ...original, cells, walls };
+    });
+    const bounds = originals.map(land => {
+      const keys = [...land.cells, ...land.walls, ...land.gates.map(g => g.y * 25 + g.x)];
+      return { min: Math.min(...keys.map(k => horizontal ? k % 25 : Math.floor(k / 25))), max: Math.max(...keys.map(k => horizontal ? k % 25 : Math.floor(k / 25))) };
+    });
+    const length = bounds.reduce((n, b) => n + b.max - b.min + 1, gap), start = Math.floor(((horizontal ? width : height) - length) / 2);
+    const terrainCells = Array(width * height).fill('plain'), estates = [];
+    let cursor = start;
+    for (let owner = 0; owner < 2; owner++) {
+      const original = originals[owner], source = sources[owner];
+      const offset = cursor - bounds[owner].min, dx = horizontal ? offset : Math.floor(width / 2) - 12, dy = horizontal ? Math.floor(height / 2) - 12 : offset;
+      cursor += bounds[owner].max - bounds[owner].min + 1 + gap;
+      const convert = key => (Math.floor(key / 25) + dy) * width + key % 25 + dx;
+      const cells = new Set([...original.cells].map(convert));
+      const walls = new Set([...original.walls, ...original.gates.map(g => g.y * 25 + g.x)].map(convert));
+      const center = { x: 12 + dx, y: 12 + dy };
+      const inward = horizontal ? (owner === 0 ? 1 : 3) : (owner === 0 ? 2 : 0);
+      const gates = original.gates.filter(g => g.direction !== inward).map(g => ({ ...g, x: g.x + dx, y: g.y + dy, owner }));
+      const inner = owner === 0 ? bounds[owner].max - 2 : bounds[owner].min + 2;
+      for (const g of gates) {
+        if (horizontal ? g.direction % 2 === 0 : g.direction % 2 === 1) {
+          const line = [...original.cells].filter(k => (horizontal ? k % 25 : Math.floor(k / 25)) === inner);
+          if (horizontal) { g.x = inner + dx; g.y = (g.direction === 0 ? Math.min(...line.map(k => Math.floor(k / 25))) - 1 : Math.max(...line.map(k => Math.floor(k / 25))) + 1) + dy; }
+          else { g.y = inner + dy; g.x = (g.direction === 3 ? Math.min(...line.map(k => k % 25)) - 1 : Math.max(...line.map(k => k % 25)) + 1) + dx; }
+        }
+        walls.delete(g.y * width + g.x);
+      }
+      const roads = new Set([...original.roads].filter(k => original.cells.has(k)).map(convert));
+      const root = center.y * width + center.x, queue = [root], parents = new Map([[root, null]]);
+      for (let i = 0; i < queue.length; i++) for (const delta of [-width, 1, width, -1]) {
+        const next = queue[i] + delta;
+        if (cells.has(next) && !parents.has(next)) { parents.set(next, queue[i]); queue.push(next); }
+      }
+      for (const g of gates) {
+        const [gx, gy] = [[0,-1],[1,0],[0,1],[-1,0]][g.direction];
+        let key = (g.y - gy) * width + g.x - gx;
+        while (key != null) { roads.add(key); key = parents.get(key); }
+        roads.add(g.y * width + g.x);
+      }
+      for (const key of [...original.cells, ...original.walls]) terrainCells[convert(key)] = baseTerrain(key % 25, Math.floor(key / 25), source);
+      for (const g of gates) terrainCells[g.y * width + g.x] = 'plain';
+      estates.push({ owner, cells, walls, gates, roads, center });
+    }
+    const merge = property => [].concat(...estates.map(e => Array.from(e[property])));
+    const combined = { cells: new Set(merge('cells')), walls: new Set(merge('walls')), gates: merge('gates'), roads: new Set(merge('roads')), estates, gap: 0, sharedWall: new Set([...estates[0].walls].filter(k => estates[1].walls.has(k))) };
+    for (const g of combined.gates) {
+      const [dx, dy] = [[0,-1],[1,0],[0,1],[-1,0]][g.direction];
+      for (let x = g.x + dx, y = g.y + dy; x >= 0 && y >= 0 && x < width && y < height; x += dx, y += dy) {
+        const key = y * width + x;
+        if (combined.walls.has(key) || combined.cells.has(key)) break;
+        combined.roads.add(key); terrainCells[key] = 'plain';
+      }
+    }
+    const value = { land: combined, terrain: terrainCells }; coopMaps.set(s, value); return value;
+  }
+  function createCoopState(mapSeed = Math.floor(Math.random() * 4294967296), layout) {
+    const s = createState(mapSeed);
+    const coopLayout = layout || (s.estateSeed % 2 ? 'horizontal' : 'vertical');
+    Object.assign(s, { version: 7, mode: 'coop', worldSize: coopLayout === 'horizontal' ? 40 : 25, worldHeight: coopLayout === 'horizontal' ? 25 : 40, coopLayout, partner: { controller: 'computer', coins: 200, materials: 220, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0 }, buildings: [], nextId: 1 });
+    for (const e of coopMap(s).land.estates) {
+      addBuilding(s, 'shrine', e.center.x, e.center.y, 1, { owner: e.owner });
+      for (const g of e.gates) addBuilding(s, 'gate', g.x, g.y, 1, { direction: g.direction, owner: e.owner });
+    }
+    return s;
+  }
+  function raidOptions(s) { return s.coopLayout === 'horizontal' ? [[0], [2], [3, 1]] : [[3], [1], [0, 2]]; }
+  function raidDirections(s) {
+    if (s.mode === 'coop') return raidOptions(s)[s.direction];
+    return (s.phase === 'dusk' ? s.day % 7 === 0 : s.wave?.boss) ? [0, 1, 2, 3] : [s.direction];
+  }
   const terrainCache = new WeakMap();
   function generatedTerrain(s) {
+    if (s.mode === 'coop') return coopMap(s).terrain;
     const cached = terrainCache.get(s);
     if (cached?.seed === s.mapSeed && cached.size === worldSize(s) && cached.generation === s.mapGeneration) return cached.cells;
     if (s.mapGeneration === 2) return variedTerrain(s);
@@ -261,6 +378,7 @@
   }
   const estateCache = new WeakMap();
   function estate(s) {
+    if (s?.mode === 'coop') { const land = coopMap(s).land; return s.actorId === undefined ? land : land.estates[s.actorId]; }
     if (s?.estateSeed === undefined) return null;
     const cached = estateCache.get(s);
     if (cached?.seed === s.estateSeed && cached.mapSeed === s.mapSeed && cached.generation === s.mapGeneration) return cached.value;
@@ -328,10 +446,10 @@
     const land = estate(s), key = y * worldSize(s) + x;
     return !land || land.cells.has(key) || land.walls.has(key) || land.gates.some(g => g.x === x && g.y === y);
   }
-  function isWall(s, x, y) { return inside(x, y, s) && !!estate(s)?.walls.has(y * worldSize(s) + x); }
+  function isWall(s, x, y) { return inside(x, y, s) && !!estate(world(s))?.walls.has(y * worldSize(s) + x); }
   function walkable(s, x, y) {
     if (!inside(x, y, s) || isWall(s, x, y)) return false;
-    return terrain(x, y, s) !== 'water' || !!estate(s)?.roads.has(y * worldSize(s) + x);
+    return terrain(x, y, s) !== 'water' || !!estate(world(s))?.roads.has(y * worldSize(s) + x);
   }
   function terrain(x, y, s) {
     if (!inside(x, y, s)) return 'plain';
@@ -347,8 +465,8 @@
   const incomeFactor = b => b.type === 'shrine' ? Math.pow(2, Math.min(2, b.level - 1)) * (1 + .25 * Math.max(0, b.level - 3)) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
   const auraFactor = b => Math.pow(2, Math.min(2, b.level - 1)) * (1 + .2 * Math.max(0, b.level - 3));
   const hpFactor = b => Math.pow(HP_GROWTH, b.level - 1);
-  const maxLevel = b => b?.type === 'shrine' ? SHRINE_MAX_LEVEL : MAX_LEVEL;
-  const shrineLevel = s => s.buildings.find(b => b.type === 'shrine')?.level || 0;
+  const maxLevel = b => b?.type === 'shrine' ? SHRINE_MAX_LEVEL : b?.type === 'gate' ? GATE_MAX_LEVEL : MAX_LEVEL;
+  const shrineLevel = s => economicView(s).buildings.find(b => b.type === 'shrine')?.level || 0;
   const requiredShrineLevel = level => SHRINE_REQUIREMENTS[Math.min(MAX_LEVEL, Math.max(1, level))];
   const unlockedBuildingLevel = s => {
     const level = shrineLevel(s); let unlocked = 1;
@@ -356,19 +474,40 @@
     return unlocked;
   };
   const maxHP = b => Math.round(DEFS[b.type].hp * hpFactor(b));
+  const soldierLimit = b => Math.max(1, Math.min(MAX_LEVEL, b.level));
+  const soldierHP = b => Math.round(120 * hpFactor(b));
+  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s);
+  const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(b) * soldierDamage(s, b)));
+  function muster(s, b) {
+    if (s.phase !== 'night' || b.type !== 'barracks' || b.hp <= 0 || !walkable(s, b.x, b.y)) return;
+    s.soldiers ||= []; b.musteredCount ??= 0;
+    while (b.musteredCount < soldierLimit(b)) {
+      s.soldiers.push({ id: s.nextId++, barracksId: b.id, x: b.x, y: b.y, hp: soldierHP(b), maxHp: soldierHP(b), level: b.level,
+        attack: 0, path: [], pathRevision: -1, targetId: null });
+      b.musteredCount++;
+    }
+  }
+  function cleanSoldiers(s) {
+    s.soldiers = (s.soldiers || []).filter(u => u.hp > 0 && s.buildings.some(b => b.id === u.barracksId && b.type === 'barracks' && b.hp > 0));
+    for (const e of s.enemies) if (e.soldierTargetId != null && !s.soldiers.some(u => u.id === e.soldierTargetId)) {
+      delete e.soldierTargetId; e.path = []; e.pathRevision = -1; delete e.chaseTile;
+    }
+  }
   const visualLevel = level => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = b => DEFS[b.type].names?.[visualLevel(b.level) - 1] || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? '兴盛' : '鼎盛') + DEFS[b.type].name);
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
     const b = { id: s.nextId++, type, x, y, level, hp: Math.round(DEFS[type].hp * Math.pow(HP_GROWTH, level - 1)), cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, ...extra };
-    s.buildings.push(b); s.revision++; return b;
+    if (s.mode === 'coop') b.owner = extra.owner ?? s.actorId ?? 0;
+    world(s).buildings.push(b); s.revision++; muster(s, b); return b;
   }
   function grantBuilding(s, type, x, y, level = unlockedBuildingLevel(s), originCost) {
+    s = economicView(s);
     if (!DEFS[type] || type === 'fortune' || DEFS[type].unique || DEFS[type].fixed || !owns(s, x, y) || isWall(s, x, y) || estate(s)?.gates.some(g => g.x === x && g.y === y) || terrain(x, y, s) === 'water' || at(s, x, y)) return null;
     return addBuilding(s, type, x, y, Math.min(level, maxLevel({ type })), originCost ? { originCost } : {});
   }
   function createState(mapSeed = Math.floor(Math.random() * 4294967296), mapGeneration = 2) {
     const s = { version: mapSeed === null ? 4 : 5, worldSize: mapSeed === null ? 17 : 25, seed: 73193, nextId: 1, coins: 200, materials: mapSeed === null ? 120 : 220, fortuneBuilt: 0, day: 1, phase: 'day', time: 0, elapsed: 0, repairTime: 0,
-      direction: 0, buildings: [], enemies: [], projectiles: [], effects: [], events: [], kills: 0, wave: null,
+      direction: 0, buildings: [], enemies: [], soldiers: [], projectiles: [], effects: [], events: [], kills: 0, wave: null,
       cooldowns: { repel: 0, repair: 0, thunder: 0 }, mission: 0, revision: 0, over: false, celebrated: false };
     if (mapSeed !== null) { s.mapSeed = mapSeed >>> 0; s.estateSeed = (Math.imul(s.mapSeed, 2246822519) ^ 3266489917) >>> 0; s.gateLevel = 1; }
     if (mapSeed !== null && mapGeneration === 2) s.mapGeneration = 2;
@@ -386,11 +525,13 @@
   }
   function pay(s, cost) { s.coins -= cost.coins; s.materials -= cost.materials; }
   function buildCost(s, type) {
+    s = economicView(s);
     if (type !== 'fortune') return DEFS[type]?.cost || { coins: 0, materials: 0 };
     const multiple = Math.pow(1.8, s.fortuneBuilt || 0);
     return { coins: Math.ceil(DEFS.fortune.cost.coins * multiple), materials: Math.ceil(DEFS.fortune.cost.materials * multiple) };
   }
   function fortuneCandidates(s, x, y) {
+    s = economicView(s);
     if (!owns(s, x, y) || isWall(s, x, y) || estate(s)?.gates.some(g => g.x === x && g.y === y) || at(s, x, y) || terrain(x, y, s) === 'water') return [];
     const plot = terrain(x, y, s);
     return Object.values(DEFS).filter(d => {
@@ -402,7 +543,8 @@
       return true;
     });
   }
-  function buildReason(s, type, x, y) {
+  function buildReason(s, type, x, y, ignoreFunds = false) {
+    s = economicView(s);
     const d = DEFS[type];
     if (!d) return '未知建筑';
     if (s.over) return '古坊已失守';
@@ -415,7 +557,7 @@
     if (s.enemies.some(e => Math.hypot(e.x - x, e.y - y) < .65)) return '敌人正在此地';
     if (d.unique) return '祠堂仅此一座';
     if (d.fortuneOnly) return '仅可由造化匣获得';
-    if (type === 'fortune') return fortuneCandidates(s, x, y).length ? shortage(s, buildCost(s, type)) : '此地无可造化建筑';
+    if (type === 'fortune') return fortuneCandidates(s, x, y).length ? (ignoreFunds ? '' : shortage(s, buildCost(s, type))) : '此地无可造化建筑';
     if (d.limit && s.buildings.filter(b => b.type === type).length >= d.limit) return '已达上限（' + d.limit + '座）';
     if (d.cat === 'economy' && plot === 'forest' && type !== 'mulberry') return '林地仅可建桑园';
     if (d.cat === 'economy' && plot === 'mountain' && type !== 'quarry') return '山地仅可建石场';
@@ -429,13 +571,19 @@
       const missing = d.required.filter(id => !nearby.has(id));
       if (missing.length) return '需紧邻' + missing.map(id => DEFS[id].name).join('、');
     }
-    return shortage(s, buildCost(s, type));
+    return ignoreFunds ? '' : shortage(s, buildCost(s, type));
+  }
+  function buildHints(s, x, y) {
+    return Object.values(DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true))
+      .map(d => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = 'info') { s.events.push({ text, kind }); if (s.events.length > 30) s.events.shift(); }
   function missions(s) {
+    if (s.mode === 'coop' && s.actorId === undefined) { missions(playerView(s, 0)); missions(playerView(s, 1)); return; }
     while (MISSIONS[s.mission]?.test(s)) { const m = MISSIONS[s.mission++]; s.coins += m.reward; event(s, '坊志达成：' + m.title + ' · +' + m.reward + ' 铜钱', 'reward'); }
   }
   function build(s, type, x, y) {
+    s = economicView(s);
     const reason = buildReason(s, type, x, y); if (reason) return { ok: false, reason };
     const cost = buildCost(s, type); pay(s, cost);
     if (type === 'fortune') {
@@ -450,11 +598,17 @@
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
   function upgradeReason(s, b, ignoreFunds = false) {
+    s = economicView(s);
     if (!b || !s.buildings.includes(b)) return '建筑已不存在';
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return '仅可升级庄园内建筑';
     if (s.over) return '古坊已失守';
     const d = DEFS[b.type]; if (b.level >= maxLevel(b)) return '已达最高等级';
-    if (b.type !== 'shrine') {
+    if (estate(s) && (b.type === 'shrine' || b.type === 'gate')) {
+      const otherType = b.type === 'shrine' ? 'gate' : 'shrine';
+      const current = s.buildings.find(n => n.type === otherType)?.level || 0;
+      if (b.level + 1 > current + 1) return '需' + (otherType === 'gate' ? '城门' : '祠堂') + ' Lv' + b.level + '（当前 Lv' + current + '）';
+    }
+    if (b.type !== 'shrine' && b.type !== 'gate') {
       const required = requiredShrineLevel(b.level + 1), current = shrineLevel(s);
       if (current < required) return '需祠堂 Lv' + required + '（当前 Lv' + current + '）';
     }
@@ -463,8 +617,13 @@
     return ignoreFunds ? '' : shortage(s, upgradeCost(b));
   }
   function upgradeOptions(s, b) {
+    s = economicView(s);
     const result = { levels: 0, cost: { coins: 0, materials: 0 } };
     if (!b || !s.buildings.includes(b)) return result;
+    if (b.type === 'shrine' || b.type === 'gate') {
+      if (!upgradeReason(s, b, true)) { result.levels = 1; result.cost = upgradeCost(b); }
+      return result;
+    }
     const mapping = new Map(s.buildings.map(n => [n, { ...n }]));
     const shadow = { ...s, buildings: [...mapping.values()] }, target = mapping.get(b);
     while (!upgradeReason(shadow, target, true)) {
@@ -476,6 +635,8 @@
     return result;
   }
   function bulkUpgrade(s, b) {
+    s = economicView(s);
+    if (b?.type === 'shrine' || b?.type === 'gate') return { ok: false, levels: 0, reason: '仅可单级升级', costspent: { coins: 0, materials: 0 } };
     const options = upgradeOptions(s, b), cost = { coins: 0, materials: 0 };
     let levels = 0, reason = '';
     if (!options.levels) reason = upgradeReason(s, b);
@@ -487,6 +648,7 @@
     return { ok: levels > 0, levels, reason, costspent: cost };
   }
   function upgrade(s, b) {
+    s = economicView(s);
     const reason = upgradeReason(s, b); if (reason) return { ok: false, reason };
     pay(s, upgradeCost(b));
     const targets = b.type === 'gate' ? s.buildings.filter(n => n.type === 'gate') : [b];
@@ -495,9 +657,16 @@
       const ratio = target.hp / maxHP(target); target.level = level; target.hp = maxHP(target) * ratio;
     }
     if (b.type === 'gate') s.gateLevel = level;
+    if (b.type === 'barracks') {
+      for (const u of s.soldiers || []) if (u.barracksId === b.id) {
+        const ratio = u.hp / u.maxHp; u.level = b.level; u.maxHp = soldierHP(b); u.hp = u.maxHp * ratio;
+      }
+      muster(s, b);
+    }
     s.revision++; missions(s); return { ok: true };
   }
   function demolishReason(s, b) {
+    s = economicView(s);
     if (!b || !s.buildings.includes(b) || b.type === 'shrine') return '祠堂不可拆除';
     if (b.type === 'gate') return '城门不可拆除';
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return '仅可拆除庄园内建筑';
@@ -505,13 +674,16 @@
     return '';
   }
   function demolish(s, b) {
+    s = economicView(s);
     const reason = demolishReason(s, b); if (reason) return { ok: false, reason };
     const cost = b.originCost || DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * .4), materials: Math.floor(cost.materials * .4) };
     s.coins += refund.coins; s.materials += refund.materials; s.buildings = s.buildings.filter(n => n !== b); s.revision++;
+    if (b.type === 'barracks') cleanSoldiers(world(s));
     const dryFarms = b.type === 'well' ? s.buildings.filter(n => n.type === 'farm' && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
     return { ok: true, refund, dryFarms };
   }
   function income(s, b) {
+    if (s.mode === 'coop' && s.actorId === undefined) s = playerView(s, b.owner ?? 0);
     const d = DEFS[b.type]; if (!d.income) return 0;
     let bonus = 0;
     for (const n of s.buildings) {
@@ -522,12 +694,13 @@
     }
     return d.income * incomeFactor(b) * (1 + Math.min(2, bonus)) * (s.day % 7 === 0 ? 1.25 : 1);
   }
-  const rates = s => s.buildings.reduce((r, b) => {
+  const rates = s => economicView(s).buildings.reduce((r, b) => {
     const d = DEFS[b.type];
     r[d.resource === 'materials' ? 'materials' : 'coins'] += income(s, b);
     return r;
   }, { coins: 0, materials: 0 });
   function settleIncome(s, dt) {
+    if (s.mode === 'coop' && s.actorId === undefined) { settleIncome(playerView(s, 0), dt); settleIncome(playerView(s, 1), dt); return; }
     for (const b of s.buildings) {
       const d = DEFS[b.type]; if (!d.income) continue;
       b.incomeTime += dt;
@@ -544,25 +717,30 @@
       }
     }
   }
-  function dusk(s) { s.phase = 'dusk'; s.time = 0; s.direction = Math.floor(random(s) * 4); event(s, '暮色将至 · 今夜来敌在' + ['北', '东', '南', '西'][s.direction] + '方', 'warning'); }
+  function dusk(s) { s.phase = 'dusk'; s.time = 0; s.direction = Math.floor(random(s) * (s.mode === 'coop' ? 3 : 4)); event(s, '暮色将至 · 今夜来敌在' + raidDirections(s).map(d => ['北', '东', '南', '西'][d]).join('、') + '方', 'warning'); }
   function startNight(s) {
     s.phase = 'night'; s.time = 0; const boss = s.day % 7 === 0;
+    s.soldiers = []; cleanSoldiers(s);
+    for (const b of s.buildings) if (b.type === 'barracks') { b.musteredCount = 0; muster(s, b); }
     const opening = Math.min(1, .5 + .5 * (s.day - 1) / 9);
     s.wave = { total: Math.ceil(Math.min(120, 7 + s.day * 3 + Math.floor(s.day / 3) * 2 + (boss ? 12 : 0)) * opening), spawned: 0, timer: .35, boss };
-    event(s, boss ? '百鬼夜行！妖将与群妖从四方来袭' : '入夜了 · 守住祠堂，灯火不熄', 'warning');
+    if (s.mode === 'coop') s.wave.total *= 2;
+    event(s, boss ? '百鬼夜行！妖将与群妖从' + raidDirections(s).map(d => ['北','东','南','西'][d]).join('、') + '方来袭' : '入夜了 · 守住祠堂，灯火不熄', 'warning');
   }
   function dawn(s) {
     s.day++; s.phase = 'day'; s.time = 0; s.wave = null; s.enemies = []; s.projectiles = []; s.repairTime = 0;
+    s.soldiers = []; for (const b of s.buildings) delete b.musteredCount;
     const reward = 40 + s.day * 8; s.coins += reward; event(s, '平安入晓 · 守夜赏钱 +' + reward, 'reward');
+    if (s.mode === 'coop') s.partner.coins += reward + (s.day % 7 === 0 ? 180 : 0);
     if (s.day % 7 === 0) { s.coins += 180; event(s, '上元灯会 · 收入 +25%，获赠 180 铜钱', 'reward'); }
     if (s.day === 8 && !s.celebrated) { s.celebrated = true; event(s, '七夜长明！古坊立稳根基，可继续经营抵御更强来敌', 'victory'); }
     missions(s);
   }
   function spawnPlots(s, direction) {
     if (!Number.isInteger(direction) || direction < 0 || direction > 3) return [];
-    const size = worldSize(s), center = worldCenter(s), plots = [];
+    const size = worldWidth(s), height = worldHeight(s), center = direction % 2 ? worldCenterY(s) : worldCenter(s), plots = [];
     for (let pos = center - 2; pos <= center + 2; pos++) {
-      const [x, y] = [[pos, 0], [size - 1, pos], [pos, size - 1], [0, pos]][direction];
+      const [x, y] = [[pos, 0], [size - 1, pos], [pos, height - 1], [0, pos]][direction];
       if (terrain(x, y, s) !== 'water' && walkable(s, x, y) && !at(s, x, y)?.hp && findPath(s, { x, y }).length) plots.push({ x, y });
     }
     return plots;
@@ -572,37 +750,155 @@
     if (e.laneX === undefined) e.laneX = ((Math.imul(e.id, 1664525) + 1013904223) >>> 0) / 4294967296 * .5 - .25;
     if (e.laneY === undefined) e.laneY = ((Math.imul(e.id, 2246822519) + 3266489917) >>> 0) / 4294967296 * .5 - .25;
   }
+  function raidGates(s, direction) {
+    return s.buildings.filter(b => b.type === 'gate' && b.direction === direction)
+      .sort((a, b) => (a.owner ?? 0) - (b.owner ?? 0) || a.id - b.id);
+  }
   function spawnEnemy(s) {
-    const w = s.wave, i = w.spawned, dir = w.boss ? i % 4 : s.direction;
+    const w = s.wave, i = w.spawned, directions = raidDirections(s), dir = directions[i % directions.length];
     const plots = spawnPlots(s, dir); if (!plots.length) { w.spawned++; return; }
     w.spawned++;
+    // A shared-side wave alternates exactly between the two corresponding gates.
+    // Split-side waves have one eligible gate per direction, so ownership is fixed.
+    const gates = s.mode === 'coop' ? raidGates(s, dir) : [];
+    const targetGate = gates.length ? gates[Math.floor(i / directions.length) % gates.length] : null;
     const SIZE = worldSize(s), p = plots[Math.floor(random(s) * plots.length)];
-    const jitter = value => value === 0 ? random(s) * .2 : value === SIZE - 1 ? value - random(s) * .2 : value + (random(s) * 2 - 1) * .28;
-    const x = jitter(p.x), y = jitter(p.y), laneX = random(s) * .5 - .25, laneY = random(s) * .5 - .25;
+    const jitter = (value, limit) => value === 0 ? random(s) * .2 : value === limit - 1 ? value - random(s) * .2 : value + (random(s) * 2 - 1) * .28;
+    const x = jitter(p.x, SIZE), y = jitter(p.y, worldHeight(s)), laneX = random(s) * .5 - .25, laneY = random(s) * .5 - .25;
     const type = s.day >= 5 && i % 4 === 2 ? 'fox' : s.day >= 4 && i % 3 === 1 ? 'ghost' : 'bandit';
     const opening = Math.min(1, (s.day - 1) / 9);
-    const d = ENEMIES[type], boss = w.boss && i === w.total - 1, late = Math.max(0, s.day - 14), scale = (.45 + .55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + .08 * late);
+    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === 'coop' ? 2 : 1), late = Math.max(0, s.day - 14), scale = (.45 + .55 * opening) * Math.pow(1.23, Math.min(13, s.day - 1)) * Math.pow(1.28, Math.min(7, late)) * Math.pow(1.22, Math.max(0, late - 7)) * (1 + .08 * late);
     s.enemies.push({ id: s.nextId++, type, x, y, laneX, laneY, hp: d.hp * scale * (boss ? 4.5 : 1), maxHp: d.hp * scale * (boss ? 4.5 : 1),
       damage: d.damage * (.3 + .7 * opening) * Math.pow(1.12, Math.min(13, s.day - 1)) * Math.pow(1.18, Math.min(7, late)) * Math.pow(1.15, Math.max(0, late - 7)) * (1 + .04 * late) * (boss ? 2 : 1), speed: d.speed * Math.min(1.22, Math.pow(1.012, s.day - 1)), attack: 0, repelled: 0, slowed: 0, slowFactor: 1, boss, path: [], pathRevision: -1 });
+    if (targetGate) Object.assign(s.enemies[s.enemies.length - 1], { targetGateId: targetGate.id, targetOwner: targetGate.owner });
   }
   // Breadth-first search selects the shortest route to the shrine, regardless of building durability.
-  function findPath(s, e) {
-    const SIZE = worldSize(s);
-    const base = s.buildings.find(b => b.type === 'shrine'); if (!base) return [];
-    const startX = Math.max(0, Math.min(SIZE - 1, Math.round(e.x))), startY = Math.max(0, Math.min(SIZE - 1, Math.round(e.y)));
-    const start = startY * SIZE + startX, goal = base.y * SIZE + base.x, prev = Array(SIZE * SIZE).fill(-1), queue = [start]; prev[start] = start;
+  function findPath(s, e, destination, passBuildings = true) {
+    s = world(s);
+    const SIZE = worldWidth(s), height = worldHeight(s);
+    if (s.mode === 'coop' && !destination) {
+      const land = estate(s), key = Math.round(e.y) * SIZE + Math.round(e.x);
+      const entered = land.estates.find(a => a.cells.has(key));
+      if (entered) {
+        const owner = Number.isInteger(e.targetOwner) ? e.targetOwner : entered.owner;
+        const shrine = s.buildings.find(b => b.type === 'shrine' && b.owner === owner);
+        return shrine ? findPath(s, e, shrine) : [];
+      }
+      // New enemies keep their assigned gate through every path refresh. Enemies
+      // from older saves select one reachable gate once, then lock to it as well.
+      const assigned = s.buildings.find(b => b.type === 'gate' && b.id === e.targetGateId);
+      const choices = assigned ? [assigned] : s.buildings.filter(b => b.type === 'gate');
+      const queue = [key], parents = new Map([[key, null]]), gates = new Map(choices.map(g => [g.y * SIZE + g.x, g]));
+      for (let i = 0; i < queue.length; i++) {
+        const k = queue[i], gate = gates.get(k);
+        if (gate) {
+          const path = []; let p = k;
+          while (parents.get(p) != null) { path.unshift({ x: p % SIZE, y: Math.floor(p / SIZE) }); p = parents.get(p); }
+          const shrine = s.buildings.find(b => b.type === 'shrine' && b.owner === gate.owner);
+          e.targetGateId = gate.id; e.targetOwner = gate.owner;
+          return shrine ? path.concat(findPath(s, gate, shrine) || []) : [];
+        }
+        for (const [dx, dy] of [[0,-1],[1,0],[0,1],[-1,0]]) {
+          const x = k % SIZE + dx, y = Math.floor(k / SIZE) + dy, next = y * SIZE + x;
+          if (walkable(s, x, y) && !parents.has(next) && !land.cells.has(next)) { parents.set(next, k); queue.push(next); }
+        }
+      }
+      return [];
+    }
+    const base = destination || s.buildings.find(b => b.type === 'shrine'); if (!base) return [];
+    const startX = Math.max(0, Math.min(SIZE - 1, Math.round(e.x))), startY = Math.max(0, Math.min(height - 1, Math.round(e.y)));
+    const start = startY * SIZE + startX, goal = Math.round(base.y) * SIZE + Math.round(base.x), prev = Array(SIZE * height).fill(-1), queue = [start]; prev[start] = start;
+    if (!walkable(s, startX, startY) || !walkable(s, Math.round(base.x), Math.round(base.y))) return destination ? null : [];
     for (let i = 0; i < queue.length; i++) {
       const current = queue[i]; if (current === goal) break;
       const x = current % SIZE, y = Math.floor(current / SIZE);
       for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
         if (!walkable(s, nx, ny)) continue; const next = ny * SIZE + nx;
+        if (!passBuildings && at(s, nx, ny)?.hp > 0) continue;
         if (prev[next] !== -1) continue;
         prev[next] = current; queue.push(next);
       }
     }
-    if (prev[goal] === -1) return [];
+    if (prev[goal] === -1) return destination ? null : [];
     const path = []; let n = goal; while (n !== start && n !== -1) { path.unshift({ x: n % SIZE, y: Math.floor(n / SIZE) }); n = prev[n]; }
     return path;
+  }
+  function findSoldierPath(s, unit, target) { return findPath(s, unit, target, true); }
+  function safeUnitSegment(s, unit, x, y, passBuildings) {
+    const clear = (tx, ty) => walkable(s, tx, ty) && (passBuildings || !(at(s, tx, ty)?.hp > 0));
+    const samples = Math.max(1, Math.ceil(Math.hypot(x - unit.x, y - unit.y) / .025));
+    let lastX = Math.round(unit.x), lastY = Math.round(unit.y);
+    for (let i = 0; i <= samples; i++) {
+      const px = unit.x + (x - unit.x) * i / samples, py = unit.y + (y - unit.y) * i / samples;
+      const tx = Math.round(px), ty = Math.round(py);
+      if (px < 0 || py < 0 || px > worldWidth(s) - 1 || py > worldHeight(s) - 1 || !clear(tx, ty)) return false;
+      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
+      lastX = tx; lastY = ty;
+    }
+    return true;
+  }
+  function moveUnit(s, unit, target, speed, dt, passBuildings) {
+    let goal = unit.path[0] || target;
+    if (!safeUnitSegment(s, unit, goal.x, goal.y, passBuildings)) {
+      const tile = { x: Math.round(unit.x), y: Math.round(unit.y) };
+      if (tile.x !== goal.x || tile.y !== goal.y) goal = tile;
+    }
+    const distance = Math.hypot(goal.x - unit.x, goal.y - unit.y), step = Math.min(distance, speed * dt);
+    if (distance > .001) {
+      const x = unit.x + (goal.x - unit.x) / distance * step, y = unit.y + (goal.y - unit.y) / distance * step;
+      if (safeUnitSegment(s, unit, x, y, passBuildings)) { unit.x = x; unit.y = y; }
+    }
+    if (unit.path.length && Math.hypot(unit.path[0].x - unit.x, unit.path[0].y - unit.y) <= .001) unit.path.shift();
+  }
+  function soldierCombat(s, dt) {
+    cleanSoldiers(s);
+    for (const u of s.soldiers) {
+      u.attack = Math.max(0, u.attack - dt);
+      const candidates = s.enemies.filter(e => e.hp > 0).sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
+      let target = null;
+      for (const e of candidates) {
+        const tile = Math.round(e.x) + ',' + Math.round(e.y);
+        if (u.targetId === e.id && u.targetTile === tile && u.pathRevision === s.revision) { target = e; break; }
+        const path = findSoldierPath(s, u, e);
+        if (path !== null) { target = e; u.path = path; u.pathRevision = s.revision; u.targetTile = tile; break; }
+      }
+      u.targetId = target?.id ?? null;
+      if (!target) { u.path = []; continue; }
+      if (Math.hypot(target.x - u.x, target.y - u.y) > .75 || !safeUnitSegment(s, u, target.x, target.y, true)) moveUnit(s, u, target, 2.2, dt, true);
+      if (u.attack <= 1e-8 && Math.hypot(target.x - u.x, target.y - u.y) <= .75 && safeUnitSegment(s, u, target.x, target.y, true)) {
+        const b = s.buildings.find(b => b.id === u.barracksId);
+        target.hp -= soldierDamage(s, b) * (target.type === 'fox' ? 1.5 : 1); u.attack = 1;
+        if (target.soldierTargetId !== u.id) { target.path = []; target.pathRevision = -1; delete target.chaseTile; }
+        target.soldierTargetId = u.id;
+        s.projectiles.push({ x: u.x, y: u.y, tx: target.x, ty: target.y, type: 'barracks', life: .3, total: .3 });
+      }
+    }
+  }
+  function chaseSoldier(s, e, dt) {
+    const u = s.soldiers.find(u => u.id === e.soldierTargetId && u.hp > 0);
+    if (!u || Math.hypot(u.x - e.x, u.y - e.y) > 8) return false;
+    const tile = Math.round(u.x) + ',' + Math.round(u.y);
+    if (e.chaseTile !== tile || e.pathRevision !== s.revision) {
+      let path = findPath(s, e, u, false);
+      if (path === null) {
+        const candidates = [];
+        for (const [dx, dy] of NEIGHBORS8) {
+          const x = Math.round(u.x) + dx, y = Math.round(u.y) + dy;
+          if (walkable(s, x, y) && !(at(s, x, y)?.hp > 0)) candidates.push({ x, y });
+        }
+        candidates.sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
+        for (const p of candidates) { path = findPath(s, e, p, false); if (path !== null) break; }
+      }
+      if (path === null) return false;
+      e.path = path; e.pathRevision = s.revision; e.chaseTile = tile;
+    }
+    if (Math.hypot(u.x - e.x, u.y - e.y) <= .75 && safeUnitSegment(s, e, u.x, u.y, false)) {
+      if (e.attack <= 1e-8) { u.hp -= e.damage; e.attack = 1; s.effects.push({ type: 'hit', x: u.x, y: u.y, life: .2, total: .2 }); }
+      return true;
+    }
+    if (!e.path.length && !safeUnitSegment(s, e, u.x, u.y, false)) return false;
+    moveUnit(s, e, u, e.speed * (e.slowed > 0 ? e.slowFactor : 1), dt, false);
+    return true;
   }
   function safeEnemySegment(s, e, x, y) {
     const size = worldSize(s), sx = Math.round(e.x), sy = Math.round(e.y);
@@ -611,7 +907,7 @@
     let lastX = sx, lastY = sy;
     for (let i = 0; i <= samples; i++) {
       const px = i === samples ? x : e.x + (x - e.x) * i / samples, py = i === samples ? y : e.y + (y - e.y) * i / samples;
-      if (px < 0 || py < 0 || px > size - 1 || py > size - 1) return false;
+      if (px < 0 || py < 0 || px > size - 1 || py > worldHeight(s) - 1) return false;
       const tx = Math.round(px), ty = Math.round(py);
       if (!clear(tx, ty)) return false;
       // A tiny diagonal corner crossing must not slip between consecutive samples.
@@ -637,6 +933,7 @@
     if (b.hp > 0) return;
     if (b.type === 'gate') b.hp = 0;
     else s.buildings = s.buildings.filter(n => n !== b);
+    if (b.type === 'barracks') cleanSoldiers(s);
     s.revision++;
     event(s, DEFS[b.type].name + '被摧毁', 'warning');
     if (b.type === 'shrine') { s.over = true; event(s, '祠堂失守，古坊灯火暂熄', 'defeat'); }
@@ -651,9 +948,13 @@
     b.hp = Math.min(maxHP(b), b.hp + amount);
   }
   function collectDead(s) {
+    s = world(s);
     s.enemies = s.enemies.filter(e => {
       if (e.hp > 0) return true;
-      s.coins += ENEMIES[e.type].reward * (e.boss ? 5 : 1); s.kills++;
+      const reward = ENEMIES[e.type].reward * (e.boss ? 5 : 1);
+      if (s.mode === 'coop') { s.coins += reward / 2; s.partner.coins += reward / 2; }
+      else s.coins += reward;
+      s.kills++;
       s.effects.push({ type: 'coin', amount: ENEMIES[e.type].reward * (e.boss ? 5 : 1), x: e.x, y: e.y, life: .7, total: .7 }); return false;
     });
   }
@@ -670,7 +971,11 @@
     collectDead(s);
     const w = s.wave; if (!w) return;
     w.timer -= dt;
-    if (w.spawned < w.total && w.timer <= 0) { spawnEnemy(s); w.timer += Math.max(.28, 1.35 - s.day * .045); }
+    if (w.spawned < w.total && w.timer <= 0) {
+      spawnEnemy(s);
+      if (s.mode === 'coop' && w.spawned < w.total) spawnEnemy(s);
+      w.timer += Math.max(.28, 1.35 - s.day * .045);
+    }
     for (const b of s.buildings) if (b.type === 'zhong') {
       b.cooldown -= dt;
       if (b.cooldown <= 0 && s.enemies.length) {
@@ -681,24 +986,19 @@
       }
     }
     for (const b of s.buildings) {
-      const d = DEFS[b.type]; if (!d.damage) continue;
+      const d = DEFS[b.type]; if (!d.damage || b.type === 'barracks') continue;
       b.cooldown -= dt;
       const range = d.range + (b.level - 1) * .35;
       const enemies = s.enemies.filter(e => e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) <= range).sort((a, z) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(z.x - b.x, z.y - b.y));
       const target = enemies[0];
-      if (b.type === 'barracks') {
-        b.soldier ||= { x: b.x, y: b.y };
-        const dest = target || b, dist = Math.hypot(dest.x - b.soldier.x, dest.y - b.soldier.y), step = Math.min(dist, dt * 2.2);
-        if (dist) { b.soldier.x += (dest.x - b.soldier.x) / dist * step; b.soldier.y += (dest.y - b.soldier.y) / dist * step; }
-        if (!target || dist > .65) continue;
-      }
       if (target && b.cooldown <= 0) {
         b.cooldown = d.interval; const damage = d.damage * factor(b) * defenseBoost(s);
         if (d.splash) for (const e of s.enemies) { if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === 'fox' ? 1.3 : 1); }
-        else if (b.type !== 'tower') target.hp -= damage * (b.type === 'barracks' && target.type === 'fox' ? 1.5 : 1);
-        s.projectiles.push({ x: b.type === 'barracks' ? b.soldier.x : b.x, y: b.type === 'barracks' ? b.soldier.y : b.y, tx: target.x, ty: target.y, type: b.type, life: .3, total: .3, ...(b.type === 'tower' ? { targetId: target.id, damage } : {}) });
+        else if (b.type !== 'tower') target.hp -= damage;
+        s.projectiles.push({ x: b.x, y: b.y, tx: target.x, ty: target.y, type: b.type, life: .3, total: .3, ...(b.type === 'tower' ? { targetId: target.id, damage } : {}) });
       }
     }
+    soldierCombat(s, dt);
     collectDead(s);
     for (const e of s.enemies) {
       if (s.over) break;
@@ -707,7 +1007,16 @@
       if (e.slowed === 0) e.slowFactor = 1;
       if (e.repelled > 0) { e.repelled -= dt; continue; }
       enemyLane(e);
-      const size = worldSize(s), laneGoal = p => ({ x: Math.max(0, Math.min(size - 1, p.x + e.laneX)), y: Math.max(0, Math.min(size - 1, p.y + e.laneY)) });
+      const nearby = s.soldiers.filter(u => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) <= 1 && safeUnitSegment(s, e, u.x, u.y, false))
+        .sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y))[0];
+      if (nearby && e.soldierTargetId !== nearby.id) {
+        e.soldierTargetId = nearby.id; e.path = []; e.pathRevision = -1; delete e.chaseTile;
+      }
+      if (e.soldierTargetId != null) {
+        if (chaseSoldier(s, e, dt)) continue;
+        delete e.soldierTargetId; delete e.chaseTile; e.path = []; e.pathRevision = -1;
+      }
+      const size = worldWidth(s), laneGoal = p => ({ x: Math.max(0, Math.min(size - 1, p.x + e.laneX)), y: Math.max(0, Math.min(worldHeight(s) - 1, p.y + e.laneY)) });
       if (e.pathRevision !== s.revision || !e.path.length) {
         e.path = findPath(s, e); e.pathRevision = s.revision;
       }
@@ -749,6 +1058,7 @@
         if (offset && (!attacking || Math.hypot(x - b.x, y - b.y) <= 1.05) && safeEnemySegment(s, e, x, y)) { e.x = x; e.y = y; }
       }
     }
+    cleanSoldiers(s);
     s.projectiles = s.projectiles.filter(p => {
       if (p.type !== 'tower') return true;
       const target = s.enemies.find(e => e.id === p.targetId && e.hp > 0);
@@ -759,24 +1069,27 @@
     if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
   }
   function skillReason(s, id) {
+    s = economicView(s);
     const d = SKILLS[id]; if (!d) return '未知神技';
     if (s.over || s.phase !== 'night') return '神技仅在夜晚使用';
     if (s.cooldowns[id] > 0) return '还需 ' + Math.ceil(s.cooldowns[id]) + ' 秒';
     return '';
   }
   function skill(s, id) {
+    s = economicView(s);
     const reason = skillReason(s, id); if (reason) return { ok: false, reason };
     s.cooldowns[id] = SKILLS[id].cooldown;
     if (id === 'repair') for (const b of s.buildings) healBuilding(s, b, maxHP(b) * .35);
     if (id === 'repel') for (const e of s.enemies) { e.repelled = 4; e.hp -= 20; }
     if (id === 'thunder') for (const e of s.enemies) { e.hp -= e.type === 'ghost' ? 350 : 240; s.effects.push({ type: 'thunder', x: e.x, y: e.y, life: .7, total: .7 }); }
-    s.effects.push({ type: id, x: worldCenter(s), y: worldCenter(s), life: 1, total: 1 }); collectDead(s);
+    s.effects.push({ type: id, x: worldCenter(s), y: worldCenterY(s), life: 1, total: 1 }); collectDead(s);
     return { ok: true };
   }
   function step(s, dt) {
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, .25); s.time += dt; s.elapsed += dt;
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
+    if (s.mode === 'coop') for (const id in s.partner.cooldowns) s.partner.cooldowns[id] = Math.max(0, s.partner.cooldowns[id] - dt);
     for (const group of [s.effects, s.projectiles]) { for (const e of group) { e.life -= dt; if (e.type === 'tower' && e.life < 1e-8) e.life = 0; } }
     s.effects = s.effects.filter(e => e.life > 0); s.projectiles = s.projectiles.filter(e => e.type === 'tower' || e.life > 0);
     for (const b of [...s.buildings]) if (dryFarm(s, b)) hurtBuilding(s, b, maxHP(b) * .05 * dt, true);
@@ -790,6 +1103,7 @@
     missions(s);
   }
   function serialize(s) {
+    s = world(s);
     const projectiles = s.projectiles.filter(p => p.type === 'tower' && p.life > 0 && s.enemies.some(e => e.id === p.targetId && e.hp > 0))
       .map(({ type, targetId, damage, life, total, x, y, tx, ty }) => ({ type, targetId, damage, life, total, x, y, tx, ty }));
     return JSON.stringify({ ...s, events: [], projectiles, effects: [] });
@@ -799,23 +1113,50 @@
       const s = JSON.parse(raw), finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
       if (!s || typeof s !== 'object') return null;
       if (s.worldSize === undefined) s.worldSize = 17;
-      if (![17, 25].includes(s.worldSize)) return null;
-      const SIZE = worldSize(s);
-      if (s.mapGeneration !== undefined && (s.mapGeneration !== 2 || SIZE !== 25 || s.version !== 5 || s.mapSeed === undefined || s.estateSeed === undefined)) return null;
-      if (s.estateSeed !== undefined && (SIZE !== 25 || !Number.isInteger(s.estateSeed) || s.estateSeed < 0 || s.estateSeed > 4294967295 || s.mapSeed === undefined)) return null;
+      const coop = s.mode === 'coop';
+      if (s.mode !== undefined && !coop) return null;
+      if (s.actorId !== undefined || s._world !== undefined) return null;
+      if (coop !== [6, 7].includes(s.version)) return null;
+      if (coop) {
+        if (s.version === 6) { if (s.worldSize !== 40 || (s.worldHeight !== undefined && s.worldHeight !== 40)) return null; }
+        else {
+          // Dimensions are part of the save; retain the earlier 50-tile rectangles.
+          const longSide = Math.max(s.worldSize, s.worldHeight);
+          if (![40, 50].includes(longSide) || s.worldSize !== (s.coopLayout === 'horizontal' ? longSide : 25) || s.worldHeight !== (s.coopLayout === 'horizontal' ? 25 : longSide)) return null;
+        }
+      } else if (![17, 25].includes(s.worldSize) || (s.worldHeight !== undefined && s.worldHeight !== s.worldSize)) return null;
+      if (coop) {
+        const p = s.partner;
+        if (s.mapGeneration !== 2 || !['horizontal', 'vertical'].includes(s.coopLayout) || !p || p.controller !== 'computer' ||
+            !['coins','materials'].every(k => finite(p[k])) || !Number.isInteger(p.fortuneBuilt) || p.fortuneBuilt < 0 ||
+            !Number.isInteger(p.mission) || p.mission < 0 || p.mission > MISSIONS.length || !p.cooldowns || !Object.keys(SKILLS).every(k => finite(p.cooldowns[k])) ||
+            !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || s.direction > 2) return null;
+      }
+      const SIZE = worldWidth(s), HEIGHT = worldHeight(s);
+      if (s.mapGeneration !== undefined && (s.mapGeneration !== 2 || (!coop && (SIZE !== 25 || s.version !== 5)) || s.mapSeed === undefined || s.estateSeed === undefined)) return null;
+      if (s.estateSeed !== undefined && ((!coop && SIZE !== 25) || !Number.isInteger(s.estateSeed) || s.estateSeed < 0 || s.estateSeed > 4294967295 || s.mapSeed === undefined)) return null;
       if (s.version === 5 && (SIZE !== 25 || s.estateSeed === undefined)) return null;
       if (s.version < 5 && (SIZE !== 17 || s.estateSeed !== undefined)) return null;
       if (s.materials === undefined) s.materials = 120; // Pre-material saves receive starting stock.
       delete s.prosperity; delete s.incense;
       if (s.fortuneBuilt === undefined) s.fortuneBuilt = 0;
       if (s.mapSeed !== undefined && (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295)) return null;
-      if (![1, 2, 3, 4, 5].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !Number.isInteger(s.fortuneBuilt) || s.fortuneBuilt < 0 || !Number.isInteger(s.day) || s.day < 1 || !['day', 'dusk', 'night'].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== 'boolean') return null;
-      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * SIZE || !Array.isArray(s.enemies) || s.enemies.length > 150 || !s.cooldowns || !Object.keys(SKILLS).every(k => finite(s.cooldowns[k]))) return null;
+      if (![1, 2, 3, 4, 5, 6, 7].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !Number.isInteger(s.fortuneBuilt) || s.fortuneBuilt < 0 || !Number.isInteger(s.day) || s.day < 1 || !['day', 'dusk', 'night'].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== 'boolean') return null;
+      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE * HEIGHT || !Array.isArray(s.enemies) || s.enemies.length > (coop ? 300 : 150) || !s.cooldowns || !Object.keys(SKILLS).every(k => finite(s.cooldowns[k]))) return null;
+      const legacySoldiers = s.soldiers === undefined;
+      if (legacySoldiers) s.soldiers = [];
+      if (!Array.isArray(s.soldiers) || s.soldiers.length > Math.min(SIZE * HEIGHT * MAX_LEVEL, 1500)) return null;
+      const ids = new Set();
+      for (const entity of [...s.buildings, ...s.enemies, ...s.soldiers]) {
+        if (!entity || !Number.isSafeInteger(entity.id) || entity.id < 1 || ids.has(entity.id)) return null;
+        ids.add(entity.id);
+      }
       const retired = s.buildings.filter(b => RETIRED_TYPES.has(b.type)).length;
       s.buildings = s.buildings.filter(b => !RETIRED_TYPES.has(b.type));
       const cells = new Set(), land = estate(s);
       for (const b of s.buildings) {
         if (!Object.prototype.hasOwnProperty.call(DEFS,b.type)) return null;
+        if (coop && (![0, 1].includes(b.owner) || !owns(playerView(s, b.owner), b.x, b.y))) return null;
         const legacyGrowth = s.version === 1 ? 1.65 : 1.3;
         const savedMaxLevel = s.version === 1 ? (DEFS[b.type].max || 3) : s.version === 2 ? MAX_LEVEL : maxLevel(b);
         const savedMaxHP = s.version < 3 ? Math.round(DEFS[b.type].hp * Math.pow(legacyGrowth, b.level - 1)) : maxHP(b);
@@ -823,7 +1164,8 @@
         if (b.type === 'gate') {
           if (!land?.gates.some(g => g.x === b.x && g.y === b.y && g.direction === b.direction)) return null;
         } else if (land && (!land.cells.has(b.y * SIZE + b.x) || terrain(b.x, b.y, s) === 'water')) return null;
-        if (land && b.type === 'shrine' && (b.x !== worldCenter(s) || b.y !== worldCenter(s))) return null;
+        const shrineCenter = coop ? land.estates[b.owner].center : { x: worldCenter(s), y: worldCenter(s) };
+        if (land && b.type === 'shrine' && (b.x !== shrineCenter.x || b.y !== shrineCenter.y)) return null;
         if (s.version < 3) b.hp = Math.max(.001, b.hp / savedMaxHP * maxHP(b));
         if (b.materialPending === undefined) {
           b.materialPending = DEFS[b.type].resource === 'materials' ? (b.coinPending || 0) : 0;
@@ -840,28 +1182,50 @@
         }
         if (b.incomeTime >= 1) return null;
         const key = b.x + ',' + b.y; if (cells.has(key)) return null; cells.add(key); b.cooldown = 0; delete b.soldier;
+        if (b.type === 'barracks') {
+          if (b.musteredCount === undefined) {
+            if (!legacySoldiers && s.phase === 'night') return null;
+            b.musteredCount = s.phase === 'night' ? soldierLimit(b) : 0;
+          }
+          if (!Number.isInteger(b.musteredCount) || b.musteredCount < 0 || b.musteredCount > soldierLimit(b)) return null;
+          if (s.phase !== 'night') delete b.musteredCount;
+        } else delete b.musteredCount;
       }
-      if (land && s.buildings.filter(b => b.type === 'gate').length !== 4) return null;
-      if (land) {
+      if (land && s.buildings.filter(b => b.type === 'gate').length !== (coop ? 6 : 4)) return null;
+      if (coop) {
+        for (const owner of [0, 1]) {
+          const p = playerView(s, owner), gates = p.buildings.filter(b => b.type === 'gate');
+          if (gates.length !== 3 || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || gates.some(b => b.level !== p.gateLevel)) return null;
+          const count = p.buildings.filter(b => b.type === 'shrine').length;
+          if (count > 1 || (!s.over && count !== 1)) return null;
+        }
+      }
+      if (land && !coop) {
         const gates = s.buildings.filter(b => b.type === 'gate');
-        if (s.gateLevel !== undefined && (!Number.isInteger(s.gateLevel) || s.gateLevel < 1 || s.gateLevel > MAX_LEVEL || gates.some(b => b.level !== s.gateLevel))) return null;
+        if (s.gateLevel !== undefined && (!Number.isInteger(s.gateLevel) || s.gateLevel < 1 || s.gateLevel > GATE_MAX_LEVEL || gates.some(b => b.level !== s.gateLevel))) return null;
         // Older estate saves upgraded each gate separately; keep their highest purchased level.
         s.gateLevel = s.gateLevel ?? Math.max(...gates.map(b => b.level));
         for (const gate of gates) {
           const ratio = gate.hp / maxHP(gate); gate.level = s.gateLevel; gate.hp = maxHP(gate) * ratio;
         }
       }
-      if ((!s.over && s.buildings.filter(b => b.type === 'shrine').length !== 1) || s.buildings.filter(b => b.type === 'shrine').length > 1) return null;
-      if (s.phase === 'night' && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > 120 || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
+      if (!coop && ((!s.over && s.buildings.filter(b => b.type === 'shrine').length !== 1) || s.buildings.filter(b => b.type === 'shrine').length > 1)) return null;
+      if (s.phase === 'night' && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > (coop ? 240 : 120) || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
       for (const e of s.enemies) {
         enemyLane(e);
+        if (coop) {
+          if (e.targetGateId !== undefined) {
+            const gate = s.buildings.find(b => b.id === e.targetGateId && b.type === 'gate');
+            if (!gate || e.targetOwner !== gate.owner) return null;
+          } else if (e.targetOwner !== undefined && ![0, 1].includes(e.targetOwner)) return null;
+        } else if (e.targetGateId !== undefined || e.targetOwner !== undefined) return null;
         if (![e.laneX, e.laneY].every(n => Number.isFinite(n) && Math.abs(n) <= .3)) return null;
         if (e.slowed === undefined) e.slowed = 0;
         if (e.slowFactor === undefined) e.slowFactor = 1;
-        if (!Object.prototype.hasOwnProperty.call(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= SIZE || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
+        if (!Object.prototype.hasOwnProperty.call(ENEMIES,e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE || !finite(e.y) || e.y >= HEIGHT || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
         if (!walkable(s, Math.round(e.x), Math.round(e.y))) {
           let nearest = null;
-          for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (walkable(s, x, y)) {
+          for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE; x++) if (walkable(s, x, y)) {
             const distance = (x - e.x) ** 2 + (y - e.y) ** 2;
             if (!nearest || distance < nearest.distance) nearest = { x, y, distance };
           }
@@ -873,7 +1237,7 @@
       if (!Array.isArray(s.projectiles) || s.projectiles.length > 1000) return null;
       const projectiles = [];
       for (const p of s.projectiles) {
-        if (!p || p.type !== 'tower' || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > .3 || p.total !== .3 || ![p.x, p.y, p.tx, p.ty].every(n => finite(n) && n < SIZE)) return null;
+        if (!p || p.type !== 'tower' || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > .3 || p.total !== .3 || ![p.x, p.tx].every(n => finite(n) && n < SIZE) || ![p.y, p.ty].every(n => finite(n) && n < HEIGHT)) return null;
         const target = s.enemies.find(e => e.id === p.targetId && e.hp > 0);
         if (target) projectiles.push({ type: 'tower', targetId: p.targetId, damage: p.damage, life: p.life, total: .3, x: p.x, y: p.y, tx: target.x, ty: target.y });
       }
@@ -883,7 +1247,7 @@
       let moved = 0, stranded = 0;
       for (const b of s.buildings.filter(b => !land && terrain(b.x, b.y, s) === 'water').sort((a, z) => Number(z.type === 'farm') - Number(a.type === 'farm') || a.id - z.id)) {
         const candidates = [];
-        for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+        for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE; x++) {
           const land = terrain(x, y, s);
           if (land === 'water' || (b.type === 'farm' && land !== 'shore') || occupiedLand.has(x + ',' + y)) continue;
           candidates.push({ x, y, score: dist8(b.x, b.y, x, y) * 100 + (Math.abs(b.x - x) + Math.abs(b.y - y)) * 2 + (land === 'shore' && b.type !== 'farm' ? 1 : 0) });
@@ -893,13 +1257,35 @@
         b.x = candidates[0].x; b.y = candidates[0].y;
         occupiedLand.add(b.x + ',' + b.y); moved++;
       }
+      if (s.phase !== 'night' && s.soldiers.length) return null;
+      const livingCounts = new Map();
+      for (const u of s.soldiers) {
+        const b = s.buildings.find(b => b.id === u.barracksId && b.type === 'barracks' && b.hp > 0);
+        if (!b || !Number.isSafeInteger(u.barracksId) || !finite(u.x) || u.x > SIZE - 1 || !finite(u.y) || u.y > HEIGHT - 1 || u.level !== b.level ||
+            u.maxHp !== soldierHP(b) || !finite(u.hp) || u.hp <= 0 || u.hp > u.maxHp || !finite(u.attack) || u.attack > 1 ||
+            (u.targetId != null && (!Number.isSafeInteger(u.targetId) || u.targetId < 1))) return null;
+        const count = (livingCounts.get(b.id) || 0) + 1; livingCounts.set(b.id, count);
+        if (count > b.musteredCount || count > soldierLimit(b)) return null;
+        if (!walkable(s, Math.round(u.x), Math.round(u.y))) {
+          if (!walkable(s, b.x, b.y)) return null;
+          u.x = b.x; u.y = b.y;
+        }
+        if (!s.enemies.some(e => e.id === u.targetId)) u.targetId = null;
+        u.path = []; u.pathRevision = -1; delete u.targetTile;
+      }
+      for (const e of s.enemies) {
+        if (e.soldierTargetId != null && (!Number.isSafeInteger(e.soldierTargetId) || e.soldierTargetId < 1)) return null;
+        if (!s.soldiers.some(u => u.id === e.soldierTargetId)) delete e.soldierTargetId;
+        delete e.chaseTile;
+      }
       s.events = retired ? [{ text: '旧存档中 ' + retired + ' 栋已退役建筑被移除', kind: 'info' }] : [];
       if (moved) s.events.push({ text: '旧存档中 ' + moved + ' 栋建筑已迁出水域', kind: 'info' });
       if (stranded) s.events.push({ text: '岸地已满，' + stranded + ' 栋旧建筑暂保留原位', kind: 'warning' });
-      s.effects = []; s.projectiles = projectiles; s.revision = 1; s.version = land ? 5 : 4;
-      s.nextId = Math.max(0, ...s.buildings.map(b => b.id), ...s.enemies.map(e => e.id || 0)) + 1;
+      s.effects = []; s.projectiles = projectiles; s.revision = 1; s.version = coop ? s.version : land ? 5 : 4;
+      s.nextId = Math.max(0, ...ids) + 1;
+      if (!Number.isSafeInteger(s.nextId)) return null;
       return s;
     } catch { return null; }
   }
-  return { SIZE, CENTER, worldSize, worldCenter, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, skillReason, skill, step, serialize, restore };
 });

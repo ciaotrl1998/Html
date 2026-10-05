@@ -84,7 +84,7 @@ function layout(s, towersPerGate) {
   function create(s) {
     const size=G.worldSize(s),center=G.worldCenter(s),land=G.estate(s);
     const plots=[];
-    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    for(let y=0;y<G.worldHeight(s);y++)for(let x=0;x<size;x++){
       if(G.owns(s,x,y) && !G.isWall(s,x,y) && G.terrain(x,y,s)!=='water' && !land?.gates.some(g=>g.x===x&&g.y===y))plots.push({x,y});
     }
     let planned=null;
@@ -108,7 +108,16 @@ function layout(s, towersPerGate) {
       if(!p || G.buildReason(s,type,p.x,p.y))return false;
       const r=G.build(s,type,p.x,p.y);return r.ok && record('build',r.rolled||type,r.building);
     }
+    function upgradeFoundation(b){
+      if(!b || !['shrine','gate'].includes(b.type))return b;
+      const reason=G.upgradeReason(s,b,true);
+      const type=b.type==='shrine'&&reason.startsWith('需城门')?'gate':b.type==='gate'&&reason.startsWith('需祠堂')?'shrine':null;
+      if(!type)return b;
+      // Only advance the lagging counterpart, once per decision.
+      return s.buildings.find(n=>n.type===type&&n.level<b.level);
+    }
     function upgrade(b){
+      b=upgradeFoundation(b);
       return b && !G.upgradeReason(s,b) && G.upgrade(s,b).ok && record('upgrade',b.type,b);
     }
     function towerPlots(){
@@ -158,10 +167,14 @@ function layout(s, towersPerGate) {
         const reason=G.upgradeReason(s,b),next={...b,level:b.level+1},cost=G.upgradeCost(b);
         const increase=gain(s.buildings.map(n=>n===b?next:n));
         if(!reason||reason.startsWith('差 '))options.push({score:increase/Math.max(1,value(cost)),cost,run:()=>upgrade(b),reason:'升级'+G.DEFS[b.type].name+'，提高单位投入收益'});
-        else if(reason.startsWith('需祠堂')&&shrineBuilding&&!G.upgradeReason(s,shrineBuilding)){
+        else if(reason.startsWith('需祠堂')&&shrineBuilding){
+          const foundation=upgradeFoundation(shrineBuilding);
+          if(!foundation||G.upgradeReason(s,foundation,true))continue;
           const required=G.requiredShrineLevel(next.level),total={...cost};
           for(let level=shrineBuilding.level;level<required;level++){const c=G.upgradeCost({...shrineBuilding,level});total.coins+=c.coins;total.materials+=c.materials;}
-          options.push({score:increase/Math.max(1,value(total)),cost:G.upgradeCost(shrineBuilding),run:()=>upgrade(shrineBuilding),reason:'提升祠堂，解锁产业升级'});
+          const gate=s.buildings.find(n=>n.type==='gate');
+          if(gate)for(let level=gate.level;level<required-1;level++){const c=G.upgradeCost({...gate,level});total.coins+=c.coins;total.materials+=c.materials;}
+          options.push({score:increase/Math.max(1,value(total)),cost:G.upgradeCost(foundation),run:()=>upgrade(shrineBuilding),reason:'提升祠堂与城门，解锁产业升级'});
         }
       }
       options.sort((a,b)=>b.score-a.score);
@@ -184,18 +197,20 @@ function layout(s, towersPerGate) {
         else forecast={hp:45,total:5,interval:1.3};
         forecastDay=s.day;
       }
-      const boss=s.day%7===0,pending=s.phase==='night'?Math.max(0,(s.wave?.total||0)-(s.wave?.spawned||0)):forecast.total;
+      const boss=s.day%7===0&&s.mode!=='coop',directions=G.raidDirections(s),pending=s.phase==='night'?Math.max(0,(s.wave?.total||0)-(s.wave?.spawned||0)):forecast.total;
       const damage=b=>G.DEFS[b.type].damage*G.factor(b)*G.defenseBoost(s)/G.DEFS[b.type].interval;
       const covers=(b,g)=>Math.hypot(b.x-g.x,b.y-g.y)<=G.DEFS[b.type].range+(b.level-1)*.35;
       const needs=[];
       for(const gate of gates){
-        const enemies=s.enemies.filter(e=>gates.reduce((a,b)=>Math.hypot(e.x-a.x,e.y-a.y)<=Math.hypot(e.x-b.x,e.y-b.y)?a:b)===gate);
-        if(!boss&&gate.direction!==s.direction&&!enemies.length)continue;
+        const enemies=s.enemies.filter(e=>e.targetGateId!=null
+          ? s.buildings.some(b=>b.id===e.targetGateId&&b.x===gate.x&&b.y===gate.y)
+          : gates.reduce((a,b)=>Math.hypot(e.x-a.x,e.y-a.y)<=Math.hypot(e.x-b.x,e.y-b.y)?a:b)===gate);
+        if(!directions.includes(gate.direction)&&!enemies.length)continue;
         if(!pending&&!enemies.length)continue;
         const defenders=s.buildings.filter(b=>G.DEFS[b.type].damage&&covers(b,gate)),firepower=defenders.reduce((n,b)=>n+damage(b),0);
         const nearEnemies=enemies.filter(e=>Math.hypot(e.x-gate.x,e.y-gate.y)<4);
         const gateBuilding=s.buildings.find(b=>b.type==='gate'&&b.direction===gate.direction),health=gateBuilding?gateBuilding.hp/G.maxHP(gateBuilding):1;
-        const remaining=(boss?pending/4:pending)+enemies.length;
+        const remaining=pending/(s.mode==='coop'?2:boss?4:1)+enemies.length;
         const sustained=forecast.hp*(s.day>=4?1.45:1)/forecast.interval*.6*(boss?.6:1)*Math.min(1,remaining/5);
         const urgent=nearEnemies.reduce((n,e)=>n+e.hp,0)/(health<.5?4:10);
         const target=Math.max(sustained,urgent);
@@ -216,7 +231,8 @@ function layout(s, towersPerGate) {
         // Expand defensive footprint only if the existing defenders cannot be
         // improved, or the gate is under immediate pressure. Otherwise save.
         if(defenders.some(b=>b.level<G.maxLevel(b))&&!urgent){
-          const costs=locked&&shrineBuilding?[G.upgradeCost(shrineBuilding)]:defenders.filter(b=>b.level<G.maxLevel(b)).map(G.upgradeCost);
+          const foundation=locked&&upgradeFoundation(shrineBuilding);
+          const costs=foundation?[G.upgradeCost(foundation)]:defenders.filter(b=>b.level<G.maxLevel(b)).map(G.upgradeCost);
           costs.sort((a,b)=>a.coins+a.materials-b.coins-b.materials);defenseBudget=costs[0]||G.DEFS.tower.cost;continue;
         }
         const candidates=plots.filter(p=>coversGate(p,gate)&&!G.buildReason(s,'tower',p.x,p.y)&&!planned?.economy.some(q=>key(q)===key(p)));
@@ -232,7 +248,8 @@ function layout(s, towersPerGate) {
       if(s.phase!=='night')return false;
       const damaged=s.buildings.some(b=>b.hp/G.maxHP(b)<.6);
       const pressure=s.enemies.filter(e=>gates.some(g=>Math.hypot(e.x-g.x,e.y-g.y)<2)).length;
-      const nearShrine=s.enemies.some(e=>Math.hypot(e.x-center,e.y-center)<3);
+      const shrine=s.buildings.find(b=>b.type==='shrine');
+      const nearShrine=shrine&&s.enemies.some(e=>Math.hypot(e.x-shrine.x,e.y-shrine.y)<3);
       for(const [id,wanted] of [['repair',damaged],['thunder',s.enemies.length>=5||nearShrine],['repel',pressure>=3||nearShrine]]){
         if(wanted&&!G.skillReason(s,id)&&G.skill(s,id).ok){decisionReason='按当前战况施法';return record('skill',id);}
       }
