@@ -682,11 +682,11 @@
     const dryFarms = b.type === 'well' ? s.buildings.filter(n => n.type === 'farm' && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
     return { ok: true, refund, dryFarms };
   }
-  function income(s, b) {
+  function income(s, b, buildings) {
     if (s.mode === 'coop' && s.actorId === undefined) s = playerView(s, b.owner ?? 0);
     const d = DEFS[b.type]; if (!d.income) return 0;
     let bonus = 0;
-    for (const n of s.buildings) {
+    for (const n of buildings || s.buildings) {
       const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
       if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * auraFactor(n);
       if (n.type === 'well' && dist === 1 && b.type === 'farm') bonus += .2 * auraFactor(n);
@@ -699,21 +699,43 @@
     r[d.resource === 'materials' ? 'materials' : 'coins'] += income(s, b);
     return r;
   }, { coins: 0, materials: 0 });
+  const incomeCache = new WeakMap();
   function settleIncome(s, dt) {
-    if (s.mode === 'coop' && s.actorId === undefined) { settleIncome(playerView(s, 0), dt); settleIncome(playerView(s, 1), dt); return; }
-    for (const b of s.buildings) {
-      const d = DEFS[b.type]; if (!d.income) continue;
-      b.incomeTime += dt;
-      if (d.resource === 'materials') b.materialPending += income(s, b) * dt;
-      else b.coinPending += income(s, b) * dt;
-      if (b.incomeTime < 1 - 1e-8) continue;
-      b.incomeTime = Math.max(0, b.incomeTime - 1);
-      // Keep fractional resources on each building so floating amounts equal actual payouts.
-      for (const [resource, pending] of [['coins', 'coinPending'], ['materials', 'materialPending']]) {
-        const paid = Math.floor(b[pending] + 1e-8);
-        b[pending] = Math.max(0, b[pending] - paid);
-        s[resource] += paid;
-        if (paid > 0) s.effects.push({ type: 'income', resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+    const w = world(s), buildings = w.buildings;
+    // Inspect dependencies once, including direct edits that do not bump revision.
+    const signature = JSON.stringify([w.mode, w.day, buildings.map(b => [b.type, b.x, b.y, b.level, b.owner])]);
+    let cached = incomeCache.get(w);
+    if (cached?.signature !== signature) {
+      const groups = new Map();
+      for (const b of buildings) {
+        const owner = w.mode === 'coop' ? b.owner : undefined;
+        if (!groups.has(owner)) groups.set(owner, []);
+        groups.get(owner).push(b);
+      }
+      cached = { signature, groups, players: new Map() }; incomeCache.set(w, cached);
+    }
+    const players = s.mode === 'coop' && s.actorId === undefined ? [playerView(s, 0), playerView(s, 1)] : [s];
+    for (const player of players) {
+      const owner = player.actorId;
+      const owned = cached.groups.get(w.mode === 'coop' ? owner : undefined) || [];
+      let values = cached.players.get(owner);
+      if (!values) {
+        values = owned.map(b => income(player, b, owned)); cached.players.set(owner, values);
+      }
+      for (const [i, b] of owned.entries()) {
+        const d = DEFS[b.type]; if (!d.income) continue;
+        b.incomeTime += dt;
+        if (d.resource === 'materials') b.materialPending += values[i] * dt;
+        else b.coinPending += values[i] * dt;
+        if (b.incomeTime < 1 - 1e-8) continue;
+        b.incomeTime = Math.max(0, b.incomeTime - 1);
+        // Keep fractional resources on each building so floating amounts equal actual payouts.
+        for (const [resource, pending] of [['coins', 'coinPending'], ['materials', 'materialPending']]) {
+          const paid = Math.floor(b[pending] + 1e-8);
+          b[pending] = Math.max(0, b[pending] - paid);
+          player[resource] += paid;
+          if (paid > 0) player.effects.push({ type: 'income', resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+        }
       }
     }
   }
@@ -988,9 +1010,14 @@
     for (const b of s.buildings) {
       const d = DEFS[b.type]; if (!d.damage || b.type === 'barracks') continue;
       b.cooldown -= dt;
+      if (b.cooldown > 0) continue;
       const range = d.range + (b.level - 1) * .35;
-      const enemies = s.enemies.filter(e => e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) <= range).sort((a, z) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(z.x - b.x, z.y - b.y));
-      const target = enemies[0];
+      let target, nearest = Infinity;
+      for (const e of s.enemies) {
+        if (e.hp <= 0) continue;
+        const distance = Math.hypot(e.x - b.x, e.y - b.y);
+        if (distance <= range && distance < nearest) { target = e; nearest = distance; }
+      }
       if (target && b.cooldown <= 0) {
         b.cooldown = d.interval; const damage = d.damage * factor(b) * defenseBoost(s);
         if (d.splash) for (const e of s.enemies) { if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === 'fox' ? 1.3 : 1); }

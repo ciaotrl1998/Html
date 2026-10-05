@@ -13,6 +13,22 @@
 
 本 App 是纯本地启动器,不含任何内置游戏。
 
+## 联机 HTML 游戏
+
+2.3 版开始允许 WebView 使用网络和 Wi-Fi 状态，以支持 WebSocket、WebRTC DataChannel
+及普通网页联机。游戏仍可从本地 `file://` 地址运行；局域网游戏使用的 `http://`、
+`ws://` 地址也允许加载。
+
+对于使用二维码配对的游戏，播放器会处理 HTML 的 `<input type="file">`：
+
+- 带 `capture` 的图片输入会直接打开系统相机；
+- 普通图片输入会打开系统图片选择器，并同时提供拍照入口；
+- 相机照片只写入应用缓存，通过临时 `content://` 地址交给当前游戏读取。
+
+联机能力由手机上的“Android System WebView”提供。安装新版 APK 后如仍提示浏览器不支持
+WebRTC，请在应用商店更新 Android System WebView 或 Chrome。修改清单权限后必须重新安装
+2.3 版 APK，旧 APK 不会自动获得新增网络权限。
+
 ## 建议的游戏目录结构
 
 ```

@@ -1,10 +1,15 @@
 package cn.linecode.game2048;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.ClipData;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -13,6 +18,7 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.documentfile.provider.DocumentFile;
 
 import java.io.File;
@@ -34,11 +40,14 @@ public class GamePlayerActivity extends AppCompatActivity {
     private static final int MAX_PACKAGE_DEPTH = 12;
     private static final int MAX_PACKAGE_FILES = 5000;
     private static final long MAX_PACKAGE_BYTES = 256L * 1024L * 1024L;
+    private static final int FILE_CHOOSER_REQUEST = 4107;
 
     /** 连按两次退出的有效间隔:两次触发间隔小于该值才真正退出,防止误触。 */
     private static final long EXIT_CONFIRM_INTERVAL_MS = 2000L;
 
     private WebView webView;
+    private ValueCallback<Uri[]> pendingFileCallback;
+    private Uri pendingCameraUri;
     private final ExecutorService packageExecutor = Executors.newSingleThreadExecutor();
 
     // 上一次触发退出的时间;0 表示尚未触发过。
@@ -87,6 +96,7 @@ public class GamePlayerActivity extends AppCompatActivity {
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setBlockNetworkLoads(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebViewClient(new WebViewClient() {
@@ -106,7 +116,39 @@ public class GamePlayerActivity extends AppCompatActivity {
                 ));
             }
         });
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view,
+                                             ValueCallback<Uri[]> filePathCallback,
+                                             FileChooserParams fileChooserParams) {
+                // WebView does not provide a picker by default. Finish an older request first so
+                // every HTML <input type="file"> receives exactly one result.
+                finishFileChooser(null);
+                pendingFileCallback = filePathCallback;
+                pendingCameraUri = null;
+
+                Intent picker = createPickerIntent(fileChooserParams);
+                Intent camera = acceptsImages(fileChooserParams) ? createCameraIntent() : null;
+                Intent launch;
+                if (fileChooserParams != null && fileChooserParams.isCaptureEnabled() && camera != null) {
+                    // capture="environment": open the rear-camera app directly for QR photos.
+                    launch = camera;
+                } else {
+                    launch = Intent.createChooser(picker, "选择二维码图片");
+                    if (camera != null) {
+                        launch.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
+                    }
+                }
+                try {
+                    startActivityForResult(launch, FILE_CHOOSER_REQUEST);
+                } catch (Throwable error) {
+                    finishFileChooser(null);
+                    Toast.makeText(GamePlayerActivity.this,
+                            "没有可用的相机或图片选择器", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+        });
 
         setContentView(webView);
 
@@ -131,6 +173,88 @@ public class GamePlayerActivity extends AppCompatActivity {
             return;
         }
         webView.loadUrl(playUrl);
+    }
+
+    private Intent createPickerIntent(WebChromeClient.FileChooserParams params) {
+        Intent picker;
+        try {
+            picker = params == null ? null : params.createIntent();
+        } catch (Throwable ignored) {
+            picker = null;
+        }
+        if (picker == null) {
+            picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.setType("image/*");
+        }
+        return picker;
+    }
+
+    private boolean acceptsImages(WebChromeClient.FileChooserParams params) {
+        if (params == null) {
+            return true;
+        }
+        String[] types = params.getAcceptTypes();
+        if (types == null || types.length == 0) {
+            return true;
+        }
+        for (String type : types) {
+            if (type == null || type.trim().isEmpty()
+                    || type.startsWith("image/") || "*/*".equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Intent createCameraIntent() {
+        Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (camera.resolveActivity(getPackageManager()) == null) {
+            return null;
+        }
+        try {
+            File directory = new File(getCacheDir(), "qr-captures");
+            if (!directory.exists() && !directory.mkdirs()) {
+                return null;
+            }
+            File photo = File.createTempFile("qr-", ".jpg", directory);
+            pendingCameraUri = FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", photo);
+            camera.putExtra(MediaStore.EXTRA_OUTPUT, pendingCameraUri);
+            camera.setClipData(ClipData.newRawUri("二维码照片", pendingCameraUri));
+            camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            return camera;
+        } catch (Throwable ignored) {
+            pendingCameraUri = null;
+            return null;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            Uri[] result = null;
+            if (resultCode == Activity.RESULT_OK) {
+                if ((data == null || data.getData() == null) && pendingCameraUri != null) {
+                    result = new Uri[]{pendingCameraUri};
+                } else {
+                    result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                }
+            }
+            finishFileChooser(result);
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void finishFileChooser(Uri[] result) {
+        ValueCallback<Uri[]> callback = pendingFileCallback;
+        pendingFileCallback = null;
+        pendingCameraUri = null;
+        if (callback != null) {
+            callback.onReceiveValue(result);
+        }
     }
 
     private void loadPackageInBackground(Uri treeUri, String packagePath) {
@@ -501,6 +625,7 @@ public class GamePlayerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         packageExecutor.shutdownNow();
+        finishFileChooser(null);
         if (webView != null) {
             webView.loadUrl("about:blank");
             webView.destroy();
