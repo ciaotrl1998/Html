@@ -80,7 +80,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("earth", "土地庙", "temple", { coins: 140, materials: 95 }, 260, { guard: 0.2, range: 3, fortuneOnly: true, desc: "三格内建筑受到伤害 -20%" });
   def("zhong", "钟馗像", "temple", { coins: 250, materials: 180 }, 430, { slow: 0.4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: "每 12 秒使全体怪物减速 40%，持续 4 秒" });
   def("tao", "道观", "temple", { coins: 450, materials: 330 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15%" });
-  def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { desc: "变化为随机建筑" });
+  def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { limit: 10, desc: "变化为随机建筑" });
   def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, desc: "庄园唯一入口 · 可升级与修复" });
   const ENEMIES = {
     bandit: { name: "山匪", hp: 100, speed: 0.65, damage: 14, reward: 8 },
@@ -1877,7 +1877,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       lantern(c, 18, 5);
       rect(c, -8, -9, 16, 6, "#3c5750", "#b29d69");
       c.fillStyle = "#e4d6ad";
-      c.font = "4px serif";
+      c.font = '4px "SimHei","Microsoft YaHei",sans-serif';
       c.textAlign = "center";
       c.fillText(GF.DEFS[kind].name, 0, -4.5);
     }
@@ -1988,7 +1988,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (type === "tea") {
         line(c, [[24, -21], [24, 10]], "#837b51", 1.5);
         rect(c, 24, -20, 12, 18, "#e5d7ac", "#b9ad82");
-        c.font = "8px serif";
+        c.font = '8px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#4b6950";
         c.fillText("茶", 30, -8);
@@ -1996,7 +1996,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (type === "inn") {
         line(c, [[24, -24], [24, 13]], "#837b51", 1.5);
         rect(c, 24, -23, 10, 21, "#b17455");
-        c.font = "7px serif";
+        c.font = '7px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#f1ddb1";
         c.fillText("宿", 29, -10);
@@ -2495,7 +2495,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.lineWidth = 1.5;
       c.strokeRect(px + 2, py + 2, T - 4, T - 4);
       if (!GF.at(s, selected.x, selected.y)) {
-        c.font = "23px serif";
+        c.font = '23px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#9c8448";
         c.fillText("+", px + 32, py + 40);
@@ -2508,7 +2508,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       buildingAnimation(c, b.type, animationTime);
       if (s.mode === "coop" && b.type === "shrine") {
         rect(c, -38, -57, 76, 19, b.owner === options.player ? "#3d685deb" : "#8a6647eb");
-        c.font = 'bold 12px "Microsoft YaHei",sans-serif';
+        c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#fff4d9";
         c.fillText(b.owner === options.player ? "你的庄园" : options.online ? "队友庄园" : "电脑庄园", 0, -43);
@@ -2523,7 +2523,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           c.fillStyle = "#ffe0b0";
           c.fillText("毁损", 0, -8);
         } else {
-          c.font = "bold 10px serif";
+          c.font = 'bold 10px "SimHei","Microsoft YaHei",sans-serif';
           c.textAlign = "center";
           c.fillStyle = "#f1dfae";
           c.fillText(["北", "东", "南", "西"][b.direction] || "门", 0, -13);
@@ -2568,7 +2568,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.textBaseline = "alphabetic";
       if (cam.zoom >= 0.9) {
         const label = b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : GF.DEFS[b.type].name;
-        c.font = '9px "Microsoft YaHei",sans-serif';
+        c.font = '9px "SimHei","Microsoft YaHei",sans-serif';
         const labelWidth = c.measureText(label).width + 14;
         rect(c, -labelWidth / 2, 27, labelWidth, 14, "#f3f0daf0");
         c.fillStyle = "#52694e";
@@ -2688,7 +2688,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.globalAlpha = Math.min(1, (1 - f) * 3);
         c.translate(x, y - (e.type === "income" ? 4 : 20) - f * 24);
         c.scale(Math.max(1, 1 / cam.zoom), Math.max(1, 1 / cam.zoom));
-        c.font = "bold 13px Georgia,serif";
+        c.font = 'bold 13px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "left";
         const label = "+" + e.amount, tw = c.measureText(label).width, start = -(tw + 18) / 2;
         c.lineWidth = 3;
@@ -2748,7 +2748,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (frozen) {
       ellipse(c, 0, -1, 14, 19, null, "#e9d28d");
       c.fillStyle = "#eddda5";
-      c.font = "10px serif";
+      c.font = '10px "SimHei","Microsoft YaHei",sans-serif';
       c.textAlign = "center";
       c.fillText("封", 0, -18);
     }
@@ -3496,11 +3496,30 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) lines.push("全镇" + (d.auraResource === "materials" ? "工材" : "铜钱") + "收入 +" + rateText(d.aura * GF.auraFactor(building) * 100) + "%");
     return lines.join("<br>");
   }
+  function effectHTML(d) {
+    const icon = (resource) => `<i class="${resource === "materials" ? "material-icon" : "coin-icon"}"></i>`;
+    const label = (text) => `<span class="effect-line"><span>${text}</span></span>`;
+    const figure = (html) => `<span class="effect-line effect-figure">${html}</span>`;
+    const rows = (pairs) => `<div class="card-effect rows">${pairs.map(([name, value]) => `<span class="effect-line"><span>${name}</span><span class="effect-value">${value}</span></span>`).join("")}</div>`;
+    const center2 = (lines) => `<div class="card-effect production">${lines.join("")}</div>`;
+    if (d.income) return center2([label("生产"), figure(`<span class="effect-value">${rateText(d.income * GF.incomeFactor({ type: d.id, level: 1 }))}</span>${icon(d.resource)}/秒`)]);
+    if (d.id === "tower") return rows([["攻击", d.damage], ["射程", d.range]]);
+    if (d.id === "barracks") return rows([["士兵", GF.soldierLimit({ type: "barracks", level: 1 })], ["战力", GF.soldierPower(playerState(), { type: "barracks", level: 1 })]]);
+    if (d.id === "rock") return rows([["攻击范围", d.range], ["溅射", d.splash]]);
+    if (d.id === "well") return center2([label("农田"), figure(`${icon("coins")}<span class="effect-value">+20%</span>`)]);
+    if (d.id === "stage") return center2([label("全镇"), figure(`${icon("coins")}<span class="effect-value">+3%</span> ${icon("materials")}<span class="effect-value">+3%</span>`)]);
+    if (d.id === "earth") return center2([label("守护"), figure('<span class="effect-value">-20%</span>')]);
+    if (d.id === "tao") return center2([label("道法"), figure('<span class="effect-value">+15%</span>')]);
+    if (d.id === "zhong") return center2([label("镇煞"), figure('<span class="effect-value">减速40%</span>')]);
+    if (d.id === "shrine") return center2([label("祠堂"), figure(`${icon("coins")}<span class="effect-value">+1/秒</span>`)]);
+    if (d.id === "fortune") return center2([label("造化"), figure('<span class="effect-value">随机建筑</span>')]);
+    return center2([label(d.name), figure(d.desc || "")]);
+  }
   function cardHTML(d) {
-    const description = d.id === "well" ? "井旁平地可建农田<br>相邻农田收入 +20%" : effect(d);
-    const tag = d.chain || (d.required ? "终" : d.id === "fortune" ? "造" : { defense: "防", support: "民", temple: "神" }[d.cat] || "坊");
-    const count = d.id === "fortune" ? `次数${playerState().fortuneBuilt}` : `${playerState().buildings.filter((b) => b.type === d.id).length}/${d.limit || "∞"}`;
-    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${tag}</span><span class="card-count">${count}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</span><span class="card-effect">${description}</span></button>`;
+    const built = playerState().buildings.filter((b) => b.type === d.id).length;
+    const count = d.id === "fortune" ? `次数：${playerState().fortuneBuilt}/${d.limit}` : d.limit ? `数量：${built}/${d.limit}` : "";
+    const badge = d.prev && built === 0 ? '<span class="card-badge">进阶建筑</span>' : "";
+    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt="">${badge}</div><strong>${d.name}</strong>${effectHTML(d)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div><button class="build-action" type="button">建造</button></div>`;
   }
   function hideBuildCard(d, x, y) {
     const plot = GF.terrain(x, y, state), nearby = GF.adjacent(state, x, y);
@@ -3591,11 +3610,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     } else for (const el of $("cards").children) {
       const reason = GF.buildReason(playerState(), el.dataset.build, x, y);
       el.classList.toggle("locked", !!reason);
-      el.classList.toggle("poor", reason.startsWith("差 "));
+      el.classList.toggle("poor", reason.startsWith("差"));
       el.setAttribute("aria-disabled", String(!!reason));
-      const label = el.querySelector(".card-reason");
-      label.hidden = !reason || reason.startsWith("差 ");
-      label.textContent = label.hidden ? "" : reason;
+      const button = el.querySelector(".build-action");
+      if (button) {
+        button.disabled = !!reason;
+        button.textContent = reason ? shortReason(reason) : "建造";
+      }
       const cost = GF.buildCost(playerState(), el.dataset.build);
       for (const part of el.querySelectorAll(".card-price .cost-part")) {
         const resource = part.querySelector(".coin-icon") ? "coins" : "materials";
@@ -3603,6 +3624,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
   }
+  const shortReason = (reason) => reason.startsWith("已达上限") ? "已达上限" : reason.startsWith("差") ? "缺少资源" : "不可建造";
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
     var _a, _b, _c;
@@ -3677,20 +3699,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const reason = GF.buildReason(playerState(), type, selected.x, selected.y);
       if (reason) return blocked(el, reason);
       guestAction("build", { building: type });
+      closePanel();
+      refresh();
       return;
     }
     const r = GF.build(state, type, selected.x, selected.y);
     if (!r.ok) return blocked(el, r.reason);
     tone();
-    panelKey = "";
-    toast(type === "fortune" ? "造化匣化为" + GF.name(r.building) : GF.DEFS[type].name + "已建成");
+    const name = type === "fortune" ? "造化匣化为" + GF.name(r.building) : GF.DEFS[type].name + "已建成";
     handleEvents();
     save();
+    closePanel();
     refresh();
+    toast(name);
   }
   $("cards").addEventListener("click", (e) => {
-    const el = e.target.closest("[data-build]");
-    if (el && !cardDrag.suppress) performBuild(el.dataset.build, el);
+    const action = e.target.closest(".build-action");
+    if (!action || action.disabled || cardDrag.suppress) return;
+    const card = action.closest(".build-card");
+    if (card) performBuild(card.dataset.build, card);
   });
   $("detail-view").addEventListener("click", (e) => {
     if (!selected) return;

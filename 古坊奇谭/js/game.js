@@ -45,7 +45,7 @@
   def('earth', '土地庙', 'temple', { coins: 140, materials: 95 }, 260, { guard: .2, range: 3, fortuneOnly: true, desc: '三格内建筑受到伤害 -20%' });
   def('zhong', '钟馗像', 'temple', { coins: 250, materials: 180 }, 430, { slow: .4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: '每 12 秒使全体怪物减速 40%，持续 4 秒' });
   def('tao', '道观', 'temple', { coins: 450, materials: 330 }, 380, { powerAura: .15, fortuneOnly: true, desc: '全镇防御建筑攻击 +15%' });
-  def('fortune', '造化匣', 'mystery', { coins: 90, materials: 60 }, 1, { desc: '变化为随机建筑' });
+  def('fortune', '造化匣', 'mystery', { coins: 90, materials: 60 }, 1, { limit: 10, desc: '变化为随机建筑' });
   def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, desc: '庄园唯一入口 · 可升级与修复' });
   const ENEMIES = {
     bandit: { name: '山匪', hp: 100, speed: .65, damage: 14, reward: 8 },

@@ -230,11 +230,32 @@
     if (d.required) lines.push('全镇' + (d.auraResource === 'materials' ? '工材' : '铜钱') + '收入 +' + rateText(d.aura * GF.auraFactor(building) * 100) + '%');
     return lines.join('<br>');
   }
+  // Two fixed lines per card: production centres a "生产" label over its output, everything else
+  // puts the effect name on the left and the value on the right.
+  function effectHTML(d) {
+    const icon = resource => `<i class="${resource === 'materials' ? 'material-icon' : 'coin-icon'}"></i>`;
+    const label = text => `<span class="effect-line"><span>${text}</span></span>`;
+    const figure = html => `<span class="effect-line effect-figure">${html}</span>`;
+    const rows = pairs => `<div class="card-effect rows">${pairs.map(([name, value]) => `<span class="effect-line"><span>${name}</span><span class="effect-value">${value}</span></span>`).join('')}</div>`;
+    const center = lines => `<div class="card-effect production">${lines.join('')}</div>`;
+    if (d.income) return center([label('生产'), figure(`<span class="effect-value">${rateText(d.income * GF.incomeFactor({ type: d.id, level: 1 }))}</span>${icon(d.resource)}/秒`)]);
+    if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
+    if (d.id === 'barracks') return rows([['士兵', GF.soldierLimit({ type: 'barracks', level: 1 })], ['战力', GF.soldierPower(playerState(), { type: 'barracks', level: 1 })]]);
+    if (d.id === 'rock') return rows([['攻击范围', d.range], ['溅射', d.splash]]);
+    if (d.id === 'well') return center([label('农田'), figure(`${icon('coins')}<span class="effect-value">+20%</span>`)]);
+    if (d.id === 'stage') return center([label('全镇'), figure(`${icon('coins')}<span class="effect-value">+3%</span> ${icon('materials')}<span class="effect-value">+3%</span>`)]);
+    if (d.id === 'earth') return center([label('守护'), figure('<span class="effect-value">-20%</span>')]);
+    if (d.id === 'tao') return center([label('道法'), figure('<span class="effect-value">+15%</span>')]);
+    if (d.id === 'zhong') return center([label('镇煞'), figure('<span class="effect-value">减速40%</span>')]);
+    if (d.id === 'shrine') return center([label('祠堂'), figure(`${icon('coins')}<span class="effect-value">+1/秒</span>`)]);
+    if (d.id === 'fortune') return center([label('造化'), figure('<span class="effect-value">随机建筑</span>')]);
+    return center([label(d.name), figure(d.desc || '')]);
+  }
   function cardHTML(d) {
-    const description = d.id === 'well' ? '井旁平地可建农田<br>相邻农田收入 +20%' : effect(d);
-    const tag = d.chain || (d.required ? '终' : d.id === 'fortune' ? '造' : { defense: '防', support: '民', temple: '神' }[d.cat] || '坊');
-    const count = d.id === 'fortune' ? `次数${playerState().fortuneBuilt}` : `${playerState().buildings.filter(b => b.type === d.id).length}/${d.limit || '∞'}`;
-    return `<button class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="chain-tag">${tag}</span><span class="card-count">${count}</span><img src="${GFArt.thumbnail(d.id)}" alt=""><span class="card-reason" hidden></span><strong>${d.name}</strong><span class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</span><span class="card-effect">${description}</span></button>`;
+    const built = playerState().buildings.filter(b => b.type === d.id).length;
+    const count = d.id === 'fortune' ? `次数：${playerState().fortuneBuilt}/${d.limit}` : d.limit ? `数量：${built}/${d.limit}` : '';
+    const badge = d.prev && built === 0 ? '<span class="card-badge">进阶建筑</span>' : '';
+    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt="">${badge}</div><strong>${d.name}</strong>${effectHTML(d)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div><button class="build-action" type="button">建造</button></div>`;
   }
   function hideBuildCard(d, x, y) {
     const plot = GF.terrain(x, y, state), nearby = GF.adjacent(state, x, y);
@@ -310,8 +331,9 @@
         if (label._costHTML !== html) { label.innerHTML = html; label._costHTML = html; }
       }
     } else for (const el of $('cards').children) {
-      const reason = GF.buildReason(playerState(), el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差 ')); el.setAttribute('aria-disabled', String(!!reason));
-      const label = el.querySelector('.card-reason'); label.hidden = !reason || reason.startsWith('差 '); label.textContent = label.hidden ? '' : reason;
+      const reason = GF.buildReason(playerState(), el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差')); el.setAttribute('aria-disabled', String(!!reason));
+      const button = el.querySelector('.build-action');
+      if (button) { button.disabled = !!reason; button.textContent = reason ? shortReason(reason) : '建造'; }
       const cost = GF.buildCost(playerState(), el.dataset.build);
       for (const part of el.querySelectorAll('.card-price .cost-part')) {
         const resource = part.querySelector('.coin-icon') ? 'coins' : 'materials';
@@ -319,6 +341,7 @@
       }
     }
   }
+  const shortReason = reason => reason.startsWith('已达上限') ? '已达上限' : reason.startsWith('差') ? '缺少资源' : '不可建造';
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
     const invasion = started && state.phase !== 'day';
@@ -360,12 +383,17 @@
     if (!selected) return;
     if (!GF.owns(playerState(), selected.x, selected.y) || GF.isWall(state, selected.x, selected.y)) { closePanel(); toast('仅可在庄园内部建设', 'warning'); return; }
     if (GF.DEFS[type]?.fixed) return blocked(el, '庄园固定建筑不可建造');
-    if (online?.role === 'guest') { const reason = GF.buildReason(playerState(), type, selected.x, selected.y); if (reason) return blocked(el, reason); guestAction('build', { building: type }); return; }
+    if (online?.role === 'guest') { const reason = GF.buildReason(playerState(), type, selected.x, selected.y); if (reason) return blocked(el, reason); guestAction('build', { building: type }); closePanel(); refresh(); return; }
     const r = GF.build(state, type, selected.x, selected.y);
     if (!r.ok) return blocked(el, r.reason);
-    tone(); panelKey = ''; toast(type === 'fortune' ? '造化匣化为' + GF.name(r.building) : GF.DEFS[type].name + '已建成'); handleEvents(); save(); refresh();
+    tone(); const name = type === 'fortune' ? '造化匣化为' + GF.name(r.building) : GF.DEFS[type].name + '已建成'; handleEvents(); save(); closePanel(); refresh(); toast(name);
   }
-  $('cards').addEventListener('click', e => { const el = e.target.closest('[data-build]'); if (el && !cardDrag.suppress) performBuild(el.dataset.build, el); });
+  $('cards').addEventListener('click', e => {
+    const action = e.target.closest('.build-action');
+    if (!action || action.disabled || cardDrag.suppress) return;
+    const card = action.closest('.build-card');
+    if (card) performBuild(card.dataset.build, card);
+  });
   $('detail-view').addEventListener('click', e => {
     if (!selected) return; const b = GF.at(state, selected.x, selected.y); if (!b) return;
     if (e.target.closest('#upgrade-building')) {

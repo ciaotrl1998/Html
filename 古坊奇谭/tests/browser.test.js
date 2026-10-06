@@ -32,8 +32,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],'工材',[2,5,40],[[143,0],[435,105],[6134,2000]]]
     ])for(const [i,type] of types.entries()){
       await incomePage.evaluate(([x,y])=>Gufang.select(x,y),cells[i]);
-      const card=incomePage.locator(`[data-build="${type}"]`),bonus=i?`（+${incomes[i]/10}）`:'';
-      assert.equal(await card.locator('.card-effect').innerText(),`${resource} +${incomes[i]}${bonus}/秒`,type+' income card');
+      const card=incomePage.locator(`[data-build="${type}"]`),effect=card.locator('.card-effect');
+      assert.equal((await effect.innerText()).replace(/\s+/g,''),`生产${incomes[i]}/秒`,type+' income card');
+      assert.equal(await effect.locator(resource==='工材'?'.material-icon':'.coin-icon').count(),1,type+' resource icon');
       for(const [j,icon] of ['coin-icon','material-icon'].entries()){
         const number=card.locator(`.cost-part:has(.${icon}) .cost-number`);
         if(costs[i][j])assert.equal(await number.textContent(),String(costs[i][j]),type+' cost');
@@ -131,14 +132,13 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       const initialOrder=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build));
       assert.deepEqual(initialOrder.slice(0,3),['tea','tower','fortune'],'Buildable cards lead the selection snapshot in industry, defense, fortune order');
       assert(initialOrder.includes('barracks'));
-      assert.equal(await page.locator('[data-build="fortune"] .card-effect').innerText(),'变化为随机建筑');
-      assert(await page.locator('[data-build="barracks"] .card-reason').isHidden());
+      assert.equal((await page.locator('[data-build="fortune"] .card-effect').innerText()).replace(/\s+/g,''),'造化随机建筑');
+      assert.equal(await page.locator('[data-build="barracks"] .build-action').textContent(),'缺少资源');
+      assert(await page.locator('[data-build="barracks"] .build-action').isDisabled());
       assert.equal(await page.locator('[data-build="barracks"] .cost-number.insufficient').count(),2);
       const cardFit=await page.evaluate(()=>{const cards=document.getElementById('cards'),card=cards.querySelector('.build-card'),style=getComputedStyle(cards);return (cards.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)+6)/(card.getBoundingClientRect().width+6);});
       assert(cardFit>4.25&&cardFit<4.6,`One screen shows about 4.4 cards, got ${cardFit}`);
-      assert.equal(await page.locator('[data-build="fortune"] .chain-tag').textContent(),'造');
-      const fortuneBadges=await page.locator('[data-build="fortune"]').evaluate(el=>{const tag=el.querySelector('.chain-tag').getBoundingClientRect(),count=el.querySelector('.card-count').getBoundingClientRect();return {tagWidth:tag.width,overlap:tag.right>count.left};});
-      assert(fortuneBadges.tagWidth<30&&!fortuneBadges.overlap,'Type badge stays compact and clear of the count');
+      assert.equal(await page.locator('.card-badge').count(),0,'No advancement badge before any prerequisite is built');
       assert((await page.locator('[data-build="tea"] .card-count').textContent()).includes('0/6'));
       await mapClick(page,6,8);
       assert(await page.locator('[data-build="tea"]').count());assert(await page.locator('[data-build="tower"]').count());
@@ -146,14 +146,12 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>{const s=Gufang.state;for(const [type,x,y] of [['bank',14,7],['wine',14,8],['tailor',15,7],['trade',15,9]])GF.grantBuilding(s,type,x,y);Gufang.select(15,8);});
       assert.equal(await page.locator('[data-build="guild"] strong').textContent(),'汇财会馆');
       assert.equal(await page.locator('[data-build="port"] strong').textContent(),'百工院');
-      assert((await page.locator('[data-build="guild"] .card-effect').innerText()).includes('全镇铜钱收入 +5%'));
-      assert((await page.locator('[data-build="port"] .card-effect').innerText()).includes('全镇工材收入 +10%'));
+      assert.equal((await page.locator('[data-build="guild"] .card-effect').innerText()).replace(/\s+/g,''),'生产240/秒');
+      assert.equal((await page.locator('[data-build="port"] .card-effect').innerText()).replace(/\s+/g,''),'生产300/秒');
       for(const type of ['guild','port']){
         const raw=await page.evaluate(()=>GF.serialize(Gufang.state)),s=G.restore(raw),d=G.DEFS[type];
         const b={type,x:15,y:8,level:1};s.buildings.push(b);
-        const total=G.income(s,b),bonus=String(Math.round((total-d.income+Number.EPSILON)*10)/10);
-        const resource=d.resource==='materials'?'工材':'铜钱';
-        assert.equal((await page.locator(`[data-build="${type}"] .card-effect`).innerText()).split('\n')[0],`${resource} +${d.income}（+${bonus}）/秒`,type+' ultimate card matches core');
+        assert.equal((await page.locator(`[data-build="${type}"] .card-effect`).innerText()).replace(/\s+/g,''),`生产${d.income}/秒`,type+' ultimate card matches core');
         for(const [resource,icon] of [['coins','coin-icon'],['materials','material-icon']]){
           assert.equal(await page.locator(`[data-build="${type}"] .cost-part:has(.${icon}) .cost-number`).textContent(),String(d.cost[resource]),type+' two-resource card cost');
         }
@@ -171,11 +169,12 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert((await page.locator('#plot-label').textContent()).startsWith('水域'));
       assert.equal(await page.locator('.build-card').count(),0,'Water hides every construction card');
       await page.evaluate(()=>Gufang.select(7,8));
-      const height=(await page.locator('#panel').boundingBox()).height;
       assert.equal(await page.locator('[data-build="farm"]').count(),0,'A farm is hidden where terrain and water access reject it');
-       assert.equal(await page.locator('[data-build="tea"] .card-effect').innerText(),'铜钱 +2/秒');
-      await page.locator('[data-build="tea"]').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='tea').length),1);
-      assert(Math.abs((await page.locator('#panel').boundingBox()).height-height)<.1);
+      assert.equal((await page.locator('[data-build="tea"] .card-effect').innerText()).replace(/\s+/g,''),'生产2/秒');
+      await page.locator('[data-build="tea"] .build-action').click();
+      assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='tea').length),1);
+      assert(await page.locator('#panel').isHidden(),'Building a card closes the panel');
+      await page.evaluate(()=>Gufang.select(7,8));
       assert.equal(await page.locator('#upgrade-building').evaluate(el=>el.firstChild.textContent),'升级');
       assert.equal(await page.locator('#upgrade-label .material-icon').count(),1);
       assert.equal(await page.locator('#upgrade-label').evaluate(el=>/铜钱|工材|差/.test(el.textContent)),false,'Upgrade cost uses icons without resource names or shortage text');
@@ -191,21 +190,28 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await page.evaluate(()=>{Gufang.state.coins=0;Gufang.state.materials=0;Gufang.select(7,7);});
       const poorOrder=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build));
       assert.deepEqual(poorOrder.slice(0,2),['inn','tea'],'Higher industry tiers lead within the same availability state');
+      assert.equal(await page.locator('[data-build="inn"] .card-badge').textContent(),'进阶建筑','Unlockable next tier is badged');
       assert.equal(await page.locator('[data-build="inn"]').getAttribute('aria-disabled'),'true');
-      assert(await page.locator('[data-build="inn"] .card-reason').isHidden());
+      assert.equal(await page.locator('[data-build="inn"] .build-action').textContent(),'缺少资源');
+      assert(await page.locator('[data-build="inn"] .build-action').isDisabled());
       assert.equal(await page.locator('[data-build="inn"] .cost-number.insufficient').count(),2);
       await page.evaluate(()=>{Gufang.state.coins=2000;Gufang.refresh();});
       assert.equal(await page.locator('[data-build="inn"] .cost-part:has(.coin-icon) .cost-number.insufficient').count(),0);
       assert.equal(await page.locator('[data-build="inn"] .cost-part:has(.material-icon) .cost-number.insufficient').count(),1);
       await page.evaluate(()=>{Gufang.state.coins=2000;Gufang.state.materials=2000;Gufang.refresh();});
       assert.equal(await page.locator('[data-build="inn"]').getAttribute('aria-disabled'),'false');
+      assert.equal(await page.locator('[data-build="inn"] .build-action').textContent(),'建造');
       assert.equal(await page.locator('[data-build="inn"] .cost-number.insufficient').count(),0);
       assert.deepEqual(await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build)),poorOrder,'Resource changes unlock cards without moving them');
       await page.evaluate(()=>Gufang.select(7,7));
       const refreshed=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>({type:card.dataset.build,locked:card.getAttribute('aria-disabled')==='true'})));
       let seenLocked=false;
       for(const {type,locked} of refreshed){ if(locked)seenLocked=true; else assert(!seenLocked,'Buildable cards lead before locked cards: '+type); }
-      await page.locator('[data-build="inn"]').click();
+      await page.locator('[data-build="inn"] .build-action').click();
+      assert(await page.locator('#panel').isHidden(),'Building the inn closes the panel');
+      await page.evaluate(()=>Gufang.select(6,8));
+      assert.equal(await page.locator('[data-build="inn"] .card-badge').count(),0,'Advancement badge clears after building one');
+      await page.evaluate(()=>Gufang.select(7,7));
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='inn').level),2);
       const overlays=await page.evaluate(()=>{
         const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
@@ -251,16 +257,16 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await mapClick(page,5,8);
       assert((await page.locator('#plot-label').textContent()).startsWith('水岸'));
       assert.equal(await page.locator('[data-build="farm"]').getAttribute('aria-disabled'),'false','A shore tile accepts a farm');
-      await page.locator('[data-build="farm"]').click();
+      await page.locator('[data-build="farm"] .build-action').click();
       assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='farm').length),1);
-      await page.locator('#close-panel').click();
       await page.evaluate(()=>Gufang.select(9,9));
       assert.equal(await page.locator('[data-build="farm"]').count(),0,'An inland farm without a well is hidden');
       await page.evaluate(()=>{GF.grantBuilding(Gufang.state,'well',10,10);Gufang.select(9,9);});
       assert.equal(await page.locator('[data-build="farm"]').getAttribute('aria-disabled'),'false','A plain tile diagonally adjacent to a well accepts a farm');
-      assert.equal(await page.locator('[data-build="farm"] .card-effect').innerText(),'铜钱 +1（+0.4）/秒');
-      await page.locator('[data-build="farm"]').click();
+      assert.equal((await page.locator('[data-build="farm"] .card-effect').innerText()).replace(/\s+/g,''),'生产1/秒');
+      await page.locator('[data-build="farm"] .build-action').click();
       assert.equal(await page.evaluate(()=>Gufang.state.buildings.filter(b=>b.type==='farm').length),2);
+      await page.evaluate(()=>Gufang.select(9,9));
       assert((await page.locator('.detail-revenue').textContent()).includes('+1（+0.4）/秒'));
       assert.equal(await page.locator('.detail-revenue .income-bonus').evaluate(e=>getComputedStyle(e).color),'rgb(58, 135, 78)');
       await page.locator('#close-panel').click();
@@ -309,7 +315,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         const count=await page.evaluate(()=>Gufang.state.buildings.length);
         assert((await page.locator('#plot-label').textContent()).includes('可兴建'));
         assert.equal(await page.locator('[data-build="tower"]').getAttribute('aria-disabled'),'false');
-        await page.locator('[data-build="tower"]').click();
+        await page.locator('[data-build="tower"] .build-action').click();
         assert.equal(await page.evaluate(()=>Gufang.state.buildings.length),count+1);
         await page.evaluate(()=>Gufang.select(8,7));
         assert.equal(await page.locator('#upgrade-building').getAttribute('aria-disabled'),'false');
@@ -376,8 +382,10 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       await mapClick(page,plots.tea.x,plots.tea.y);
       assert.equal(await page.locator('[data-build="gate"]').count(),0,'Fixed gates never appear as build cards');
       assert.equal(await page.locator('[data-build="tea"]').getAttribute('aria-disabled'),'false');
-      await page.locator('[data-build="tea"]').click();
+      await page.locator('[data-build="tea"] .build-action').click();
       assert.equal(await page.evaluate(p=>GF.at(Gufang.state,p.x,p.y)?.type,plots.tea),'tea');
+      assert(await page.locator('#panel').isHidden());
+      await mapClick(page,plots.tea.x,plots.tea.y);
       assert(await page.locator('#detail-view').isVisible());await page.locator('#close-panel').click();
       for(const [plot,type,hidden] of [[plots.forest,'mulberry','weaver'],[plots.mountain,'quarry','kiln']]){
         await mapClick(page,plot.x,plot.y);
@@ -436,7 +444,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     await compat.evaluate(()=>{Object.hasOwn=undefined;HTMLDialogElement.prototype.showModal=undefined;Object.defineProperty(window,'visualViewport',{value:undefined,configurable:true});});
     await compat.setContent(html);await compat.waitForFunction(()=>!!window.Gufang);await enterFromMenu(compat);
     assert.equal(await compat.locator('#game').evaluate(e=>e.clientHeight),844,'Pixel fallback works without visualViewport');
-    assert(await compat.locator('#startup-error').isHidden());await mapClick(compat,7,8);await compat.locator('[data-build="tea"]').click();
+    assert(await compat.locator('#startup-error').isHidden());await mapClick(compat,7,8);await compat.locator('[data-build="tea"] .build-action').click();
     await compat.locator('#menu-pause').click();assert(await compat.locator('#modal').isVisible());
     assert.deepEqual(compatErrors,[]);console.log('PASS legacy Android compatibility simulation: no dvh, no Object.hasOwn, no native dialog, no visualViewport');
     await compat.close();
@@ -462,7 +470,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     assert(await standalone.evaluate(()=>Gufang.state.cooldowns.repair>0));
     await standalone.evaluate(()=>{Gufang.state.phase='day';Gufang.state.wave=null;Gufang.refresh();});
     assert.equal(await standalone.evaluate(()=>Gufang.state.coins),1234);assert.equal(await standalone.evaluate(()=>Gufang.state.materials),120);assert.equal(await standalone.evaluate(()=>'prosperity' in Gufang.state),false);assert.equal(await standalone.evaluate(()=>Gufang.state.buildings[0].type),'shrine');
-    await mapClick(standalone,7,8);await standalone.locator('[data-build="tea"]').click();assert.equal(await standalone.evaluate(()=>Gufang.state.buildings.length),2);
+    await mapClick(standalone,7,8);await standalone.locator('[data-build="tea"] .build-action').click();assert.equal(await standalone.evaluate(()=>Gufang.state.buildings.length),2);
     assert.deepEqual(errors,[]);console.log(sourceOnly?'PASS source HTML and old save migration':'PASS offline single-file HTML and old save migration');await standalone.close();
   }finally{await browser.close();}
   console.log('Screenshots: '+shots);

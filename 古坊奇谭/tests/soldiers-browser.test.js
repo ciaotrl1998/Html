@@ -123,9 +123,11 @@ async function ui(page) {
     throw Error('No buildable barracks plot');
   });
   const card = page.locator('[data-build="barracks"]');
-  assert.equal(await card.locator('.card-effect').innerText(), '\u81ea\u52a8\u6d3e\u51fa1\u540d\u6c11\u5175');
+  const barracksEffect = (await card.locator('.card-effect').innerText()).replace(/\s+/g, '');
+  assert(barracksEffect.startsWith('\u58eb\u5175') && barracksEffect.includes('\u6218\u529b'), 'Barracks card shows soldier count and power');
   assert.equal(await card.getAttribute('aria-disabled'), 'false');
-  await card.click();
+  await card.locator('.build-action').click();
+  await page.evaluate(() => { const b = Gufang.state.buildings.find(b => b.type === 'barracks'); Gufang.select(b.x, b.y); });
   const expectedStats = () => page.evaluate(() => {
     const s = Gufang.state, b = s.buildings.find(b => b.type === 'barracks'), next = { ...b, level: b.level + 1 };
     const preview = api => String(api(b)) + (b.level >= GF.maxLevel(b) ? '' : ' \u2192 ' + api(next));

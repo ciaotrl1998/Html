@@ -37,13 +37,12 @@ const sourceOnly=process.argv.includes('--source-only')||!!process.env.GUFANG_SO
         return { before, after: { count: s.buildings.length, coins: s.coins, materials: s.materials }, selected: document.getElementById('plot-label').textContent };
       });
       assert.deepEqual(result.after, result.before, 'Map release cannot build through the newly opened panel');
-      await page.locator('[data-build="tea"]').tap();
+      await page.locator('[data-build="tea"] .build-action').tap();
       assert.equal(await page.evaluate(() => GF.at(Gufang.state, 8, 9)?.type), 'tea', 'A new deliberate touch still builds');
       const keyboardPlot = await page.evaluate(() => {
-        document.getElementById('close-panel').click();
         const s=Gufang.state;
         for(let y=1;y<16;y++)for(let x=1;x<16;x++)if(!GF.buildReason(s,'tea',x,y)){
-          Gufang.select(x,y);document.querySelector('[data-build="tea"]').click();return {x,y};
+          Gufang.select(x,y);document.querySelector('[data-build="tea"] .build-action').click();return {x,y};
         }
         throw Error('No keyboard fixture plot');
       });
