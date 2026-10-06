@@ -23,8 +23,7 @@
     ['mulberry', 'weaver', 'tailor', '桑园', '织坊', '成衣铺', 'forest', '丝', '#b38ba7'],
     ['quarry', 'kiln', 'trade', '石场', '瓷窑', '商号', 'mountain', '工', '#7b9fa2']
   ];
-  // 辐射范围：茶肆/石场链自 1 起，农田/桑园链自 0 起，每段 +1；终极建筑为 4。
-  const CHAIN_BASE = [1, 0, 0, 1];
+  // 所有生产建筑的影响范围统一为 1（仅影响相邻格）。
   const COIN_CHAIN_COSTS = [{ coins: 0, materials: 65 }, { coins: 110, materials: 240 }, { coins: 430, materials: 750 }];
   const MATERIAL_CHAIN_COSTS = [{ coins: 95, materials: 0 }, { coins: 290, materials: 70 }, { coins: 920, materials: 300 }];
   chains.forEach((a, ci) => { for (let i = 0; i < 3; i++) {
@@ -32,11 +31,11 @@
     const costFactor = (high ? 1.5 : 1) * (i === 2 ? (high ? 40 / 9 : 4) : 1);
     def(a[i], a[i + 3], 'economy', { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
     income: (high ? [2, 5, 40] : [1, 3, 24])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
-    chain: a[7], color: a[8], end: i === 2, tier: i, radius: CHAIN_BASE[ci] + i, limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
+    chain: a[7], color: a[8], end: i === 2, tier: i, radius: 1, limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
     names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
   }); } });
-  def('guild', '汇财会馆', 'economy', { coins: 44572, materials: 66858 }, 600, { income: 240, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'wine'], radius: 4, limit: 1 });
-  def('port', '百工院', 'economy', { coins: 70500, materials: 37500 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['tailor', 'trade'], radius: 4, limit: 1 });
+  def('guild', '汇财会馆', 'economy', { coins: 44572, materials: 66858 }, 600, { income: 240, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'wine'], radius: 1, limit: 1 });
+  def('port', '百工院', 'economy', { coins: 70500, materials: 37500 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['tailor', 'trade'], radius: 1, limit: 1 });
   def('tower', '箭塔', 'defense', { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
   def('rock', '擂石台', 'defense', { coins: 260, materials: 190 }, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, fortuneOnly: true, desc: '范围轰击 · 仅可由造化匣获得' });
   def('barracks', '兵营', 'defense', { coins: 320, materials: 240 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '自动派出民兵近战' });
@@ -564,7 +563,6 @@
     if (type === 'farm') {
       if (plot !== 'shore' && !(plot === 'plain' && adjacent(s, x, y).some(b => b.type === 'well'))) return '需水岸或水井旁平地';
     } else if (d.terrain && plot !== d.terrain) return '需' + TERRAIN[d.terrain];
-    if (d.radius && s.buildings.some(b => b.type === type && dist8(b.x, b.y, x, y) <= d.radius)) return '范围内已有相同建筑';
     if (d.prev && !adjacent(s, x, y).some(b => b.type === d.prev)) return '需紧挨' + DEFS[d.prev].name;
     if (d.required) {
       const nearby = new Set(adjacent(s, x, y).map(b => b.type));

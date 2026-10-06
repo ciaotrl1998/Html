@@ -12,7 +12,6 @@ function incomeScene(level, day, capped, placements) {
   for (const b of s.buildings) {
     const d = G.DEFS[b.type], peers = s.buildings.filter(n=>n.type===b.type);
     if (d.limit) assert(peers.length<=d.limit, b.type+' limit');
-    if (d.radius) assert(peers.every(n=>n===b || G.dist8(n.x,n.y,b.x,b.y)>d.radius), b.type+' spacing');
     for (const type of d.required || (d.prev ? [d.prev] : [])) {
       assert(G.adjacent(s,b.x,b.y).some(n=>n.type===type && n.level===level), b.type+' retains '+type);
     }
@@ -29,9 +28,8 @@ function incomeScene(level, day, capped, placements) {
 
 test('same-level endpoints beat densely supplied middles at every level, with equal global bonuses and festivals', () => {
   for (const [start,middle,end] of [['tea','inn','bank'],['farm','mill','wine'],['mulberry','weaver','tailor'],['quarry','kiln','trade']]) {
-    const cells = G.DEFS[middle].radius===1
-      ? [[7,3],[8,3],[9,3],[7,4],[9,4],[7,5],[8,5],[9,5]]
-      : [[6,2],[8,3],[10,2],[6,4],[10,4],[6,6]];
+    // With no spacing limit, every adjacent tile can hold a starter, up to that starter's count limit.
+    const cells = [[7,3],[8,3],[9,3],[7,4],[9,4],[7,5],[8,5],[9,5]].slice(0, G.DEFS[start].limit);
     assert.equal(cells.length,G.DEFS[start].limit);
     for (let level=1;level<=9;level++) for (const day of [1,7]) for (const capped of [false,true]) {
       const supplied = incomeScene(level,day,capped,[[middle,8,4],...cells.map(([x,y])=>[start,x,y])]);
@@ -59,8 +57,9 @@ test('same-level ultimates with one of each endpoint beat fully supplied highest
     assert.equal(G.DEFS[end].resource,G.DEFS[ultimate].resource);
     for (let level=1;level<=9;level++) for (const day of [1,7]) for (const capped of [false,true]) {
       const supplied=incomeScene(level,day,capped,[
-        [end,9,4],[middle,8,4],[middle,11,4],[middle,8,7],
-        [start,7,4],[start,12,4],[start,7,7]
+        [end,9,4],
+        [middle,8,3],[middle,10,3],[middle,8,5],
+        [start,7,3],[start,11,3],[start,7,5]
       ]);
       const sparse=incomeScene(level,day,capped,[
         [ultimate,9,4],[end,8,4],[middle,7,4],[start,6,4],

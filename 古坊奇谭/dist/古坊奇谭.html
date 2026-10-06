@@ -218,7 +218,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     ["mulberry", "weaver", "tailor", "桑园", "织坊", "成衣铺", "forest", "丝", "#b38ba7"],
     ["quarry", "kiln", "trade", "石场", "瓷窑", "商号", "mountain", "工", "#7b9fa2"]
   ];
-  const CHAIN_BASE = [1, 0, 0, 1];
   const COIN_CHAIN_COSTS = [{ coins: 0, materials: 65 }, { coins: 110, materials: 240 }, { coins: 430, materials: 750 }];
   const MATERIAL_CHAIN_COSTS = [{ coins: 95, materials: 0 }, { coins: 290, materials: 70 }, { coins: 920, materials: 300 }];
   chains.forEach((a, ci) => {
@@ -234,14 +233,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         color: a[8],
         end: i === 2,
         tier: i,
-        radius: CHAIN_BASE[ci] + i,
+        radius: 1,
         limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
         names: [a[i + 3], i === 0 ? ["清茗茶肆", "临水良田", "葱郁桑园", "青石矿场"][ci] : "兴旺" + a[i + 3], "鼎盛" + a[i + 3]]
       });
     }
   });
-  def("guild", "汇财会馆", "economy", { coins: 44572, materials: 66858 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 4, limit: 1 });
-  def("port", "百工院", "economy", { coins: 70500, materials: 37500 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 4, limit: 1 });
+  def("guild", "汇财会馆", "economy", { coins: 44572, materials: 66858 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 1, limit: 1 });
+  def("port", "百工院", "economy", { coins: 70500, materials: 37500 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 1, limit: 1 });
   def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
   def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 46, range: 3.8, interval: 2.5, splash: 1.35, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
   def("barracks", "兵营", "defense", { coins: 320, materials: 240 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "自动派出民兵近战" });
@@ -886,7 +885,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (type === "farm") {
       if (plot !== "shore" && !(plot === "plain" && adjacent(s, x, y).some((b) => b.type === "well"))) return "需水岸或水井旁平地";
     } else if (d.terrain && plot !== d.terrain) return "需" + TERRAIN[d.terrain];
-    if (d.radius && s.buildings.some((b) => b.type === type && dist8(b.x, b.y, x, y) <= d.radius)) return "范围内已有相同建筑";
     if (d.prev && !adjacent(s, x, y).some((b) => b.type === d.prev)) return "需紧挨" + DEFS[d.prev].name;
     if (d.required) {
       const nearby = new Set(adjacent(s, x, y).map((b) => b.type));
@@ -2546,39 +2544,42 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function selectedLinks(s, b) {
     return s.buildings.filter((n) => n !== b && (directChainLink(b, n) || directChainLink(n, b)));
   }
+  function drawLinks(c, s) {
+    c.save();
+    c.setLineDash([4, 5]);
+    c.globalAlpha = s.phase === "night" ? 0.92 : 0.82;
+    const drawn = /* @__PURE__ */ new Set();
+    for (const b of s.buildings) {
+      const d = GF.DEFS[b.type];
+      if (!d.radius) continue;
+      for (const n of s.buildings) {
+        if (n === b) continue;
+        if (!directChainLink(b, n) && !directChainLink(n, b)) continue;
+        const key = b.id < n.id ? b.id + ":" + n.id : n.id + ":" + b.id;
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const nd = GF.DEFS[n.type], chain = d.chain || nd.chain;
+        const color = { 商: "#9c8052", 农: "#6e875b", 丝: "#96758c", 工: "#648388" }[chain] || "#9b8660";
+        const sx = b.x * T + 32, sy = b.y * T + 37, tx = n.x * T + 32, ty = n.y * T + 37, dx = tx - sx, dy = ty - sy, length = Math.hypot(dx, dy), trim = 12;
+        line(c, [[sx + dx / length * trim, sy + dy / length * trim], [tx - dx / length * trim, ty - dy / length * trim]], color, 2.2);
+      }
+    }
+    c.restore();
+  }
   function drawSelection(c, s, selected) {
     if (!selected) return;
     const b = GF.at(s, selected.x, selected.y);
-    if (!b) return;
-    const d = GF.DEFS[b.type], bounds = influenceBounds(s, b);
+    if (!b || b.type !== "tower") return;
+    const radius = (GF.DEFS.tower.range + (b.level - 1) * 0.35) * T;
     c.save();
-    if (b.type === "tower") {
-      const radius = (d.range + (b.level - 1) * 0.35) * T;
-      c.beginPath();
-      c.arc(b.x * T + 32, b.y * T + 32, radius, 0, Math.PI * 2);
-      c.fillStyle = "#8faa6518";
-      c.fill();
-      c.setLineDash([7, 5]);
-      c.strokeStyle = s.phase === "night" ? "#c4dca4" : "#769258";
-      c.lineWidth = 2;
-      c.stroke();
-    }
-    if (bounds) {
-      c.fillStyle = "#7f9b7510";
-      c.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
-      c.setLineDash([7, 6]);
-      c.lineWidth = 1.5;
-      c.strokeStyle = s.phase === "night" ? "#bbca9db8" : "#69856eaa";
-      c.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-    }
-    c.setLineDash([4, 5]);
-    c.globalAlpha = s.phase === "night" ? 0.92 : 0.82;
-    for (const n of selectedLinks(s, b)) {
-      const nd = GF.DEFS[n.type], chain = d.chain || nd.chain;
-      const color = { 商: "#9c8052", 农: "#6e875b", 丝: "#96758c", 工: "#648388" }[chain] || "#9b8660";
-      const sx = b.x * T + 32, sy = b.y * T + 37, tx = n.x * T + 32, ty = n.y * T + 37, dx = tx - sx, dy = ty - sy, length = Math.hypot(dx, dy), trim = 12;
-      line(c, [[sx + dx / length * trim, sy + dy / length * trim], [tx - dx / length * trim, ty - dy / length * trim]], color, 2.2);
-    }
+    c.beginPath();
+    c.arc(b.x * T + 32, b.y * T + 32, radius, 0, Math.PI * 2);
+    c.fillStyle = "#8faa6518";
+    c.fill();
+    c.setLineDash([7, 5]);
+    c.strokeStyle = s.phase === "night" ? "#c4dca4" : "#769258";
+    c.lineWidth = 2;
+    c.stroke();
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
@@ -2656,6 +2657,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (segments) c.stroke();
     }
     c.restore();
+    drawLinks(c, s);
     if (selected) {
       const px = selected.x * T, py = selected.y * T;
       rect(c, px + 2, py + 2, T - 4, T - 4, "#fbebaf30");

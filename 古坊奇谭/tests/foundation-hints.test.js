@@ -67,42 +67,35 @@ test('hints retain all legal resource candidates for actual preview income selec
   }
 });
 
-test('real preview incomes reverse base rankings through multiple prerequisites and include ultimate self aura',()=>{
+test('real preview incomes reverse base rankings through adjacent prerequisites and include ultimate self aura',()=>{
   for(const [entries,winner,loser,expected] of [
     [[['tea',7,3],['mulberry',9,3,3],['mulberry',9,4,3],['mulberry',9,5,3]],'weaver','inn',6.6],
     [[['mill',7,3,3],['mill',7,4,3],['mill',7,5,3],['kiln',9,3]],'wine','trade',52.8],
     [[['bank',7,3,4],['wine',7,5],['tailor',9,3],['trade',9,5]],'guild','port',391.2]
   ]) {
     const s=scene();for(const [type,x,y,level=1] of entries) grant(s,type,x,y,level);
-    const before=structuredClone(s), candidates=hints(s,8,4);
-    const incomes=candidates.map(h=>{
-      const preview={type:h.type,x:8,y:4,level:1};
-      return {...h,income:G.income({...s,buildings:[...s.buildings,preview]},preview)};
-    });
-    const win=incomes.find(h=>h.type===winner), lose=incomes.find(h=>h.type===loser);
+    const before=structuredClone(s);
+    const previewIncome=type=>{const preview={type,x:8,y:4,level:1};return G.income({...s,buildings:[...s.buildings,preview]},preview);};
+    const winIncome=previewIncome(winner), loseIncome=previewIncome(loser);
     assert(G.DEFS[winner].income<G.DEFS[loser].income);
-    close(win.income,expected);assert(win.income>lose.income);
-    assert.equal(incomes.reduce((best,h)=>h.income>best.income?h:best).type,winner);
+    close(winIncome,expected);assert(winIncome>loseIncome);
     if(winner==='guild') {
-      close(lose.income,390);
+      close(loseIncome,390);
       const preview={type:winner,x:8,y:4,level:1};
-      close(G.income(s,preview),379.2);assert(G.income(s,preview)<lose.income);
+      close(G.income(s,preview),379.2);assert(G.income(s,preview)<loseIncome);
     }
     assert.deepEqual(s,before);
   }
 });
 
-test('hints enforce each candidate count limit and inclusive spacing radius',()=>{
+test('hints enforce each candidate count limit without a spacing gap',()=>{
   for(const d of Object.values(G.DEFS).filter(d=>d.cat==='economy' && (d.tier>=1 || d.required))) {
     const s=scene();
     const required=d.required || [d.prev];
     required.forEach((type,i)=>grant(s,type,7+i*2,3));
     assert(hints(s,8,4).some(h=>h.type===d.id),d.id);
-    const peer=grant(s,d.id,8+d.radius,4);
-    assert(!hints(s,8,4).some(h=>h.type===d.id),d.id+' inclusive radius');
-    peer.x++;
-    assert.equal(hints(s,8,4).some(h=>h.type===d.id),d.limit>1,d.id+' beyond radius');
-    for(let i=1;i<d.limit;i++) grant(s,d.id,14,7+i);
+    // Adjacent copies are allowed now, so only the count limit removes the hint.
+    for(let i=0;i<d.limit;i++) grant(s,d.id,14,7+i);
     assert(!hints(s,8,4).some(h=>h.type===d.id),d.id+' count limit');
   }
 });

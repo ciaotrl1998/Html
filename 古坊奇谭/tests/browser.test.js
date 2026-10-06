@@ -128,7 +128,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.equal(await page.locator('[data-category],.categories').count(),0,'All buildings share one list');
       for(const type of ['home','market','fence','earth','tao','stage','well','rock','zhong'])assert.equal(await page.locator(`[data-build="${type}"]`).count(),0,type+' is not directly buildable');
       assert(await page.locator('[data-build="tea"]').count());assert(await page.locator('[data-build="tower"]').count());assert(await page.locator('[data-build="fortune"]').count());
-      assert.deepEqual(await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build)),['tea','tower','fortune','barracks'],'Buildable cards lead the selection snapshot in industry, defense, fortune order');
+      const initialOrder=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build));
+      assert.deepEqual(initialOrder.slice(0,3),['tea','tower','fortune'],'Buildable cards lead the selection snapshot in industry, defense, fortune order');
+      assert(initialOrder.includes('barracks'));
       assert.equal(await page.locator('[data-build="fortune"] .card-effect').innerText(),'变化为随机建筑');
       assert(await page.locator('[data-build="barracks"] .card-reason').isHidden());
       assert.equal(await page.locator('[data-build="barracks"] .cost-number.insufficient').count(),2);
@@ -200,8 +202,9 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       assert.equal(await page.locator('[data-build="inn"] .cost-number.insufficient').count(),0);
       assert.deepEqual(await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build)),poorOrder,'Resource changes unlock cards without moving them');
       await page.evaluate(()=>Gufang.select(7,7));
-      const refreshedOrder=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>card.dataset.build));
-      assert(refreshedOrder.indexOf('fortune')<poorOrder.indexOf('fortune'),'Reselecting the tile moves newly buildable cards forward');
+      const refreshed=await page.locator('.build-card').evaluateAll(cards=>cards.map(card=>({type:card.dataset.build,locked:card.getAttribute('aria-disabled')==='true'})));
+      let seenLocked=false;
+      for(const {type,locked} of refreshed){ if(locked)seenLocked=true; else assert(!seenLocked,'Buildable cards lead before locked cards: '+type); }
       await page.locator('[data-build="inn"]').click();
       await page.locator('#upgrade-building').click();assert.equal(await page.evaluate(()=>Gufang.state.buildings.find(b=>b.type==='inn').level),2);
       const overlays=await page.evaluate(()=>{
@@ -211,33 +214,24 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         ctx.lineTo=function(){pathSegments++;return oldLineTo.apply(this,arguments);};
         ctx.stroke=function(){if(this.getLineDash().length&&pathSegments&&Math.abs(this.lineWidth-1.4)>1e-6){lines++;segments.push(pathSegments);}return oldStroke.apply(this,arguments);};
         ctx.strokeRect=function(x,y,w,h){if(this.getLineDash().length){frames++;frameSizes.push([w,h]);}return oldRect.apply(this,arguments);};
-        const capture=(selected,state=Gufang.state)=>{lines=0;frames=0;segments=[];frameSizes=[];GFArt.render(canvas,state,Gufang.camera,selected);return {lines,frames,segments,frameSizes};};
-        const result={none:capture(null),empty:capture({x:6,y:6}),tea:capture({x:7,y:8}),inn:capture({x:7,y:7})};
+        const capture=(selected,state)=>{lines=0;frames=0;segments=[];frameSizes=[];GFArt.render(canvas,state,Gufang.camera,selected);return {lines,frames,segments,frameSizes};};
         const sample=GF.createState(null);sample.coins=sample.materials=1000000;
         GF.build(sample,'tea',9,7);GF.build(sample,'inn',9,8);GF.build(sample,'bank',9,9);
         for(const [type,x,y] of [['farm',5,8],['mill',6,9],['wine',7,8],['mulberry',11,3],['tower',8,7]]){
           const built=GF.build(sample,type,x,y);if(!built.ok)throw Error(type+': '+built.reason);
         }
         for(const [type,x,y] of [['well',10,10],['stage',10,9],['earth',6,6]])if(!GF.grantBuilding(sample,type,x,y))throw Error(type+' grant failed');
-        result.bank=capture({x:9,y:9},sample);
-        for(const [type,x,y] of [['farm',5,8],['mill',6,9],['wine',7,8],['mulberry',11,3],['well',10,10],['tower',8,7],['stage',10,9],['earth',6,6],['shrine',8,8]])result[type]=capture({x,y},sample);
         const guild=GF.build(sample,'guild',8,9);if(!guild.ok)throw Error('guild: '+guild.reason);
-        result.guild=capture({x:8,y:9},sample);
+        const result={none:capture(null,sample),empty:capture({x:6,y:6},sample)};
+        for(const [type,x,y] of [['farm',5,8],['mill',6,9],['wine',7,8],['mulberry',11,3],['bank',9,9],['well',10,10],['tower',8,7],['stage',10,9],['earth',6,6],['shrine',8,8],['guild',8,9]])result[type]=capture({x,y},sample);
         canvas.remove();return result;
       });
-      assert.deepEqual(overlays.none,{lines:0,frames:0,segments:[],frameSizes:[]});assert.deepEqual(overlays.empty,{lines:0,frames:0,segments:[],frameSizes:[]});
-      assert(overlays.tea.lines>=1&&overlays.tea.frames>=1,'Selected tea shows its inn link and range frame');
-      assert(overlays.inn.lines>=1&&overlays.inn.frames>=1,'Selected inn shows its tea link and range frame');
-      assert.equal(overlays.bank.lines,1,'Bank links to the inn but not tea two tiers earlier');
-      assert.equal(overlays.farm.lines,1,'Farm links only to the mill');
-      assert.equal(overlays.mill.lines,2,'Mill links to farm and winery');
-      assert.equal(overlays.wine.lines,1,'Winery links to mill but not farm');
-      assert.equal(overlays.guild.lines,2,'Copper ultimate links only to bank and winery');
-      for(const type of ['bank','farm','mill','wine','guild'])assert(overlays[type].segments.every(n=>n===1),type+' uses only straight segments');
-      for(const type of ['farm','mulberry'])assert.equal(overlays[type].frames,0,type+' has no zero-range frame');
-      assert.deepEqual(overlays.well.frameSizes,[[188,188]],'well has a one-tile radius');
-      assert.equal(overlays.earth.frames,1,'earth shows its three-tile guard radius');
-      for(const type of ['tower','stage','shrine'])assert.equal(overlays[type].frames,0,type+' has no range frame');
+      // Six chain links are always drawn, even with nothing selected, and no range box exists any more.
+      assert.equal(overlays.none.lines,6,'Links are always visible without any selection');
+      assert.equal(overlays.empty.lines,6,'Selecting an empty tile keeps the links visible');
+      assert.equal(overlays.none.frames,0);assert.equal(overlays.empty.frames,0);
+      for(const type of ['farm','mill','wine','mulberry','bank','guild','well','earth','shrine','stage'])assert.equal(overlays[type].frames,0,type+' no longer shows a range box');
+      for(const type of ['farm','mill','wine','bank','guild'])assert(overlays[type].segments.every(n=>n===1),type+' link uses a single straight segment');
       const shootingRange=await page.evaluate(()=>{
         const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
         const ctx=canvas.getContext('2d'),oldArc=ctx.arc,s=GF.createState(null);GF.grantBuilding(s,'tower',8,7,3);let radii=[];

@@ -229,13 +229,12 @@ test('Zhong Kui periodically slows every enemy regardless of distance',()=>{
   advance(s,4.1);assert.equal(enemy.slowed,0);assert.equal(enemy.slowFactor,1);
   setShrineLevel(s,2);assert(G.upgrade(s,zhong).ok);assert(Math.abs(G.zhongSlow(zhong)-.48)<1e-8);
 });
-test('same building cannot repeat within its range, but farm and mulberry may cluster',()=>{
+test('same building may stand directly next to another of its type',()=>{
   const s=rich();
   build(s,'tea',7,8);
-  assert.match(G.buildReason(s,'tea',8,7),/范围内已有相同建筑/); // Diagonal neighbour counts.
-  assert.match(G.buildReason(s,'tea',8,9),/范围内已有相同建筑/);
-  assert.equal(G.build(s,'tea',9,8).ok,true);                    // Two cells away is allowed.
-  build(s,'farm',5,8);assert.equal(G.build(s,'farm',5,9).ok,true); // Range 0 lets farms stand adjacent.
+  assert.equal(G.build(s,'tea',8,7).ok,true);                    // Adjacent copies are allowed now.
+  assert.equal(G.build(s,'tea',8,9).ok,true);
+  build(s,'farm',5,8);assert.equal(G.build(s,'farm',5,9).ok,true);
   build(s,'mulberry',11,3);assert.equal(G.build(s,'mulberry',12,4).ok,true);
 });
 test('industry building limits shrink by tier and reject excess construction',()=>{
@@ -355,9 +354,9 @@ test('night permits the same building construction, upgrade and demolition as da
   const s=rich();setShrineLevel(s,2);const farm=build(s,'farm',5,8);G.dusk(s);
   const tower=build(s,'tower',7,7);assert.equal(G.build(s,'barracks',6,6).ok,true);
   G.startNight(s);const before={coins:s.coins,materials:s.materials},count=s.buildings.length;
-  assert.equal(G.buildReason(s,'farm',5,9),'');
+  assert.equal(G.buildReason(s,'farm',7,10),'');
   assert.equal(G.buildReason(s,'barracks',6,5),'');
-  assert.equal(G.build(s,'farm',5,9).ok,true);
+  assert.equal(G.build(s,'farm',7,10).ok,true);
   assert.equal(G.build(s,'barracks',6,5).ok,true);
   assert.equal(G.buildReason(s,'tower',4,8),'水域不可建造');
   assert.equal(G.upgradeReason(s,tower),'');

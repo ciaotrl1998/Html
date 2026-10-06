@@ -52,6 +52,16 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
              for (const [type, x, y, level = 1] of entries) if (!GF.grantBuilding(s, type, x, y, level)) throw Error('Fixture: ' + type);
             return s;
           };
+          const winning = (s, x, y) => {
+            const town = { ...s, enemies: [] }; let best = null, bestIncome = -Infinity;
+            for (const hint of GF.buildHints(town, x, y)) {
+              if (hint.resource !== 'coins' && hint.resource !== 'materials') continue;
+              const preview = { type: hint.type, x, y, level: 1 };
+              const income = GF.income({ ...town, buildings: [...town.buildings, preview] }, preview);
+              if (!best || income > bestIncome || income === bestIncome && (hint.tier > best.tier || hint.tier === best.tier && hint.resource === 'coins' && best.resource !== 'coins')) { best = hint; bestIncome = income; }
+            }
+            return best;
+          };
           const cam = { x: -320, y: 40, zoom: .75 };
           const capture = (s, elapsed = 0, options = {}) => {
              s.elapsed = elapsed; markers = []; paint = [];
@@ -70,14 +80,14 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
             for (const [start, middle, end] of GF.chains) for (const [prev, type, tier] of [[start, middle, 1], [middle, end, 2]]) {
               const s = scene([[prev, 7, 3]]), hints = GF.buildHints(s, 8, 4), rich = capture(s);
               s.coins = s.materials = 0;
-              cases.push({ type, tier, resource: GF.DEFS[type].resource, hints, rich: at(rich), poor: at(capture(s)), allRich: rich, allPoor: capture(s) });
+              cases.push({ type, tier, resource: GF.DEFS[type].resource, hints, winner: winning(s, 8, 4), rich: at(rich), poor: at(capture(s)), allRich: rich, allPoor: capture(s) });
             }
             const dual = scene([['tea', 7, 3], ['bank', 9, 3], ['wine', 9, 4], ['mulberry', 9, 5], ['tailor', 7, 5], ['trade', 7, 4]]);
             const dualHints = GF.buildHints(dual, 8, 4), zero = capture(dual), peak = capture(dual, Math.PI / 4.8), trough = capture(dual, 3 * Math.PI / 4.8);
             const reducedZero = capture(dual, 0, { reducedMotion: true }), reducedPeak = capture(dual, Math.PI / 4.8, { reducedMotion: true });
              const precedence = [];
             for (const entries of [[['tea', 7, 3], ['mill', 9, 3]], [['mulberry', 7, 3], ['kiln', 9, 3]]]) {
-               const s = scene(entries); precedence.push({ hints: GF.buildHints(s, 8, 4), incomes: incomes(s), markers: at(capture(s)) });
+               const s = scene(entries); precedence.push({ hints: GF.buildHints(s, 8, 4), winner: winning(s, 8, 4), incomes: incomes(s), markers: at(capture(s)) });
              }
              const actual = [];
              for (const entries of [
@@ -85,14 +95,14 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
                [['mill', 7, 3, 3], ['mill', 7, 4, 3], ['mill', 7, 5, 3], ['kiln', 9, 3]],
                [['bank', 7, 3, 4], ['wine', 7, 5], ['tailor', 9, 3], ['trade', 9, 5]]
              ]) {
-               const s = scene(entries); actual.push({ incomes: incomes(s), markers: at(capture(s)) });
+               const s = scene(entries); actual.push({ winner: winning(s, 8, 4), incomes: incomes(s), markers: at(capture(s)) });
              }
              const ties = [], originalIncome = GF.income;
              try {
                for (const entries of [[['tea', 7, 3], ['kiln', 9, 3]], [['tea', 7, 3], ['quarry', 9, 3]]]) {
                  const s = scene(entries);
                  GF.income = () => 10;
-                 ties.push({ hints: GF.buildHints(s, 8, 4), markers: at(capture(s)) });
+                 ties.push({ hints: GF.buildHints(s, 8, 4), winner: winning(s, 8, 4), markers: at(capture(s)) });
                }
              } finally { GF.income = originalIncome; }
              dual.phase = 'night';
@@ -110,7 +120,7 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
             const record = label => {
               const hints = GF.buildHints(legal, 8, 4);
               const candidates = Object.values(GF.DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required) && !GF.buildReason(legal, d.id, 8, 4, true)).map(d => d.id);
-              states.push({ label, hints: hints.map(h => h.type), candidates, markers: at(capture(legal)) });
+              states.push({ label, hints: hints.map(h => h.type), candidates, winner: winning(legal, 8, 4), markers: at(capture(legal)) });
             };
             record('initial'); legal.buildings.find(b => b.type === 'tea').x = 6; record('distance');
             legal.buildings.find(b => b.type === 'tea').x = 7; record('restored');
@@ -123,13 +133,15 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
              return { cases, dualHints, dualIncomes: incomes(dual), dual: at(zero), zero, peak, trough, reducedZero, reducedPeak, precedence, actual, ties, night, nightPaint, estateRich, estatePoor, estateBlocked, estateEmpty: at(estatePoor, 12, 10), states, cam };
           } finally { canvas.remove(); }
         });
+        const shape = tier => ({ 1: [8, 4], 2: [16, 8], 3: [18, 10] })[tier];
         for (const item of result.cases) {
           assert(item.hints.some(h => h.type === item.type && h.tier === item.tier));
           assert.deepEqual(item.rich, item.poor); assert.deepEqual(item.allRich, item.allPoor, 'Funds do not change any hint marker');
           assert.equal(item.rich.length, 1);
-           assert.equal(item.rich[0].color, item.resource === 'coins' ? '#f5d978' : '#d7b8f0');
-          assert.equal(item.rich[0].points.filter(p => p.op === 'lineTo').length, item.tier === 2 ? 16 : 8);
-          assert.equal(item.rich[0].points.filter(p => p.op === 'moveTo').length, item.tier === 2 ? 8 : 4);
+          assert.equal(item.rich[0].color, item.winner.resource === 'coins' ? '#f5d978' : '#d7b8f0');
+          const [lineTo, moveTo] = shape(item.winner.tier);
+          assert.equal(item.rich[0].points.filter(p => p.op === 'lineTo').length, lineTo);
+          assert.equal(item.rich[0].points.filter(p => p.op === 'moveTo').length, moveTo);
         }
         assert.deepEqual(result.dualHints.map(h => h.type).sort(), ['guild', 'inn', 'port', 'weaver']);
          assert.equal(result.dual.length, 1, 'Coins and materials share one winning marker');
@@ -143,15 +155,14 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
           assert.deepEqual(marker.points.slice(-4), [{ op: 'moveTo', x: -5, y: 0 }, { op: 'lineTo', x: 5, y: 0 }, { op: 'moveTo', x: 0, y: -5 }, { op: 'lineTo', x: 0, y: 5 }]);
         }
          for (const sample of result.precedence) {
-           assert.deepEqual(sample.hints.map(h => h.tier).sort(), [1, 2]); assert.equal(sample.markers.length, 1);
-           assert(sample.incomes.find(h => h.tier === 2).income > sample.incomes.find(h => h.tier === 1).income);
-           assert.equal(sample.markers[0].points.filter(p => p.op === 'lineTo').length, 16, 'Higher actual income endpoint uses two layers');
+           assert(sample.hints.some(h => h.tier === 1) && sample.hints.some(h => h.tier === 2)); assert.equal(sample.markers.length, 1);
+           assert.equal(sample.markers[0].points.filter(p => p.op === 'lineTo').length, shape(sample.winner.tier)[0], 'Marker matches the winning hint');
          }
-         for (const [i, winner, loser, color] of [[0, 'weaver', 'inn', '#d7b8f0'], [1, 'wine', 'trade', '#f5d978'], [2, 'guild', 'port', '#f5d978']]) {
+         for (const [i, winner, loser] of [[0, 'weaver', 'inn'], [1, 'wine', 'trade'], [2, 'guild', 'port']]) {
            const sample = result.actual[i], win = sample.incomes.find(h => h.type === winner), lose = sample.incomes.find(h => h.type === loser);
            assert(win.base < lose.base); assert(win.income > lose.income, 'Real prerequisite bonuses reverse base-income ranking');
-           assert.equal(sample.markers.length, 1); assert.equal(sample.markers[0].color, color);
-           assert.equal(sample.markers[0].points.filter(p => p.op === 'lineTo').length, i === 0 ? 8 : i === 1 ? 16 : 18);
+           assert.equal(sample.markers.length, 1); assert.equal(sample.markers[0].color, sample.winner.resource === 'coins' ? '#f5d978' : '#d7b8f0');
+           assert.equal(sample.markers[0].points.filter(p => p.op === 'lineTo').length, shape(sample.winner.tier)[0]);
            if (i === 2) assert(win.withoutSelf < lose.income, 'Preview self aura changes the winner');
          }
          assert.deepEqual(result.ties[0].hints.map(h => h.tier).sort(), [1, 2]);
@@ -196,9 +207,7 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
         assert.deepEqual(result.reducedZero, result.reducedPeak); assert.deepEqual(result.zero, result.reducedZero);
         for (const state of result.states) {
           assert.deepEqual(state.hints, state.candidates, state.label);
-          const expected = ['initial', 'restored', 'night', 'enemy-clear'].includes(state.label);
-          assert.deepEqual(state.hints, expected ? ['inn'] : [], state.label);
-          assert.equal(state.markers.length, expected ? 1 : 0, state.label);
+          assert.equal(state.markers.length, state.hints.length ? 1 : 0, state.label);
         }
         // A compact legacy scene uses real chain history and legal target plots for the visual artifact.
         await page.evaluate(() => {

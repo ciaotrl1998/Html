@@ -295,28 +295,32 @@
   function selectedLinks(s,b){
     return s.buildings.filter(n=>n!==b && (directChainLink(b,n)||directChainLink(n,b)));
   }
+  function drawLinks(c,s){
+    c.save();c.setLineDash([4,5]);c.globalAlpha=s.phase==='night'?.92:.82;
+    const drawn=new Set();
+    for(const b of s.buildings){
+      const d=GF.DEFS[b.type];
+      if(!d.radius)continue;
+      for(const n of s.buildings){
+        if(n===b)continue;
+        if(!directChainLink(b,n)&&!directChainLink(n,b))continue;
+        const key=b.id<n.id?b.id+':'+n.id:n.id+':'+b.id;
+        if(drawn.has(key))continue;drawn.add(key);
+        const nd=GF.DEFS[n.type],chain=d.chain||nd.chain;
+        const color={商:'#9c8052',农:'#6e875b',丝:'#96758c',工:'#648388'}[chain]||'#9b8660';
+        const sx=b.x*T+32,sy=b.y*T+37,tx=n.x*T+32,ty=n.y*T+37,dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy),trim=12;
+        line(c,[[sx+dx/length*trim,sy+dy/length*trim],[tx-dx/length*trim,ty-dy/length*trim]],color,2.2);
+      }
+    }
+    c.restore();
+  }
   function drawSelection(c,s,selected){
     if(!selected)return;
     const b=GF.at(s,selected.x,selected.y);
-    if(!b)return;
-    const d=GF.DEFS[b.type],bounds=influenceBounds(s,b);
+    if(!b||b.type!=='tower')return;
+    const radius=(GF.DEFS.tower.range+(b.level-1)*.35)*T;
     c.save();
-    if(b.type==='tower'){
-      const radius=(d.range+(b.level-1)*.35)*T;
-      c.beginPath();c.arc(b.x*T+32,b.y*T+32,radius,0,Math.PI*2);c.fillStyle='#8faa6518';c.fill();c.setLineDash([7,5]);c.strokeStyle=s.phase==='night'?'#c4dca4':'#769258';c.lineWidth=2;c.stroke();
-    }
-    if(bounds){
-      c.fillStyle='#7f9b7510';c.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);
-      c.setLineDash([7,6]);c.lineWidth=1.5;c.strokeStyle=s.phase==='night'?'#bbca9db8':'#69856eaa';
-      c.strokeRect(bounds.x,bounds.y,bounds.width,bounds.height);
-    }
-    c.setLineDash([4,5]);c.globalAlpha=s.phase==='night'?.92:.82;
-    for(const n of selectedLinks(s,b)){
-      const nd=GF.DEFS[n.type],chain=d.chain||nd.chain;
-      const color={商:'#9c8052',农:'#6e875b',丝:'#96758c',工:'#648388'}[chain]||'#9b8660';
-      const sx=b.x*T+32,sy=b.y*T+37,tx=n.x*T+32,ty=n.y*T+37,dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy),trim=12;
-      line(c,[[sx+dx/length*trim,sy+dy/length*trim],[tx-dx/length*trim,ty-dy/length*trim]],color,2.2);
-    }
+    c.beginPath();c.arc(b.x*T+32,b.y*T+32,radius,0,Math.PI*2);c.fillStyle='#8faa6518';c.fill();c.setLineDash([7,5]);c.strokeStyle=s.phase==='night'?'#c4dca4':'#769258';c.lineWidth=2;c.stroke();
     c.restore();
   }
   function render(canvas,s,cam,selected,options={}){
@@ -364,6 +368,7 @@
       if(segments)c.stroke();
     }
     c.restore();
+    drawLinks(c,s);
     if(selected){const px=selected.x*T,py=selected.y*T;rect(c,px+2,py+2,T-4,T-4,'#fbebaf30');c.strokeStyle='#b59451';c.lineWidth=1.5;c.strokeRect(px+2,py+2,T-4,T-4);if(!GF.at(s,selected.x,selected.y)){c.font='23px serif';c.textAlign='center';c.fillStyle='#9c8448';c.fillText('+',px+32,py+40);}}
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
