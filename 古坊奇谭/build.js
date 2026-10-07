@@ -6,7 +6,7 @@ const root = __dirname;
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 let html = read('index.html');
 html = html.replace('<link rel="stylesheet" href="css/style.css">', () => '<style>\n' + read('css/style.css') + '\n</style>');
-const sources = ['js/game.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
+const sources = ['js/game.js', 'js/network.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
 const runtime = sources.map(file => esbuild.transformSync(read(file), { target: 'es2017', charset: 'utf8', sourcefile: path.basename(file) }).code).join('\n');
 fs.writeFileSync(path.join(root, 'js/runtime.js'), runtime, 'utf8');
 const scripts = ['js/boot.js', 'js/runtime.js'];

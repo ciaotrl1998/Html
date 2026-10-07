@@ -885,7 +885,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return true;
     });
   }
-  function buildReason(s, type, x, y, ignoreFunds = false) {
+  function buildReason(s, type, x, y, ignoreFunds = false, ignoreEnemies = false) {
     var _a;
     s = economicView(s);
     const d = DEFS[type];
@@ -897,7 +897,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const plot = terrain(x, y, s);
     if (plot === "water") return "水域不可建造";
     if (d.fixed) return "城门仅可由庄园生成";
-    if (s.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
+    if (!ignoreEnemies && s.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
     if (d.unique) return "祠堂仅此一座";
     if (d.fortuneOnly) return "仅可由造化匣获得";
     if (type === "fortune") return fortuneCandidates(s, x, y).length ? ignoreFunds ? "" : shortage(s, buildCost(s, type)) : "此地无可造化建筑";
@@ -915,8 +915,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     return ignoreFunds ? "" : shortage(s, buildCost(s, type));
   }
-  function buildHints(s, x, y) {
-    return Object.values(DEFS).filter((d) => d.cat === "economy" && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true)).map((d) => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
+  function buildHints(s, x, y, ignoreEnemies = false) {
+    return Object.values(DEFS).filter((d) => d.cat === "economy" && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true, ignoreEnemies)).map((d) => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = "info") {
     s.events.push({ text, kind });
@@ -1088,7 +1088,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return r;
   }, { coins: 0, materials: 0 });
   const incomeCache = /* @__PURE__ */ new WeakMap();
-  function settleIncome(s, dt) {
+  function settleIncome(s, dt, emitEffects = true) {
     var _a;
     const w = world(s), buildings = w.buildings;
     const signature = JSON.stringify([w.mode, w.day, buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
@@ -1125,7 +1125,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           const paid = Math.floor(b[pending] + 1e-8);
           b[pending] = Math.max(0, b[pending] - paid);
           player[resource] += paid;
-          if (paid > 0) player.effects.push({ type: "income", resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: 0.95, total: 0.95 });
+          if (emitEffects && paid > 0) player.effects.push({ type: "income", resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: 0.95, total: 0.95 });
         }
       }
     }
@@ -1669,6 +1669,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     collectDead(s);
     return { ok: true };
   }
+  function stepEconomy(s, dt, emitEffects = true) {
+    if (!Number.isFinite(dt) || dt <= 0 || s.over) return;
+    dt = Math.min(dt, 0.25);
+    settleIncome(s, dt, emitEffects);
+    for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
+  }
   function step(s, dt) {
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, 0.25);
@@ -1903,7 +1909,167 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return null;
     }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, stepEconomy, step, serialize, restore };
+});
+
+(function(root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory(require("./game"));
+  else root.GFNetwork = factory(root.GF);
+})(typeof globalThis !== "undefined" ? globalThis : this, function(G) {
+  "use strict";
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+  const personalKeys = ["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "selectedSkill", "mission"];
+  const progressKeys = ["incomeTime", "coinPending", "materialPending"];
+  const metaKeys = ["day", "phase", "time", "elapsed", "direction", "kills", "wave", "over", "celebrated", "revision", "nextId"];
+  function economy(s, owner) {
+    const player = G.playerView(s, owner), values = {};
+    for (const key of personalKeys) values[key] = clone(player[key]);
+    return { at: s.elapsed, player: values, buildings: player.buildings.map((b) => [b.id, ...progressKeys.map((key) => b[key] || 0)]) };
+  }
+  function snapshot(s, owner) {
+    const next = JSON.parse(G.serialize(s)), other = owner === 0 ? next.partner : next;
+    other.coins = other.materials = other.fortuneBuilt = other.mission = 0;
+    other.cooldowns = { repel: 0, repair: 0, thunder: 0 };
+    for (const b of next.buildings) if (b.owner !== owner) for (const key of progressKeys) b[key] = 0;
+    return JSON.stringify(next);
+  }
+  function packed(entity, group) {
+    const row = {};
+    const keys = group === "buildings" ? Object.keys(entity) : group === "enemies" ? ["id", "type", "x", "y", "hp", "maxHp", "boss", "repelled", "slowed", "slowFactor"] : ["id", "barracksId", "x", "y", "hp", "maxHp", "level"];
+    for (const key of keys) {
+      if (["path", "pathRevision", "targetTile", "chaseTile"].includes(key) || group === "buildings" && (progressKeys.includes(key) || key === "cooldown")) continue;
+      if (entity[key] !== void 0) row[key] = ["x", "y"].includes(key) ? Math.round(entity[key] * 1e3) / 1e3 : entity[key];
+    }
+    return row;
+  }
+  function delta(s, previous = {}) {
+    const next = {}, message = { meta: {}, players: [0, 1].map((owner) => {
+      const player = G.playerView(s, owner);
+      return { selectedSkill: player.selectedSkill, gateLevel: player.gateLevel };
+    }) };
+    for (const key of metaKeys) message.meta[key] = clone(s[key]);
+    for (const key of ["buildings", "enemies", "soldiers"]) {
+      const before = previous[key] || /* @__PURE__ */ new Map(), after = /* @__PURE__ */ new Map(), upsert = [];
+      for (const entity of s[key]) {
+        const row = packed(entity, key), text = JSON.stringify(row);
+        after.set(entity.id, text);
+        if (before.get(entity.id) !== text) upsert.push(row);
+      }
+      message[key] = { upsert, remove: [...before.keys()].filter((id) => !after.has(id)) };
+      next[key] = after;
+    }
+    return { message, next };
+  }
+  function updateEntities(list, patch, building) {
+    const removed = new Set(patch.remove), byId = new Map(list.map((e) => [e.id, e]));
+    const result = list.filter((e) => !removed.has(e.id));
+    for (const row of patch.upsert) {
+      let entity = byId.get(row.id);
+      if (!entity) {
+        entity = building ? { cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 } : { path: [], pathRevision: -1 };
+        result.push(entity);
+      } else if (!building) {
+        for (const key of Object.keys(entity)) if (!(key in row) && !["path", "pathRevision"].includes(key)) delete entity[key];
+      }
+      Object.assign(entity, clone(row));
+    }
+    return result;
+  }
+  function copyEntities(current, source) {
+    const existing = new Map(current.map((entity) => [entity.id, entity]));
+    return source.map((row) => {
+      const entity = existing.get(row.id) || {};
+      for (const key of Object.keys(entity)) if (!(key in row)) delete entity[key];
+      Object.assign(entity, row);
+      return entity;
+    });
+  }
+  function predict(s, owner, action) {
+    const player = G.playerView(s, owner), { kind, x, y } = action, b = G.at(s, x, y);
+    if (kind === "choose-skill") return { ok: !player.selectedSkill };
+    if (kind === "skill") {
+      const reason = G.skillReason(player, action.skill);
+      if (reason) return { ok: false, reason };
+      player.cooldowns[action.skill] = G.SKILLS[action.skill].cooldown;
+      return { ok: true };
+    }
+    const phase = s.phase;
+    s.phase = "day";
+    s.nextId = -action.id * 10;
+    try {
+      if (kind === "build" && action.building === "fortune") {
+        const reason = G.buildReason(player, "fortune", x, y);
+        if (reason) return { ok: false, reason };
+        const cost = G.buildCost(player, "fortune");
+        player.coins -= cost.coins;
+        player.materials -= cost.materials;
+        player.fortuneBuilt++;
+        s.buildings.push({ id: s.nextId, type: "fortune", owner, x, y, level: 1, hp: 1, cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 });
+        return { ok: true };
+      }
+      if (kind === "build") return G.build(player, action.building, x, y);
+      if (!b || b.owner !== owner) return { ok: false, reason: "无法操作该地块" };
+      if (kind === "upgrade") return G.upgrade(player, b);
+      if (kind === "bulk") return G.bulkUpgrade(player, b);
+      if (kind === "demolish") return G.demolish(player, b);
+      return { ok: false, reason: "未知操作" };
+    } finally {
+      s.phase = phase;
+    }
+  }
+  function createReplica(raw, owner, session, seq, ack = 0) {
+    const base = G.restore(raw);
+    if (!base || base.mode !== "coop") return null;
+    const state = clone(base), replica = { base, state, owner, session, seq, ack, pending: [], economic: economy(base, owner) };
+    replica.reconcile = () => {
+      const effects = state.effects, projectiles = state.projectiles;
+      for (const key of metaKeys) state[key] = clone(base[key]);
+      for (const key of ["buildings", "enemies", "soldiers"]) state[key] = copyEntities(state[key], base[key]);
+      for (const key of personalKeys) G.playerView(state, owner)[key] = clone(replica.economic.player[key]);
+      for (const other of [0, 1]) {
+        const source = G.playerView(base, other), target = G.playerView(state, other);
+        target.selectedSkill = source.selectedSkill;
+        target.gateLevel = source.gateLevel;
+      }
+      const byId = new Map(state.buildings.map((b) => [b.id, b]));
+      for (const [id, ...values] of replica.economic.buildings) {
+        const b = byId.get(id);
+        if (b) progressKeys.forEach((key, i) => {
+          b[key] = values[i];
+        });
+      }
+      let remaining = Math.max(0, base.elapsed - replica.economic.at);
+      while (remaining > 1e-8) {
+        const dt = Math.min(0.25, remaining);
+        G.stepEconomy(G.playerView(state, owner), dt, false);
+        remaining -= dt;
+      }
+      for (const action of replica.pending) predict(state, owner, action);
+      state.effects = effects;
+      state.projectiles = projectiles;
+      state.events = [];
+    };
+    replica.apply = (message) => {
+      if (message.session !== replica.session || message.seq <= replica.seq) return false;
+      if (message.seq !== replica.seq + 1) return null;
+      Object.assign(base, clone(message.meta));
+      for (const key of ["buildings", "enemies", "soldiers"]) base[key] = updateEntities(base[key], message[key], key === "buildings");
+      message.players.forEach((values, index) => Object.assign(G.playerView(base, index), values));
+      if (message.economy) replica.economic = clone(message.economy);
+      replica.ack = message.ack;
+      replica.pending = replica.pending.filter((action) => action.id > message.ack);
+      replica.seq = message.seq;
+      replica.reconcile();
+      return true;
+    };
+    replica.act = (action) => {
+      const result = predict(state, owner, action);
+      if (result.ok) replica.pending.push(action);
+      return result;
+    };
+    return replica;
+  }
+  return { economy, snapshot, delta, createReplica };
 });
 
 var __defProp = Object.defineProperty;
@@ -2819,8 +2985,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!hints.tiles.has(tile)) {
         let bestIncome = -Infinity;
         best = null;
-        const town = __spreadProps(__spreadValues({}, player), { enemies: [] });
-        for (const hint of GF.buildHints(town, x, y)) {
+        const town = player;
+        for (const hint of GF.buildHints(town, x, y, true)) {
           if (hint.resource !== "coins" && hint.resource !== "materials") continue;
           const preview = { type: hint.type, x, y, level: 1 };
           const shadow = __spreadProps(__spreadValues({}, town), { buildings: [...town.buildings, preview] }), income = GF.income(shadow, preview);
@@ -3325,52 +3491,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   let saveStatus = storageWarning ? "本地存档不可用" : "本地自动存档";
   let autoplay = false, pilot = null, partnerPilot = null, computerSeat = false;
-  let online = null, syncClock = 0, motionClock = 0, actionId = 0;
-  let remoteMotion = /* @__PURE__ */ new Map(), remoteAt = 0, remoteSpan = 100, remoteEffects = [], remoteProjectiles = [];
+  let online = null, replica = null, actionId = 0;
+  let remoteMotion = /* @__PURE__ */ new Map(), remoteAt = 0, remoteSpan = 100;
   let guestClockBase = 0, guestTimeBase = 0, guestClockAt = 0;
-  const guestLive = () => (online == null ? void 0 : online.role) === "guest" && !online.hostPaused && online.peerConnected ? guestClockBase + (performance.now() - guestClockAt) / 1e3 : guestClockBase;
+  const guestLive = () => online && !online.serverPaused && online.peerConnected ? guestClockBase + Math.min(0.25, (performance.now() - guestClockAt) / 1e3) : guestClockBase;
   function remotePosition(unit, soldier) {
     const motion = remoteMotion.get((soldier ? "s" : "e") + unit.id);
     if (!motion) return unit;
     const fraction = Math.max(0, Math.min(1, (performance.now() - remoteAt) / remoteSpan));
     return { x: motion.x + (unit.x - motion.x) * fraction, y: motion.y + (unit.y - motion.y) * fraction };
   }
-  function beginRemoteFrame(maxSpan = 400, minSpan = 60) {
+  function beginRemoteFrame(span = 100) {
     const now = performance.now(), positions = /* @__PURE__ */ new Map();
     for (const [units, soldier] of [[state.enemies, false], [state.soldiers, true]]) for (const unit of units) positions.set((soldier ? "s" : "e") + unit.id, remotePosition(unit, soldier));
     remoteMotion = positions;
-    remoteSpan = Math.max(minSpan, Math.min(maxSpan, now - remoteAt));
+    remoteSpan = Math.max(50, Math.min(150, span));
     remoteAt = now;
-  }
-  const cleanVisuals = (items, projectile) => Array.isArray(items) ? items.slice(-500).filter((e) => e && typeof e.type === "string" && e.type.length < 24 && ["x", "y", "life", "total"].every((k) => Number.isFinite(e[k])) && Math.abs(e.x) < 100 && Math.abs(e.y) < 100 && e.life > 0 && e.total > 0 && e.total <= 10 && e.life <= e.total && (!projectile || ["tx", "ty"].every((k) => Number.isFinite(e[k]) && Math.abs(e[k]) < 100))).map((e) => ({ type: e.type, x: e.x, y: e.y, life: e.life, total: e.total, tx: e.tx, ty: e.ty, amount: Number.isFinite(e.amount) ? e.amount : 0, resource: e.resource === "materials" ? "materials" : "coins" })) : [];
-  function receiveVisuals(next, message, reset) {
-    var _a, _b;
-    if (reset) {
-      remoteMotion = /* @__PURE__ */ new Map();
-      remoteSpan = 100;
-      remoteAt = performance.now();
-    } else beginRemoteFrame();
-    remoteEffects = cleanVisuals((_a = message.visuals) == null ? void 0 : _a.effects, false);
-    remoteProjectiles = cleanVisuals(((_b = message.visuals) == null ? void 0 : _b.projectiles) || next.projectiles, true);
-  }
-  function applyUnitMotion(units, rows) {
-    if (!Array.isArray(rows)) return;
-    const byId = /* @__PURE__ */ new Map();
-    for (const row of rows) if (Array.isArray(row) && Number.isFinite(row[0])) byId.set(row[0], row);
-    for (const unit of units) {
-      const row = byId.get(unit.id);
-      if (row && Number.isFinite(row[1]) && Number.isFinite(row[2])) {
-        unit.x = row[1];
-        unit.y = row[2];
-      }
-    }
-  }
-  function applyMotion(message) {
-    beginRemoteFrame(400, 50);
-    applyUnitMotion(state.enemies, message.e);
-    applyUnitMotion(state.soldiers, message.s);
-    if (message.fx) remoteEffects = cleanVisuals(message.fx, false);
-    if (message.p) remoteProjectiles = cleanVisuals(message.p, true);
   }
   const playerOwner = () => (online == null ? void 0 : online.role) === "guest" ? 1 : 0;
   const playerState = () => state.mode === "coop" ? GF.playerView(state, playerOwner()) : state;
@@ -3378,22 +3514,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a;
     if (((_a = online == null ? void 0 : online.socket) == null ? void 0 : _a.readyState) === WebSocket.OPEN) online.socket.send(JSON.stringify(message));
   };
-  function sendSnapshot() {
-    if ((online == null ? void 0 : online.role) !== "host" || !online.peerConnected || !started || online.socket.readyState !== WebSocket.OPEN || online.socket.bufferedAmount > 3e5) return;
-    onlineSend({ type: "state", snapshot: GF.serialize(state), paused: paused || hiddenPause, visuals: { effects: state.effects.slice(-120), projectiles: state.projectiles.slice(-300) } });
-  }
-  function sendMotion() {
-    if ((online == null ? void 0 : online.role) !== "host" || !online.peerConnected || !started || online.socket.readyState !== WebSocket.OPEN || online.socket.bufferedAmount > 2e5) return;
-    const round = (n) => Math.round(n * 100) / 100;
-    const units = (list) => list.map((u) => [u.id, round(u.x), round(u.y)]);
-    const effects = state.effects.slice(-80).map((e) => ({ type: e.type, x: round(e.x), y: round(e.y), life: round(e.life), total: e.total, amount: e.amount, resource: e.resource }));
-    const projectiles = state.projectiles.slice(-250).map((e) => ({ type: e.type, x: round(e.x), y: round(e.y), tx: Number.isFinite(e.tx) ? round(e.tx) : round(e.x), ty: Number.isFinite(e.ty) ? round(e.ty) : round(e.y), life: round(e.life), total: e.total }));
-    onlineSend({ type: "motion", e: units(state.enemies), s: units(state.soldiers), fx: effects, p: projectiles });
+  function sendPresence() {
+    if (!online || !replica || online.awaitingState || !started) return;
+    onlineSend({ type: "presence", session: replica.session, paused, hidden: hiddenPause });
   }
   function leaveOnline() {
     if (!online) return;
     const { socket } = online;
     online = null;
+    replica = null;
+    remoteMotion = /* @__PURE__ */ new Map();
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
     const input = $("coop-code");
     if (input) {
@@ -3401,83 +3531,69 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       input.value = "";
     }
   }
-  function guestAction(kind, extras = {}) {
+  function onlineAction(kind, extras = {}) {
     var _a, _b, _c, _d;
-    if (!online || online.role !== "guest" || !online.peerConnected || !started) {
-      toast("与主机连接中，请稍候", "warning");
+    if (!(online == null ? void 0 : online.peerConnected) || !replica || online.awaitingState || !started) {
+      toast("与服务器连接中，请稍候", "warning");
       return { ok: false };
     }
-    const mine = playerState(), x = (_b = (_a = extras.x) != null ? _a : selected == null ? void 0 : selected.x) != null ? _b : 0, y = (_d = (_c = extras.y) != null ? _c : selected == null ? void 0 : selected.y) != null ? _d : 0;
-    let result = { ok: false, reason: "无法操作该地块" };
-    if (kind === "choose-skill") result = GF.chooseSkill(mine, extras.skill);
-    else if (kind === "skill") result = GF.skill(mine, extras.skill);
-    else if (kind === "build") result = GF.build(mine, extras.building, x, y);
-    else {
-      const b = GF.at(state, x, y);
-      if (b && b.owner === 1) {
-        if (kind === "upgrade") result = GF.upgrade(mine, b);
-        else if (kind === "bulk") result = GF.bulkUpgrade(mine, b);
-        else if (kind === "demolish") result = GF.demolish(mine, b);
-      }
-    }
-    onlineSend(__spreadValues({ type: "action", id: ++actionId, kind, x, y }, extras));
+    const action = __spreadValues({ id: ++actionId, kind, x: (_b = (_a = extras.x) != null ? _a : selected == null ? void 0 : selected.x) != null ? _b : 0, y: (_d = (_c = extras.y) != null ? _c : selected == null ? void 0 : selected.y) != null ? _d : 0 }, extras);
+    const result = replica.act(action);
     if (result.ok) {
+      onlineSend(__spreadValues({ type: "action", session: replica.session }, action));
       panelKey = "";
-      handleEvents();
       refresh();
     } else if (result.reason) toast(result.reason, "warning");
     return result;
   }
-  function hostAction(message) {
-    if ((online == null ? void 0 : online.role) !== "host" || !online.peerConnected || !started || state.over) return;
-    if (!Number.isSafeInteger(message.id) || !Number.isInteger(message.x) || !Number.isInteger(message.y) || !["build", "upgrade", "bulk", "demolish", "skill", "choose-skill"].includes(message.kind) || message.kind === "build" && !Object.prototype.hasOwnProperty.call(GF.DEFS, message.building) || ["skill", "choose-skill"].includes(message.kind) && !Object.prototype.hasOwnProperty.call(GF.SKILLS, message.skill)) return;
-    const { x, y, kind } = message, mine = GF.playerView(state, 1), b = GF.at(state, x, y);
-    let result = { ok: false, reason: "无法操作该地块" };
-    if (kind === "choose-skill") result = GF.chooseSkill(mine, message.skill);
-    else if (kind === "skill") result = GF.skill(mine, message.skill);
-    else if (GF.owns(mine, x, y) && !GF.isWall(state, x, y)) {
-      if (kind === "build") result = GF.build(mine, message.building, x, y);
-      else if (b && b.owner === 1 && kind === "upgrade") result = GF.upgrade(mine, b);
-      else if (b && b.owner === 1 && kind === "bulk") result = GF.bulkUpgrade(mine, b);
-      else if (b && b.owner === 1 && kind === "demolish") result = GF.demolish(mine, b);
-    }
-    onlineSend({ type: "result", id: message.id, ok: !!result.ok, reason: result.reason || "" });
-    if (result.ok) {
-      panelKey = "";
-      handleEvents();
-      save();
-      refresh();
-      sendSnapshot();
-    } else sendSnapshot();
+  function updateOnlineClock(message) {
+    online.serverPaused = !!message.paused;
+    guestClockBase = state.elapsed;
+    guestTimeBase = state.time;
+    guestClockAt = performance.now();
   }
   function receiveOnline(message) {
     if (!online) return;
-    if (message.type === "started" && online.role === "guest") {
+    if (message.type === "snapshot") {
+      const next = GFNetwork.createReplica(message.snapshot, playerOwner(), message.session, message.seq, message.ack);
+      if (!next) return;
+      const first = !started || !replica || replica.session !== message.session;
+      if (!first) {
+        next.pending = replica.pending.filter((action) => action.id > message.ack);
+        next.reconcile();
+      }
+      replica = next;
+      state = next.state;
+      actionId = first ? message.ack : Math.max(actionId, message.ack);
       online.started = true;
-      online.awaitingState = true;
-      updateCoopSeat();
-    } else if (message.type === "state" && online.role === "guest") {
-      const next = GF.restore(message.snapshot);
-      if (!next || next.mode !== "coop") return;
-      const first = !started || online.awaitingState || state.mapSeed !== next.mapSeed || state.estateSeed !== next.estateSeed;
-      const ended = !state.over && next.over;
-      receiveVisuals(next, message, first);
-      state = next;
-      online.hostPaused = !!message.paused;
       online.awaitingState = false;
-      guestClockBase = next.elapsed;
-      guestTimeBase = next.time;
-      guestClockAt = performance.now();
-      if (first) {
-        enterGame(next);
-        center(1);
-      } else if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
-      if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
+      remoteMotion = /* @__PURE__ */ new Map();
+      remoteAt = performance.now();
+      updateOnlineClock(message);
+      if (first) enterGame(state);
+      else if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
+      sendPresence();
       refresh();
-      if (ended || first && state.over) showEnd();
-    } else if (message.type === "motion" && online.role === "guest") applyMotion(message);
-    else if (message.type === "action" && online.role === "host") hostAction(message);
-    else if (message.type === "result" && online.role === "guest") {
+      if (state.over) showEnd();
+    } else if (message.type === "delta" && replica) {
+      if (message.session !== replica.session || online.awaitingState) return;
+      beginRemoteFrame((message.meta.elapsed - state.elapsed) * 1e3);
+      const applied = replica.apply(message);
+      if (applied === null) {
+        online.awaitingState = true;
+        onlineSend({ type: "resync" });
+        return;
+      }
+      if (!applied) return;
+      updateOnlineClock(message);
+      state.effects.push(...message.effects);
+      state.projectiles.push(...message.projectiles);
+      state.events.push(...message.events);
+      if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
+      if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
+      handleEvents();
+      refresh();
+    } else if (message.type === "result" && replica && message.session === replica.session) {
       if (!message.ok) {
         toast(message.reason || "操作未成功", "warning");
         for (const el of $("modal-content").querySelectorAll("[data-choice]")) el.disabled = false;
@@ -3485,6 +3601,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         tone();
         toast("操作成功");
       }
+    } else if (message.type === "saved") {
+      try {
+        localStorage.setItem(KEY, message.snapshot);
+        saveStatus = "已保存服务器进度 · 此设备";
+        toast("已保存");
+      } catch (e) {
+        toast("无法保存，可导出存档", "warning");
+      }
+      if (message.export) downloadSave(message.snapshot);
     } else if (message.type === "error") {
       toast(message.message || "联机失败", "warning");
       if (started) showStartMenu();
@@ -3501,7 +3626,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     leaveOnline();
     const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
-    online = { kind: "server", socket, role: kind === "create" ? "host" : "guest", code, peerConnected: false, started: false };
+    online = { kind: "server", socket, role: kind === "create" ? "host" : "guest", code, peerConnected: false, started: false, serverPaused: true };
     socket.onopen = () => {
       if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code });
     };
@@ -3524,7 +3649,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         online.peerConnected = true;
         updateCoopSeat();
         toast("队友已加入");
-        if (started) sendSnapshot();
       } else if (message.type === "peer_left") {
         online.peerConnected = false;
         updateCoopSeat();
@@ -3632,8 +3756,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function save(notify = false) {
     if (!started) return false;
-    if ((online == null ? void 0 : online.role) === "guest") {
-      if (notify) toast("联机进度保存在主机设备上");
+    if (online) {
+      if (notify && online.role === "host") onlineSend({ type: "save" });
+      else if (notify) toast("本局由服务器运行，房主可保存完整进度");
       return false;
     }
     try {
@@ -3827,7 +3952,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("invasion-indicators").hidden = !invasion;
     for (const el of $("invasion-indicators").children) el.hidden = !invasion || !directions.includes(Number(el.dataset.direction));
     $("coop-status").hidden = !started || state.mode !== "coop";
-    $("coop-action").textContent = online ? online.peerConnected ? (online.hostPaused || online.role === "host" && paused ? "主机已暂停 · " : "联机中 · ") + "房间 " + online.code : "等待队友重新连接" : paused ? "队友已暂停" : "电脑队友：" + ((partnerPilot == null ? void 0 : partnerPilot.lastAction) || "准备经营");
+    $("coop-action").textContent = online ? online.peerConnected ? (online.serverPaused ? "对局已暂停 · " : "服务器联机 · ") + "房间 " + online.code : "等待队友重新连接" : paused ? "队友已暂停" : "电脑队友：" + ((partnerPilot == null ? void 0 : partnerPilot.lastAction) || "准备经营");
     $("coop-home").textContent = "我的庄园";
     $("coop-ally").textContent = online ? "队友庄园" : "电脑庄园";
     $("autoplay-status").hidden = !autoplay || !started;
@@ -3837,7 +3962,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("materials").textContent = fmt(playerState().materials);
     $("day-label").textContent = "第 " + state.day + " 日 · " + { day: "白昼", dusk: "黄昏", night: "长夜" }[state.phase] + (state.day % 7 === 0 ? " · 灯会" : "");
     $("phase-icon").textContent = { day: "☀", dusk: "◒", night: "☾" }[state.phase];
-    const liveTime = (online == null ? void 0 : online.role) === "guest" && !online.hostPaused && online.peerConnected ? guestTimeBase + (performance.now() - guestClockAt) / 1e3 : state.time;
+    const liveTime = online && !online.serverPaused && online.peerConnected ? guestTimeBase + Math.min(0.25, (performance.now() - guestClockAt) / 1e3) : state.time;
     const remaining = state.phase === "day" ? GF.DAY - liveTime : GF.DUSK - liveTime;
     $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_a = state.wave) == null ? void 0 : _a.total) || 1) - (((_b = state.wave) == null ? void 0 : _b.spawned) || 0) + state.enemies.length) / (((_c = state.wave) == null ? void 0 : _c.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
     $("countdown").textContent = state.phase === "night" ? "" : Math.max(0, Math.ceil(remaining)) + "s";
@@ -3889,10 +4014,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     if ((_a = GF.DEFS[type]) == null ? void 0 : _a.fixed) return blocked(el, "庄园固定建筑不可建造");
-    if ((online == null ? void 0 : online.role) === "guest") {
+    if (online) {
       const reason = GF.buildReason(playerState(), type, selected.x, selected.y);
       if (reason) return blocked(el, reason);
-      guestAction("build", { building: type });
+      onlineAction("build", { building: type });
       closePanel();
       refresh();
       return;
@@ -3919,8 +4044,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (e.target.closest("#upgrade-building")) {
       const reason = GF.upgradeReason(playerState(), b);
       if (reason) return blocked($("upgrade-building"), reason);
-      if ((online == null ? void 0 : online.role) === "guest") {
-        guestAction("upgrade");
+      if (online) {
+        onlineAction("upgrade");
         return;
       }
       const r = GF.upgrade(state, b);
@@ -3933,10 +4058,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       refresh();
     } else if (e.target.closest("#bulk-upgrade-building")) {
       if (b.type === "shrine" || b.type === "gate") return;
-      if ((online == null ? void 0 : online.role) === "guest") {
+      if (online) {
         const reason = GF.upgradeReason(playerState(), b);
         if (reason) return blocked($("bulk-upgrade-building"), reason);
-        guestAction("bulk");
+        onlineAction("bulk");
         return;
       }
       const r = GF.bulkUpgrade(state, b);
@@ -3958,8 +4083,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   for (const el of document.querySelectorAll("[data-skill]")) el.addEventListener("click", () => {
     const reason = GF.skillReason(playerState(), el.dataset.skill);
     if (reason) return blocked(el, reason);
-    if ((online == null ? void 0 : online.role) === "guest") {
-      guestAction("skill", { skill: el.dataset.skill });
+    if (online) {
+      onlineAction("skill", { skill: el.dataset.skill });
       return;
     }
     const r = GF.skill(state, el.dataset.skill);
@@ -3968,7 +4093,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     toast(GF.SKILLS[el.dataset.skill].name + " · 已施展");
     save();
     refresh();
-    sendSnapshot();
   });
   $("close-panel").onclick = closePanel;
   $("menu-pause").onclick = showMenu;
@@ -4024,6 +4148,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     state = next;
     started = true;
     saveClock = 0;
+    if (online) saveStatus = "服务器运行中 · 可手动保存完整进度";
     partnerPilot = state.mode === "coop" && !online ? GFAutoplay.create(GF.playerView(state, 1)) : null;
     $("start-menu").hidden = true;
     $("coop-lobby").hidden = true;
@@ -4113,7 +4238,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("menu-pause").setAttribute("aria-expanded", "true");
     $("close-modal").focus();
     refresh();
-    sendSnapshot();
+    sendPresence();
   }
   function closeModal() {
     if (started && !state.over && !playerState().selectedSkill) {
@@ -4127,7 +4252,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     (started ? $("menu-pause") : !$("coop-lobby").hidden ? $("coop-seat") : $("start-single")).focus();
     lastFrame = performance.now();
     refresh();
-    sendSnapshot();
+    sendPresence();
   }
   $("close-modal").onclick = closeModal;
   $("modal").addEventListener("click", (e) => {
@@ -4136,10 +4261,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function showMenu() {
     if (!started) return;
     if ((online == null ? void 0 : online.role) === "guest") {
-      modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 进度保存在主机设备</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
+      modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
       return;
     }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日</p><button class="modal-primary" data-modal="close">继续游戏</button>' + autoplaySettings() + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + " 日" + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
   }
   function autoplaySettings() {
     const r = pilot == null ? void 0 : pilot.report(), seconds = Math.floor((r == null ? void 0 : r.activeSeconds) || 0);
@@ -4171,15 +4296,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + "</strong><span>现存建筑</span></div><div><strong>" + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
   }
   function newGame(coop = started && state.mode === "coop") {
-    if ((online == null ? void 0 : online.role) === "guest") return;
-    const next = coop ? GF.createCoopState() : GF.createState();
-    enterGame(next);
-    if ((online == null ? void 0 : online.role) === "host") {
-      online.started = true;
-      onlineSend({ type: "start" });
-      sendSnapshot();
+    if (online) {
+      if (online.role === "host") {
+        online.awaitingState = true;
+        onlineSend({ type: "start" });
+      }
+      return;
     }
+    enterGame(coop ? GF.createCoopState() : GF.createState());
     save();
+  }
+  function downloadSave(raw) {
+    const blob = new Blob([raw], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url;
+    a.download = "古坊奇谭-第" + state.day + "日.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1e3);
   }
   $("modal-content").addEventListener("click", (e) => {
     var _a;
@@ -4187,9 +4319,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!action) return;
     if (action === "choose-skill") {
       const id = e.target.closest("[data-choice]").dataset.choice;
-      if ((online == null ? void 0 : online.role) === "guest") {
+      if (online) {
         for (const el of $("modal-content").querySelectorAll("[data-choice]")) el.disabled = true;
-        guestAction("choose-skill", { skill: id });
+        const result2 = onlineAction("choose-skill", { skill: id });
+        if (!result2.ok) for (const el of $("modal-content").querySelectorAll("[data-choice]")) el.disabled = false;
         return;
       }
       const result = GF.chooseSkill(playerState(), id);
@@ -4228,9 +4361,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (action === "confirm-demolish") {
       const b = demolishTarget;
       demolishTarget = null;
-      if ((online == null ? void 0 : online.role) === "guest") {
+      if (online) {
         closeModal();
-        if (b) guestAction("demolish", { x: b.x, y: b.y });
+        if (b) onlineAction("demolish", { x: b.x, y: b.y });
         return;
       }
       const r = b ? GF.demolish(state, b) : { ok: false };
@@ -4240,7 +4373,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         panelKey = "";
         handleEvents();
         save();
-        sendSnapshot();
       }
       refresh();
     }
@@ -4253,12 +4385,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (action === "coop-new") newGame(true);
     if (action === "menu") showMenu();
     if (action === "export") {
-      const blob = new Blob([GF.serialize(state)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
-      a.href = url;
-      a.download = "古坊奇谭-第" + state.day + "日.json";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1e3);
-      toast("存档已导出");
+      if (online) onlineSend({ type: "save", export: true });
+      else {
+        downloadSave(GF.serialize(state));
+        toast("存档已导出");
+      }
     }
     if (action === "import") {
       if (online) {
@@ -4426,7 +4557,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   document.addEventListener("visibilitychange", () => {
     hiddenPause = document.hidden;
     if (hiddenPause) save();
-    sendSnapshot();
+    sendPresence();
     lastFrame = performance.now();
   });
   window.addEventListener("pagehide", () => save());
@@ -4435,7 +4566,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function frame(now) {
     const dt = lastFrame ? Math.max(0, Math.min(1, (now - lastFrame) / 1e3)) : 0;
     lastFrame = now;
-    const running = started && !paused && !hiddenPause && !state.over && !!state.selectedSkill && (state.mode !== "coop" || !!state.partner.selectedSkill) && (online == null ? void 0 : online.role) !== "guest" && (!online || online.peerConnected);
+    const running = started && !paused && !hiddenPause && !state.over && !!state.selectedSkill && (state.mode !== "coop" || !!state.partner.selectedSkill) && !online;
     if (running) {
       simulationClock += dt;
       if (simulationClock + 1e-8 >= 1 / 30) {
@@ -4468,18 +4599,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         handleEvents();
       }
     } else simulationClock = 0;
-    syncClock += dt;
-    if (syncClock > 0.5) {
-      sendSnapshot();
-      syncClock = 0;
-    }
-    if ((online == null ? void 0 : online.role) === "host" && online.peerConnected && started && !paused && !hiddenPause && !state.over) {
-      motionClock += dt;
-      if (motionClock >= 0.05) {
-        sendMotion();
-        motionClock = 0;
+    if (online && started && !hiddenPause) {
+      const live = online.peerConnected && !online.serverPaused && !online.awaitingState && performance.now() - guestClockAt < 250;
+      if (live) GF.stepEconomy(playerState(), Math.min(dt, 0.1));
+      if (live) for (const group of [state.effects, state.projectiles]) for (const effect2 of group) effect2.life -= dt;
+      state.effects = state.effects.filter((e) => e.life > 0);
+      state.projectiles = state.projectiles.filter((e) => e.life > 0);
+      for (const projectile of state.projectiles) {
+        const target = state.enemies.find((e) => e.id === projectile.targetId);
+        if (target) {
+          const p = remotePosition(target, false);
+          projectile.tx = p.x;
+          projectile.ty = p.y;
+        }
       }
-    } else motionClock = 0;
+    }
     uiClock += dt;
     saveClock += dt;
     if (uiClock > 0.2) {
@@ -4491,11 +4625,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       saveClock = 0;
     }
     if (started && !hiddenPause) {
-      const guest = (online == null ? void 0 : online.role) === "guest", offset = guest && !online.hostPaused && online.peerConnected ? Math.min(0.4, Math.max(0, (now - remoteAt) / 1e3)) : 0;
-      const animationTime = guest ? guestLive() : state.elapsed + (running && !paused && !state.over ? simulationClock : 0);
+      const remote = !!online;
+      const animationTime = remote ? guestLive() : state.elapsed + (running && !paused && !state.over ? simulationClock : 0);
       const renderKey = [state.mapSeed, state.estateSeed, state.day, animationTime, state.revision, state.phase, state.over, playerState().coins, playerState().materials, cam.x, cam.y, cam.zoom, selected == null ? void 0 : selected.x, selected == null ? void 0 : selected.y, grid, playerOwner(), remoteAt].join("|");
-      if ((renderKey !== lastRenderKey || offset > 0) && (!renderInterval || now - lastRenderAt >= renderInterval - 1)) {
-        GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online, animationTime }, guest ? { unitPosition: remotePosition, effects: remoteEffects.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0), projectiles: remoteProjectiles.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0) } : {}));
+      if (renderKey !== lastRenderKey && (!renderInterval || now - lastRenderAt >= renderInterval - 1)) {
+        GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online, animationTime }, remote ? { unitPosition: remotePosition } : {}));
         lastRenderKey = renderKey;
         lastRenderAt = now;
       }

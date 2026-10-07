@@ -542,7 +542,7 @@
       return true;
     });
   }
-  function buildReason(s, type, x, y, ignoreFunds = false) {
+  function buildReason(s, type, x, y, ignoreFunds = false, ignoreEnemies = false) {
     s = economicView(s);
     const d = DEFS[type];
     if (!d) return '未知建筑';
@@ -553,7 +553,7 @@
     const plot = terrain(x, y, s);
     if (plot === 'water') return '水域不可建造';
     if (d.fixed) return '城门仅可由庄园生成';
-    if (s.enemies.some(e => Math.hypot(e.x - x, e.y - y) < .65)) return '敌人正在此地';
+    if (!ignoreEnemies && s.enemies.some(e => Math.hypot(e.x - x, e.y - y) < .65)) return '敌人正在此地';
     if (d.unique) return '祠堂仅此一座';
     if (d.fortuneOnly) return '仅可由造化匣获得';
     if (type === 'fortune') return fortuneCandidates(s, x, y).length ? (ignoreFunds ? '' : shortage(s, buildCost(s, type))) : '此地无可造化建筑';
@@ -571,8 +571,8 @@
     }
     return ignoreFunds ? '' : shortage(s, buildCost(s, type));
   }
-  function buildHints(s, x, y) {
-    return Object.values(DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true))
+  function buildHints(s, x, y, ignoreEnemies = false) {
+    return Object.values(DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true, ignoreEnemies))
       .map(d => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = 'info') { s.events.push({ text, kind }); if (s.events.length > 30) s.events.shift(); }
@@ -698,7 +698,7 @@
     return r;
   }, { coins: 0, materials: 0 });
   const incomeCache = new WeakMap();
-  function settleIncome(s, dt) {
+  function settleIncome(s, dt, emitEffects = true) {
     const w = world(s), buildings = w.buildings;
     // Inspect dependencies once, including direct edits that do not bump revision.
     const signature = JSON.stringify([w.mode, w.day, buildings.map(b => [b.type, b.x, b.y, b.level, b.owner])]);
@@ -733,7 +733,7 @@
           const paid = Math.floor(b[pending] + 1e-8);
           b[pending] = Math.max(0, b[pending] - paid);
           player[resource] += paid;
-          if (paid > 0) player.effects.push({ type: 'income', resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
+          if (emitEffects && paid > 0) player.effects.push({ type: 'income', resource, buildingId: b.id, amount: paid, x: b.x, y: b.y, life: .95, total: .95 });
         }
       }
     }
@@ -1122,6 +1122,12 @@
     s.effects.push({ type: id, x: worldCenter(s), y: worldCenterY(s), life: 1, total: 1 }); collectDead(s);
     return { ok: true };
   }
+  function stepEconomy(s, dt, emitEffects = true) {
+    if (!Number.isFinite(dt) || dt <= 0 || s.over) return;
+    dt = Math.min(dt, .25);
+    settleIncome(s, dt, emitEffects);
+    for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
+  }
   function step(s, dt) {
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, .25); s.time += dt; s.elapsed += dt;
@@ -1329,5 +1335,5 @@
       return s;
     } catch { return null; }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, stepEconomy, step, serialize, restore };
 });

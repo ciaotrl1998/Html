@@ -415,8 +415,8 @@
       let best=hints.tiles.get(tile);
       if(!hints.tiles.has(tile)){
         let bestIncome=-Infinity;best=null;
-        const town={...player,enemies:[]};
-        for(const hint of GF.buildHints(town,x,y)){
+        const town=player;
+        for(const hint of GF.buildHints(town,x,y,true)){
           if(hint.resource!=='coins'&&hint.resource!=='materials')continue;
           const preview={type:hint.type,x,y,level:1};
           // Include the new building's own aura without changing the live state.
