@@ -167,7 +167,10 @@
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = new Map();
   const view = { width: 390, height: 844 };
   const mobileRendering = window.matchMedia('(pointer: coarse)').matches;
-  let simulationClock = 0, lastRenderKey = '';
+  let simulationClock = 0, lastRenderKey = '', lastRenderAt = 0;
+  // Phones struggle to repaint the whole map at 90/120 Hz; cap touch devices to ~60 fps while the
+  // animation clock keeps advancing every frame.
+  const renderInterval = mobileRendering ? 1000 / 60 : 0;
   function center(owner = 0) {
     cam.zoom = Math.max(.55, Math.min(.86, view.width / 550));
     const home = state.mode === 'coop' ? GF.estate(GF.playerView(state, owner)).center : {x:GF.worldCenter(state),y:GF.worldCenter(state)};
@@ -232,13 +235,16 @@
   }
   // Two fixed lines per card: production centres a "生产" label over its output, everything else
   // puts the effect name on the left and the value on the right.
-  function effectHTML(d) {
+  function effectHTML(d, x, y) {
     const icon = resource => `<i class="${resource === 'materials' ? 'material-icon' : 'coin-icon'}"></i>`;
     const label = text => `<span class="effect-line"><span>${text}</span></span>`;
     const figure = html => `<span class="effect-line effect-figure">${html}</span>`;
     const rows = pairs => `<div class="card-effect rows">${pairs.map(([name, value]) => `<span class="effect-line"><span>${name}</span><span class="effect-value">${value}</span></span>`).join('')}</div>`;
     const center = lines => `<div class="card-effect production">${lines.join('')}</div>`;
-    if (d.income) return center([label('生产'), figure(`<span class="effect-value">${rateText(d.income * GF.incomeFactor({ type: d.id, level: 1 }))}</span>${icon(d.resource)}/秒`)]);
+    if (d.income) {
+      const building = { type: d.id, x, y, level: 1 }, economic = playerState(), preview = { ...economic, buildings: [...economic.buildings, building] };
+      return center([label('生产'), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
+    }
     if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
     if (d.id === 'barracks') return rows([['士兵', GF.soldierLimit({ type: 'barracks', level: 1 })], ['战力', GF.soldierPower(playerState(), { type: 'barracks', level: 1 })]]);
     if (d.id === 'rock') return rows([['攻击范围', d.range], ['溅射', d.splash]]);
@@ -251,11 +257,10 @@
     if (d.id === 'fortune') return center([label('造化'), figure('<span class="effect-value">随机建筑</span>')]);
     return center([label(d.name), figure(d.desc || '')]);
   }
-  function cardHTML(d) {
+  function cardHTML(d, x, y) {
     const built = playerState().buildings.filter(b => b.type === d.id).length;
     const count = d.id === 'fortune' ? `次数：${playerState().fortuneBuilt}/${d.limit}` : d.limit ? `数量：${built}/${d.limit}` : '';
-    const badge = d.prev && built === 0 ? '<span class="card-badge">进阶建筑</span>' : '';
-    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt="">${badge}</div><strong>${d.name}</strong>${effectHTML(d)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div><button class="build-action" type="button">建造</button></div>`;
+    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt=""></div><strong>${d.name}</strong>${effectHTML(d, x, y)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div></div>`;
   }
   function hideBuildCard(d, x, y) {
     const plot = GF.terrain(x, y, state), nearby = GF.adjacent(state, x, y);
@@ -309,7 +314,7 @@
           .filter(item => !hideBuildCard(item.d, x, y))
           .sort((a, b) => Number(!!a.reason) - Number(!!b.reason) || buildListOrder(a.d) - buildListOrder(b.d) || a.index - b.index)
           .map(item => item.d);
-        const scroll = $('cards').scrollLeft; $('cards').innerHTML = defs.map(cardHTML).join(''); $('cards').scrollLeft = scroll;
+        const scroll = $('cards').scrollLeft; $('cards').innerHTML = defs.map(d => cardHTML(d, x, y)).join(''); $('cards').scrollLeft = scroll;
       }
     }
     if (b) {
@@ -332,8 +337,6 @@
       }
     } else for (const el of $('cards').children) {
       const reason = GF.buildReason(playerState(), el.dataset.build, x, y); el.classList.toggle('locked', !!reason); el.classList.toggle('poor', reason.startsWith('差')); el.setAttribute('aria-disabled', String(!!reason));
-      const button = el.querySelector('.build-action');
-      if (button) { button.disabled = !!reason; button.textContent = reason ? shortReason(reason) : '建造'; }
       const cost = GF.buildCost(playerState(), el.dataset.build);
       for (const part of el.querySelectorAll('.card-price .cost-part')) {
         const resource = part.querySelector('.coin-icon') ? 'coins' : 'materials';
@@ -341,7 +344,6 @@
       }
     }
   }
-  const shortReason = reason => reason.startsWith('已达上限') ? '已达上限' : reason.startsWith('差') ? '缺少资源' : '不可建造';
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
     const invasion = started && state.phase !== 'day';
@@ -389,9 +391,8 @@
     tone(); const name = type === 'fortune' ? '造化匣化为' + GF.name(r.building) : GF.DEFS[type].name + '已建成'; handleEvents(); save(); closePanel(); refresh(); toast(name);
   }
   $('cards').addEventListener('click', e => {
-    const action = e.target.closest('.build-action');
-    if (!action || action.disabled || cardDrag.suppress) return;
-    const card = action.closest('.build-card');
+    if (cardDrag.suppress) return;
+    const card = e.target.closest('.build-card');
     if (card) performBuild(card.dataset.build, card);
   });
   $('detail-view').addEventListener('click', e => {
@@ -594,12 +595,17 @@
   canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
   canvas.addEventListener('wheel',e=>{e.preventDefault();const p=localPoint(e);zoom(Math.exp(-e.deltaY*.001),p.x,p.y);},{passive:false});
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  // Native touch scrolling + desktop mouse dragging for the horizontal card strip.
-  const cardDrag={active:false,moved:false,suppress:false,x:0,scroll:0};
-  $('cards').addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;cardDrag.active=true;cardDrag.moved=false;cardDrag.suppress=false;cardDrag.x=e.clientX;cardDrag.scroll=$('cards').scrollLeft;});
-  window.addEventListener('pointermove',e=>{if(!cardDrag.active)return;if(Math.abs(e.clientX-cardDrag.x)>5)cardDrag.moved=true;if(cardDrag.moved){$('cards').scrollLeft=cardDrag.scroll-(e.clientX-cardDrag.x);cardDrag.suppress=true;}});
-  window.addEventListener('pointerup',()=>{if(!cardDrag.active)return;cardDrag.active=false;setTimeout(()=>cardDrag.suppress=false,0);});
-  window.addEventListener('pointercancel',()=>{cardDrag.active=false;cardDrag.suppress=false;});
+  // Tap a card to build, drag to scroll. A build only fires when the pointer never moved, so a
+  // swipe that scrolls the strip (native touch or mouse drag) cannot accidentally build.
+  const cardDrag={active:false,moved:false,suppress:false,x:0,y:0,scroll:0};
+  $('cards').addEventListener('pointerdown',e=>{cardDrag.active=true;cardDrag.moved=false;cardDrag.suppress=false;cardDrag.x=e.clientX;cardDrag.y=e.clientY;cardDrag.scroll=$('cards').scrollLeft;});
+  window.addEventListener('pointermove',e=>{
+    if(!cardDrag.active)return;
+    if(Math.abs(e.clientX-cardDrag.x)>6||Math.abs(e.clientY-cardDrag.y)>6)cardDrag.moved=true;
+    if(cardDrag.moved&&e.pointerType==='mouse'){$('cards').scrollLeft=cardDrag.scroll-(e.clientX-cardDrag.x);cardDrag.suppress=true;}
+  });
+  window.addEventListener('pointerup',()=>{if(!cardDrag.active)return;cardDrag.active=false;if(cardDrag.moved){cardDrag.suppress=true;setTimeout(()=>cardDrag.suppress=false,0);}});
+  window.addEventListener('pointercancel',()=>{if(!cardDrag.active)return;cardDrag.active=false;cardDrag.moved=true;cardDrag.suppress=true;setTimeout(()=>cardDrag.suppress=false,0);});
   window.addEventListener('keydown',e=>{
     const overlay = !$('modal').hidden ? $('modal') : !$('coop-lobby').hidden ? $('coop-lobby') : !started ? $('start-menu') : null;
     if(e.key==='Tab' && overlay){
@@ -627,9 +633,9 @@
       // Advance local animation between simulation batches; stopped views only redraw when dirty.
       const animationTime=guest?guestLive():state.elapsed+(running&&!paused&&!state.over?simulationClock:0);
       const renderKey=[state.mapSeed,state.estateSeed,state.day,animationTime,state.revision,state.phase,state.over,playerState().coins,playerState().materials,cam.x,cam.y,cam.zoom,selected?.x,selected?.y,grid,playerOwner(),remoteAt].join('|');
-      if(renderKey!==lastRenderKey||offset>0){
+      if((renderKey!==lastRenderKey||offset>0)&&(!renderInterval||now-lastRenderAt>=renderInterval-1)){
         GFArt.render(canvas,state,cam,selected,{grid,player:playerOwner(),online:!!online,animationTime,...(guest?{unitPosition:remotePosition,effects:remoteEffects.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0),projectiles:remoteProjectiles.map(e=>({...e,life:e.life-offset})).filter(e=>e.life>0)}:{})});
-        lastRenderKey=renderKey;
+        lastRenderKey=renderKey;lastRenderAt=now;
       }
     }requestAnimationFrame(frame);
   }

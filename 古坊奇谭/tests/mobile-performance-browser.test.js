@@ -90,7 +90,7 @@ async function dimensions(page, ratio) {
   return result;
 }
 
-async function scheduling(page, label, hz) {
+async function scheduling(page, label, hz, cap) {
   await advance(page, 8, hz);
   const result = await advance(page, hz * 10, hz);
   assert(Math.abs(result.elapsed - result.seconds) <= 1 / 30 + 1e-8,
@@ -99,21 +99,23 @@ async function scheduling(page, label, hz) {
   assert(Math.abs(simulated - result.elapsed) < 1e-8);
   assert(result.steps.length >= 299 && result.steps.length <= 301, 'Simulation batches run at 30 Hz');
   assert(result.steps.every(step => step.dt > 0 && step.dt <= .1));
-  assert.equal(result.renders.length, hz * 10, 'Every active RAF draws without a frame cap');
+  if(cap) assert(result.renders.length >= 400 && result.renders.length <= 602, `Capped draw rate ${result.renders.length} over 10s`);
+  else assert.equal(result.renders.length, hz * 10, 'Every active RAF draws without a frame cap');
   assert(result.renders.some(render => render.animationTime > render.elapsed + 1e-8),
     'Animation advances between simulation batches');
-  for (let i = 1; i < result.renders.length; i++) {
-    const previous = result.renders[i - 1], current = result.renders[i];
-    assert(current.animationTime > previous.animationTime, 'Animation clock increases every RAF');
-    assert(Math.abs(current.animationTime - previous.animationTime - 1 / hz) < 1e-8,
-      'Animation clock is smooth across simulation batches');
-    assert(current.animationTime >= current.elapsed - 1e-8 && current.animationTime - current.elapsed < 1 / 30 + 1e-8);
+  const first = result.renders[0];
+  for (let i = 0; i < result.renders.length; i++) {
+    const render = result.renders[i];
+    assert(render.animationTime >= render.elapsed - 1e-8 && render.animationTime - render.elapsed < 1 / 30 + 1e-8);
+    assert(Math.abs(render.animationTime - (first.animationTime + (render.now - first.now) / 1000)) < 1e-6,
+      'Animation clock advances with real time');
+    if (i) assert(render.animationTime > result.renders[i - 1].animationTime, 'Animation clock increases monotonically');
   }
   console.log('SCHEDULING ' + JSON.stringify({ label, clockSeconds: result.seconds, simulatedSeconds: result.elapsed,
-    hz, steps: result.steps.length, draws: result.renders.length }));
+    hz, cap: cap || 'none', steps: result.steps.length, draws: result.renders.length }));
 }
 
-async function pausedChanges(page, hz) {
+async function pausedChanges(page, hz, cap) {
   await page.evaluate(() => { document.getElementById('close-panel').click(); Gufang.setPaused(true); });
   await advance(page, 12, hz);
   const frozenTime = await page.evaluate(() => Gufang.state.elapsed);
@@ -142,15 +144,20 @@ async function pausedChanges(page, hz) {
   assert.equal(result.elapsed, 0);
   await page.evaluate(() => Gufang.setPaused(false));
   result = await advance(page, hz, hz);
-  assert.equal(result.renders.length, hz, 'Pause restoration draws every RAF');
+  if(cap) assert(result.renders.length >= 40 && result.renders.length <= 62, 'Pause restoration draws at the capped rate');
+  else assert.equal(result.renders.length, hz, 'Pause restoration draws every RAF');
   assert(Math.abs(result.elapsed - 1) <= 1 / 30 + 1e-8, 'Pause restoration does not catch up paused time');
+  const resumeFirst = result.renders[0];
   for (let i = 0; i < result.renders.length; i++) {
-    assert(Math.abs(result.renders[i].animationTime - frozenTime - (i + 1) / hz) < 1e-8,
-      'Resumed animation clock advances smoothly from the frozen clock');
+    const render = result.renders[i];
+    assert(render.animationTime > frozenTime && render.animationTime - render.elapsed < 1 / 30 + 1e-8, 'Resumed animation continues from the frozen clock');
+    assert(Math.abs(render.animationTime - (resumeFirst.animationTime + (render.now - resumeFirst.now) / 1000)) < 1e-6,
+      'Resumed animation clock advances smoothly');
+    if (i) assert(render.animationTime > result.renders[i - 1].animationTime, 'Resumed animation increases');
   }
 }
 
-async function hiddenStops(page, hz) {
+async function hiddenStops(page, hz, cap) {
   await page.evaluate(() => { document.getElementById('close-panel').click(); Gufang.setPaused(false); });
   await advance(page, 12, hz);
   await page.evaluate(() => {
@@ -167,10 +174,15 @@ async function hiddenStops(page, hz) {
   const frozenTime = await page.evaluate(() => Gufang.state.elapsed);
   result = await advance(page, hz, hz);
   assert(Math.abs(result.elapsed - 1) <= 1 / 30 + 1e-8, 'Visibility restoration does not catch up hidden time');
-  assert.equal(result.renders.length, hz, 'Visible resumes drawing every RAF');
+  if(cap) assert(result.renders.length >= 40 && result.renders.length <= 62, 'Visible resumes drawing at the capped rate');
+  else assert.equal(result.renders.length, hz, 'Visible resumes drawing every RAF');
+  const visibleFirst = result.renders[0];
   for (let i = 0; i < result.renders.length; i++) {
-    assert(Math.abs(result.renders[i].animationTime - frozenTime - (i + 1) / hz) < 1e-8,
-      'Visible animation resumes smoothly without hidden time');
+    const render = result.renders[i];
+    assert(render.animationTime > frozenTime && render.animationTime - render.elapsed < 1 / 30 + 1e-8, 'Visible animation continues without hidden time');
+    assert(Math.abs(render.animationTime - (visibleFirst.animationTime + (render.now - visibleFirst.now) / 1000)) < 1e-6,
+      'Visible animation clock advances smoothly');
+    if (i) assert(render.animationTime > result.renders[i - 1].animationTime, 'Visible animation increases');
   }
 }
 
@@ -268,10 +280,11 @@ async function rasterMeasurement(browser) {
           assert.equal(result.coarse, label === 'mobile');
           assert.equal(result.dpr, options.deviceScaleFactor);
         });
+        const cap = label === 'mobile' ? 60 : null;
         for (const hz of [120, 60, 90]) {
-          await check(label + ' ' + hz + 'Hz RAF and smooth animation', () => scheduling(page, label, hz));
-          await check(label + ' ' + hz + 'Hz paused stable/selection/camera/resume', () => pausedChanges(page, hz));
-          await check(label + ' ' + hz + 'Hz hidden stops and resumes', () => hiddenStops(page, hz));
+          await check(label + ' ' + hz + 'Hz RAF and smooth animation', () => scheduling(page, label, hz, cap));
+          await check(label + ' ' + hz + 'Hz paused stable/selection/camera/resume', () => pausedChanges(page, hz, cap));
+          await check(label + ' ' + hz + 'Hz hidden stops and resumes', () => hiddenStops(page, hz, cap));
         }
         await page.screenshot({path:path.join(os.tmpdir(),`gufang-mobile-pass2-${label}.png`)});
         if (label === 'mobile') await check('mobile resize and screen-coordinate touch selection', () => resizedSelection(page));

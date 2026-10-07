@@ -30,7 +30,7 @@
     const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
     const costFactor = (high ? 1.5 : 1) * (i === 2 ? (high ? 40 / 9 : 4) : 1);
     def(a[i], a[i + 3], 'economy', { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
-    income: (high ? [2, 5, 40] : [1, 3, 24])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
+    income: (high ? [2, 8, 48] : [1, 5, 30])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
     chain: a[7], color: a[8], end: i === 2, tier: i, radius: 1, limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
     names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
   }); } });

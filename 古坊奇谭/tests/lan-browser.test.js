@@ -78,7 +78,7 @@ const fs=require('node:fs'),path=require('node:path');
     });
     assert(target, 'Guest estate has a buildable tile');
     await guest.evaluate(({ x, y }) => Gufang.select(x, y), target);
-    await guest.locator(`[data-build="${target.type}"] .build-action`).click();
+    await guest.locator(`[data-build="${target.type}"]`).click();
     await host.waitForFunction(({ x, y }) => Gufang.state.buildings.some(b => b.owner === 1 && b.x === x && b.y === y), target);
     await guest.waitForFunction(({ x, y }) => Gufang.state.buildings.some(b => b.owner === 1 && b.x === x && b.y === y), target);
     await host.evaluate(({ x, y }) => Gufang.select(x, y), target);

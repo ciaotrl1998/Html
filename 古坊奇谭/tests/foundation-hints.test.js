@@ -69,8 +69,8 @@ test('hints retain all legal resource candidates for actual preview income selec
 
 test('real preview incomes reverse base rankings through adjacent prerequisites and include ultimate self aura',()=>{
   for(const [entries,winner,loser,expected] of [
-    [[['tea',7,3],['mulberry',9,3,3],['mulberry',9,4,3],['mulberry',9,5,3]],'weaver','inn',6.6],
-    [[['mill',7,3,3],['mill',7,4,3],['mill',7,5,3],['kiln',9,3]],'wine','trade',52.8],
+    [[['tea',7,3],['mulberry',9,3,3],['mulberry',9,4,3],['mulberry',9,5,3]],'weaver','inn',11],
+    [[['mill',7,3,3],['mill',7,4,3],['mill',7,5,3],['kiln',9,3]],'wine','trade',66],
     [[['bank',7,3,4],['wine',7,5],['tailor',9,3],['trade',9,5]],'guild','port',391.2]
   ]) {
     const s=scene();for(const [type,x,y,level=1] of entries) grant(s,type,x,y,level);

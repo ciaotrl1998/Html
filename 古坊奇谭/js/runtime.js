@@ -55,7 +55,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
       const costFactor = (high ? 1.5 : 1) * (i === 2 ? high ? 40 / 9 : 4 : 1);
       def(a[i], a[i + 3], "economy", { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
-        income: (high ? [2, 5, 40] : [1, 3, 24])[i],
+        income: (high ? [2, 8, 48] : [1, 5, 30])[i],
         resource: ci < 2 ? "coins" : "materials",
         terrain: i === 0 ? a[6] : null,
         prev: i ? a[i - 1] : null,
@@ -1739,6 +1739,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
   const hintCaches = /* @__PURE__ */ new WeakMap();
   const sprites = /* @__PURE__ */ new Map();
+  let glowSprite = null;
+  function nightGlow() {
+    if (glowSprite) return glowSprite;
+    const size = 128, cv = document.createElement("canvas");
+    cv.width = cv.height = size;
+    const g = cv.getContext("2d"), grad = g.createRadialGradient(size / 2, size / 2, 1, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, "#d4a34536");
+    grad.addColorStop(1, "#d4a34500");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    return glowSprite = cv;
+  }
   function drawBaked(c, key, paint) {
     let sprite = sprites.get(key);
     if (!sprite) {
@@ -2374,20 +2386,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function selectedLinks(s, b) {
     return s.buildings.filter((n) => n !== b && (directChainLink(b, n) || directChainLink(n, b)));
   }
-  function drawLinks(c, s) {
+  function drawLinks(c, s, visible) {
     c.save();
     c.setLineDash([4, 5]);
     c.globalAlpha = s.phase === "night" ? 0.92 : 0.82;
-    const drawn = /* @__PURE__ */ new Set();
-    for (const b of s.buildings) {
-      const d = GF.DEFS[b.type];
+    const list = s.buildings;
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i], d = GF.DEFS[b.type];
       if (!d.radius) continue;
-      for (const n of s.buildings) {
-        if (n === b) continue;
+      for (let j = i + 1; j < list.length; j++) {
+        const n = list[j];
         if (!directChainLink(b, n) && !directChainLink(n, b)) continue;
-        const key = b.id < n.id ? b.id + ":" + n.id : n.id + ":" + b.id;
-        if (drawn.has(key)) continue;
-        drawn.add(key);
+        if (visible && !visible(b.x * T + 32, b.y * T + 32, 120) && !visible(n.x * T + 32, n.y * T + 32, 120)) continue;
         const nd = GF.DEFS[n.type], chain = d.chain || nd.chain;
         const color = { 商: "#9c8052", 农: "#6e875b", 丝: "#96758c", 工: "#648388" }[chain] || "#9b8660";
         const sx = b.x * T + 32, sy = b.y * T + 37, tx = n.x * T + 32, ty = n.y * T + 37, dx = tx - sx, dy = ty - sy, length = Math.hypot(dx, dy), trim = 12;
@@ -2487,7 +2497,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (segments) c.stroke();
     }
     c.restore();
-    drawLinks(c, s);
+    drawLinks(c, s, visible);
     if (selected) {
       const px = selected.x * T, py = selected.y * T;
       rect(c, px + 2, py + 2, T - 4, T - 4, "#fbebaf30");
@@ -2600,16 +2610,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.fillStyle = night ? "#19395878" : "#ac723222";
       c.fillRect(left * T, top * T, (right - left + 1) * T, (bottom - top + 1) * T);
       if (night) {
+        const glow = nightGlow();
         c.globalCompositeOperation = "screen";
         for (const b of s.buildings) {
           if (!visible(b.x * T + 32, b.y * T + 36, 64)) continue;
-          if (["shrine", "earth", "tao", "tower", "inn"].includes(b.type)) {
-            const x = b.x * T + 32, y = b.y * T + 36, g = c.createRadialGradient(x, y, 2, x, y, 64);
-            g.addColorStop(0, "#d4a34536");
-            g.addColorStop(1, "#d4a34500");
-            c.fillStyle = g;
-            c.fillRect(x - 64, y - 64, 128, 128);
-          }
+          if (["shrine", "earth", "tao", "tower", "inn"].includes(b.type)) c.drawImage(glow, b.x * T + 32 - 64, b.y * T + 36 - 64, 128, 128);
         }
         c.globalCompositeOperation = "source-over";
       }
@@ -3363,7 +3368,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = /* @__PURE__ */ new Map();
   const view = { width: 390, height: 844 };
   const mobileRendering = window.matchMedia("(pointer: coarse)").matches;
-  let simulationClock = 0, lastRenderKey = "";
+  let simulationClock = 0, lastRenderKey = "", lastRenderAt = 0;
+  const renderInterval = mobileRendering ? 1e3 / 60 : 0;
   function center(owner = 0) {
     cam.zoom = Math.max(0.55, Math.min(0.86, view.width / 550));
     const home = state.mode === "coop" ? GF.estate(GF.playerView(state, owner)).center : { x: GF.worldCenter(state), y: GF.worldCenter(state) };
@@ -3496,13 +3502,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) lines.push("全镇" + (d.auraResource === "materials" ? "工材" : "铜钱") + "收入 +" + rateText(d.aura * GF.auraFactor(building) * 100) + "%");
     return lines.join("<br>");
   }
-  function effectHTML(d) {
+  function effectHTML(d, x, y) {
     const icon = (resource) => `<i class="${resource === "materials" ? "material-icon" : "coin-icon"}"></i>`;
     const label = (text) => `<span class="effect-line"><span>${text}</span></span>`;
     const figure = (html) => `<span class="effect-line effect-figure">${html}</span>`;
     const rows = (pairs) => `<div class="card-effect rows">${pairs.map(([name, value]) => `<span class="effect-line"><span>${name}</span><span class="effect-value">${value}</span></span>`).join("")}</div>`;
     const center2 = (lines) => `<div class="card-effect production">${lines.join("")}</div>`;
-    if (d.income) return center2([label("生产"), figure(`<span class="effect-value">${rateText(d.income * GF.incomeFactor({ type: d.id, level: 1 }))}</span>${icon(d.resource)}/秒`)]);
+    if (d.income) {
+      const building = { type: d.id, x, y, level: 1 }, economic = playerState(), preview = __spreadProps(__spreadValues({}, economic), { buildings: [...economic.buildings, building] });
+      return center2([label("生产"), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
+    }
     if (d.id === "tower") return rows([["攻击", d.damage], ["射程", d.range]]);
     if (d.id === "barracks") return rows([["士兵", GF.soldierLimit({ type: "barracks", level: 1 })], ["战力", GF.soldierPower(playerState(), { type: "barracks", level: 1 })]]);
     if (d.id === "rock") return rows([["攻击范围", d.range], ["溅射", d.splash]]);
@@ -3515,11 +3524,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.id === "fortune") return center2([label("造化"), figure('<span class="effect-value">随机建筑</span>')]);
     return center2([label(d.name), figure(d.desc || "")]);
   }
-  function cardHTML(d) {
+  function cardHTML(d, x, y) {
     const built = playerState().buildings.filter((b) => b.type === d.id).length;
     const count = d.id === "fortune" ? `次数：${playerState().fortuneBuilt}/${d.limit}` : d.limit ? `数量：${built}/${d.limit}` : "";
-    const badge = d.prev && built === 0 ? '<span class="card-badge">进阶建筑</span>' : "";
-    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt="">${badge}</div><strong>${d.name}</strong>${effectHTML(d)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div><button class="build-action" type="button">建造</button></div>`;
+    return `<div class="build-card" data-build="${d.id}" aria-label="建造${d.name}"><span class="card-count">${count}</span><div class="card-image"><img src="${GFArt.thumbnail(d.id)}" alt=""></div><strong>${d.name}</strong>${effectHTML(d, x, y)}<div class="card-price">${costHTML(GF.buildCost(playerState(), d.id))}</div></div>`;
   }
   function hideBuildCard(d, x, y) {
     const plot = GF.terrain(x, y, state), nearby = GF.adjacent(state, x, y);
@@ -3577,7 +3585,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       else {
         const defs = buildableDefs.map((d, index) => ({ d, index, reason: GF.buildReason(playerState(), d.id, x, y) })).filter((item) => !hideBuildCard(item.d, x, y)).sort((a, b2) => Number(!!a.reason) - Number(!!b2.reason) || buildListOrder(a.d) - buildListOrder(b2.d) || a.index - b2.index).map((item) => item.d);
         const scroll = $("cards").scrollLeft;
-        $("cards").innerHTML = defs.map(cardHTML).join("");
+        $("cards").innerHTML = defs.map((d) => cardHTML(d, x, y)).join("");
         $("cards").scrollLeft = scroll;
       }
     }
@@ -3612,11 +3620,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       el.classList.toggle("locked", !!reason);
       el.classList.toggle("poor", reason.startsWith("差"));
       el.setAttribute("aria-disabled", String(!!reason));
-      const button = el.querySelector(".build-action");
-      if (button) {
-        button.disabled = !!reason;
-        button.textContent = reason ? shortReason(reason) : "建造";
-      }
       const cost = GF.buildCost(playerState(), el.dataset.build);
       for (const part of el.querySelectorAll(".card-price .cost-part")) {
         const resource = part.querySelector(".coin-icon") ? "coins" : "materials";
@@ -3624,7 +3627,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
   }
-  const shortReason = (reason) => reason.startsWith("已达上限") ? "已达上限" : reason.startsWith("差") ? "缺少资源" : "不可建造";
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
     var _a, _b, _c;
@@ -3714,9 +3716,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     toast(name);
   }
   $("cards").addEventListener("click", (e) => {
-    const action = e.target.closest(".build-action");
-    if (!action || action.disabled || cardDrag.suppress) return;
-    const card = action.closest(".build-card");
+    if (cardDrag.suppress) return;
+    const card = e.target.closest(".build-card");
     if (card) performBuild(card.dataset.build, card);
   });
   $("detail-view").addEventListener("click", (e) => {
@@ -4175,19 +4176,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     zoom(Math.exp(-e.deltaY * 1e-3), p.x, p.y);
   }, { passive: false });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-  const cardDrag = { active: false, moved: false, suppress: false, x: 0, scroll: 0 };
+  const cardDrag = { active: false, moved: false, suppress: false, x: 0, y: 0, scroll: 0 };
   $("cards").addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse") return;
     cardDrag.active = true;
     cardDrag.moved = false;
     cardDrag.suppress = false;
     cardDrag.x = e.clientX;
+    cardDrag.y = e.clientY;
     cardDrag.scroll = $("cards").scrollLeft;
   });
   window.addEventListener("pointermove", (e) => {
     if (!cardDrag.active) return;
-    if (Math.abs(e.clientX - cardDrag.x) > 5) cardDrag.moved = true;
-    if (cardDrag.moved) {
+    if (Math.abs(e.clientX - cardDrag.x) > 6 || Math.abs(e.clientY - cardDrag.y) > 6) cardDrag.moved = true;
+    if (cardDrag.moved && e.pointerType === "mouse") {
       $("cards").scrollLeft = cardDrag.scroll - (e.clientX - cardDrag.x);
       cardDrag.suppress = true;
     }
@@ -4195,11 +4196,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   window.addEventListener("pointerup", () => {
     if (!cardDrag.active) return;
     cardDrag.active = false;
-    setTimeout(() => cardDrag.suppress = false, 0);
+    if (cardDrag.moved) {
+      cardDrag.suppress = true;
+      setTimeout(() => cardDrag.suppress = false, 0);
+    }
   });
   window.addEventListener("pointercancel", () => {
+    if (!cardDrag.active) return;
     cardDrag.active = false;
-    cardDrag.suppress = false;
+    cardDrag.moved = true;
+    cardDrag.suppress = true;
+    setTimeout(() => cardDrag.suppress = false, 0);
   });
   window.addEventListener("keydown", (e) => {
     const overlay = !$("modal").hidden ? $("modal") : !$("coop-lobby").hidden ? $("coop-lobby") : !started ? $("start-menu") : null;
@@ -4295,9 +4302,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const guest = (online == null ? void 0 : online.role) === "guest", offset = guest && !online.hostPaused && online.peerConnected ? Math.min(0.4, Math.max(0, (now - remoteAt) / 1e3)) : 0;
       const animationTime = guest ? guestLive() : state.elapsed + (running && !paused && !state.over ? simulationClock : 0);
       const renderKey = [state.mapSeed, state.estateSeed, state.day, animationTime, state.revision, state.phase, state.over, playerState().coins, playerState().materials, cam.x, cam.y, cam.zoom, selected == null ? void 0 : selected.x, selected == null ? void 0 : selected.y, grid, playerOwner(), remoteAt].join("|");
-      if (renderKey !== lastRenderKey || offset > 0) {
+      if ((renderKey !== lastRenderKey || offset > 0) && (!renderInterval || now - lastRenderAt >= renderInterval - 1)) {
         GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online, animationTime }, guest ? { unitPosition: remotePosition, effects: remoteEffects.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0), projectiles: remoteProjectiles.map((e) => __spreadProps(__spreadValues({}, e), { life: e.life - offset })).filter((e) => e.life > 0) } : {}));
         lastRenderKey = renderKey;
+        lastRenderAt = now;
       }
     }
     requestAnimationFrame(frame);

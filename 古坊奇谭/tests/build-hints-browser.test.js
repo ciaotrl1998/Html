@@ -47,6 +47,11 @@ const near = (a, b) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
              paint.push({ kind: this.fillStyle === nightColor ? 'night' : this.fillStyle === '#bb775a' || this.fillStyle === '#91c967' ? 'unit-health' : 'fill', composite: this.globalCompositeOperation });
              return fillRect.apply(this, arguments);
            };
+           const drawImage = c.drawImage;
+           c.drawImage = function () {
+             if (this.globalCompositeOperation === 'screen') paint.push({ kind: 'glow', composite: 'screen' });
+             return drawImage.apply(this, arguments);
+           };
           const scene = entries => {
             const s = GF.createState(null); s.coins = s.materials = 1e6; s.mission = GF.MISSIONS.length;
              for (const [type, x, y, level = 1] of entries) if (!GF.grantBuilding(s, type, x, y, level)) throw Error('Fixture: ' + type);

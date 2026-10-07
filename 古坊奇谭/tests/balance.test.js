@@ -53,7 +53,7 @@ test('same-level ultimates with one of each endpoint beat fully supplied highest
     ['guild','tea','inn','bank','farm','mill','wine'],
     ['port','quarry','kiln','trade','mulberry','weaver','tailor']
   ]) {
-    assert.equal(G.DEFS[end].income,40);
+    assert.equal(G.DEFS[end].income,48);
     assert.equal(G.DEFS[end].resource,G.DEFS[ultimate].resource);
     for (let level=1;level<=9;level++) for (const day of [1,7]) for (const capped of [false,true]) {
       const supplied=incomeScene(level,day,capped,[
@@ -71,7 +71,7 @@ test('same-level ultimates with one of each endpoint beat fully supplied highest
       const endpointRate=G.income(supplied,supplied.buildings.find(b=>b.type===end));
       const ultimateRate=G.income(sparse,sparse.buildings.find(b=>b.type===ultimate));
       assert(ultimateRate>=endpointRate*2, `${ultimate} vs ${end} Lv${level} day${day} capped=${capped}: ${ultimateRate/endpointRate}`);
-      if (capped) close(endpointRate,40*G.incomeFactor({type:end,level})*3*(day===7?1.25:1));
+      if (capped) close(endpointRate,48*G.incomeFactor({type:end,level})*3*(day===7?1.25:1));
     }
   }
 });

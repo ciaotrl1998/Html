@@ -263,22 +263,22 @@ test('the level-15 shrine gates all nine ordinary building levels',()=>{
 test('only the immediately previous industry tier adds 10% income per level',()=>{
   const s=rich();setShrineLevel(s,2);
   const farm=build(s,'farm',5,8),mill=build(s,'mill',6,9),wine=build(s,'wine',7,8);
-  assert(Math.abs(G.income(s,mill)-3.3)<.001);   // 3 × (1 + .1), farm within 1.
-   assert(Math.abs(G.income(s,wine)-26.4)<.001);   // Farm is two tiers earlier and adds nothing.
+  assert(Math.abs(G.income(s,mill)-5.5)<.001);   // 5 × (1 + .1), farm within 1.
+   assert(Math.abs(G.income(s,wine)-33)<.001);   // Farm is two tiers earlier and adds nothing.
   assert(G.upgrade(s,farm).ok);                   // Farm Lv2 adds .2
-  assert(Math.abs(G.income(s,mill)-3.6)<.001);
-   assert(Math.abs(G.income(s,wine)-26.4)<.001);
+  assert(Math.abs(G.income(s,mill)-6)<.001);
+   assert(Math.abs(G.income(s,wine)-33)<.001);
   build(s,'tea',6,5);const inn=build(s,'inn',6,4);
-   assert(Math.abs(G.income(s,inn)-5.5)<.001);
-  build(s,'tea',9,4);                             // Distance 3 exceeds the inn range of 2.
-   assert(Math.abs(G.income(s,inn)-5.5)<.001);
+   assert(Math.abs(G.income(s,inn)-8.8)<.001);
+  build(s,'tea',9,4);                             // Distance 3 exceeds the radius-one influence.
+   assert(Math.abs(G.income(s,inn)-8.8)<.001);
 });
 test('all four chains ignore a starter two tiers behind the endpoint',()=>{
   for(const [types,cells,midBase,endBase] of [
-      [['tea','inn','bank'],[[6,5],[6,4],[7,4]],5,40],
-     [['farm','mill','wine'],[[5,8],[6,9],[7,8]],3,24],
-      [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],3,24],
-     [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],5,40]
+      [['tea','inn','bank'],[[6,5],[6,4],[7,4]],8,48],
+     [['farm','mill','wine'],[[5,8],[6,9],[7,8]],5,30],
+      [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],5,30],
+     [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],8,48]
   ]){
     const s=rich();setShrineLevel(s,2);const start=build(s,types[0],...cells[0]),middle=build(s,types[1],...cells[1]),end=build(s,types[2],...cells[2]);
     assert(Math.abs(G.income(s,middle)-midBase*1.1)<1e-8,types[1]+' receives starter bonus');
@@ -443,10 +443,10 @@ test('two-resource chains have the intended costs, production and formula upgrad
   for(const type of ['tea','inn','bank','farm','mill','wine']) assert.equal(G.DEFS[type].resource,'coins');
   for(const type of ['mulberry','weaver','tailor','quarry','kiln','trade']) assert.equal(G.DEFS[type].resource,'materials');
   for(const [types,incomes,costs] of [
-     [['tea','inn','bank'],[2,5,40],[[0,98],[165,360],[2867,5000]]],
-     [['farm','mill','wine'],[1,3,24],[[0,65],[110,240],[1720,3000]]],
-     [['mulberry','weaver','tailor'],[1,3,24],[[95,0],[290,70],[3680,1200]]],
-     [['quarry','kiln','trade'],[2,5,40],[[143,0],[435,105],[6134,2000]]],
+     [['tea','inn','bank'],[2,8,48],[[0,98],[165,360],[2867,5000]]],
+     [['farm','mill','wine'],[1,5,30],[[0,65],[110,240],[1720,3000]]],
+     [['mulberry','weaver','tailor'],[1,5,30],[[95,0],[290,70],[3680,1200]]],
+     [['quarry','kiln','trade'],[2,8,48],[[143,0],[435,105],[6134,2000]]],
      [['guild'],[240],[[44572,66858]]],
      [['port'],[300],[[70500,37500]]]
   ])for(const [i,type] of types.entries()){

@@ -129,7 +129,7 @@ const near = (a, b, message) => assert(Math.abs(a - b) < .1, `${message}: ${a} !
             const buildPanel = await page.locator('#panel').boundingBox();
             near(buildPanel.y + buildPanel.height, game.y + game.height, 'Build list bottom');
             near(buildPanel.y, panel.y, 'Build/detail same top');
-            await page.locator('[data-build="tower"] .build-action').click();
+            await page.locator('[data-build="tower"]').click();
             assert.equal(await page.evaluate(() => GF.at(Gufang.state, 8, 7).type), 'tower', 'Actual night build click');
           });
           await check('browser errors', async () => assert.deepEqual(errors, []));

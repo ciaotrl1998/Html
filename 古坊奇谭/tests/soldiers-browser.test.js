@@ -126,7 +126,7 @@ async function ui(page) {
   const barracksEffect = (await card.locator('.card-effect').innerText()).replace(/\s+/g, '');
   assert(barracksEffect.startsWith('\u58eb\u5175') && barracksEffect.includes('\u6218\u529b'), 'Barracks card shows soldier count and power');
   assert.equal(await card.getAttribute('aria-disabled'), 'false');
-  await card.locator('.build-action').click();
+  await card.click();
   await page.evaluate(() => { const b = Gufang.state.buildings.find(b => b.type === 'barracks'); Gufang.select(b.x, b.y); });
   const expectedStats = () => page.evaluate(() => {
     const s = Gufang.state, b = s.buildings.find(b => b.type === 'barracks'), next = { ...b, level: b.level + 1 };

@@ -25,7 +25,7 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 @keyframes panel-in{from{transform:translateY(25px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @media(max-width:360px){.topbar{gap:12px;padding-left:12px;padding-right:12px}.seal{font-size:20px;padding:0 4px;line-height:27px}.resource{gap:5px}.resource strong{font-size:20px}.resource small{font-size:9px}.coin-icon{width:17px;height:17px;border-width:3px}.coin-icon:after{top:3px;left:3px;width:4px;height:4px}.daybar{gap:7px;padding-left:10px}.daybar strong{font-size:11px}.upgrade-stats{gap:10px}.detail-description{font-size:8px}.modal-card{padding:28px 20px}}
 .build-card .card-effect{display:block;line-height:1.3;white-space:normal;overflow-wrap:anywhere;max-height:2.6em;overflow:hidden}
-.cards{gap:6px;padding:10px 10px 14px}.build-card{width:calc((100vw - 14px)/4.4 - 6px);max-width:98px;flex:0 0 calc((100vw - 14px)/4.4 - 6px);height:205px;padding:0 6px 8px;border-radius:7px;background:#f3f3e7}.build-card img{width:100%;height:99px;margin:14px auto 2px}.build-card strong{text-align:center;font-size:17px;line-height:22px;white-space:nowrap}.chain-tag{position:absolute;left:5px;top:5px;z-index:1;min-width:19px;height:19px;padding:1px 4px;border-radius:3px;background:#dce5c5;color:#52704f;font-size:11px;font-weight:700;text-align:center}.card-count{position:absolute;right:5px;top:7px;color:#77836f;font-size:9px;white-space:nowrap}.card-price{font-size:11px;margin:5px 0 4px;min-height:26px}.card-effect{font-size:11px!important;line-height:1.35!important;max-height:2.7em!important;color:#64755f}.card-reason{position:absolute;left:4px;right:4px;top:28px;padding:3px 2px;background:#f6ecdae8;color:#9b654c;text-align:center;font-size:8px;line-height:1.25;border-radius:3px;z-index:2}.card-price .cost-parts{flex-wrap:wrap;gap:2px 4px!important}.build-card.locked img{opacity:.35;filter:grayscale(.5)}
+.cards{gap:6px;padding:10px 10px 14px}.build-card{width:calc((100vw - 14px)/3.14 - 6px);max-width:137px;flex:0 0 calc((100vw - 14px)/3.14 - 6px);height:205px;padding:0 6px 8px;border-radius:7px;background:#f3f3e7}.build-card img{width:100%;height:99px;margin:14px auto 2px}.build-card strong{text-align:center;font-size:17px;line-height:22px;white-space:nowrap}.chain-tag{position:absolute;left:5px;top:5px;z-index:1;min-width:19px;height:19px;padding:1px 4px;border-radius:3px;background:#dce5c5;color:#52704f;font-size:11px;font-weight:700;text-align:center}.card-count{position:absolute;right:5px;top:7px;color:#77836f;font-size:9px;white-space:nowrap}.card-price{font-size:11px;margin:5px 0 4px;min-height:26px}.card-effect{font-size:11px!important;line-height:1.35!important;max-height:2.7em!important;color:#64755f}.card-reason{position:absolute;left:4px;right:4px;top:28px;padding:3px 2px;background:#f6ecdae8;color:#9b654c;text-align:center;font-size:8px;line-height:1.25;border-radius:3px;z-index:2}.card-price .cost-parts{flex-wrap:wrap;gap:2px 4px!important}.build-card.locked img{opacity:.35;filter:grayscale(.5)}
 .income-bonus{color:#3a874e;font-weight:600}
 .topbar{grid-template-columns:minmax(0,1fr) auto auto;gap:16px;padding-left:12px;padding-right:20px}.topbar .seal{justify-self:start}.resource{gap:5px}.topbar .resource{width:100px;justify-self:end}.resource strong{font-size:clamp(16px,4.5vw,18px);line-height:22px}
 .material-icon{display:inline-block;position:relative;width:21px;height:21px;flex-shrink:0;transform:rotate(-35deg)}.material-icon:before{content:"";position:absolute;left:41%;top:34%;width:18%;height:62%;border:1px solid #665e47;border-radius:2px;background:#b99764;box-shadow:inset 1px 0 #e3ce9a}.material-icon:after{content:"";position:absolute;left:12%;top:9%;width:76%;height:32%;border:1px solid #4e695f;border-radius:2px;background:#849a8b;box-shadow:inset 0 2px #b6c7ad}
@@ -64,24 +64,24 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 .coop-code-input[readonly]{background:#eef0e2;color:#5c6f50}
 @media(max-height:600px){.coop-connect{padding:8px 10px;margin-bottom:3px}.coop-connect-actions button{padding:9px 6px}.coop-code-input{margin-top:6px;padding:8px 8px;font-size:18px}}
 /* Building cards (see reference layout): count, art, name, two-line effect box, cost, build button. */
-.build-card{display:flex;flex-direction:column;align-items:stretch;height:218px;padding:5px;overflow:hidden}
+.build-card{display:flex;flex-direction:column;align-items:stretch;height:210px;padding:5px;overflow:hidden}
 .build-card .card-count{position:static;align-self:center;order:0;min-height:12px;margin:0 0 2px;color:#77836f;font-size:10px;white-space:nowrap}
 .build-card .card-image{position:relative;order:1;flex:0 0 auto;margin:0 auto}
 .build-card .card-image img{display:block;width:100%;height:66px;margin:0 auto;object-fit:contain}
 .build-card strong{order:2;margin-top:2px;font-size:16px;line-height:20px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.build-card .card-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:2px 5px;border-radius:3px;background:#c8a24c;color:#fff7dd;font-size:10px;font-weight:700;letter-spacing:1px;white-space:nowrap;text-shadow:0 1px 0 #8a6a2a;box-shadow:0 1px 2px #00000033}
-.build-card .card-effect{display:flex;flex-direction:column;justify-content:center;gap:3px;order:3;min-height:50px;max-height:none;margin:3px 0;padding:5px;overflow:visible;background:#dde4cd;border-radius:5px;color:#5c6f50;font-size:11px!important;line-height:1.2!important;white-space:normal}
+.build-card .card-badge{display:none}
+.build-card .card-effect{display:flex;flex-direction:column;justify-content:center;gap:4px;order:3;min-height:66px;max-height:none;margin:3px 0;padding:6px;overflow:visible;background:#dde4cd;border-radius:5px;color:#5c6f50;font-size:11px!important;line-height:1.2!important;white-space:normal}
 .build-card .card-effect .effect-line{display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}
 .build-card .card-effect .effect-value{font-weight:700;color:#48633f}
+.build-card .card-effect .effect-total{color:#3a874e}
 .build-card .card-effect .effect-figure{font-size:17px}
 .build-card .card-effect .effect-figure .effect-value{font-size:17px}
 .build-card .card-effect.rows .effect-line{justify-content:space-between}
 .build-card .card-effect.rows .effect-value{font-size:17px}
 .build-card .card-effect .coin-icon{width:14px;height:14px;border-width:3px}
 .build-card .card-effect .coin-icon:after{top:2px;left:2px;width:3px;height:3px}
-.build-card .card-effect .material-icon{width:6px;height:16px}
-.build-card .card-price{order:4;min-height:0;margin:0 0 4px}
-.build-card .build-action{order:5;width:100%;margin-top:auto;padding:8px 4px;border:0;border-radius:4px;background:#c7d3ae;color:#3f583b;font-size:13px;font-weight:700;line-height:1;cursor:pointer}
-.build-card .build-action:disabled{background:#dde1d2;color:#98a08a;cursor:default}
+.build-card .card-effect .material-icon{width:14px;height:14px}
+.build-card .card-price{order:4;min-height:0;margin:auto 0;text-align:center}
+.build-card .card-price .cost-parts{justify-content:center;width:100%}
 .build-card.locked .card-image img{opacity:.4;filter:grayscale(.45)}
 .build-card .card-reason{display:none}

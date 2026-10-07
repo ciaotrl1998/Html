@@ -4,6 +4,17 @@
   const T = 64, palette = { plain: '#ced5af', shore: '#d9cda7', water: '#a9c9bd', forest: '#b4c49a', mountain: '#c3c5af' };
   const hintCaches = new WeakMap();
   const sprites = new Map();
+  let glowSprite = null;
+  // Bake the night lantern glow once; drawing a cached image beats creating a radial gradient per
+  // building every frame.
+  function nightGlow(){
+    if(glowSprite)return glowSprite;
+    const size=128,cv=document.createElement('canvas');cv.width=cv.height=size;
+    const g=cv.getContext('2d'),grad=g.createRadialGradient(size/2,size/2,1,size/2,size/2,size/2);
+    grad.addColorStop(0,'#d4a34536');grad.addColorStop(1,'#d4a34500');
+    g.fillStyle=grad;g.fillRect(0,0,size,size);
+    return glowSprite=cv;
+  }
   function drawBaked(c,key,paint){
     let sprite=sprites.get(key);
     if(!sprite){
@@ -295,17 +306,16 @@
   function selectedLinks(s,b){
     return s.buildings.filter(n=>n!==b && (directChainLink(b,n)||directChainLink(n,b)));
   }
-  function drawLinks(c,s){
+  function drawLinks(c,s,visible){
     c.save();c.setLineDash([4,5]);c.globalAlpha=s.phase==='night'?.92:.82;
-    const drawn=new Set();
-    for(const b of s.buildings){
-      const d=GF.DEFS[b.type];
+    const list=s.buildings;
+    for(let i=0;i<list.length;i++){
+      const b=list[i],d=GF.DEFS[b.type];
       if(!d.radius)continue;
-      for(const n of s.buildings){
-        if(n===b)continue;
+      for(let j=i+1;j<list.length;j++){
+        const n=list[j];
         if(!directChainLink(b,n)&&!directChainLink(n,b))continue;
-        const key=b.id<n.id?b.id+':'+n.id:n.id+':'+b.id;
-        if(drawn.has(key))continue;drawn.add(key);
+        if(visible&&!visible(b.x*T+32,b.y*T+32,120)&&!visible(n.x*T+32,n.y*T+32,120))continue;
         const nd=GF.DEFS[n.type],chain=d.chain||nd.chain;
         const color={商:'#9c8052',农:'#6e875b',丝:'#96758c',工:'#648388'}[chain]||'#9b8660';
         const sx=b.x*T+32,sy=b.y*T+37,tx=n.x*T+32,ty=n.y*T+37,dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy),trim=12;
@@ -368,7 +378,7 @@
       if(segments)c.stroke();
     }
     c.restore();
-    drawLinks(c,s);
+    drawLinks(c,s,visible);
     if(selected){const px=selected.x*T,py=selected.y*T;rect(c,px+2,py+2,T-4,T-4,'#fbebaf30');c.strokeStyle='#b59451';c.lineWidth=1.5;c.strokeRect(px+2,py+2,T-4,T-4);if(!GF.at(s,selected.x,selected.y)){c.font='23px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#9c8448';c.fillText('+',px+32,py+40);}}
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
@@ -397,7 +407,7 @@
     for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);person(c,soldier?'soldier':e.type,animationTime,e.repelled>0);if(e.slowed>0)ellipse(c,0,2,13,18,'#8bb7a029','#76a08f');c.restore();}
     // Keep health bars above all unit bodies during close combat.
     for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);rect(c,-14,-27,28,4.5,soldier?'#254a31':'#273e3480',soldier?'#c9dfaa':null);rect(c,-13,-26,26*Math.max(0,Math.min(1,e.hp/e.maxHp)),2.5,soldier?'#91c967':'#bb775a');c.restore();}
-    if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);if(night){c.globalCompositeOperation='screen';for(const b of s.buildings){if(!visible(b.x*T+32,b.y*T+36,64))continue;if(['shrine','earth','tao','tower','inn'].includes(b.type)){const x=b.x*T+32,y=b.y*T+36,g=c.createRadialGradient(x,y,2,x,y,64);g.addColorStop(0,'#d4a34536');g.addColorStop(1,'#d4a34500');c.fillStyle=g;c.fillRect(x-64,y-64,128,128);}}c.globalCompositeOperation='source-over';}}
+    if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);if(night){const glow=nightGlow();c.globalCompositeOperation='screen';for(const b of s.buildings){if(!visible(b.x*T+32,b.y*T+36,64))continue;if(['shrine','earth','tao','tower','inn'].includes(b.type))c.drawImage(glow,b.x*T+32-64,b.y*T+36-64,128,128);}c.globalCompositeOperation='source-over';}}
     const hintPulse=reducedMotion||options.reducedMotion===true?1:1+.035*Math.sin(animationTime*2.4);
     for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
       const tile=y*size+x;
