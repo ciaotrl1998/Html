@@ -101,6 +101,16 @@ WebRTC，请在应用商店更新 Android System WebView 或 Chrome。修改清�
 
 ## 用 Android Studio 打包 APK
 
+### 2.4.1 安装包体积优化
+
+默认只构建 `arm64-v8a` 手机安装包，并对 APK 内的 Node.js 原生库启用压缩，避免一个 APK 同时携带三份运行时。服务器和剪贴板功能使用同一套源码。
+
+本机 Debug 构建实测：原通用包为 `157,004,016` 字节，2.4.1 ARM64 压缩包为 `20,892,083` 字节，约从 157.0 MB 降到 20.9 MB，下载体积减少 86.7%（MB 按十进制计算）。
+
+GitHub 的下载产物 `html-game-box-debug-apk` 是 ARM64 手机包。模拟器测试单独使用 `-PhtmlboxAbi=x86_64`，输出到 `app/build-x86_64/`，不会覆盖手机 APK。需要构建旧式 ARM32 设备时可以使用 `-PhtmlboxAbi=armeabi-v7a`，输出到 `app/build-armeabi-v7a/`。
+
+原生库在安装时解压，APK 下载体积的缩小幅度不等于安装后占用的缩小幅度。
+
 1. 用 Android Studio 打开本目录 `Game2048`
 2. 等待 Gradle 同步完成
 3. 首次在 `Game2048/server-runtime` 执行 `npm ci --omit=optional --ignore-scripts`，然后在 `Game2048` 执行 `node scripts/prepare-server-runtime.js`；SDK 中安装 NDK `26.1.10909125` 与 CMake `3.22.1`。
@@ -121,4 +131,4 @@ WebRTC，请在应用商店更新 Android System WebView 或 Chrome。修改清�
 - 地址弹窗:`ServerUiController`,复制 URL、进入游戏与停止服务
 - 剪贴板:`GameClipboard` 与 `server-runtime/clipboard.js`
 
-GitHub Actions 已加入运行时下载、依赖准备、三种 Android ABI 编译与 Android 模拟器回归。构建不需要打包具体游戏源码；把 `Game2048/serve.png` 和本目录的新源码一同提交即可。
+GitHub Actions 已加入运行时下载、依赖准备、压缩 ARM64 手机包构建与独立 x86_64 Android 模拟器回归。构建不需要打包具体游戏源码；把 `Game2048/serve.png` 和本目录的新源码一同提交即可。

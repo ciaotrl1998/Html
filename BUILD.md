@@ -19,7 +19,7 @@
 5. 跑完点进这次运行,在页面底部 `Artifacts` 下载 `html-game-box-debug-apk`
 6. 解压得到 `app-debug.apk`,传到手机安装
 
-2.4 版工作流会自动安装服务器运行时依赖、下载并校验 Node.js Mobile 18.20.4，编译 `armeabi-v7a`、`arm64-v8a`、`x86_64` 三种架构，并在 Android 模拟器里验证服务器扫描、启动、停止重启与剪贴板。需要完整上传 `Game2048/`，包括 `serve.png`、`scripts/`、`server-runtime/package-lock.json` 和新增 Java/C++ 源码；生成的 `.cache/`、`node_modules/`、`app/build/` 不需要上传。
+2.4.1 版工作流会自动安装服务器运行时依赖、下载并校验 Node.js Mobile 18.20.4，构建仅包含 `arm64-v8a` 的压缩手机 APK。Android 模拟器回归单独构建 `x86_64` 测试版本，输出到 `app/build-x86_64/`，不会覆盖下载给手机的 APK。需要完整上传 `Game2048/`，包括 `serve.png`、`scripts/`、`server-runtime/package-lock.json` 和新增 Java/C++ 源码；生成的 `.cache/`、`node_modules/`、`app/build/`、`app/build-*/` 不需要上传。
 
 APK 不捆绑某款游戏的服务器源码。安装后，“建立服务器”按钮直接扫描首页已选 HTML 游戏目录里的 Node.js 服务。
 

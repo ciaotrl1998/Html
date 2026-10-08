@@ -7,4 +7,5 @@ local.properties
 .DS_Store
 .cache/
 .cxx/
+app/build-*/
 server-runtime/node_modules/

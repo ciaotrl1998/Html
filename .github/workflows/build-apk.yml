@@ -76,11 +76,11 @@ jobs:
         with:
           gradle-version: '8.2'
 
-      - name: Build debug APK
+      - name: Build compressed ARM64 phone APK
         working-directory: Game2048
         run: |
           set -o pipefail
-          gradle assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug --no-daemon --stacktrace 2>&1 | tee build.log
+          gradle assembleDebug testDebugUnitTest lintDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Show failure context
         if: failure()
@@ -112,12 +112,12 @@ jobs:
           target: google_apis
           disable-animations: true
           working-directory: Game2048
-          script: gradle connectedDebugAndroidTest --no-daemon --stacktrace
+          script: gradle -PhtmlboxAbi=x86_64 connectedDebugAndroidTest --no-daemon --stacktrace
 
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: htmlbox-android-test-reports
-          path: Game2048/app/build/reports/androidTests/
+          path: Game2048/app/build-x86_64/reports/androidTests/
           if-no-files-found: ignore
