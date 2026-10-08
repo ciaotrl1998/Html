@@ -18,6 +18,30 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: Game2048/server-runtime/package-lock.json
+
+      - name: Install server runtime dependencies
+        working-directory: Game2048/server-runtime
+        run: npm ci --omit=optional --ignore-scripts
+
+      - name: Test server bootstrap
+        working-directory: Game2048/server-runtime
+        run: npm test
+
+      - name: Cache Node.js Mobile download
+        uses: actions/cache@v4
+        with:
+          path: Game2048/.cache
+          key: nodejs-mobile-android-18.20.4
+
+      - name: Prepare embedded Node.js Mobile
+        run: node Game2048/scripts/prepare-server-runtime.js
+
       - name: Show SDK environment
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
@@ -43,7 +67,7 @@ jobs:
             exit 0
           fi
           yes | "$SM" --licenses > /dev/null 2>&1 || true
-          "$SM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+          "$SM" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" "ndk;26.1.10909125" "cmake;3.22.1"
           echo "--- after install: platforms ---"; ls "$SDK/platforms" || true
           echo "--- after install: build-tools ---"; ls "$SDK/build-tools" || true
 
@@ -56,7 +80,7 @@ jobs:
         working-directory: Game2048
         run: |
           set -o pipefail
-          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+          gradle assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Show failure context
         if: failure()
@@ -73,3 +97,27 @@ jobs:
           name: html-game-box-debug-apk
           path: Game2048/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Verify server startup and clipboard on Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: Game2048
+          script: gradle connectedDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: htmlbox-android-test-reports
+          path: Game2048/app/build/reports/androidTests/
+          if-no-files-found: ignore

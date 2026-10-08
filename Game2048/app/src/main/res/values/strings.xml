@@ -3,6 +3,7 @@
     <string name="app_name">HtmlBox</string>
     <string name="pick_folder">选择游戏目录</string>
     <string name="refresh">刷新</string>
+    <string name="create_server">建立服务器</string>
     <string name="empty_hint">选择游戏目录后,将自动扫描单文件 HTML 和包含 index.html 的游戏文件夹。</string>
     <string name="need_permission">需要文件访问权限才能读取游戏目录</string>
     <string name="grant_permission">授予全部文件访问权限(Android 11+ 必需)</string>

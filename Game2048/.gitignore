@@ -5,3 +5,6 @@ app/build/
 local.properties
 *.iml
 .DS_Store
+.cache/
+.cxx/
+server-runtime/node_modules/

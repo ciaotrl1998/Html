@@ -48,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private GameListAdapter adapter;
     private final List<GameEntry> games = new ArrayList<>();
     private SharedPreferences prefs;
+    private ServerUiController servers;
+    private String currentFolderUri;
 
     private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -69,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        servers = new ServerUiController(this);
         folderButton = findViewById(R.id.btnPick);
         gameListView = findViewById(R.id.gameList);
         diagnosticPanel = findViewById(R.id.diagnosticPanel);
@@ -86,6 +89,13 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 String url = HtmlGameScanner.playableUrl(game.url);
+                String running = servers.runningUrlFor(url);
+                if (running != null) {
+                    startActivity(new Intent(MainActivity.this, GamePlayerActivity.class)
+                            .putExtra(GamePlayerActivity.EXTRA_GAME_URL, running)
+                            .putExtra(GamePlayerActivity.EXTRA_GAME_TITLE, game.title));
+                    return;
+                }
                 Intent intent = new Intent(MainActivity.this, GamePlayerActivity.class);
                 intent.putExtra(GamePlayerActivity.EXTRA_GAME_URL, url);
                 intent.putExtra(GamePlayerActivity.EXTRA_GAME_TITLE, game.title);
@@ -107,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         folderButton.setOnClickListener(v -> pickFolder());
+        findViewById(R.id.btnServer).setOnClickListener(v -> servers.open(serverRoot()));
         findViewById(R.id.btnRefresh).setOnClickListener(v -> {
             Toast.makeText(this, "正在刷新...", Toast.LENGTH_SHORT).show();
             performScan();
@@ -114,6 +125,14 @@ public class MainActivity extends AppCompatActivity {
 
         CrashLog.clear(this);
         loadCachedOrScan();
+        if (getIntent().getBooleanExtra("show_server", false)) servers.showRunning();
+    }
+
+    @Override protected void onStart() { super.onStart(); if (servers != null) servers.bind(); }
+    @Override protected void onStop() { if (servers != null) servers.unbind(); super.onStop(); }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent); setIntent(intent);
+        if (intent.getBooleanExtra("show_server", false)) servers.showRunning();
     }
 
     @Override
@@ -130,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (servers != null) servers.destroy();
         scanExecutor.shutdownNow();
         if (adapter != null) {
             adapter.shutdown();
@@ -148,6 +168,11 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "无法打开目录选择界面", Toast.LENGTH_SHORT).show();
         }
+    }
+    private String serverRoot() {
+        String path = currentFolderUri != null ? currentFolderUri : prefs.getString(KEY_FOLDER_URI, null);
+        if (path != null) return path;
+        File auto = findDefaultScanDir(); return auto == null ? null : auto.getAbsolutePath();
     }
 
     private void onFolderPicked(int resultCode, Intent data) {
@@ -189,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
             if (folderUri == null || folderUri.trim().isEmpty()) {
                 folderUri = prefs.getString(KEY_FOLDER_URI, null);
             }
+            currentFolderUri = folderUri;
             String base = HtmlGameScanner.treeDisplayName(this, folderUri);
             if (base == null || base.trim().isEmpty()) {
                 base = getString(R.string.pick_folder);
@@ -226,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         final String finalUri = savedUri;
+        currentFolderUri = finalUri;
         String folderName = HtmlGameScanner.treeDisplayName(this, finalUri);
         folderButton.setText(folderName == null || folderName.trim().isEmpty()
                 ? getString(R.string.pick_folder) : folderName);

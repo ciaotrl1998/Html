@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.HtmlGames" parent="Theme.HtmlGames.Base">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+    <style name="Theme.HtmlGames.Player" parent="Theme.HtmlGames.Player.Base">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

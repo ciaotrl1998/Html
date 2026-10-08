@@ -17,16 +17,18 @@ test('all new game modes start with 150 coins, 200 materials and no selected ski
   }
 });
 
-test('shrine doubles at all fifteen levels and pays the advertised rate', () => {
+test('shrine doubles through level seven then grows by 1.5 and pays the advertised rate', () => {
   assert.equal(G.DEFS.shrine.income, 1);
   for (let level = 1; level <= 15; level++) {
     const s = G.createState(null), shrine = s.buildings[0];
     shrine.level = level; shrine.hp = G.maxHP(shrine);
-    assert.equal(G.incomeFactor(shrine), 2 ** (level - 1));
-    assert.equal(G.income(s, shrine), 2 ** (level - 1));
-    advance(s, 1); assert.equal(s.coins, 150 + 2 ** (level - 1));
+    const rate = 2 ** Math.min(6,level-1) * 1.5 ** Math.max(0,level-7);
+    assert.equal(G.incomeFactor(shrine), rate);
+    assert.equal(G.income(s, shrine), rate);
+    advance(s, 1); assert.equal(s.coins, 150 + Math.floor(rate));
+    assert(Math.abs(shrine.coinPending-(rate-Math.floor(rate)))<1e-9, `Lv${level} retains fractional income`);
     s.day = 7;
-    assert.equal(G.income(s, shrine), 2 ** (level - 1) * 1.25);
+    assert.equal(G.income(s, shrine), rate * 1.25);
   }
   assert.equal(G.incomeFactor({type:'tea', level:4}), 4 * 1.65);
 });
@@ -127,10 +129,12 @@ test('save validation accepts only null or valid skill strings for each player',
   }
 });
 
-test('default opening earns 80 coins before the first night and can fund opening buildings', () => {
+test('shorter daylight retains one coin per second before the first night and funds opening buildings', () => {
+  assert.equal(G.DAY,60);assert.equal(G.DUSK,8);
   for (const seed of [null, 1, 7, 42, 73193, 99991]) {
     const s = G.createState(seed); advance(s, G.DAY + G.DUSK + .2);
-    assert.equal(s.phase, 'night'); assert.deepEqual([s.coins, s.materials], [230, 200]);
+    const openingCoins=150+G.DAY+G.DUSK;
+    assert.equal(s.phase, 'night'); assert.deepEqual([s.coins, s.materials], [openingCoins, 200]);
     const size = G.worldSize(s), plots = [];
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) plots.push([x,y]);
     for (const type of ['tea', 'tower', 'mulberry', 'quarry']) {
@@ -139,7 +143,7 @@ test('default opening earns 80 coins before the first night and can fund opening
       assert.equal(G.buildReason(opening, type, ...plot), '');
       assert(G.build(opening, type, ...plot).ok);
       const reward = G.MISSIONS.slice(s.mission, opening.mission).reduce((sum, m) => sum + m.reward, 0);
-      assert.deepEqual([opening.coins, opening.materials], [230 - cost.coins + reward, 200 - cost.materials]);
+      assert.deepEqual([opening.coins, opening.materials], [openingCoins - cost.coins + reward, 200 - cost.materials]);
       for (const resource of ['coins', 'materials'].filter(key => cost[key] > 0)) {
         const poor = G.restore(G.serialize(s)); poor[resource] = cost[resource] - 1;
         const before = G.serialize(poor);

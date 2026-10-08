@@ -46,6 +46,7 @@ public class GamePlayerActivity extends AppCompatActivity {
     private static final long EXIT_CONFIRM_INTERVAL_MS = 2000L;
 
     private WebView webView;
+    private String clipboardScript = "";
     private ValueCallback<Uri[]> pendingFileCallback;
     private Uri pendingCameraUri;
     private final ExecutorService packageExecutor = Executors.newSingleThreadExecutor();
@@ -79,8 +80,15 @@ public class GamePlayerActivity extends AppCompatActivity {
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
-        webView.setOnLongClickListener(v -> true);
-        webView.setLongClickable(false);
+        // Keep the standard selection menu, including copy/paste in HTML input fields.
+        webView.setLongClickable(true);
+        webView.addJavascriptInterface(new GameClipboard(this), "HtmlBoxClipboard");
+        try (InputStream input = getAssets().open("node-runtime/clipboard.js");
+             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+            byte[] bytes = new byte[4096]; int count;
+            while ((count = input.read(bytes)) >= 0) output.write(bytes, 0, count);
+            clipboardScript = output.toString("UTF-8");
+        } catch (IOException error) { android.util.Log.e("HtmlBoxClipboard", "无法加载剪贴板支持脚本", error); }
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -100,6 +108,10 @@ public class GamePlayerActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (!clipboardScript.isEmpty()) view.evaluateJavascript(clipboardScript, null);
+            }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri target = request.getUrl();

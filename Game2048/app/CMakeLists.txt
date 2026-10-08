@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(htmlbox_node)
+
+set(NODE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/build/nodejs-mobile")
+add_library(node SHARED IMPORTED)
+set_target_properties(node PROPERTIES IMPORTED_LOCATION "${NODE_ROOT}/bin/${ANDROID_ABI}/libnode.so")
+add_library(htmlbox_node SHARED src/main/cpp/node_runtime.cpp)
+target_include_directories(htmlbox_node PRIVATE "${NODE_ROOT}/include/node")
+target_compile_features(htmlbox_node PRIVATE cxx_std_17)
+target_link_libraries(htmlbox_node node log)

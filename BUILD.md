@@ -19,6 +19,10 @@
 5. 跑完点进这次运行,在页面底部 `Artifacts` 下载 `html-game-box-debug-apk`
 6. 解压得到 `app-debug.apk`,传到手机安装
 
+2.4 版工作流会自动安装服务器运行时依赖、下载并校验 Node.js Mobile 18.20.4，编译 `armeabi-v7a`、`arm64-v8a`、`x86_64` 三种架构，并在 Android 模拟器里验证服务器扫描、启动、停止重启与剪贴板。需要完整上传 `Game2048/`，包括 `serve.png`、`scripts/`、`server-runtime/package-lock.json` 和新增 Java/C++ 源码；生成的 `.cache/`、`node_modules/`、`app/build/` 不需要上传。
+
+APK 不捆绑某款游戏的服务器源码。安装后，“建立服务器”按钮直接扫描首页已选 HTML 游戏目录里的 Node.js 服务。
+
 推送代码触发(可选,手机上用 Termux 也能做):
 
 ```bash
@@ -33,8 +37,10 @@ git push -u origin main
 
 1. Android Studio 打开 `Game2048` 目录
 2. 首次会提示同步,同意后自动补全 Gradle Wrapper
-3. `Build` → `Build Bundle(s) / APK(s)` → `Build APK(s)`
-4. 产物在 `Game2048/app/build/outputs/apk/debug/app-debug.apk`
+3. 安装 Node.js，然后在 `Game2048/server-runtime` 执行 `npm ci --omit=optional --ignore-scripts`，在 `Game2048` 执行 `node scripts/prepare-server-runtime.js`
+4. SDK Manager 中安装 NDK `26.1.10909125` 与 CMake `3.22.1`
+5. `Build` → `Build Bundle(s) / APK(s)` → `Build APK(s)`
+6. 产物在 `Game2048/app/build/outputs/apk/debug/app-debug.apk`
 
 ## 方案三:手机上的 Termux 本机编译
 

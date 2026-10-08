@@ -25,11 +25,31 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
     const incomeState=G.createState(null);incomeState.selectedSkill='thunder';incomeState.coins=incomeState.materials=100000;
     await incomeContext.addInitScript(initLegacySave,JSON.stringify(incomeState));
     await incomePage.goto(url('index.html'));await incomePage.waitForFunction(()=>!!window.Gufang);await enterFromMenu(incomePage);await freeze(incomePage);
+    const fortuneRules=await incomePage.evaluate(()=>{
+      const results=[];
+      for(let level=1;level<=15;level++){
+        const s=GF.createState(null);s.coins=s.materials=1e9;s.buildings[0].level=level;s.buildings[0].hp=GF.maxHP(s.buildings[0]);
+        const pool=GF.fortuneCandidates(s,7,8);
+        for(const type of ['rock','earth','zhong','tao','well','stage']){
+          const before=GF.serialize(s),reason=GF.buildReason(s,type,7,8,true,true),result=GF.build(s,type,7,8);
+          results.push({level,type,reason,rejected:!result.ok,unchanged:GF.serialize(s)===before,inPool:pool.some(d=>d.id===type),fortuneOnly:GF.DEFS[type].fortuneOnly});
+        }
+      }
+      const s=GF.createState(null),costs=[];
+      for(let count=0;count<=10;count++){s.fortuneBuilt=count;costs.push(GF.buildCost(s,'fortune'));}
+      return {results,costs,nonEconomic:GF.fortuneCandidates(GF.createState(null),7,8).every(d=>!d.income&&d.cat!=='economy')};
+    });
+    for(const result of fortuneRules.results){
+      assert.equal(result.reason,'仅可由造化匣获得',`${result.type} shrine Lv${result.level}`);
+      assert(result.rejected&&result.unchanged&&result.inPool&&result.fortuneOnly);
+    }
+    assert(fortuneRules.nonEconomic);
+    assert.deepEqual(fortuneRules.costs,Array.from({length:11},(_,count)=>({coins:Math.ceil(90*1.55**count),materials:Math.ceil(60*1.55**count)})));
     for(const [types,cells,resource,incomes,costs] of [
-      [['tea','inn','bank'],[[6,5],[6,4],[7,4]],'铜钱',[2,5,40],[[0,98],[165,360],[2867,5000]]],
-      [['farm','mill','wine'],[[5,8],[6,9],[7,8]],'铜钱',[1,3,24],[[0,65],[110,240],[1720,3000]]],
-      [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],'工材',[1,3,24],[[95,0],[290,70],[3680,1200]]],
-      [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],'工材',[2,5,40],[[143,0],[435,105],[6134,2000]]]
+      [['tea','inn','bank'],[[6,5],[6,4],[7,4]],'铜钱',[2,8,48],[[0,75],[135,240],[1290,2250]]],
+      [['farm','mill','wine'],[[5,8],[6,9],[7,8]],'铜钱',[1,5,30],[[0,50],[90,160],[860,1500]]],
+      [['mulberry','weaver','tailor'],[[10,6],[10,7],[10,8]],'工材',[1,5,30],[[75,0],[190,50],[1840,600]]],
+      [['quarry','kiln','trade'],[[11,11],[10,10],[10,9]],'工材',[2,8,48],[[113,0],[285,75],[2760,900]]]
     ])for(const [i,type] of types.entries()){
       await incomePage.evaluate(([x,y])=>Gufang.select(x,y),cells[i]);
       const card=incomePage.locator(`[data-build="${type}"]`),effect=card.locator('.card-effect');
@@ -58,7 +78,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
         Gufang.select(b.x,b.y);return GF.serialize(s);
       },[type,level]);
       const s=G.restore(raw),b=s.buildings.find(b=>b.type===type),next={...b,level:level+1};
-      const base=G.DEFS[type].income*(type==='shrine'?2**(level-1):4*1.65**(level-3));
+      const base=G.DEFS[type].income*(type==='shrine'?2**Math.min(6,level-1)*1.5**Math.max(0,level-7):4*1.65**(level-3));
       const total=G.income(s,b),round=n=>String(Math.round((n+Number.EPSILON)*10)/10),bonus=round(total-base);
       if(type!=='shrine')assert.notEqual(base,G.DEFS[type].income*G.factor(b),type+' high-level base must avoid attack factor');
       assert.equal(await incomePage.locator('.detail-revenue').textContent(),`+${round(base)}${bonus==='0'?'':`（+${bonus}）`}/秒`,type+' base and bonus');

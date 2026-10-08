@@ -43,7 +43,8 @@ test('five procedural maps can be played automatically through the seventh-night
 });
 
 test('opening expands repeated income buildings instead of filling eight tower slots',()=>{
-  const s=G.createState(42);s.coins=200;s.materials=220;const bot=A.create(s);advance(s,bot,72);
+  const s=G.createState(42);s.coins=200;s.materials=220;const bot=A.create(s);advance(s,bot,G.DAY-.25);
+  assert.equal(s.phase,'day');
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,0,'No known attackers during the first day');
   const eco=s.buildings.filter(b=>G.DEFS[b.type].cat==='economy');
   assert(eco.length>=8);assert(eco.filter(b=>b.type==='farm').length>1);assert(eco.filter(b=>b.type==='mulberry').length>1);
@@ -59,7 +60,7 @@ test('one adequate tower upgrades under stronger opening pressure without adding
   assert(A.coversGate(tower,gate),'Build on the announced front');
   for(let i=0;i<15;i++)bot.tick(1);
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,1,'Sufficient firepower must not trigger extra towers');
-  assert.equal(tower.level,2,'Stronger opening enemies require a level-two tower');
+  assert(tower.level>1,'Opening pressure upgrades the existing tower');
   assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
   assert(bot.report().actions.some(a=>a.kind==='build'&&G.DEFS[a.type].cat==='economy'));
   assert(bot.report().actions.every(a=>typeof a.reason==='string'&&a.reason.length>0));

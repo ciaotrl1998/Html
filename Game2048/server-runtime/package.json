@@ -1,0 +1,14 @@
+{
+  "name": "htmlbox-server-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "fflate": "0.8.3"
+  },
+  "scripts": {
+    "test": "node --test tests/runtime.test.js"
+  }
+}

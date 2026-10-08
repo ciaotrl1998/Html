@@ -152,9 +152,12 @@ test('ready towers retain cooldown without a target and include enemies on the r
 
 test('rock targeting preserves nearest tie order and immediate splash damage', () => {
   const { s } = combatScene('rock');
-  s.enemies[2].x = 9.5;
+  assert.equal(G.DEFS.rock.damage,64);assert.equal(G.DEFS.rock.interval,2);assert.equal(G.DEFS.rock.splash,1.5);
+  s.enemies[2].x=10.5;
   G.step(s, .1);
   assert.equal(s.projectiles[0].tx, 9); assert.equal(s.projectiles[0].ty, 7);
-  assert.equal(s.enemies[1].hp, 54); assert.equal(s.enemies[2].hp, 54);
+  assert.equal(s.enemies[1].hp, 36); assert.equal(s.enemies[2].hp, 36);
   assert.equal(s.enemies[0].hp, 100);
+  assert.equal(s.buildings.find(b=>b.type==='rock').cooldown,2);
+  G.step(s,.1);assert.equal(s.enemies[1].hp,36);
 });

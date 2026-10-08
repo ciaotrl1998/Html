@@ -5,13 +5,19 @@ plugins {
 android {
     namespace "cn.linecode.game2048"
     compileSdk 34
+    ndkVersion "26.1.10909125"
 
     defaultConfig {
         applicationId "cn.linecode.game2048"
         minSdk 24
         targetSdk 34
-        versionCode 14
-        versionName "2.3"
+        versionCode 15
+        versionName "2.4"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk { abiFilters "armeabi-v7a", "arm64-v8a", "x86_64" }
+        externalNativeBuild {
+            cmake { arguments "-DANDROID_STL=c++_shared" }
+        }
     }
 
     buildTypes {
@@ -23,6 +29,10 @@ android {
 
     sourceSets {
         main.res.srcDir "$buildDir/generated/res/htmlboxIcon"
+        main.assets.srcDir "$buildDir/generated/assets/servers"
+    }
+    externalNativeBuild {
+        cmake { path file("CMakeLists.txt"); version "3.22.1" }
     }
 
     compileOptions {
@@ -33,9 +43,28 @@ android {
 
 def prepareHtmlBoxIcon = tasks.register("prepareHtmlBoxIcon", Copy) {
     // 应用图标来源,在工程根目录(Game2048/)下直接替换本文件即可换图标。
-    from rootProject.file("HTMLBOX_icon.jpg")
+    from(rootProject.file("HTMLBOX_icon.jpg")) { rename { "htmlbox_icon.jpg" } }
     into layout.buildDirectory.dir("generated/res/htmlboxIcon/drawable")
-    rename { "htmlbox_icon.jpg" }
+    from(rootProject.file("serve.png")) { rename { "ic_serve.png" } }
+}
+
+def prepareServerAssets = tasks.register("prepareServerAssets", Sync) {
+    def runtime = rootProject.file("server-runtime")
+    from(runtime) { include "prelude.js", "esm-loader.mjs", "clipboard.js", "node_modules/ws/**" }
+    into layout.buildDirectory.dir("generated/assets/servers/node-runtime")
+    doFirst {
+        if (!new File(runtime, "node_modules/ws/index.js").isFile()) {
+            throw new GradleException("请先在 Game2048/server-runtime 执行 npm ci --omit=dev --omit=optional --ignore-scripts")
+        }
+    }
+}
+tasks.named("preBuild") {
+    dependsOn prepareServerAssets
+    doFirst {
+        if (!file("$buildDir/nodejs-mobile/include/node/node.h").isFile()) {
+            throw new GradleException("请先执行 node Game2048/scripts/prepare-server-runtime.js 下载内置 Node.js Mobile")
+        }
+    }
 }
 
 tasks.configureEach { task ->
@@ -50,6 +79,10 @@ dependencies {
     implementation "androidx.appcompat:appcompat:1.6.1"
     implementation "androidx.activity:activity:1.8.2"
     implementation "androidx.documentfile:documentfile:1.0.1"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.json:json:20231013"
+    androidTestImplementation "androidx.test:runner:1.5.2"
+    androidTestImplementation "androidx.test.ext:junit:1.1.5"
 }
 
 // Kotlin 1.8 起 jdk7/jdk8 的类已并入 kotlin-stdlib,
