@@ -127,7 +127,7 @@ test('old saves move water buildings onto land while retaining their progress',(
   assert.equal(G.restore(G.serialize(restored)).events.length,0,'migration runs only once');
 });
 test('nine upgrade levels propagate along the adjacent chain and reuse three art stages', () => {
-  const s=rich();s.coins=s.materials=1e8;setShrineLevel(s,15);
+  const s=rich();s.coins=s.materials=1e10;setShrineLevel(s,15);
   const a=build(s,'tea',6,7), b=build(s,'inn',7,7), c=build(s,'bank',8,7);
   assert.equal(G.upgrade(s,b).ok,false);
   for(let level=2;level<=G.MAX_LEVEL;level++){
@@ -142,7 +142,7 @@ test('nine upgrade levels propagate along the adjacent chain and reuse three art
   assert.equal(G.name({...a,level:7}),G.name({...a,level:9}));
 });
 test('ultimate upgrades require both named endpoint neighbors at the target level',()=>{
-  const s=rich();s.coins=s.materials=1e8;setShrineLevel(s,2);
+  const s=rich();s.coins=s.materials=1e10;setShrineLevel(s,2);
   const tea=build(s,'tea',9,7),inn=build(s,'inn',9,8),bank=build(s,'bank',9,9);
   const farm=build(s,'farm',7,11),mill=build(s,'mill',8,11),wine=build(s,'wine',8,10);
   const guild=build(s,'guild',9,10);
@@ -196,13 +196,13 @@ test('support bonuses affect the intended buildings only',()=>{
 });
 test('fortune boxes grow exponentially and create the shrine-unlocked maximum level',()=>{
   const first=G.createState(null),second=G.createState(null);setShrineLevel(first,7);setShrineLevel(second,7);
-  assert.deepEqual(G.buildCost(first,'fortune'),{coins:90,materials:60});
+  assert.deepEqual(G.buildCost(first,'fortune'),{coins:90,materials:78});
   assert.equal(G.unlockedBuildingLevel(first),5);
   first.coins=second.coins=first.materials=second.materials=1e6;
   const a=G.build(first,'fortune',7,8),b=G.build(second,'fortune',7,8);
   assert(a.ok&&b.ok);assert.equal(a.rolled,b.rolled);assert.equal(a.building.level,5);assert.equal(a.building.hp,G.maxHP(a.building));
-  assert.equal(first.fortuneBuilt,1);assert.deepEqual(G.buildCost(first,'fortune'),{coins:140,materials:93});
-  assert.deepEqual(a.building.originCost,{coins:90,materials:60});
+  assert.equal(first.fortuneBuilt,1);assert.deepEqual(G.buildCost(first,'fortune'),{coins:140,materials:121});
+  assert.deepEqual(a.building.originCost,{coins:90,materials:78});
   assert(!['home','market','fence','fortune','shrine','gate'].includes(a.rolled));
   assert.equal(G.DEFS[a.rolled].income,undefined,'Fortune never produces an income building');
   for(const plot of [[7,8],[5,8],[12,4],[13,13]])assert(G.fortuneCandidates(first,...plot).every(d=>!d.income&&d.cat!=='economy'),'Production buildings stay out of every fortune pool');
@@ -225,7 +225,7 @@ test('six special buildings remain fortune-only at every shrine level without mu
 test('successive fortune rolls pay the 1.55 cost curve, persist the counter and never yield economy buildings',()=>{
   const s=rich();s.coins=s.materials=1e9;setShrineLevel(s,15);
   for(let count=0;count<10;count++){
-    const cost={coins:Math.ceil(90*1.55**count),materials:Math.ceil(60*1.55**count)};
+    const cost={coins:Math.ceil(90*1.55**count),materials:Math.ceil(78*1.55**count)};
     assert.deepEqual(G.buildCost(s,'fortune'),cost);
     const size=G.worldSize(s);let plot;
     for(let y=0;y<size&&!plot;y++)for(let x=0;x<size&&!plot;x++)if(!G.buildReason(s,'fortune',x,y))plot=[x,y];
@@ -469,7 +469,8 @@ test('old saves remove retired buildings without invalidating the town',()=>{
   assert(restored.events.some(e=>e.text.includes('3 栋已退役建筑被移除')));
 });
 test('two-resource chains have the intended costs, production and formula upgrades',()=>{
-  assert.deepEqual(G.DEFS.barracks.cost,{coins:240,materials:180});
+  assert.equal(G.MATERIAL_COST_FACTOR,1.3);
+  assert.deepEqual(G.DEFS.barracks.cost,{coins:240,materials:234});
   const fresh=G.createState(null);
   assert.deepEqual({coins:fresh.coins,materials:fresh.materials,fortuneBuilt:fresh.fortuneBuilt},{coins:150,materials:200,fortuneBuilt:0});
   assert.equal('prosperity' in fresh,false);
@@ -477,12 +478,12 @@ test('two-resource chains have the intended costs, production and formula upgrad
   for(const type of ['tea','inn','bank','farm','mill','wine']) assert.equal(G.DEFS[type].resource,'coins');
   for(const type of ['mulberry','weaver','tailor','quarry','kiln','trade']) assert.equal(G.DEFS[type].resource,'materials');
   for(const [types,incomes,costs] of [
-     [['tea','inn','bank'],[2,8,48],[[0,75],[135,240],[1290,2250]]],
-     [['farm','mill','wine'],[1,5,30],[[0,50],[90,160],[860,1500]]],
-     [['mulberry','weaver','tailor'],[1,5,30],[[75,0],[190,50],[1840,600]]],
-     [['quarry','kiln','trade'],[2,8,48],[[113,0],[285,75],[2760,900]]],
-     [['guild'],[240],[[18000,24000]]],
-     [['port'],[300],[[24000,15000]]]
+     [['tea','inn','bank'],[2,8,48],[[0,98],[135,312],[1290,2925]]],
+     [['farm','mill','wine'],[1,5,30],[[0,65],[90,208],[860,1950]]],
+     [['mulberry','weaver','tailor'],[1,5,30],[[75,0],[190,65],[1840,780]]],
+     [['quarry','kiln','trade'],[2,8,48],[[113,0],[285,98],[2760,1170]]],
+     [['guild'],[240],[[18000,31200]]],
+     [['port'],[300],[[24000,19500]]]
   ])for(const [i,type] of types.entries()){
     assert.equal(G.DEFS[type].income,incomes[i],type);
     assert.deepEqual(G.DEFS[type].cost,{coins:costs[i][0],materials:costs[i][1]},type);
@@ -500,10 +501,16 @@ test('two-resource chains have the intended costs, production and formula upgrad
   assert(G.DEFS.tailor.cost.coins>G.DEFS.weaver.cost.coins);
   assert(G.DEFS.tailor.cost.materials>G.DEFS.weaver.cost.materials);
    for(const type of ['tea','inn','bank','farm','mill','wine','mulberry','weaver','tailor','quarry','kiln','trade','guild','port']){
-    const c=G.DEFS[type].cost;
-    for(const level of [1,2,3,4])assert.deepEqual(G.upgradeCost({type,level}),{
-      coins:Math.ceil(c.coins*1.8*Math.pow(G.UPGRADE_GROWTH,level-1)),materials:Math.ceil(c.materials*1.8*Math.pow(G.UPGRADE_GROWTH,level-1))
-    });
+    const d=G.DEFS[type], tier=d.tier??3;
+    const ownShare=[0,.2,.3,.4][tier],opposite=d.resource==='coins'?'materials':'coins';
+    const rate=Object.values(G.DEFS).filter(n=>n.cat==='economy'&&n.resource===opposite&&(n.tier??3)<=tier).reduce((sum,n)=>sum+n.income*(n.limit||1),0);
+    const oppositeBase=Math.ceil(rate*G.ECONOMY_UPGRADE_WAIT*(d.upgradeWeight||1));
+    const ownBase=Math.ceil(oppositeBase*ownShare/(1-ownShare));
+    for(const level of [1,2,3,4]){
+      const scale=G.ECONOMY_UPGRADE_GROWTH**(level-1),scaled=value=>value?Math.ceil(value*scale-1e-9):0;
+      assert.deepEqual(G.upgradeCost({type,level}),d.resource==='materials'
+        ?{coins:scaled(oppositeBase),materials:scaled(ownBase)}:{coins:scaled(ownBase),materials:scaled(oppositeBase)});
+    }
   }
 });
 test('default estates can immediately fund tea or towers on legal plots',()=>{

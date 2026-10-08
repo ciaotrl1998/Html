@@ -87,7 +87,7 @@ test('same-level ultimates with one of each endpoint beat fully supplied highest
   }
 });
 
-test('income tempers ordinary growth and shrine growth after level seven', () => {
+test('production buildings double every level while shrine growth tempers after level seven', () => {
   const s = G.createState(null);
   for (const d of Object.values(G.DEFS).filter(d => d.income)) {
     for (const [level, multiple] of [[1,1],[2,2],[3,4]]) {
@@ -95,48 +95,53 @@ test('income tempers ordinary growth and shrine growth after level seven', () =>
       close(G.income(s,b), d.income * multiple);
     }
     for (let level=4; level<=G.maxLevel({type:d.id}); level++) {
-      const multiple = d.id === 'shrine' ? 2 ** Math.min(6,level-1) * 1.5 ** Math.max(0,level-7) : 4 * 1.65 ** (level - 3);
+      const multiple = d.id === 'shrine' ? 2 ** Math.min(6,level-1) * 1.5 ** Math.max(0,level-7) : 2 ** (level - 1);
       close(G.income(s,{type:d.id,level,x:0,y:0}), d.income * multiple);
     }
   }
   close(G.income(s,{type:'shrine',level:15,x:0,y:0}), 1640.25);
 });
 
-test('upgrade premiums begin after ordinary level four and foundation level seven', () => {
-  assert.deepEqual(G.DEFS.gate.upgradeBase,{coins:150,materials:120});
-  assert.deepEqual(G.upgradeCost({type:'gate',level:1}),{coins:270,materials:216});
-  for (const d of Object.values(G.DEFS).filter(d => d.id !== 'fortune')) {
+test('production upgrades use staged full-output prices while other premiums retain their curves', () => {
+  assert.deepEqual(G.DEFS.gate.upgradeBase,{coins:150,materials:156});
+  assert.deepEqual(G.upgradeCost({type:'gate',level:1}),{coins:270,materials:281});
+  for (const d of Object.values(G.DEFS).filter(d => d.id !== 'fortune' && d.cat !== 'economy')) {
     for (let level=1; level<G.maxLevel({type:d.id}); level++) {
       const base = d.upgradeBase || d.cost;
-      const growth = d.id === 'shrine' ? 1.65 : 2.15;
+      const growth = d.upgradeGrowth || G.UPGRADE_GROWTH;
       const foundation = d.id === 'shrine' || d.id === 'gate';
       const premium = (d.id === 'shrine' ? 1.18 : d.id === 'gate' ? 1.06 : d.income ? 1.20 : 1.12) ** Math.max(0,level-(foundation?7:4));
+      const multiple = 1.8 * growth ** (level-1) * premium;
       const expected = {};
-      for (const resource of ['coins','materials']) expected[resource] = Math.ceil(base[resource] * 1.8 * growth ** (level-1) * premium);
+      for (const resource of ['coins','materials']) expected[resource] = Math.ceil(base[resource] * multiple);
       assert.deepEqual(G.upgradeCost({type:d.id,level}), expected, `${d.id} Lv${level}`);
     }
   }
 });
 
-test('middle and late income upgrades require increasing accumulation time', () => {
-  const s = G.createState(null);
-  for (const d of Object.values(G.DEFS).filter(d => d.income)) {
-    let previous = 0;
-    for (let level=d.id==='shrine'?7:3; level<G.maxLevel({type:d.id}); level++) {
-      const b = {type:d.id,level,x:0,y:0}, cost = G.upgradeCost(b);
-      // Combined resource cost measures the burden on equal coin/material production.
-      const seconds = (cost.coins + cost.materials) / G.income(s,b);
-      if(previous)assert(seconds>previous,`${d.id} Lv${level} funding time`);
-      if (previous) {
-        const ratio = seconds / previous;
-        assert(ratio>1.2&&ratio<1.6, `${d.id} Lv${level} wait ratio ${ratio}`);
+test('first production upgrades take 5-10 seconds of opposing full-stage output and grow 2-5x', () => {
+  for (const d of Object.values(G.DEFS).filter(d=>d.cat==='economy')) {
+    const tier=d.tier??3,opposite=d.resource==='coins'?'materials':'coins';
+    const rate=Object.values(G.DEFS).filter(n=>n.cat==='economy'&&n.resource===opposite&&(n.tier??3)<=tier).reduce((sum,n)=>sum+n.income*(n.limit||1),0);
+    const first=G.upgradeCost({type:d.id,level:1});
+    const seconds=first[opposite]/rate;
+    assert(seconds>=5&&seconds<=10,`${d.id}: ${seconds}s`);
+    assert(first[opposite]>first[d.resource],`${d.id} must primarily consume ${opposite}`);
+    for(let level=1;level<G.MAX_LEVEL-1;level++) {
+      const cost=G.upgradeCost({type:d.id,level}),next=G.upgradeCost({type:d.id,level:level+1});
+      for(const resource of ['coins','materials']) if(cost[resource]) {
+        const growth=next[resource]/cost[resource];
+        assert(growth>=2&&growth<=5,`${d.id} Lv${level} ${resource}: ${growth}`);
       }
-      previous = seconds;
     }
   }
+  assert.deepEqual(G.upgradeCost({type:'tea',level:1}),{coins:0,materials:175});
+  assert.deepEqual(G.upgradeCost({type:'farm',level:1}),{coins:0,materials:110});
+  assert.deepEqual(G.upgradeCost({type:'mulberry',level:1}),{coins:110,materials:0});
+  assert.deepEqual(G.upgradeCost({type:'quarry',level:1}),{coins:175,materials:0});
 });
 
-test('every high-level building upgrade cost outgrows its income, damage or durability', () => {
+test('high-level production costs track output while other costs outgrow their benefit', () => {
   const s = G.createState(null);
   for (const d of Object.values(G.DEFS).filter(d=>d.id!=='fortune')) {
     const foundation = d.id==='shrine'||d.id==='gate';
@@ -144,7 +149,7 @@ test('every high-level building upgrade cost outgrows its income, damage or dura
       const b={type:d.id,level,x:0,y:0},next={...b,level:level+1};
       const output=n=>d.income?G.income(s,n):d.damage?d.damage*G.factor(n):G.maxHP(n);
       const outputGrowth=output(next)/output(b),cost=G.upgradeCost(b),nextCost=G.upgradeCost(next);
-      if(d.income)close(outputGrowth,d.id==='shrine'?1.5:1.65);
+      if(d.income)close(outputGrowth,d.id==='shrine'?1.5:2);
       if(d.damage)close(outputGrowth,2);
       if(d.id==='gate')assert(Math.abs(outputGrowth-1.55)<.001);
       for(const resource of ['coins','materials']) {
@@ -391,6 +396,8 @@ test('default-stock estate scripts fund the opening and report consistent surviv
     assert.equal(first.coins,150-G.DEFS.tea.cost.coins+G.MISSIONS[0].reward,label);
     assert.equal(first.materials,200-G.DEFS.tea.cost.materials,label);
     assert(result.actions.some(a=>a.type==='mulberry' && a.kind==='build' && a.phase==='day' && a.day===1),label);
+    const final=result.history.at(-1);
+    if(final.complete && final.day===30)assert(final.materials<=final.coins*1.75,`${label}: late material stock ${final.materials} vs ${final.coins} coins`);
   }
 });
 

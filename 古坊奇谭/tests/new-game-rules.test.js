@@ -30,7 +30,7 @@ test('shrine doubles through level seven then grows by 1.5 and pays the advertis
     s.day = 7;
     assert.equal(G.income(s, shrine), rate * 1.25);
   }
-  assert.equal(G.incomeFactor({type:'tea', level:4}), 4 * 1.65);
+  assert.equal(G.incomeFactor({type:'tea', level:4}), 8);
 });
 
 test('skill choice is one-time, validates own keys and permits late old-save choices', () => {

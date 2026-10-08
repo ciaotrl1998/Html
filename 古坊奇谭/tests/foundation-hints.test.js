@@ -133,7 +133,7 @@ test('estate hints reject walls, gates and outside plots and match fund-free leg
 test('shrine and gates alternate from one to fifteen in either order with atomic costs and HP ratios',()=>{
   for(const first of ['shrine','gate']) {
     const s=scene(42), shrine=s.buildings[0], gates=s.buildings.filter(b=>b.type==='gate'), ratios=[1,.6,0,.23];
-    s.coins=s.materials=1e12;shrine.hp=G.maxHP(shrine)*.37;
+    s.coins=s.materials=1e14;shrine.hp=G.maxHP(shrine)*.37;
     gates.forEach((b,i)=>b.hp=G.maxHP(b)*ratios[i]);
     for(let level=2;level<=15;level++) for(const type of [first,first==='shrine'?'gate':'shrine']) {
       const b=type==='shrine'?shrine:gates[level%4], price=G.upgradeCost(b), before=structuredClone(s);
@@ -177,7 +177,7 @@ test('foundation previews ignore funds but upgrades reject either shortage and b
     }
   }
   for(const seed of [null,42]) {
-    const s=scene(seed);s.coins=s.materials=1e12;
+    const s=scene(seed);s.coins=s.materials=1e14;
     for(const b of s.buildings) {
       const before=structuredClone(s);assert.equal(G.bulkUpgrade(s,b).ok,false);assert.deepEqual(s,before);
     }
@@ -186,7 +186,7 @@ test('foundation previews ignore funds but upgrades reject either shortage and b
 
 test('legacy estate level gaps survive saves unchanged and only the lower foundation can catch up',()=>{
   for(const [shrineLevel,gateLevel] of [[15,1],[1,15],[9,3],[3,9]]) {
-    const s=scene(42);s.coins=s.materials=1e12;s.gateLevel=gateLevel;
+    const s=scene(42);s.coins=s.materials=1e14;s.gateLevel=gateLevel;
     for(const b of s.buildings) {b.level=b.type==='shrine'?shrineLevel:gateLevel;b.hp=G.maxHP(b)*.5;}
     let loaded=G.restore(G.serialize(s));assert(loaded);
     assert.equal(loaded.buildings[0].level,shrineLevel);assert.equal(loaded.gateLevel,gateLevel);
@@ -206,7 +206,7 @@ test('legacy estate level gaps survive saves unchanged and only the lower founda
 });
 
 test('no-estate shrine remains unrestricted while ordinary upgrades still use the old shrine requirements',()=>{
-  const s=scene();s.coins=s.materials=1e12;assert.equal(G.estate(s),null);
+  const s=scene();s.coins=s.materials=1e14;assert.equal(G.estate(s),null);
   const shrine=s.buildings[0], tower=grant(s,'tower',8,7);
   for(let level=1;level<=15;level++) {
     assert.equal(shrine.level,level);
@@ -216,7 +216,7 @@ test('no-estate shrine remains unrestricted while ordinary upgrades still use th
     if(level<15) assert(G.upgrade(s,shrine).ok);
   }
   const loaded=G.restore(G.serialize(s));assert(loaded);assert.equal(loaded.buildings[0].level,15);
-  const estate=scene(42);estate.coins=estate.materials=1e12;
+  const estate=scene(42);estate.coins=estate.materials=1e14;
   const b=grant(estate,'barracks',12,11,3), base=estate.buildings[0];base.level=5;base.hp=G.maxHP(base);
   assert.equal(estate.gateLevel,1);assert.equal(G.upgradeReason(estate,b),'');assert(G.upgrade(estate,b).ok);
   assert.equal(b.level,4);assert(G.upgradeReason(estate,b,true));

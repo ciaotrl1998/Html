@@ -8,7 +8,7 @@ const zero = {levels:0,cost:{coins:0,materials:0}};
 function scene(seed=null, shrineLevel=15) {
   const s=G.createState(seed), shrine=s.buildings[0];
   shrine.level=shrineLevel;shrine.hp=G.maxHP(shrine);
-  s.coins=s.materials=1e12;s.mission=G.MISSIONS.length;
+  s.coins=s.materials=1e14;s.mission=G.MISSIONS.length;
   return s;
 }
 function grant(s,type,x,y,level=1) {

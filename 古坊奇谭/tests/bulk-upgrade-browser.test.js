@@ -78,7 +78,7 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
           await page.mouse.click(zeroButton.x + zeroButton.width / 2, zeroButton.y + zeroButton.height / 2);
           assert.deepEqual(await snapshot(), zero, 'Zero affordable levels leave all levels, HP and resources unchanged');
 
-          await page.evaluate(() => { Gufang.state.coins = Gufang.state.materials = 1e12; Gufang.refresh(); });
+          await page.evaluate(() => { Gufang.state.coins = Gufang.state.materials = 1e14; Gufang.refresh(); });
           for (let level = 2; level <= 15; level++) for (const type of ['shrine', 'gate']) {
             await select(type);
             assert(await bulk.isHidden(), type + ' only supports single upgrades');
@@ -167,7 +167,7 @@ const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFAN
             throw Error('No guild prerequisite plot');
           });
           const highCost = await costs('guild', 3);
-          assert(highCost.coins >= 1e6 && highCost.materials >= 1e6, 'Layout fixture has million-scale costs in both resources');
+          assert(highCost.coins >= 5e5 && highCost.materials >= 5e5, 'Layout fixture has long six-digit costs in both resources');
           assert.equal(await text(single), '升级'); assert.equal(await text(bulk), '连升3级');
           assert(await bulk.isVisible()); await assertCost('bulk-upgrade-label', highCost);
           const layout = await page.locator('.detail-actions').evaluate(actions => {

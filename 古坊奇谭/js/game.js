@@ -12,11 +12,18 @@
   const worldHeight = s => s?.worldHeight ?? worldWidth(s);
   const worldCenter = s => Math.floor(worldSize(s) / 2);
   const worldCenterY = s => Math.floor(worldHeight(s) / 2);
-  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 2.15;
+  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: '平地', shore: '水岸', water: '水域', forest: '林地', mountain: '山地' };
   const DEFS = {};
-  function def(id, name, cat, cost, hp, extra) { DEFS[id] = { id, name, cat, cost, hp, ...extra }; }
+  function balancedCost(cost) {
+    return { coins: cost.coins, materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
+  }
+  function def(id, name, cat, cost, hp, extra = {}) {
+    if (extra.upgradeBase) extra = { ...extra, upgradeBase: balancedCost(extra.upgradeBase) };
+    DEFS[id] = { id, name, cat, cost: balancedCost(cost), hp, ...extra };
+  }
   const chains = [
     ['tea', 'inn', 'bank', '茶肆', '客栈', '钱庄', 'plain', '商', '#d6a450'],
     ['farm', 'mill', 'wine', '农田', '磨坊', '酒坊', 'shore', '农', '#89a663'],
@@ -31,6 +38,7 @@
     const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
     def(a[i], a[i + 3], 'economy', { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
     income: (high ? [2, 8, 48] : [1, 5, 30])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
+    upgradeWeight: i === 0 ? (high ? 7 / 6 : 11 / 15) : 1,
     chain: a[7], color: a[8], end: i === 2, tier: i, radius: 1, limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
     names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
   }); } });
@@ -41,12 +49,12 @@
   def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '自动派出民兵近战' });
   def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { fortuneOnly: true, desc: '井旁平地可建农田 · 相邻农田收入 +20%' });
   def('stage', '戏台', 'support', { coins: 300, materials: 220 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
-  def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 1.65, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
+  def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
   def('earth', '土地庙', 'temple', { coins: 180, materials: 130 }, 260, { guard: .2, range: 3, fortuneOnly: true, desc: '三格内建筑受到伤害 -20% · 仅可由造化匣获得' });
   def('zhong', '钟馗像', 'temple', { coins: 360, materials: 260 }, 430, { slow: .4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: '每 12 秒全场减速 4 秒 · 仅可由造化匣获得' });
   def('tao', '道观', 'temple', { coins: 600, materials: 440 }, 380, { powerAura: .15, fortuneOnly: true, desc: '全镇防御建筑攻击 +15% · 仅可由造化匣获得' });
   def('fortune', '造化匣', 'mystery', { coins: 90, materials: 60 }, 1, { limit: 10, desc: '变化为随机建筑' });
-  def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, desc: '庄园唯一入口 · 可升级与修复' });
+  def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: '庄园唯一入口 · 可升级与修复' });
   const ENEMIES = {
     bandit: { name: '山匪', hp: 100, speed: .65, damage: 14, reward: 8 },
     ghost: { name: '阴兵', hp: 220, speed: .42, damage: 23, reward: 12 },
@@ -461,7 +469,7 @@
   const isPrereq = (d, nd) => d.chain ? nd.id === d.prev : !!d.required?.includes(nd.id);
   const RETIRED_TYPES = new Set(['home', 'market', 'fence']);
   const factor = b => Math.pow(GROWTH, b.level - 1);
-  const incomeFactor = b => b.type === 'shrine' ? Math.pow(2, Math.min(6, b.level - 1)) * Math.pow(1.5, Math.max(0, b.level - 7)) : Math.pow(2, Math.min(2, b.level - 1)) * Math.pow(1.65, Math.max(0, b.level - 3));
+  const incomeFactor = b => b.type === 'shrine' ? Math.pow(2, Math.min(6, b.level - 1)) * Math.pow(1.5, Math.max(0, b.level - 7)) : Math.pow(GROWTH, b.level - 1);
   const auraFactor = b => Math.pow(2, Math.min(2, b.level - 1)) * (1 + .2 * Math.max(0, b.level - 3));
   const hpFactor = b => Math.pow(HP_GROWTH, b.level - 1);
   const maxLevel = b => b?.type === 'shrine' ? SHRINE_MAX_LEVEL : b?.type === 'gate' ? GATE_MAX_LEVEL : MAX_LEVEL;
@@ -593,6 +601,20 @@
   }
   function upgradeCost(b) {
     const d = DEFS[b.type], base = d.upgradeBase || d.cost;
+    if (d.cat === 'economy' && d.income) {
+      const tier = d.tier ?? 3;
+      const ownShare = [0, .2, .3, .4][tier], oppositeResource = d.resource === 'coins' ? 'materials' : 'coins';
+      const oppositeRate = Object.values(DEFS)
+        .filter(n => n.cat === 'economy' && n.resource === oppositeResource && (n.tier ?? 3) <= tier)
+        .reduce((sum, n) => sum + n.income * (n.limit || 1), 0);
+      const oppositeBase = Math.ceil(oppositeRate * ECONOMY_UPGRADE_WAIT * (d.upgradeWeight || 1));
+      const ownBase = Math.ceil(oppositeBase * ownShare / (1 - ownShare));
+      const scale = Math.pow(ECONOMY_UPGRADE_GROWTH, b.level - 1);
+      const scaled = value => value ? Math.ceil(value * scale - 1e-9) : 0;
+      return d.resource === 'materials'
+        ? { coins: scaled(oppositeBase), materials: scaled(ownBase) }
+        : { coins: scaled(ownBase), materials: scaled(oppositeBase) };
+    }
     const foundation = b.type === 'shrine' || b.type === 'gate';
     const premium = b.type === 'shrine' ? 1.18 : b.type === 'gate' ? 1.06 : d.income ? 1.20 : 1.12;
     const multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1) * Math.pow(premium, Math.max(0, b.level - (foundation ? 7 : 4)));
@@ -1340,5 +1362,5 @@
       return s;
     } catch { return null; }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, stepEconomy, step, serialize, restore };
+  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, MATERIAL_COST_FACTOR, ECONOMY_UPGRADE_WAIT, ECONOMY_UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, stepEconomy, step, serialize, restore };
 });
