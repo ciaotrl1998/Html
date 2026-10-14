@@ -147,10 +147,10 @@
     }
     const url=c.toDataURL();thumbs.set(key,url);return url;
   }
-  function makeGround(s,occupied){
+  function makeGround(s,occupied,left,top,right,bottom,scale){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
-    const canvas=document.createElement('canvas');canvas.width=size*T;canvas.height=height*T;const c=canvas.getContext('2d');
-    for(let y=0;y<height;y++)for(let x=0;x<size;x++){
+    const canvas=document.createElement('canvas');canvas.width=Math.ceil(((right-left+1)*T+96)*scale);canvas.height=Math.ceil(((bottom-top+1)*T+96)*scale);const c=canvas.getContext('2d');c.scale(scale,scale);c.translate(48-left*T,48-top*T);
+    for(let y=Math.max(0,top-1);y<=Math.min(height-1,bottom+1);y++)for(let x=Math.max(0,left-1);x<=Math.min(size-1,right+1);x++){
       const type=GF.terrain(x,y,s),px=x*T,py=y*T;
       rect(c,px,py,T,T,palette[type]);
       if(type==='water'){
@@ -192,7 +192,7 @@
     }else{
       const has=(set,x,y)=>x>=0&&y>=0&&x<size&&y<height&&set.has(y*size+x);
       for(const index of estate.roads){
-        const x=index%size,y=Math.floor(index/size),px=x*T,py=y*T,water=GF.terrain(x,y,s)==='water';
+        const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T,water=GF.terrain(x,y,s)==='water';
         const north=has(estate.roads,x,y-1),south=has(estate.roads,x,y+1),east=has(estate.roads,x+1,y),west=has(estate.roads,x-1,y);
         c.save();c.beginPath();c.rect(px+21,py+21,22,22);
         if(north)c.rect(px+21,py,22,32);if(south)c.rect(px+21,py+32,22,32);
@@ -205,7 +205,7 @@
       }
       // Follow the irregular interior one cell edge at a time.
       for(const index of estate.cells){
-        const x=index%size,y=Math.floor(index/size),px=x*T,py=y*T;
+        const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T;
         for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]])if(!GF.owns(s,x+dx,y+dy)){
           const edge=dx===1?[[px+T-2,py+2],[px+T-2,py+T-2]]:dx===-1?[[px+2,py+2],[px+2,py+T-2]]:dy===1?[[px+2,py+T-2],[px+T-2,py+T-2]]:[[px+2,py+2],[px+T-2,py+2]];
           line(c,edge,'#f3df9b99',2);
@@ -213,7 +213,7 @@
       }
       const connects=(x,y)=>GF.isWall(s,x,y)||estate.gates.some(g=>g.x===x&&g.y===y);
       for(const index of estate.walls){
-        const x=index%size,y=Math.floor(index/size),px=x*T,py=y*T;
+        const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T;
         c.save();c.beginPath();c.rect(px+19,py+19,26,26);
         if(connects(x,y-1))c.rect(px+19,py,26,32);if(connects(x,y+1))c.rect(px+19,py+32,26,32);
         if(connects(x-1,y))c.rect(px,py+19,32,26);if(connects(x+1,y))c.rect(px+32,py+19,32,26);
@@ -227,19 +227,13 @@
         c.restore();
       }
     }
-    // Bake the large map shadow once instead of blurring a map-sized surface every frame.
-    const padded=document.createElement('canvas');padded.width=canvas.width+96;padded.height=canvas.height+96;
-    const ctx=padded.getContext('2d');ctx.shadowColor='#40583e18';ctx.shadowBlur=35;ctx.shadowOffsetY=8;
-    ctx.drawImage(canvas,48,48);
-    ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.translate(48,48);
-    const base=document.createElement('canvas');base.width=padded.width;base.height=padded.height;
-    base.getContext('2d').drawImage(padded,0,0);
-    padded.base=base;padded.occupied=new Set(occupied);
-    const waterRows=Array.from({length:height},()=>[]);
-    for(let y=0;y<height;y++)for(let x=0;x<size;x++)if(GF.terrain(x,y,s)==='water'&&!GF.isWall(s,x,y)&&!estate?.roads.has(y*size+x))waterRows[y].push({x,outside:!!estate&&!GF.owns(s,x,y)});
-    drawGroundDecorations(ctx,s,occupied,0,0,size-1,height-1);
-    padded.waterRows=waterRows;
-    return padded;
+    drawGroundDecorations(c,s,occupied,Math.max(0,left-2),Math.max(0,top-2),Math.min(size-1,right+2),Math.min(height-1,bottom+2));
+    return {canvas,left,top,right,bottom,scale};
+  }
+  function newGround(s,occupied){
+    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),waterRows=Array.from({length:height},()=>[]);
+    for(let y=0;y<height;y++)for(let x=0;x<size;x++)if(GF.terrain(x,y,s)==='water'&&!GF.isWall(s,x,y)&&!estate.roads.has(y*size+x))waterRows[y].push({x,outside:!GF.owns(s,x,y)});
+    return {occupied:new Set(occupied),chunks:new Map(),waterRows};
   }
   function drawGroundDecorations(ctx,s,occupied,left,top,right,bottom){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s);
@@ -259,20 +253,8 @@
     }
   }
   function updateGround(s,occupied){
-    const changed=[...ground.occupied].filter(key=>!occupied.has(key)).concat([...occupied].filter(key=>!ground.occupied.has(key)));
-    if(!changed.length)return;
-    const ctx=ground.getContext('2d'),size=GF.worldWidth(s),height=GF.worldHeight(s);
-    for(const key of changed){
-      const [x,y]=key.split(',').map(Number);
-      // Trees spill across tile edges. Restore a padded patch, then replay nearby decor in painter order.
-      const px=Math.max(0,x*T+48-32),py=Math.max(0,y*T+48-32);
-      const width=Math.min(ground.width-px,T+64),patchHeight=Math.min(ground.height-py,T+64);
-      ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(px,py,width,patchHeight);
-      ctx.drawImage(ground.base,px,py,width,patchHeight,px,py,width,patchHeight);
-      ctx.beginPath();ctx.rect(px,py,width,patchHeight);ctx.clip();ctx.translate(48,48);
-      drawGroundDecorations(ctx,s,occupied,Math.max(0,x-2),Math.max(0,y-2),Math.min(size-1,x+2),Math.min(height-1,y+2));
-      ctx.restore();
-    }
+    const changed=[...ground.occupied].filter(k=>!occupied.has(k)).concat([...occupied].filter(k=>!ground.occupied.has(k)));
+    for(const key of changed){const [x,y]=key.split(',').map(Number);for(const [id,tile] of ground.chunks)if(x>=tile.left-2&&x<=tile.right+2&&y>=tile.top-2&&y<=tile.bottom+2)ground.chunks.delete(id);}
     ground.occupied=new Set(occupied);
   }
   let ground, groundSeed;
@@ -300,7 +282,7 @@
   }
   function directChainLink(consumer,producer){
     const d=GF.DEFS[consumer.type];
-    if(!d.radius||GF.dist8(consumer.x,consumer.y,producer.x,producer.y)>d.radius)return false;
+    if(consumer.owner!==producer.owner||!d.radius||GF.dist8(consumer.x,consumer.y,producer.x,producer.y)>d.radius)return false;
     return d.prev===producer.type || !!d.required?.includes(producer.type);
   }
   function selectedLinks(s,b){
@@ -334,21 +316,21 @@
     c.restore();
   }
   function render(canvas,s,cam,selected,options={}){
-    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.estateSeed,size,height,s.mapGeneration,s.coopLayout]);
-    const animationTime=options.animationTime??s.elapsed,player=s.mode==='coop'?GF.playerView(s,options.player||0):s;
+    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount]);
+    const animationTime=options.animationTime??s.elapsed,player=GF.playerView(s,options.player||0);
     // Enemy occupancy changes every frame; economic recommendations only change with the town.
     const hintKey=JSON.stringify([cacheKey,player.actorId,s.over,s.day,player.buildings.map(b=>[b.type,b.x,b.y,b.level,b.owner])]);
     let hints=hintCaches.get(s);
     if(!hints||hints.key!==hintKey){hints={key:hintKey,tiles:new Map()};hintCaches.set(s,hints);}
     const blockedHints=new Set();
-    for(const e of s.enemies)for(let y=Math.floor(e.y)-1;y<=Math.ceil(e.y)+1;y++)for(let x=Math.floor(e.x)-1;x<=Math.ceil(e.x)+1;x++){
+    for(const e of GF.hostileUnits(player))for(let y=Math.floor(e.y)-1;y<=Math.ceil(e.y)+1;y++)for(let x=Math.floor(e.x)-1;x<=Math.ceil(e.x)+1;x++){
       if(Math.hypot(e.x-x,e.y-y)<.65)blockedHints.add(y*size+x);
     }
     const occupied=new Set(s.buildings.map(b=>b.x+','+b.y));
-    if(!ground || groundSeed!==cacheKey){ground=makeGround(s,occupied);groundSeed=cacheKey;}
+    if(!ground || groundSeed!==cacheKey){ground=newGround(s,occupied);groundSeed=cacheKey;}
     else updateGround(s,occupied);
     const c=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,dpr=canvas.width/w;
-    const night=s.phase==='night',dusk=s.phase==='dusk';
+    const night=false,dusk=false;
     const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
     const visible=(x,y,rx,ry=rx)=>x+rx>=-cam.x/cam.zoom&&x-rx<=(w-cam.x)/cam.zoom&&y+ry>=-cam.y/cam.zoom&&y-ry<=(h-cam.y)/cam.zoom;
     c.setTransform(dpr,0,0,dpr,0,0);
@@ -356,10 +338,16 @@
     c.save();c.translate(cam.x,cam.y);c.scale(cam.zoom,cam.zoom);
     // Soft ink mountain silhouettes outside the map.
     if(cam.y/cam.zoom> -1||(h-cam.y)/cam.zoom>height*T){for(let i=Math.max(0,Math.floor((-cam.x/cam.zoom+20)/99));i<Math.ceil(size*T/99)+5&&i*99-180<(w-cam.x)/cam.zoom;i++){const x=i*99-180;if(cam.y/cam.zoom> -1)poly(c,[[x,-5],[x+60,-110-noise(i,4)*170],[x+160,-5]],night?'#3f5754':'#aebda04d');if((h-cam.y)/cam.zoom>height*T)poly(c,[[x-90,height*T+10],[x-20,height*T+100+noise(i,2)*70],[x+90,height*T+10]],night?'#3f5754':'#aebda03b');}}
-    // Crop in world space so a close-up does not submit the entire map texture.
-    const gx=Math.max(0,Math.floor(-cam.x/cam.zoom+48)),gy=Math.max(0,Math.floor(-cam.y/cam.zoom+48));
-    const gw=Math.min(ground.width,Math.ceil((w-cam.x)/cam.zoom+48)+1)-gx,gh=Math.min(ground.height,Math.ceil((h-cam.y)/cam.zoom+48)+1)-gy;
-    if(gw>0&&gh>0)c.drawImage(ground,gx,gy,gw,gh,gx-48,gy-48,gw,gh);
+    // Bounded, zoom-aware chunks avoid allocating several full 75x90 map canvases.
+    const scale=cam.zoom<.3?.25:cam.zoom<.65?.5:1;
+    for(let cy=Math.floor(top/16);cy<=Math.floor(bottom/16);cy++)for(let cx=Math.floor(left/16);cx<=Math.floor(right/16);cx++){
+      const key=cx+','+cy+','+scale;let tile=ground.chunks.get(key);
+      if(!tile){tile=makeGround(s,occupied,cx*16,cy*16,Math.min(size-1,cx*16+15),Math.min(height-1,cy*16+15),scale);ground.chunks.set(key,tile);}
+      else{ground.chunks.delete(key);ground.chunks.set(key,tile);}
+      const tw=(tile.right-tile.left+1)*T,th=(tile.bottom-tile.top+1)*T;
+      c.drawImage(tile.canvas,48*scale,48*scale,tw*scale,th*scale,tile.left*T,tile.top*T,tw,th);
+    }
+    while(ground.chunks.size>40)ground.chunks.delete(ground.chunks.keys().next().value);
     if(options.grid){c.strokeStyle=night?'#c6d7a855':'#5d785055';c.lineWidth=1.4;c.lineCap='round';c.setLineDash([4,4]);c.beginPath();
       for(let i=left;i<=right+1;i++){c.moveTo(i*T,top*T);c.lineTo(i*T,(bottom+1)*T);}
       for(let i=top;i<=bottom+1;i++){c.moveTo(left*T,i*T);c.lineTo((right+1)*T,i*T);}
@@ -384,7 +372,7 @@
       c.save();c.translate(b.x*T+32,b.y*T+32);
       drawBaked(c,'building:'+b.type+':'+GF.visualLevel(b.level),ctx=>building(ctx,b.type,b.level,0,true));
       buildingAnimation(c,b.type,animationTime);
-      if(s.mode==='coop'&&b.type==='shrine'){rect(c,-38,-57,76,19,b.owner===options.player?'#3d685deb':'#8a6647eb');c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':options.online?'队友庄园':'电脑庄园',0,-43);}
+      if(b.type==='shrine'){rect(c,-38,-57,76,19,s.players[b.owner].team===1?'#a74e3ceb':b.owner===options.player?'#3d685deb':'#597f96eb');c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
       if(b.type==='gate'){
         if(b.hp<=0){poly(c,[[-16,-6],[-5,1],[-10,20],[12,20],[5,4],[17,-6]],'#34443bee');line(c,[[-14,17],[-3,9],[10,21]],'#b19872',3);c.font='bold 11px "Microsoft YaHei",sans-serif';c.textAlign='center';rect(c,-19,-19,38,15,'#714a3be8');c.fillStyle='#ffe0b0';c.fillText('毁损',0,-8);}
         else{c.font='bold 10px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#f1dfae';c.fillText(['北','东','南','西'][b.direction]||'门',0,-13);}
@@ -403,8 +391,8 @@
       c.restore();
     }
     // Units use their own positions, even when their barracks is offscreen.
-    const units=[...s.enemies.map(unit=>({unit,soldier:false})),...s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:true}))].map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?48:30)).sort((a,b)=>a.unit.y-b.unit.y);
-    for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);person(c,soldier?'soldier':e.type,animationTime,e.repelled>0);if(e.slowed>0)ellipse(c,0,2,13,18,'#8bb7a029','#76a08f');c.restore();}
+    const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?48:30)).sort((a,b)=>a.unit.y-b.unit.y);
+    for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);person(c,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0);if(e.slowed>0)ellipse(c,0,2,13,18,'#8bb7a029','#76a08f');c.restore();}
     // Keep health bars above all unit bodies during close combat.
     for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);rect(c,-14,-27,28,4.5,soldier?'#254a31':'#273e3480',soldier?'#c9dfaa':null);rect(c,-13,-26,26*Math.max(0,Math.min(1,e.hp/e.maxHp)),2.5,soldier?'#91c967':'#bb775a');c.restore();}
     if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);if(night){const glow=nightGlow();c.globalCompositeOperation='screen';for(const b of s.buildings){if(!visible(b.x*T+32,b.y*T+36,64))continue;if(['shrine','earth','tao','tower','inn'].includes(b.type))c.drawImage(glow,b.x*T+32-64,b.y*T+36-64,128,128);}c.globalCompositeOperation='source-over';}}
@@ -471,8 +459,8 @@
   function person(c,type,time,frozen){
     const bob=frozen?0:Math.sin(time*8)*1.5;ellipse(c,1,10,9,3,'#273d3b38');
     if(type==='fox'){poly(c,[[-6,4],[-17,-5],[-13,7],[-5,10]],'#c5a381');ellipse(c,1,3+bob,8,5,'#c69a77');poly(c,[[4,0+bob],[5,-9+bob],[9,-4+bob],[13,-9+bob],[13,1+bob]],'#d8b891','#996d56');rect(c,7,-2+bob,1.5,1.5,'#565246');}
-    else {const color=type==='ghost'?'#849b9c':type==='soldier'?'#818967':'#916b60';poly(c,[[-5,-3+bob],[5,-3+bob],[8,9],[-7,9]],color,'#52605b');ellipse(c,0,-8+bob,4.5,5,type==='ghost'?'#b4c8bb':'#c6b592');rect(c,-5,-13+bob,10,3,type==='soldier'?'#526d60':'#5a625b');line(c,[[-3,9],[-4,14+bob]],'#4c5851',2);line(c,[[3,9],[5,14-bob]],'#4c5851',2);line(c,[[7,1],[10,-11]],type==='ghost'?'#a5c3b5':'#bec1a7',2);}
+    else {const color=type==='ghost'?'#849b9c':type==='soldier'?'#4f8b9a':'#b75548';poly(c,[[-5,-3+bob],[5,-3+bob],[8,9],[-7,9]],color,'#52605b');ellipse(c,0,-8+bob,4.5,5,type==='ghost'?'#b4c8bb':'#c6b592');rect(c,-5,-13+bob,10,3,type==='soldier'?'#32677c':'#8c3f35');line(c,[[-3,9],[-4,14+bob]],'#4c5851',2);line(c,[[3,9],[5,14-bob]],'#4c5851',2);line(c,[[7,1],[10,-11]],type==='ghost'?'#a5c3b5':'#bec1a7',2);}
     if(frozen){ellipse(c,0,-1,14,19,null,'#e9d28d');c.fillStyle='#eddda5';c.font='10px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-18);}
   }
-  window.GFArt={T,thumbnail,render};
+  window.GFArt={T,thumbnail,render,cacheStats:()=>({chunks:ground?.chunks.size||0,pixels:[...(ground?.chunks.values()||[])].reduce((n,t)=>n+t.canvas.width*t.canvas.height,0),largestSide:Math.max(0,...[...(ground?.chunks.values()||[])].map(t=>Math.max(t.canvas.width,t.canvas.height)))})};
 })();

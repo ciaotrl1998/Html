@@ -1,4 +1,5 @@
 'use strict';
+require('./js/autoplay');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -13,7 +14,7 @@ const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
-  ...['boot', 'runtime', 'game', 'network', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
+  ...['boot', 'runtime', 'maps', 'game', 'network', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
   ['/dist/古坊奇谭.html', ['dist/古坊奇谭.html', 'text/html; charset=utf-8']]
 ]);
 
@@ -35,8 +36,8 @@ function createServer() {
   const send = (socket, message) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message)); };
   const participants = room => [room.host, room.guest].filter(Boolean);
   const ownerOf = socket => socket.role === 'host' ? 0 : 1;
-  const isPaused = room => !room.guest || room.state.over || !room.state.selectedSkill || !room.state.partner.selectedSkill ||
-    participants(room).some(socket => socket.paused || socket.hidden || socket.readyState !== WebSocket.OPEN);
+  const isPaused = room => !room.guest || room.state.over || !G.ready(room.state) ||
+    participants(room).some(socket => !room.state.players[ownerOf(socket)].eliminated && (socket.paused || socket.hidden || socket.readyState !== WebSocket.OPEN));
   function capture(room) {
     for (const [key, seen, target] of [['effects', room.seenEffects, room.effects], ['projectiles', room.seenProjectiles, room.projectiles]]) {
       for (const item of room.state[key]) if (!seen.has(item)) {
@@ -74,7 +75,7 @@ function createServer() {
       snapshot: Network.snapshot(room.state, ownerOf(socket)), paused: isPaused(room) });
   }
   function start(room) {
-    room.state = G.createCoopState(); room.started = true;
+    room.state=G.createMatch({mode:'coop',enemyCount:room.enemyCount});room.state.players[1].controller='human';room.state.players[1].selectedSkill=null;room.started=true;
     room.session++; room.seq = 0; room.previous = Network.delta(room.state).next;
     room.effects = []; room.projectiles = []; room.events = [];
     room.seenEffects = new WeakSet(); room.seenProjectiles = new WeakSet(); room.visualId = 0;
@@ -90,7 +91,7 @@ function createServer() {
         (['skill', 'choose-skill'].includes(kind) && !Object.prototype.hasOwnProperty.call(G.SKILLS, skill))) return;
     const s = room.state, player = G.playerView(s, ownerOf(socket)), b = G.at(s, x, y);
     let result = { ok: false, reason: '无法操作该地块' };
-    if (s.over) result.reason = '古坊已失守';
+    if (s.over||player.eliminated) result.reason = '该庄园已出局';
     else if (kind === 'choose-skill') result = G.chooseSkill(player, skill);
     else if (kind === 'skill') result = G.skill(player, skill);
     else if (kind === 'build') result = G.build(player, building, x, y);
@@ -130,10 +131,10 @@ function createServer() {
         leave(socket);
         let code;
         do { code = String(randomInt(100000, 1000000)); } while (rooms.has(code));
-        const room = { code, host: socket, guest: null, started: false, session: 0 };
+        const room = { code, host: socket, guest: null, started: false, session: 0, enemyCount:[2,4,6].includes(message.enemyCount)?message.enemyCount:2 };
         rooms.set(code, room); socket.room = room; socket.role = 'host';
         socket.lastAction = 0; socket.paused = false; socket.hidden = false;
-        send(socket, { type: 'created', code });
+        send(socket, { type: 'created', code, enemyCount:room.enemyCount });
       } else if (message.type === 'join') {
         leave(socket);
         const code = String(message.code || '').trim(), room = rooms.get(code);
@@ -142,8 +143,10 @@ function createServer() {
         }
         room.guest = socket; socket.room = room; socket.role = 'guest';
         socket.lastAction = 0; socket.paused = false; socket.hidden = false;
-        send(socket, { type: 'joined', code }); send(room.host, { type: 'peer_joined' });
+        send(socket, { type: 'joined', code, enemyCount:room.enemyCount }); send(room.host, { type: 'peer_joined' });
         if (room.started) { checkpoint(socket); publish(room, true); }
+      } else if(message.type==='settings'&&socket.role==='host'&&!socket.room?.started&&[2,4,6].includes(message.enemyCount)){
+        socket.room.enemyCount=message.enemyCount;for(const peer of participants(socket.room))send(peer,{type:'settings',enemyCount:message.enemyCount});
       } else if (message.type === 'start' && socket.role === 'host' && socket.room?.guest) {
         start(socket.room);
       } else if (message.type === 'action') action(socket, message);

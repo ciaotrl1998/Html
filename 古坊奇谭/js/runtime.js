@@ -20,134 +20,29 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  else root.GF = api;
+  else root.GFMaps = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function() {
   "use strict";
-  const SIZE = 25, CENTER = 12, DAY = 60, DUSK = 8, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15, GATE_MAX_LEVEL = 15;
-  const worldSize = (s) => {
-    var _a;
-    return (_a = s == null ? void 0 : s.worldSize) != null ? _a : s ? 25 : 17;
-  };
-  const worldWidth = worldSize;
-  const worldHeight = (s) => {
-    var _a;
-    return (_a = s == null ? void 0 : s.worldHeight) != null ? _a : worldWidth(s);
-  };
-  const worldCenter = (s) => Math.floor(worldSize(s) / 2);
-  const worldCenterY = (s) => Math.floor(worldHeight(s) / 2);
-  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
-  const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
-  const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
-  const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
-  const DEFS = {};
-  function balancedCost(cost) {
-    return { coins: cost.coins, materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
-  }
-  function def(id, name2, cat, cost, hp, extra = {}) {
-    if (extra.upgradeBase) extra = __spreadProps(__spreadValues({}, extra), { upgradeBase: balancedCost(extra.upgradeBase) });
-    DEFS[id] = __spreadValues({ id, name: name2, cat, cost: balancedCost(cost), hp }, extra);
-  }
-  const chains = [
-    ["tea", "inn", "bank", "茶肆", "客栈", "钱庄", "plain", "商", "#d6a450"],
-    ["farm", "mill", "wine", "农田", "磨坊", "酒坊", "shore", "农", "#89a663"],
-    ["mulberry", "weaver", "tailor", "桑园", "织坊", "成衣铺", "forest", "丝", "#b38ba7"],
-    ["quarry", "kiln", "trade", "石场", "瓷窑", "商号", "mountain", "工", "#7b9fa2"]
-  ];
-  const COIN_CHAIN_COSTS = [{ coins: 0, materials: 50 }, { coins: 90, materials: 160 }, { coins: 430, materials: 750 }];
-  const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
-  chains.forEach((a, ci) => {
-    for (let i = 0; i < 3; i++) {
-      const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
-      const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
-      def(a[i], a[i + 3], "economy", { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
-        income: (high ? [2, 8, 48] : [1, 5, 30])[i],
-        resource: ci < 2 ? "coins" : "materials",
-        terrain: i === 0 ? a[6] : null,
-        prev: i ? a[i - 1] : null,
-        upgradeWeight: i === 0 ? high ? 7 / 6 : 11 / 15 : 1,
-        chain: a[7],
-        color: a[8],
-        end: i === 2,
-        tier: i,
-        radius: 1,
-        limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
-        names: [a[i + 3], i === 0 ? ["清茗茶肆", "临水良田", "葱郁桑园", "青石矿场"][ci] : "兴旺" + a[i + 3], "鼎盛" + a[i + 3]]
-      });
-    }
-  });
-  def("guild", "汇财会馆", "economy", { coins: 18e3, materials: 24e3 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 1, limit: 1 });
-  def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 1, limit: 1 });
-  def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
-  def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
-  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "自动派出民兵近战" });
-  def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { fortuneOnly: true, desc: "井旁平地可建农田 · 相邻农田收入 +20%" });
-  def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
-  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
-  def("earth", "土地庙", "temple", { coins: 180, materials: 130 }, 260, { guard: 0.2, range: 3, fortuneOnly: true, desc: "三格内建筑受到伤害 -20% · 仅可由造化匣获得" });
-  def("zhong", "钟馗像", "temple", { coins: 360, materials: 260 }, 430, { slow: 0.4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: "每 12 秒全场减速 4 秒 · 仅可由造化匣获得" });
-  def("tao", "道观", "temple", { coins: 600, materials: 440 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15% · 仅可由造化匣获得" });
-  def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { limit: 10, desc: "变化为随机建筑" });
-  def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: "庄园唯一入口 · 可升级与修复" });
-  const ENEMIES = {
-    bandit: { name: "山匪", hp: 100, speed: 0.65, damage: 14, reward: 8 },
-    ghost: { name: "阴兵", hp: 220, speed: 0.42, damage: 23, reward: 12 },
-    fox: { name: "妖狐", hp: 75, speed: 1.1, damage: 12, reward: 10 }
-  };
-  const SKILLS = { repel: { name: "驱鬼符", cooldown: 18 }, repair: { name: "回春诀", cooldown: 24 }, thunder: { name: "九霄天雷", cooldown: 22 } };
-  const MISSIONS = [
-    { title: "一盏茶，起一座坊", desc: "在平地建造一间茶肆", reward: 60, test: (s) => s.buildings.some((b) => b.type === "tea") },
-    { title: "客来茶香，产业相连", desc: "紧挨茶肆建造客栈", reward: 90, test: (s) => s.buildings.some((b) => b.type === "inn") },
-    { title: "立箭塔，护一方安宁", desc: "建造两座箭塔，准备入夜", reward: 100, test: (s) => s.buildings.filter((b) => b.type === "tower").length >= 2 },
-    { title: "造化初开", desc: "开启一次造化匣", reward: 75, test: (s) => s.fortuneBuilt >= 1 },
-    { title: "长夜过，古坊安", desc: "守住第一夜", reward: 120, test: (s) => s.day >= 2 },
-    { title: "百业初兴", desc: "建成任意两种经济链终点建筑", reward: 200, test: (s) => new Set(s.buildings.filter((b) => DEFS[b.type].end).map((b) => b.type)).size >= 2 },
-    { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") },
-    { title: "万家灯火", desc: "守过第七夜，迎来太平晨光", reward: 500, test: (s) => s.day >= 8 }
-  ];
-  function baseTerrain(x, y, s) {
-    if ((s == null ? void 0 : s.mapSeed) !== void 0) return generatedTerrain(s)[y * worldSize(s) + x] || "plain";
-    if (x >= 1 && x <= 4 && y >= 5 && y <= 12 || x >= 3 && x <= 6 && y >= 11 && y <= 14) return "water";
-    if (x >= 10 && x <= 14 && y >= 2 && y <= 6 || x >= 2 && x <= 5 && y >= 1 && y <= 3) return "forest";
-    if (x >= 11 && x <= 15 && y >= 11 && y <= 15) return "mountain";
-    return "plain";
-  }
-  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
+  const worldSize = (s) => s.worldSize, worldWidth = worldSize, worldHeight = (s) => s.worldHeight || s.worldSize, worldCenter = (s) => Math.floor(s.worldSize / 2);
+  const inside = (x, y, s) => x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
   const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
   const NEIGHBORS8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
-  const playerViews = /* @__PURE__ */ new WeakMap(), coopMaps = /* @__PURE__ */ new WeakMap();
-  const world = (s) => (s == null ? void 0 : s._world) || s;
-  function playerView(s, owner = 0) {
-    s = world(s);
-    if (s.mode !== "coop") return s;
-    let views = playerViews.get(s);
-    if (!views) {
-      views = [];
-      playerViews.set(s, views);
-    }
-    if (views[owner]) return views[owner];
-    const view = { actorId: owner }, personal = /* @__PURE__ */ new Set(["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "selectedSkill", "mission"]);
-    Object.defineProperty(view, "_world", { value: s });
-    for (const key of Object.keys(s)) Object.defineProperty(view, key, {
-      enumerable: true,
-      get() {
-        return key === "buildings" ? s.buildings.filter((b) => b.owner === owner) : personal.has(key) && owner === 1 ? s.partner[key] : s[key];
-      },
-      set(value) {
-        if (key === "buildings") s.buildings = [...s.buildings.filter((b) => b.owner !== owner), ...value];
-        else if (personal.has(key) && owner === 1) s.partner[key] = value;
-        else s[key] = value;
-      }
-    });
-    return views[owner] = view;
+  const world = (s) => s, terrainCache = /* @__PURE__ */ new WeakMap(), coopMaps = /* @__PURE__ */ new WeakMap();
+  function createTemplate(mapSeed) {
+    return { mapSeed: mapSeed >>> 0, estateSeed: (Math.imul(mapSeed, 2246822519) ^ 3266489917) >>> 0, mapGeneration: 2, worldSize: 25 };
   }
-  const economicView = (s) => s.mode === "coop" && s.actorId === void 0 ? playerView(s) : s;
+  const generatedTerrain = (s) => {
+    var _a;
+    return ((_a = terrainCache.get(s)) == null ? void 0 : _a.cells) || variedTerrain(s);
+  };
+  const baseTerrain = (x, y, s) => generatedTerrain(s)[y * 25 + x] || "plain";
   function coopMap(s) {
     s = world(s);
     const cached = coopMaps.get(s);
     if (cached) return cached;
     const horizontal = s.coopLayout === "horizontal", gap = -1;
     const width = worldWidth(s), height = worldHeight(s);
-    const sources = [createState(s.mapSeed), createState(Math.imul(s.mapSeed, 1664525) + 1013904223 >>> 0)];
+    const sources = [createTemplate(s.mapSeed), createTemplate(Math.imul(s.mapSeed, 1664525) + 1013904223 >>> 0)];
     const originals = sources.map((source, owner) => {
       const original = estate(source), cells = new Set(original.cells);
       const axes = [...cells].map((k) => horizontal ? k % 25 : Math.floor(k / 25));
@@ -229,149 +124,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     coopMaps.set(s, value);
     return value;
   }
-  function createCoopState(mapSeed = Math.floor(Math.random() * 4294967296), layout) {
-    const s = createState(mapSeed);
-    const coopLayout = layout || (s.estateSeed % 2 ? "horizontal" : "vertical");
-    Object.assign(s, { version: 7, mode: "coop", worldSize: coopLayout === "horizontal" ? 40 : 25, worldHeight: coopLayout === "horizontal" ? 25 : 40, coopLayout, partner: { controller: "computer", coins: 150, materials: 200, fortuneBuilt: 0, gateLevel: 1, cooldowns: { repel: 0, repair: 0, thunder: 0 }, selectedSkill: null, mission: 0 }, buildings: [], nextId: 1 });
-    for (const e of coopMap(s).land.estates) {
-      addBuilding(s, "shrine", e.center.x, e.center.y, 1, { owner: e.owner });
-      for (const g of e.gates) addBuilding(s, "gate", g.x, g.y, 1, { direction: g.direction, owner: e.owner });
-    }
-    return s;
-  }
-  function raidOptions(s) {
-    return s.coopLayout === "horizontal" ? [[0], [2], [3, 1]] : [[3], [1], [0, 2]];
-  }
-  function raidDirections(s) {
-    var _a;
-    if (s.mode === "coop") return raidOptions(s)[s.direction];
-    return (s.phase === "dusk" ? s.day % 7 === 0 : (_a = s.wave) == null ? void 0 : _a.boss) ? [0, 1, 2, 3] : [s.direction];
-  }
-  const terrainCache = /* @__PURE__ */ new WeakMap();
-  function generatedTerrain(s) {
-    if (s.mode === "coop") return coopMap(s).terrain;
-    const cached = terrainCache.get(s);
-    if ((cached == null ? void 0 : cached.seed) === s.mapSeed && cached.size === worldSize(s) && cached.generation === s.mapGeneration) return cached.cells;
-    if (s.mapGeneration === 2) return variedTerrain(s);
-    if (worldSize(s) === 25) return newTerrain(s);
-    const SIZE2 = 17, CENTER2 = 8;
-    let seed = s.mapSeed >>> 0;
-    const rand = () => {
-      seed = Math.imul(seed, 1664525) + 1013904223 >>> 0;
-      return seed / 4294967296;
-    };
-    const cells = Array(SIZE2 * SIZE2).fill("plain"), turn = Math.floor(rand() * 4);
-    const index = (x, y) => {
-      for (let i = 0; i < turn; i++) [x, y] = [SIZE2 - 1 - y, x];
-      return y * SIZE2 + x;
-    };
-    let rx = 2 + Math.floor(rand() * 2);
-    for (let y = 1; y < SIZE2 - 1; y++) {
-      const next = Math.max(1, Math.min(4, rx + (rand() < 0.65 ? Math.floor(rand() * 3) - 1 : 0)));
-      for (let x = Math.min(rx, next); x <= Math.max(rx, next); x++) cells[index(x, y)] = "water";
-      rx = next;
-      if (rand() < 0.4 && rx < 4) cells[index(rx + 1, y)] = "water";
-    }
-    const lakeCount = 1 + Math.floor(rand() * 2);
-    for (let lake = 0; lake < lakeCount; lake++) {
-      const candidates = [];
-      for (let y = 2; y <= 14; y++) for (let x = 10; x <= 14; x++) {
-        if (Math.max(Math.abs(x - CENTER2), Math.abs(y - CENTER2)) <= 3) continue;
-        if (NEIGHBORS8.every(([dx, dy]) => cells[index(x + dx, y + dy)] !== "water") && cells[index(x, y)] !== "water") candidates.push([x, y]);
-      }
-      if (!candidates.length) continue;
-      const patch = [candidates[Math.floor(rand() * candidates.length)]], own = /* @__PURE__ */ new Set();
-      const target = 5 + Math.floor(rand() * 4);
-      while (patch.length) {
-        const [x, y] = patch.splice(Math.floor(rand() * patch.length), 1)[0], key = index(x, y);
-        if (own.has(key) || x < 9 || x > 15 || y < 1 || y > 15 || Math.max(Math.abs(x - CENTER2), Math.abs(y - CENTER2)) <= 3) continue;
-        if (cells[key] === "water" || NEIGHBORS8.some(([dx, dy]) => cells[index(x + dx, y + dy)] === "water" && !own.has(index(x + dx, y + dy)))) continue;
-        own.add(key);
-        cells[key] = "water";
-        if (own.size >= target) break;
-        patch.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
-      }
-      if (own.size < 5) for (const key of own) cells[key] = "plain";
-    }
-    const reached = /* @__PURE__ */ new Set([CENTER2 * SIZE2 + CENTER2]), queue = [CENTER2 * SIZE2 + CENTER2];
-    for (let i = 0; i < queue.length; i++) {
-      const key = queue[i], x = key % SIZE2, y = Math.floor(key / SIZE2);
-      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-        const nx = x + dx, ny = y + dy, next = ny * SIZE2 + nx;
-        if (inside(nx, ny) && cells[next] !== "water" && !reached.has(next)) {
-          reached.add(next);
-          queue.push(next);
-        }
-      }
-    }
-    for (let key = 0; key < cells.length; key++) if (!reached.has(key)) cells[key] = "water";
-    for (const type of ["forest", "mountain"]) {
-      const count = type === "forest" ? 3 : 2;
-      for (let p = 0; p < count; p++) {
-        const cx = 2 + rand() * 12, cy = rand() < 0.5 ? 2 + rand() * 3 : 12 + rand() * 2;
-        const ax = 2 + rand() * 1.8, ay = 1.8 + rand() * 1.4;
-        for (let y = 0; y < SIZE2; y++) for (let x = 0; x < SIZE2; x++) {
-          const key = index(x, y);
-          if (cells[key] !== "plain" || Math.max(Math.abs(x - CENTER2), Math.abs(y - CENTER2)) <= 2) continue;
-          if (NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy) && cells[index(x + dx, y + dy)] === "water")) continue;
-          if (((x - cx) / ax) ** 2 + ((y - cy) / ay) ** 2 < 0.8 + rand() * 0.4) cells[key] = type;
-        }
-      }
-      if (!cells.includes(type)) {
-        const candidates = [];
-        for (let y = 1; y < SIZE2 - 1; y++) for (let x = 1; x < SIZE2 - 1; x++) {
-          const key2 = index(x, y);
-          if (Math.max(Math.abs(x - CENTER2), Math.abs(y - CENTER2)) > 3 && cells[key2] !== "water" && NEIGHBORS8.every(([dx, dy]) => cells[index(x + dx, y + dy)] !== "water")) candidates.push(key2);
-        }
-        const key = candidates[Math.floor(rand() * candidates.length)];
-        if (key !== void 0) {
-          cells[key] = type;
-          const x = key % SIZE2, y = Math.floor(key / SIZE2);
-          for (const [dx, dy] of NEIGHBORS8) {
-            const nx = x + dx, ny = y + dy;
-            if (inside(nx, ny) && Math.max(Math.abs(nx - CENTER2), Math.abs(ny - CENTER2)) > 2 && cells[ny * SIZE2 + nx] !== "water" && NEIGHBORS8.every(([sx, sy]) => !inside(nx + sx, ny + sy) || cells[(ny + sy) * SIZE2 + nx + sx] !== "water")) cells[ny * SIZE2 + nx] = type;
-          }
-        }
-      }
-    }
-    terrainCache.set(s, { seed: s.mapSeed, size: SIZE2, cells });
-    return cells;
-  }
-  function newTerrain(s) {
-    let seed = s.mapSeed >>> 0;
-    const rand = () => {
-      seed = Math.imul(seed, 1664525) + 1013904223 >>> 0;
-      return seed / 4294967296;
-    };
-    const cells = Array(625).fill("plain");
-    let rx = 7;
-    for (let y = 1; y < 24; y++) {
-      const next = Math.max(6, Math.min(8, rx + Math.floor(rand() * 3) - 1));
-      for (let x = Math.min(rx, next); x <= Math.max(rx, next); x++) cells[y * 25 + x] = "water";
-      rx = next;
-    }
-    const lakeX = 17 + Math.floor(rand() * 4), lakeY = 2 + Math.floor(rand() * 3);
-    const target = 5 + Math.floor(rand() * 5), lake = /* @__PURE__ */ new Set(), frontier = [[lakeX, lakeY]];
-    while (lake.size < target && frontier.length) {
-      const [x, y] = frontier.splice(Math.floor(rand() * frontier.length), 1)[0], key = y * 25 + x;
-      if (x < 16 || x > 22 || y < 1 || y > 7 || lake.has(key)) continue;
-      lake.add(key);
-      cells[key] = "water";
-      frontier.push([x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]);
-    }
-    for (const [type, anchors] of [["forest", [[10, 9], [16, 8], [4, 18]]], ["mountain", [[14, 15], [17, 16], [21, 12]]]]) {
-      for (const [cx, cy] of anchors) {
-        const radius = 1.4 + rand() * 1.3;
-        for (let y = cy - 2; y <= cy + 2; y++) for (let x = cx - 2; x <= cx + 2; x++) {
-          if (!inside(x, y, s) || dist8(x, y, 12, 12) <= 2 || cells[y * 25 + x] !== "plain") continue;
-          if (NEIGHBORS8.some(([dx, dy]) => cells[(y + dy) * 25 + x + dx] === "water")) continue;
-          if (Math.hypot(x - cx, y - cy) < radius + rand() * 0.5) cells[y * 25 + x] = type;
-        }
-      }
-    }
-    terrainCache.set(s, { seed: s.mapSeed, size: 25, cells });
-    return cells;
-  }
   function variedTerrain(s) {
     let seed = s.mapSeed >>> 0;
     const rand = () => {
@@ -446,10 +198,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const estateCache = /* @__PURE__ */ new WeakMap();
   function estate(s) {
-    if ((s == null ? void 0 : s.mode) === "coop") {
-      const land = coopMap(s).land;
-      return s.actorId === void 0 ? land : land.estates[s.actorId];
-    }
     if ((s == null ? void 0 : s.estateSeed) === void 0) return null;
     const cached = estateCache.get(s);
     if ((cached == null ? void 0 : cached.seed) === s.estateSeed && cached.mapSeed === s.mapSeed && cached.generation === s.mapGeneration) return cached.value;
@@ -523,27 +271,356 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     estateCache.set(s, { seed: s.estateSeed, mapSeed: s.mapSeed, generation: s.mapGeneration, value });
     return value;
   }
+  function dimensions(mode, count) {
+    return mode === "coop" ? [count === 2 ? 50 : 75, count === 6 ? 90 : 40] : [[0, 0], [50, 25], [75, 25], [75, 50], [75, 75]][count];
+  }
+  function create(mapSeed, mode, count, rotation) {
+    const [width, height] = dimensions(mode, count), turned = rotation % 2;
+    const outWidth = turned ? height : width, outHeight = turned ? width : height;
+    const rotate = (x, y) => rotation === 0 ? [x, y] : rotation === 1 ? [height - 1 - y, x] : rotation === 2 ? [width - 1 - x, height - 1 - y] : [y, width - 1 - x];
+    const index = (x, y) => {
+      const [rx, ry] = rotate(x, y);
+      return ry * outWidth + rx;
+    };
+    const slots = [];
+    const single = (owner, x, y, gates) => slots.push({ owners: [owner], x, y, gates: [gates] });
+    const pair = (owners2, x, y, gates) => slots.push({ owners: owners2, x, y, gates });
+    if (mode === "single") {
+      if (count === 1) {
+        single(0, 0, 0, [1]);
+        single(1, 25, 0, [3]);
+      }
+      if (count === 2) {
+        single(0, 25, 0, [1, 3]);
+        single(1, 0, 0, [1]);
+        single(2, 50, 0, [3]);
+      }
+      if (count >= 3) {
+        single(0, 25, 25, count === 3 ? [0, 1, 3] : [0, 1, 2, 3]);
+        single(1, 25, 0, [2]);
+        single(2, 0, 25, [1]);
+        single(3, 50, 25, [3]);
+        if (count === 4) single(4, 25, 50, [0]);
+      }
+    } else {
+      const y = count === 6 ? 25 : 0;
+      pair([0, 1], count === 2 ? 0 : 25, y, count === 2 ? [[1], [1]] : count === 4 ? [[1, 3], [1, 3]] : [[0, 1, 3], [1, 2, 3]]);
+      pair([2, 3], count === 2 ? 25 : 0, y, count === 2 ? [[3], [3]] : [[1], [1]]);
+      if (count >= 4) pair([4, 5], 50, y, [[3], [3]]);
+      if (count === 6) {
+        single(6, 25, 0, [2]);
+        single(7, 25, 65, [0]);
+      }
+    }
+    const terrain = Array(outWidth * outHeight).fill("plain"), estates = [];
+    for (const slot of slots) {
+      const seed = Math.imul(mapSeed ^ slot.owners[0] + 1, 2246822519) + 3266489917 >>> 0;
+      const source = createTemplate(seed), isPair = slot.owners.length === 2;
+      const template = isPair ? coopMap(__spreadProps(__spreadValues({}, source), { worldSize: 25, worldHeight: 40, coopLayout: "vertical" })) : { land: { estates: [estate(source)] }, terrain: generatedTerrain(source) };
+      const convert = (k) => index(k % 25 + slot.x, Math.floor(k / 25) + slot.y);
+      for (let y = 0; y < (isPair ? 40 : 25); y++) for (let x = 0; x < 25; x++) terrain[index(x + slot.x, y + slot.y)] = template.terrain[y * 25 + x];
+      template.land.estates.forEach((land2, i) => {
+        const owner = slot.owners[i], masks = slot.gates[i];
+        const walls = new Set([...land2.walls, ...land2.gates.filter((g) => !masks.includes(g.direction)).map((g) => g.y * 25 + g.x)].map(convert));
+        const gates = land2.gates.filter((g) => masks.includes(g.direction)).map((g) => {
+          const [x, y] = rotate(g.x + slot.x, g.y + slot.y);
+          return { x, y, owner, direction: (g.direction + rotation) % 4 };
+        });
+        const originalCenter = land2.center || { x: 12, y: 12 }, [cx, cy] = rotate(originalCenter.x + slot.x, originalCenter.y + slot.y);
+        estates[owner] = { owner, cells: new Set([...land2.cells].map(convert)), walls, gates, roads: new Set([...land2.roads].map(convert)), center: { x: cx, y: cy } };
+      });
+    }
+    const merge = (prop) => new Set(estates.flatMap((e) => [...e[prop]]));
+    const land = { estates, cells: merge("cells"), walls: merge("walls"), roads: merge("roads"), gates: estates.flatMap((e) => e.gates) };
+    land.sharedWall = /* @__PURE__ */ new Set();
+    const seen = /* @__PURE__ */ new Set();
+    for (const e of estates) for (const k of e.walls) {
+      if (seen.has(k)) land.sharedWall.add(k);
+      seen.add(k);
+    }
+    const exterior = (k) => k >= 0 && k < terrain.length && !land.cells.has(k) && !land.walls.has(k);
+    const approaches = land.gates.map((g) => {
+      const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][g.direction];
+      return (g.y + dy) * outWidth + g.x + dx;
+    });
+    const root = approaches[0], parents = new Int32Array(terrain.length).fill(-1), queue = [root];
+    parents[root] = root;
+    for (let i = 0; i < queue.length; i++) {
+      const k = queue[i], x = k % outWidth, y = Math.floor(k / outWidth);
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const nx = x + dx, ny = y + dy, n = ny * outWidth + nx;
+        if (nx >= 0 && ny >= 0 && nx < outWidth && ny < outHeight && exterior(n) && parents[n] === -1) {
+          parents[n] = k;
+          queue.push(n);
+        }
+      }
+    }
+    for (const k of approaches) {
+      if (parents[k] === -1) throw new Error("Unreachable estate approach");
+      let next = k;
+      while (next !== root) {
+        land.roads.add(next);
+        next = parents[next];
+      }
+      land.roads.add(root);
+    }
+    for (const g of land.gates) land.roads.add(g.y * outWidth + g.x);
+    const owners = new Int16Array(terrain.length).fill(-1);
+    for (const e of estates) for (const k of [...e.cells, ...e.gates.map((g) => g.y * outWidth + g.x)]) owners[k] = e.owner;
+    const walk = new Uint8Array(terrain.length);
+    for (let k = 0; k < terrain.length; k++) walk[k] = !land.walls.has(k) && (terrain[k] !== "water" || land.roads.has(k)) ? 1 : 0;
+    return { terrain, land, owners, walk, width: outWidth, height: outHeight };
+  }
+  return { create, dimensions };
+});
+
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+(function(root, factory) {
+  const api = factory(typeof module === "object" && module.exports ? require("./maps.js") : root.GFMaps);
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.GF = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function(Maps) {
+  "use strict";
+  const SIZE = 25, CENTER = 12, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15, GATE_MAX_LEVEL = 15;
+  const worldSize = (s) => {
+    var _a;
+    return (_a = s == null ? void 0 : s.worldSize) != null ? _a : s ? 25 : 17;
+  };
+  const worldWidth = worldSize;
+  const worldHeight = (s) => {
+    var _a;
+    return (_a = s == null ? void 0 : s.worldHeight) != null ? _a : worldWidth(s);
+  };
+  const worldCenter = (s) => Math.floor(worldSize(s) / 2);
+  const worldCenterY = (s) => Math.floor(worldHeight(s) / 2);
+  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
+  const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
+  const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
+  const DEFS = {};
+  function balancedCost(cost) {
+    return { coins: cost.coins, materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
+  }
+  function def(id, name2, cat, cost, hp, extra = {}) {
+    if (extra.upgradeBase) extra = __spreadProps(__spreadValues({}, extra), { upgradeBase: balancedCost(extra.upgradeBase) });
+    DEFS[id] = __spreadValues({ id, name: name2, cat, cost: balancedCost(cost), hp }, extra);
+  }
+  const chains = [
+    ["tea", "inn", "bank", "茶肆", "客栈", "钱庄", "plain", "商", "#d6a450"],
+    ["farm", "mill", "wine", "农田", "磨坊", "酒坊", "shore", "农", "#89a663"],
+    ["mulberry", "weaver", "tailor", "桑园", "织坊", "成衣铺", "forest", "丝", "#b38ba7"],
+    ["quarry", "kiln", "trade", "石场", "瓷窑", "商号", "mountain", "工", "#7b9fa2"]
+  ];
+  const COIN_CHAIN_COSTS = [{ coins: 0, materials: 50 }, { coins: 90, materials: 160 }, { coins: 430, materials: 750 }];
+  const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
+  chains.forEach((a, ci) => {
+    for (let i = 0; i < 3; i++) {
+      const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
+      const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
+      def(a[i], a[i + 3], "economy", { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
+        income: (high ? [2, 8, 48] : [1, 5, 30])[i],
+        resource: ci < 2 ? "coins" : "materials",
+        terrain: i === 0 ? a[6] : null,
+        prev: i ? a[i - 1] : null,
+        upgradeWeight: i === 0 ? high ? 7 / 6 : 11 / 15 : 1,
+        chain: a[7],
+        color: a[8],
+        end: i === 2,
+        tier: i,
+        radius: 1,
+        limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
+        names: [a[i + 3], i === 0 ? ["清茗茶肆", "临水良田", "葱郁桑园", "青石矿场"][ci] : "兴旺" + a[i + 3], "鼎盛" + a[i + 3]]
+      });
+    }
+  });
+  def("guild", "汇财会馆", "economy", { coins: 18e3, materials: 24e3 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 1, limit: 1 });
+  def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 1, limit: 1 });
+  def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
+  def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
+  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "持续出兵 · 自动出征攻城" });
+  def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { fortuneOnly: true, desc: "井旁平地可建农田 · 相邻农田收入 +20%" });
+  def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
+  def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
+  def("earth", "土地庙", "temple", { coins: 180, materials: 130 }, 260, { guard: 0.2, range: 3, fortuneOnly: true, desc: "三格内建筑受到伤害 -20% · 仅可由造化匣获得" });
+  def("zhong", "钟馗像", "temple", { coins: 360, materials: 260 }, 430, { slow: 0.4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: "每 12 秒全场减速 4 秒 · 仅可由造化匣获得" });
+  def("tao", "道观", "temple", { coins: 600, materials: 440 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15% · 仅可由造化匣获得" });
+  def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { limit: 10, desc: "变化为随机建筑" });
+  def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: "庄园出入口 · 可升级与修复" });
+  const SKILLS = { repel: { name: "驱鬼符", cooldown: 18 }, repair: { name: "回春诀", cooldown: 24 }, thunder: { name: "九霄天雷", cooldown: 22 } };
+  const MISSIONS = [
+    { title: "一盏茶，起一座坊", desc: "在平地建造一间茶肆", reward: 60, test: (s) => s.buildings.some((b) => b.type === "tea") },
+    { title: "客来茶香，产业相连", desc: "紧挨茶肆建造客栈", reward: 90, test: (s) => s.buildings.some((b) => b.type === "inn") },
+    { title: "立箭塔，护一方安宁", desc: "建造两座箭塔，保卫庄园", reward: 100, test: (s) => s.buildings.filter((b) => b.type === "tower").length >= 2 },
+    { title: "造化初开", desc: "开启一次造化匣", reward: 75, test: (s) => s.fortuneBuilt >= 1 },
+    { title: "百业初兴", desc: "建成任意两种经济链终点建筑", reward: 200, test: (s) => new Set(s.buildings.filter((b) => DEFS[b.type].end).map((b) => b.type)).size >= 2 },
+    { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") }
+  ];
+  const VERSION = 8, UNIT_CAP = 120;
+  const world = (s) => s._world || s;
+  const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
+  const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+  const NEIGHBORS8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+  const mapCache = /* @__PURE__ */ new WeakMap(), viewCache = /* @__PURE__ */ new WeakMap(), indexCache = /* @__PURE__ */ new WeakMap();
+  function map(s) {
+    const w = world(s);
+    let value = mapCache.get(w);
+    if (!value) {
+      value = Maps.create(w.mapSeed, w.mode, w.enemyCount, w.rotation);
+      mapCache.set(w, value);
+    }
+    return value;
+  }
+  function buildingIndex(s) {
+    const w = world(s);
+    let index = indexCache.get(w);
+    if (!index || index.revision !== w.revision || index.list !== w.buildings) {
+      index = { revision: w.revision, list: w.buildings, tiles: /* @__PURE__ */ new Map(), ids: /* @__PURE__ */ new Map(), owners: w.players.map(() => []) };
+      for (const b of w.buildings) {
+        index.tiles.set(b.y * w.worldSize + b.x, b);
+        index.ids.set(b.id, b);
+        index.owners[b.owner].push(b);
+      }
+      indexCache.set(w, index);
+    }
+    return index;
+  }
+  const personalKeys = ["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "selectedSkill", "mission", "eliminated", "controller", "team", "ai", "recruitCursor", "kills"];
+  function playerView(s, owner = 0) {
+    const w = world(s);
+    if (!w.players[owner]) throw new Error("Unknown estate");
+    let views = viewCache.get(w);
+    if (!views) {
+      views = [];
+      viewCache.set(w, views);
+    }
+    if (views[owner]) return views[owner];
+    const view = { actorId: owner };
+    Object.defineProperty(view, "_world", { value: w });
+    const keys = /* @__PURE__ */ new Set([...Object.keys(w), ...personalKeys, "enemies"]);
+    for (const key of keys) Object.defineProperty(view, key, {
+      enumerable: true,
+      get() {
+        if (key === "buildings") return buildingIndex(w).owners[owner];
+        if (key === "enemies") return hostileUnits(view);
+        return personalKeys.includes(key) ? w.players[owner][key] : w[key];
+      },
+      set(value) {
+        if (key === "buildings") {
+          w.buildings = [...w.buildings.filter((b) => b.owner !== owner), ...value];
+          w.revision++;
+        } else if (personalKeys.includes(key)) w.players[owner][key] = value;
+        else w[key] = value;
+      }
+    });
+    return views[owner] = view;
+  }
+  const economicView = (s) => s.actorId === void 0 ? playerView(s) : s;
+  const hostile = (s, a, b) => {
+    var _a, _b;
+    return ((_a = world(s).players[a]) == null ? void 0 : _a.team) !== ((_b = world(s).players[b]) == null ? void 0 : _b.team);
+  };
+  const hostileUnits = (s) => {
+    const p = economicView(s);
+    return world(s).soldiers.filter((u) => u.hp > 0 && hostile(s, p.actorId, u.owner));
+  };
+  function estate(s) {
+    const land = map(s).land;
+    return s.actorId === void 0 ? land : land.estates[s.actorId];
+  }
   function owns(s, x, y) {
     if (!inside(x, y, s)) return false;
-    const land = estate(s), key = y * worldSize(s) + x;
-    return !land || land.cells.has(key) || land.walls.has(key) || land.gates.some((g) => g.x === x && g.y === y);
+    const m = map(s), k = y * worldWidth(s) + x;
+    if (s.actorId === void 0) return m.owners[k] >= 0 || m.land.walls.has(k);
+    return !s.eliminated && (m.owners[k] === s.actorId || m.land.estates[s.actorId].walls.has(k));
   }
-  function isWall(s, x, y) {
-    var _a;
-    return inside(x, y, s) && !!((_a = estate(world(s))) == null ? void 0 : _a.walls.has(y * worldSize(s) + x));
-  }
-  function walkable(s, x, y) {
-    var _a;
-    if (!inside(x, y, s) || isWall(s, x, y)) return false;
-    return terrain(x, y, s) !== "water" || !!((_a = estate(world(s))) == null ? void 0 : _a.roads.has(y * worldSize(s) + x));
-  }
+  const ownerAt = (s, x, y) => inside(x, y, s) ? map(s).owners[y * worldWidth(s) + x] : -1;
+  const isWall = (s, x, y) => inside(x, y, s) && map(s).land.walls.has(y * worldWidth(s) + x);
+  const walkable = (s, x, y) => inside(x, y, s) && !!map(s).walk[y * worldWidth(s) + x];
   function terrain(x, y, s) {
     if (!inside(x, y, s)) return "plain";
-    const base = baseTerrain(x, y, s);
-    return base === "plain" && NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy, s) && baseTerrain(x + dx, y + dy, s) === "water") ? "shore" : base;
+    const cells = map(s).terrain, base = cells[y * worldWidth(s) + x];
+    return base === "plain" && NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy, s) && cells[(y + dy) * worldWidth(s) + x + dx] === "water") ? "shore" : base;
   }
-  const at = (s, x, y) => s.buildings.find((b) => b.x === x && b.y === y);
-  const adjacent = (s, x, y) => s.buildings.filter((b) => dist8(b.x, b.y, x, y) === 1);
+  function createMatch({ mode = "single", enemyCount = mode === "coop" ? 2 : 1, mapSeed = Math.floor(Math.random() * 4294967296), rotation } = {}) {
+    if (!["single", "coop"].includes(mode) || !(mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(enemyCount)) throw new Error("Invalid match configuration");
+    if (!Number.isInteger(mapSeed) || mapSeed < 0 || mapSeed > 4294967295) throw new Error("Invalid map seed");
+    rotation != null ? rotation : rotation = mapSeed % 4;
+    if (![0, 1, 2, 3].includes(rotation)) throw new Error("Invalid rotation");
+    const [width, height] = Maps.dimensions(mode, enemyCount), blue = mode === "coop" ? 2 : 1;
+    const s = {
+      version: VERSION,
+      mode,
+      enemyCount,
+      mapSeed,
+      rotation,
+      mapGeneration: 3,
+      worldSize: rotation % 2 ? height : width,
+      worldHeight: rotation % 2 ? width : height,
+      seed: mapSeed,
+      nextId: 1,
+      elapsed: 0,
+      time: 0,
+      day: 1,
+      phase: "day",
+      revision: 0,
+      over: false,
+      result: null,
+      kills: 0,
+      players: [],
+      buildings: [],
+      soldiers: [],
+      projectiles: [],
+      effects: [],
+      events: []
+    };
+    for (let id = 0; id < blue + enemyCount; id++) s.players.push({
+      id,
+      team: id < blue ? 0 : 1,
+      controller: id === 0 ? "human" : "computer",
+      eliminated: false,
+      coins: 150,
+      materials: 200,
+      fortuneBuilt: 0,
+      gateLevel: 1,
+      cooldowns: { repel: 0, repair: 0, thunder: 0 },
+      selectedSkill: id === 0 ? null : "thunder",
+      mission: 0,
+      kills: 0,
+      recruitCursor: 0,
+      ai: { clock: 0, armyTurn: true, activeSeconds: 0, decisions: 0, builds: 0, upgrades: 0, casts: 0, lastAction: "准备经营" }
+    });
+    for (const e of map(s).land.estates) {
+      addBuilding(s, "shrine", e.center.x, e.center.y, 1, { owner: e.owner });
+      for (const g of e.gates) addBuilding(s, "gate", g.x, g.y, 1, { owner: e.owner, direction: g.direction });
+    }
+    return s;
+  }
+  const createState = (mapSeed) => createMatch({ mapSeed });
+  const createCoopState = (mapSeed) => createMatch({ mode: "coop", mapSeed });
+  const at = (s, x, y) => {
+    if (!inside(x, y, s)) return void 0;
+    const b = buildingIndex(s).tiles.get(y * worldWidth(s) + x);
+    return b && (s.actorId === void 0 || b.owner === s.actorId) ? b : void 0;
+  };
+  const adjacent = (s, x, y) => NEIGHBORS8.map(([dx, dy]) => at(s, x + dx, y + dy)).filter(Boolean);
   const dryFarm = (s, b) => b.type === "farm" && terrain(b.x, b.y, s) !== "shore" && !adjacent(s, b.x, b.y).some((n) => n.type === "well");
   const isPrereq = (d, nd) => {
     var _a;
@@ -567,41 +644,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return unlocked;
   };
   const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
-  const soldierLimit = (b) => Math.max(1, Math.min(MAX_LEVEL, b.level));
+  const soldierRate = (b) => 1 + 0.25 * (b.level - 1);
   const soldierHP = (b) => Math.round(120 * hpFactor(b));
   const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s);
   const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(b) * soldierDamage(s, b)));
-  function muster(s, b) {
-    var _a;
-    if (s.phase !== "night" || b.type !== "barracks" || b.hp <= 0 || !walkable(s, b.x, b.y)) return;
-    s.soldiers || (s.soldiers = []);
-    (_a = b.musteredCount) != null ? _a : b.musteredCount = 0;
-    while (b.musteredCount < soldierLimit(b)) {
-      s.soldiers.push({
-        id: s.nextId++,
-        barracksId: b.id,
-        x: b.x,
-        y: b.y,
-        hp: soldierHP(b),
-        maxHp: soldierHP(b),
-        level: b.level,
-        attack: 0,
-        path: [],
-        pathRevision: -1,
-        targetId: null
-      });
-      b.musteredCount++;
-    }
-  }
-  function cleanSoldiers(s) {
-    s.soldiers = (s.soldiers || []).filter((u) => u.hp > 0 && s.buildings.some((b) => b.id === u.barracksId && b.type === "barracks" && b.hp > 0));
-    for (const e of s.enemies) if (e.soldierTargetId != null && !s.soldiers.some((u) => u.id === e.soldierTargetId)) {
-      delete e.soldierTargetId;
-      e.path = [];
-      e.pathRevision = -1;
-      delete e.chaseTile;
-    }
-  }
   const visualLevel = (level) => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = (b) => {
     var _a;
@@ -609,11 +655,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
     var _a, _b;
-    const b = __spreadValues({ id: s.nextId++, type, x, y, level, hp: Math.round(DEFS[type].hp * Math.pow(HP_GROWTH, level - 1)), cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 }, extra);
-    if (s.mode === "coop") b.owner = (_b = (_a = extra.owner) != null ? _a : s.actorId) != null ? _b : 0;
+    const b = __spreadValues({ id: s.nextId++, type, x, y, level, hp: Math.round(DEFS[type].hp * Math.pow(HP_GROWTH, level - 1)), cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, production: 0, lastHit: -10 }, extra);
+    b.owner = (_b = (_a = extra.owner) != null ? _a : s.actorId) != null ? _b : 0;
     world(s).buildings.push(b);
     s.revision++;
-    muster(s, b);
     return b;
   }
   function grantBuilding(s, type, x, y, level = unlockedBuildingLevel(s), originCost) {
@@ -621,48 +666,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s = economicView(s);
     if (!DEFS[type] || type === "fortune" || DEFS[type].unique || DEFS[type].fixed || !owns(s, x, y) || isWall(s, x, y) || ((_a = estate(s)) == null ? void 0 : _a.gates.some((g) => g.x === x && g.y === y)) || terrain(x, y, s) === "water" || at(s, x, y)) return null;
     return addBuilding(s, type, x, y, Math.min(level, maxLevel({ type })), originCost ? { originCost } : {});
-  }
-  function createState(mapSeed = Math.floor(Math.random() * 4294967296), mapGeneration = 2) {
-    var _a;
-    const s = {
-      version: mapSeed === null ? 4 : 5,
-      worldSize: mapSeed === null ? 17 : 25,
-      seed: 73193,
-      nextId: 1,
-      coins: 150,
-      materials: 200,
-      fortuneBuilt: 0,
-      day: 1,
-      phase: "day",
-      time: 0,
-      elapsed: 0,
-      repairTime: 0,
-      direction: 0,
-      buildings: [],
-      enemies: [],
-      soldiers: [],
-      projectiles: [],
-      effects: [],
-      events: [],
-      kills: 0,
-      wave: null,
-      cooldowns: { repel: 0, repair: 0, thunder: 0 },
-      selectedSkill: null,
-      mission: 0,
-      revision: 0,
-      over: false,
-      celebrated: false
-    };
-    if (mapSeed !== null) {
-      s.mapSeed = mapSeed >>> 0;
-      s.estateSeed = (Math.imul(s.mapSeed, 2246822519) ^ 3266489917) >>> 0;
-      s.gateLevel = 1;
-    }
-    if (mapSeed !== null && mapGeneration === 2) s.mapGeneration = 2;
-    const center = worldCenter(s);
-    addBuilding(s, "shrine", center, center);
-    for (const g of ((_a = estate(s)) == null ? void 0 : _a.gates) || []) addBuilding(s, "gate", g.x, g.y, 1, { direction: g.direction });
-    return s;
   }
   function random(s) {
     s.seed = Math.imul(s.seed, 1664525) + 1013904223 >>> 0;
@@ -704,14 +707,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s = economicView(s);
     const d = DEFS[type];
     if (!d) return "未知建筑";
-    if (s.over) return "古坊已失守";
+    if (s.over || s.eliminated) return "该庄园已出局";
     if (!owns(s, x, y) || isWall(s, x, y)) return "请选择庄园内地块";
     if (at(s, x, y)) return "此地已有建筑";
     if ((_a = estate(s)) == null ? void 0 : _a.gates.some((g) => g.x === x && g.y === y)) return "城门地块不可建造";
     const plot = terrain(x, y, s);
     if (plot === "water") return "水域不可建造";
     if (d.fixed) return "城门仅可由庄园生成";
-    if (!ignoreEnemies && s.enemies.some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
+    if (!ignoreEnemies && hostileUnits(s).some((e) => Math.hypot(e.x - x, e.y - y) < 0.65)) return "敌人正在此地";
     if (d.unique) return "祠堂仅此一座";
     if (d.fortuneOnly) return "仅可由造化匣获得";
     if (type === "fortune") return fortuneCandidates(s, x, y).length ? ignoreFunds ? "" : shortage(s, buildCost(s, type)) : "此地无可造化建筑";
@@ -738,9 +741,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function missions(s) {
     var _a;
-    if (s.mode === "coop" && s.actorId === void 0) {
-      missions(playerView(s, 0));
-      missions(playerView(s, 1));
+    if (s.actorId === void 0) {
+      for (const p of s.players) if (!p.eliminated) missions(playerView(s, p.id));
       return;
     }
     while ((_a = MISSIONS[s.mission]) == null ? void 0 : _a.test(s)) {
@@ -793,7 +795,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s = economicView(s);
     if (!b || !s.buildings.includes(b)) return "建筑已不存在";
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可升级庄园内建筑";
-    if (s.over) return "古坊已失守";
+    if (s.over || s.eliminated) return "该庄园已出局";
     const d = DEFS[b.type];
     if (b.level >= maxLevel(b)) return "已达最高等级";
     if (estate(s) && (b.type === "shrine" || b.type === "gate")) {
@@ -865,15 +867,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       target.hp = maxHP(target) * ratio;
     }
     if (b.type === "gate") s.gateLevel = level;
-    if (b.type === "barracks") {
-      for (const u of s.soldiers || []) if (u.barracksId === b.id) {
-        const ratio = u.hp / u.maxHp;
-        u.level = b.level;
-        u.maxHp = soldierHP(b);
-        u.hp = u.maxHp * ratio;
-      }
-      muster(s, b);
-    }
     s.revision++;
     missions(s);
     return { ok: true };
@@ -883,7 +876,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!b || !s.buildings.includes(b) || b.type === "shrine") return "祠堂不可拆除";
     if (b.type === "gate") return "城门不可拆除";
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可拆除庄园内建筑";
-    if (s.over) return "古坊已失守";
+    if (s.over || s.eliminated) return "该庄园已出局";
     return "";
   }
   function demolish(s, b) {
@@ -895,13 +888,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.materials += refund.materials;
     s.buildings = s.buildings.filter((n) => n !== b);
     s.revision++;
-    if (b.type === "barracks") cleanSoldiers(world(s));
     const dryFarms = b.type === "well" ? s.buildings.filter((n) => n.type === "farm" && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
     return { ok: true, refund, dryFarms };
   }
   function income(s, b, buildings) {
     var _a;
-    if (s.mode === "coop" && s.actorId === void 0) s = playerView(s, (_a = b.owner) != null ? _a : 0);
+    if (s.actorId === void 0 && s.players) s = playerView(s, (_a = b.owner) != null ? _a : 0);
     const d = DEFS[b.type];
     if (!d.income) return 0;
     let bonus = 0;
@@ -911,7 +903,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (n.type === "well" && dist === 1 && b.type === "farm") bonus += 0.2 * auraFactor(n);
       if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += 0.1 * auraFactor(n);
     }
-    return d.income * incomeFactor(b) * (1 + Math.min(2, bonus)) * (s.day % 7 === 0 ? 1.25 : 1);
+    return d.income * incomeFactor(b) * (1 + Math.min(2, bonus));
   }
   const rates = (s) => economicView(s).buildings.reduce((r, b) => {
     const d = DEFS[b.type];
@@ -922,23 +914,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function settleIncome(s, dt, emitEffects = true) {
     var _a;
     const w = world(s), buildings = w.buildings;
-    const signature = JSON.stringify([w.mode, w.day, buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
+    const signature = JSON.stringify([w.mode, buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let cached = incomeCache.get(w);
     const sameBuildings = ((_a = cached == null ? void 0 : cached.buildings) == null ? void 0 : _a.length) === buildings.length && buildings.every((b, i) => cached.buildings[i] === b);
     if (!sameBuildings || cached.signature !== signature) {
       const groups = /* @__PURE__ */ new Map();
       for (const b of buildings) {
-        const owner = w.mode === "coop" ? b.owner : void 0;
+        const owner = b.owner;
         if (!groups.has(owner)) groups.set(owner, []);
         groups.get(owner).push(b);
       }
       cached = { signature, buildings: [...buildings], groups, players: /* @__PURE__ */ new Map() };
       incomeCache.set(w, cached);
     }
-    const players = s.mode === "coop" && s.actorId === void 0 ? [playerView(s, 0), playerView(s, 1)] : [s];
+    const players = s.actorId === void 0 ? w.players.filter((p) => !p.eliminated).map((p) => playerView(w, p.id)) : s.eliminated ? [] : [s];
     for (const player of players) {
       const owner = player.actorId;
-      const owned = cached.groups.get(w.mode === "coop" ? owner : void 0) || [];
+      const owned = cached.groups.get(owner) || [];
       let values = cached.players.get(owner);
       if (!values) {
         values = owned.map((b) => income(player, b, owned));
@@ -961,787 +953,567 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
   }
-  function dusk(s) {
-    s.phase = "dusk";
-    s.time = 0;
-    s.direction = Math.floor(random(s) * (s.mode === "coop" ? 3 : 4));
-    event(s, "暮色将至 · 今夜来敌在" + raidDirections(s).map((d) => ["北", "东", "南", "西"][d]).join("、") + "方", "warning");
+  const flowCache = /* @__PURE__ */ new WeakMap(), controllerCache = /* @__PURE__ */ new WeakMap();
+  let controllerFactory = null;
+  function setControllerFactory(factory) {
+    controllerFactory = factory;
   }
-  function startNight(s) {
-    s.phase = "night";
-    s.time = 0;
-    const boss = s.day % 7 === 0;
-    s.soldiers = [];
-    cleanSoldiers(s);
-    for (const b of s.buildings) if (b.type === "barracks") {
-      b.musteredCount = 0;
-      muster(s, b);
+  function ready(s) {
+    return s.players.filter((p) => !p.eliminated && p.controller === "human").every((p) => !!p.selectedSkill);
+  }
+  function tickControllers(s, dt) {
+    if (!controllerFactory) return;
+    let pilots = controllerCache.get(s);
+    if (!pilots) {
+      pilots = /* @__PURE__ */ new Map();
+      controllerCache.set(s, pilots);
     }
-    const age = s.day - 1;
-    s.wave = { total: Math.min(120, 6 + 3 * age + Math.floor(0.18 * age ** 2) + (boss ? 8 : 0)), spawned: 0, timer: 0.35, boss };
-    if (s.mode === "coop") s.wave.total *= 2;
-    event(s, boss ? "百鬼夜行！妖将与群妖从" + raidDirections(s).map((d) => ["北", "东", "南", "西"][d]).join("、") + "方来袭" : "入夜了 · 守住祠堂，灯火不熄", "warning");
-  }
-  function dawn(s) {
-    s.day++;
-    s.phase = "day";
-    s.time = 0;
-    s.wave = null;
-    s.enemies = [];
-    s.projectiles = [];
-    s.repairTime = 0;
-    s.soldiers = [];
-    for (const b of s.buildings) delete b.musteredCount;
-    const reward = 40 + s.day * 8;
-    s.coins += reward;
-    event(s, "平安入晓 · 守夜赏钱 +" + reward, "reward");
-    if (s.mode === "coop") s.partner.coins += reward + (s.day % 7 === 0 ? 180 : 0);
-    if (s.day % 7 === 0) {
-      s.coins += 180;
-      event(s, "上元灯会 · 收入 +25%，获赠 180 铜钱", "reward");
+    for (const p of s.players) if (!p.eliminated && ["computer", "autoplay"].includes(p.controller)) {
+      if (!pilots.has(p.id)) pilots.set(p.id, controllerFactory(playerView(s, p.id)));
+      pilots.get(p.id).tick(dt);
     }
-    if (s.day === 8 && !s.celebrated) {
-      s.celebrated = true;
-      event(s, "七夜长明！古坊立稳根基，可继续经营抵御更强来敌", "victory");
-    }
-    missions(s);
   }
-  function spawnPlots(s, direction) {
-    var _a;
-    if (!Number.isInteger(direction) || direction < 0 || direction > 3) return [];
-    const size = worldWidth(s), height = worldHeight(s), center = direction % 2 ? worldCenterY(s) : worldCenter(s), plots = [];
-    for (let pos = center - 2; pos <= center + 2; pos++) {
-      const [x, y] = [[pos, 0], [size - 1, pos], [pos, height - 1], [0, pos]][direction];
-      if (terrain(x, y, s) !== "water" && walkable(s, x, y) && !((_a = at(s, x, y)) == null ? void 0 : _a.hp) && findPath(s, { x, y }).length) plots.push({ x, y });
-    }
-    return plots;
+  function buildingGuard(s, b) {
+    return Math.min(0.65, playerView(s, b.owner).buildings.filter((n) => n.type === "earth" && Math.hypot(n.x - b.x, n.y - b.y) <= DEFS.earth.range).reduce((v, n) => v + DEFS.earth.guard * factor(n), 0));
   }
-  function enemyLane(e) {
-    if (e.laneX === void 0) e.laneX = (Math.imul(e.id, 1664525) + 1013904223 >>> 0) / 4294967296 * 0.5 - 0.25;
-    if (e.laneY === void 0) e.laneY = (Math.imul(e.id, 2246822519) + 3266489917 >>> 0) / 4294967296 * 0.5 - 0.25;
+  function defenseBoost(s) {
+    return 1 + Math.min(1.5, economicView(s).buildings.filter((b) => b.type === "tao").reduce((n, b) => n + DEFS.tao.powerAura * factor(b), 0));
   }
-  function raidGates(s, direction) {
-    return s.buildings.filter((b) => b.type === "gate" && b.direction === direction).sort((a, b) => {
-      var _a, _b;
-      return ((_a = a.owner) != null ? _a : 0) - ((_b = b.owner) != null ? _b : 0) || a.id - b.id;
-    });
+  const zhongSlow = (b) => Math.min(0.65, DEFS.zhong.slow + 0.08 * (b.level - 1));
+  function eliminate(s, owner) {
+    const p = s.players[owner];
+    if (p.eliminated) return;
+    p.eliminated = true;
+    s.buildings = s.buildings.filter((b) => b.owner !== owner);
+    s.soldiers = s.soldiers.filter((u) => u.owner !== owner);
+    s.projectiles = s.projectiles.filter((a) => a.owner !== owner);
+    s.revision++;
+    event(s, `${p.team === 0 ? "我方" : "敌方"}庄园 ${owner + 1} 已出局`, "elimination");
   }
-  function spawnEnemy(s) {
-    const w = s.wave, i = w.spawned, directions = raidDirections(s), dir = directions[i % directions.length];
-    const plots = spawnPlots(s, dir);
-    if (!plots.length) {
-      w.spawned++;
+  function hurtBuilding(s, b, damage, raw = false) {
+    s = world(s);
+    if (b.hp <= 0 || s.players[b.owner].eliminated) return;
+    b.lastHit = s.elapsed;
+    b.hp = Math.max(0, b.hp - damage * (raw ? 1 : 1 - buildingGuard(s, b)));
+    if (b.hp > 0) return;
+    if (b.type === "shrine") {
+      eliminate(s, b.owner);
       return;
     }
-    w.spawned++;
-    const gates = s.mode === "coop" ? raidGates(s, dir) : [];
-    const targetGate = gates.length ? gates[Math.floor(i / directions.length) % gates.length] : null;
-    const SIZE2 = worldSize(s), p = plots[Math.floor(random(s) * plots.length)];
-    const jitter = (value, limit) => value === 0 ? random(s) * 0.2 : value === limit - 1 ? value - random(s) * 0.2 : value + (random(s) * 2 - 1) * 0.28;
-    const x = jitter(p.x, SIZE2), y = jitter(p.y, worldHeight(s)), laneX = random(s) * 0.5 - 0.25, laneY = random(s) * 0.5 - 0.25;
-    const type = s.day >= 5 && i % 4 === 2 ? "fox" : s.day >= 4 && i % 3 === 1 ? "ghost" : "bandit";
-    const age = s.day - 1, middle = Math.min(7, Math.max(0, s.day - 7)), late = Math.min(7, Math.max(0, s.day - 14)), endless = Math.max(0, s.day - 21);
-    const d = ENEMIES[type], boss = w.boss && i >= w.total - (s.mode === "coop" ? 2 : 1);
-    const siege = w.boss ? Math.min(1.5, Math.max(0, s.day - 7) * 1.5 / 14) : 0;
-    const scale = Math.pow(1.16, Math.min(6, age)) * Math.pow(1.23, middle) * Math.pow(1.28, late) * Math.pow(1.16, endless) * (1 + siege);
-    s.enemies.push({
-      id: s.nextId++,
-      type,
-      x,
-      y,
-      laneX,
-      laneY,
-      hp: d.hp * scale * (boss ? 4.5 : 1),
-      maxHp: d.hp * scale * (boss ? 4.5 : 1),
-      damage: d.damage * 0.6 * Math.pow(1.1, Math.min(6, age)) * Math.pow(1.16, middle) * Math.pow(1.2, late) * Math.pow(1.12, endless) * (1 + siege / 3) * (boss ? 2 : 1),
-      speed: d.speed * Math.min(1.22, Math.pow(1.012, age)),
-      attack: 0,
-      repelled: 0,
-      slowed: 0,
-      slowFactor: 1,
-      boss,
-      path: [],
-      pathRevision: -1
-    });
-    if (targetGate) Object.assign(s.enemies[s.enemies.length - 1], { targetGateId: targetGate.id, targetOwner: targetGate.owner });
+    if (b.type !== "gate") s.buildings = s.buildings.filter((n) => n.id !== b.id);
+    s.revision++;
   }
-  function findPath(s, e, destination, passBuildings = true) {
-    var _a;
+  function healBuilding(s, b, amount) {
     s = world(s);
-    const SIZE2 = worldWidth(s), height = worldHeight(s);
-    if (s.mode === "coop" && !destination) {
-      const land = estate(s), key = Math.round(e.y) * SIZE2 + Math.round(e.x);
-      const entered = land.estates.find((a) => a.cells.has(key));
-      if (entered) {
-        const owner = Number.isInteger(e.targetOwner) ? e.targetOwner : entered.owner;
-        const shrine = s.buildings.find((b) => b.type === "shrine" && b.owner === owner);
-        return shrine ? findPath(s, e, shrine) : [];
-      }
-      const assigned = s.buildings.find((b) => b.type === "gate" && b.id === e.targetGateId);
-      const choices = assigned ? [assigned] : s.buildings.filter((b) => b.type === "gate");
-      const queue2 = [key], parents = /* @__PURE__ */ new Map([[key, null]]), gates = new Map(choices.map((g) => [g.y * SIZE2 + g.x, g]));
-      for (let i = 0; i < queue2.length; i++) {
-        const k = queue2[i], gate = gates.get(k);
-        if (gate) {
-          const path2 = [];
-          let p = k;
-          while (parents.get(p) != null) {
-            path2.unshift({ x: p % SIZE2, y: Math.floor(p / SIZE2) });
-            p = parents.get(p);
-          }
-          const shrine = s.buildings.find((b) => b.type === "shrine" && b.owner === gate.owner);
-          e.targetGateId = gate.id;
-          e.targetOwner = gate.owner;
-          return shrine ? path2.concat(findPath(s, gate, shrine) || []) : [];
-        }
-        for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-          const x = k % SIZE2 + dx, y = Math.floor(k / SIZE2) + dy, next = y * SIZE2 + x;
-          if (walkable(s, x, y) && !parents.has(next) && !land.cells.has(next)) {
-            parents.set(next, k);
-            queue2.push(next);
-          }
-        }
-      }
-      return [];
-    }
-    const base = destination || s.buildings.find((b) => b.type === "shrine");
-    if (!base) return [];
-    const startX = Math.max(0, Math.min(SIZE2 - 1, Math.round(e.x))), startY = Math.max(0, Math.min(height - 1, Math.round(e.y)));
-    const start = startY * SIZE2 + startX, goal = Math.round(base.y) * SIZE2 + Math.round(base.x), prev = Array(SIZE2 * height).fill(-1), queue = [start];
-    prev[start] = start;
-    if (!walkable(s, startX, startY) || !walkable(s, Math.round(base.x), Math.round(base.y))) return destination ? null : [];
-    for (let i = 0; i < queue.length; i++) {
-      const current = queue[i];
-      if (current === goal) break;
-      const x = current % SIZE2, y = Math.floor(current / SIZE2);
-      for (const [nx, ny] of [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]]) {
-        if (!walkable(s, nx, ny)) continue;
-        const next = ny * SIZE2 + nx;
-        if (!passBuildings && ((_a = at(s, nx, ny)) == null ? void 0 : _a.hp) > 0) continue;
-        if (prev[next] !== -1) continue;
-        prev[next] = current;
-        queue.push(next);
-      }
-    }
-    if (prev[goal] === -1) return destination ? null : [];
-    const path = [];
-    let n = goal;
-    while (n !== start && n !== -1) {
-      path.unshift({ x: n % SIZE2, y: Math.floor(n / SIZE2) });
-      n = prev[n];
-    }
-    return path;
+    if (s.players[b.owner].eliminated) return;
+    if (b.type === "gate" && b.hp === 0 && s.soldiers.some((u) => u.hp > 0 && Math.abs(u.x - b.x) < 0.65 && Math.abs(u.y - b.y) < 0.65)) return;
+    b.hp = Math.min(maxHP(b), b.hp + amount);
   }
-  function findSoldierPath(s, unit, target) {
-    return findPath(s, unit, target, true);
+  function checkResult(s) {
+    const blue = s.players.some((p) => p.team === 0 && !p.eliminated), red = s.players.some((p) => p.team === 1 && !p.eliminated);
+    if (blue && red) return;
+    s.over = true;
+    s.result = blue ? "victory" : red ? "defeat" : "draw";
+    event(s, { victory: "敌方主城全部攻破！", defeat: "我方主城全部失守", draw: "双方主城同时失守 · 平局" }[s.result], "finished");
   }
-  function safeUnitSegment(s, unit, x, y, passBuildings) {
-    const clear = (tx, ty) => {
-      var _a;
-      return walkable(s, tx, ty) && (passBuildings || !(((_a = at(s, tx, ty)) == null ? void 0 : _a.hp) > 0));
-    };
-    const samples = Math.max(1, Math.ceil(Math.hypot(x - unit.x, y - unit.y) / 0.025));
-    let lastX = Math.round(unit.x), lastY = Math.round(unit.y);
-    for (let i = 0; i <= samples; i++) {
-      const px = unit.x + (x - unit.x) * i / samples, py = unit.y + (y - unit.y) * i / samples;
-      const tx = Math.round(px), ty = Math.round(py);
-      if (px < 0 || py < 0 || px > worldWidth(s) - 1 || py > worldHeight(s) - 1 || !clear(tx, ty)) return false;
-      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
-      lastX = tx;
-      lastY = ty;
+  function collectDead(s) {
+    s.soldiers = s.soldiers.filter((u) => {
+      if (u.hp > 0 && !s.players[u.owner].eliminated) return true;
+      if (u.hp <= 0 && Number.isInteger(u.killer) && hostile(s, u.killer, u.owner)) {
+        s.players[u.killer].kills++;
+        s.kills++;
+      }
+      return false;
+    });
+  }
+  function damageUnit(u, damage, owner) {
+    if (u.hp <= 0) return;
+    u.hp -= damage;
+    if (u.hp <= 0) u.killer = owner;
+  }
+  function recruit(s, dt) {
+    const counts = s.players.map(() => 0);
+    for (const u of s.soldiers) if (u.hp > 0) counts[u.owner]++;
+    const index = buildingIndex(s);
+    for (const p of s.players) {
+      if (p.eliminated) continue;
+      const barracks = index.owners[p.id].filter((b) => b.type === "barracks" && b.hp > 0).sort((a, b) => a.id - b.id);
+      if (!barracks.length) continue;
+      if (counts[p.id] >= UNIT_CAP) {
+        for (const b of barracks) b.production = 0;
+        continue;
+      }
+      for (const b of barracks) b.production = (b.production || 0) + soldierRate(b) * dt;
+      for (let n = 0; n < barracks.length && counts[p.id] < UNIT_CAP; n++) {
+        const i = (p.recruitCursor + n) % barracks.length, b = barracks[i];
+        if (b.production < 1 - 1e-8) continue;
+        b.production = Math.max(0, b.production - 1);
+        counts[p.id]++;
+        s.soldiers.push({
+          id: s.nextId++,
+          owner: p.id,
+          barracksId: b.id,
+          x: b.x,
+          y: b.y,
+          level: b.level,
+          hp: soldierHP(b),
+          maxHp: soldierHP(b),
+          baseDamage: 18 * factor(b),
+          attack: 0,
+          targetOwner: null,
+          targetId: null,
+          repelled: 0,
+          slowed: 0,
+          slowFactor: 1,
+          waypoint: null
+        });
+        p.nextRecruit = (i + 1) % barracks.length;
+      }
+      if (p.nextRecruit !== void 0) {
+        p.recruitCursor = p.nextRecruit;
+        delete p.nextRecruit;
+      }
+      if (counts[p.id] >= UNIT_CAP) for (const b of barracks) b.production = 0;
+    }
+  }
+  function flow(s, target) {
+    const w = world(s), m = map(w), gx = Math.round(target.x), gy = Math.round(target.y), goal = gy * m.width + gx;
+    if (!inside(gx, gy, w) || !m.walk[goal]) return null;
+    let cache = flowCache.get(w);
+    if (!cache) {
+      cache = /* @__PURE__ */ new Map();
+      flowCache.set(w, cache);
+    }
+    if (cache.has(goal)) return cache.get(goal);
+    const distance = new Int16Array(m.walk.length).fill(-1), next = new Int32Array(m.walk.length).fill(-1), queue = new Int32Array(m.walk.length);
+    let head = 0, tail = 1;
+    queue[0] = goal;
+    distance[goal] = 0;
+    next[goal] = goal;
+    while (head < tail) {
+      const k = queue[head++], x = k % m.width, y = Math.floor(k / m.width);
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const nx = x + dx, ny = y + dy, n = ny * m.width + nx;
+        if (nx >= 0 && ny >= 0 && nx < m.width && ny < m.height && m.walk[n] && distance[n] === -1) {
+          distance[n] = distance[k] + 1;
+          next[n] = k;
+          queue[tail++] = n;
+        }
+      }
+    }
+    const value = { distance, next, goal };
+    if (cache.size >= 128) cache.delete(cache.keys().next().value);
+    cache.set(goal, value);
+    return value;
+  }
+  function findPath(s, unit, target) {
+    const f = flow(s, target), width = worldWidth(s);
+    let k = Math.round(unit.y) * width + Math.round(unit.x);
+    if (!f || f.distance[k] < 0) return null;
+    const result = [];
+    while (k !== f.goal) {
+      k = f.next[k];
+      result.push({ x: k % width, y: Math.floor(k / width) });
+    }
+    return result;
+  }
+  const findSoldierPath = findPath;
+  function targetEstate(s, u) {
+    var _a;
+    const k = Math.round(u.y) * s.worldSize + Math.round(u.x);
+    let best = null, distance = Infinity;
+    for (const p of s.players) if (!p.eliminated && hostile(s, u.owner, p.id)) {
+      const shrine = buildingIndex(s).owners[p.id].find((b) => b.type === "shrine"), f = shrine && flow(s, shrine), d = f == null ? void 0 : f.distance[k];
+      if (d >= 0 && d < distance) {
+        best = shrine;
+        distance = d;
+      }
+    }
+    u.targetOwner = (_a = best == null ? void 0 : best.owner) != null ? _a : null;
+    return best;
+  }
+  function spatial(s) {
+    const buckets = /* @__PURE__ */ new Map(), byId = /* @__PURE__ */ new Map();
+    for (const u of s.soldiers) if (u.hp > 0) {
+      const key = Math.floor(u.x / 3) + "," + Math.floor(u.y / 3);
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(u);
+      byId.set(u.id, u);
+    }
+    return { byId, near(x, y, r) {
+      const result = [];
+      for (let gy = Math.floor((y - r) / 3); gy <= Math.floor((y + r) / 3); gy++) for (let gx = Math.floor((x - r) / 3); gx <= Math.floor((x + r) / 3); gx++) for (const u of buckets.get(gx + "," + gy) || []) if (u.hp > 0 && Math.hypot(u.x - x, u.y - y) <= r) result.push(u);
+      return result;
+    } };
+  }
+  function clearSegment(s, u, x, y) {
+    const steps = Math.max(1, Math.ceil(Math.hypot(x - u.x, y - u.y) * 8));
+    for (let i = 1; i <= steps; i++) {
+      const tx = Math.round(u.x + (x - u.x) * i / steps), ty = Math.round(u.y + (y - u.y) * i / steps), b = at(s, tx, ty);
+      if (!walkable(s, tx, ty) || (b == null ? void 0 : b.hp) > 0 && hostile(s, u.owner, b.owner)) return false;
     }
     return true;
   }
-  function moveUnit(s, unit, target, speed, dt, passBuildings) {
-    let goal = unit.path[0] || target;
-    if (!safeUnitSegment(s, unit, goal.x, goal.y, passBuildings)) {
-      const tile = { x: Math.round(unit.x), y: Math.round(unit.y) };
-      if (tile.x !== goal.x || tile.y !== goal.y) goal = tile;
-    }
-    const distance = Math.hypot(goal.x - unit.x, goal.y - unit.y), step2 = Math.min(distance, speed * dt);
-    if (distance > 1e-3) {
-      const x = unit.x + (goal.x - unit.x) / distance * step2, y = unit.y + (goal.y - unit.y) / distance * step2;
-      if (safeUnitSegment(s, unit, x, y, passBuildings)) {
-        unit.x = x;
-        unit.y = y;
+  function localChase(s, u, target) {
+    if (clearSegment(s, u, target.x, target.y)) return { x: target.x, y: target.y };
+    const width = s.worldSize, start = Math.round(u.y) * width + Math.round(u.x), goal = Math.round(target.y) * width + Math.round(target.x), queue = [start], parents = /* @__PURE__ */ new Map([[start, start]]);
+    for (let i = 0; i < queue.length; i++) {
+      const k = queue[i];
+      if (k === goal) {
+        let next = k;
+        while (parents.get(next) !== start && next !== start) next = parents.get(next);
+        return { x: next % width, y: Math.floor(next / width) };
+      }
+      const x = k % width, y = Math.floor(k / width);
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const nx = x + dx, ny = y + dy, n = ny * width + nx, b = at(s, nx, ny);
+        if (Math.abs(nx - u.x) > 6 || Math.abs(ny - u.y) > 6 || !walkable(s, nx, ny) || parents.has(n) || (b == null ? void 0 : b.hp) > 0 && hostile(s, u.owner, b.owner)) continue;
+        parents.set(n, k);
+        queue.push(n);
       }
     }
-    if (unit.path.length && Math.hypot(unit.path[0].x - unit.x, unit.path[0].y - unit.y) <= 1e-3) unit.path.shift();
+    return null;
   }
-  function soldierCombat(s, dt) {
-    var _a;
-    cleanSoldiers(s);
-    for (const u of s.soldiers) {
-      u.attack = Math.max(0, u.attack - dt);
-      const candidates = s.enemies.filter((e) => e.hp > 0).sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
-      let target = null;
-      for (const e of candidates) {
-        const tile = Math.round(e.x) + "," + Math.round(e.y);
-        if (u.targetId === e.id && u.targetTile === tile && u.pathRevision === s.revision) {
-          target = e;
-          break;
+  function move(s, u, goal, dt) {
+    if (!goal) return;
+    if (!clearSegment(s, u, goal.x, goal.y)) {
+      const home = { x: Math.round(u.x), y: Math.round(u.y) };
+      if (clearSegment(s, u, home.x, home.y)) goal = home;
+      else return;
+    }
+    const distance = Math.hypot(goal.x - u.x, goal.y - u.y), stride = Math.min(distance, 2.2 * (u.slowed > 0 ? u.slowFactor : 1) * dt);
+    if (distance > 1e-4) {
+      u.x += (goal.x - u.x) / distance * stride;
+      u.y += (goal.y - u.y) / distance * stride;
+    }
+  }
+  function combat(s, dt) {
+    var _a, _b;
+    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id)));
+    for (const p of s.projectiles) {
+      p.life -= dt;
+      const target = grid.byId.get(p.targetId);
+      if (target) {
+        p.tx = target.x;
+        p.ty = target.y;
+        if (p.life <= 0 && hostile(s, p.owner, target.owner)) unitHits.push([target, p.damage, p.owner]);
+      }
+    }
+    s.projectiles = s.projectiles.filter((p) => p.life > 0 && grid.byId.has(p.targetId) && !s.players[p.owner].eliminated);
+    for (const b of s.buildings) {
+      if (b.hp <= 0) continue;
+      const d = DEFS[b.type];
+      b.cooldown = Math.max(0, b.cooldown - dt);
+      if (b.type === "zhong" && b.cooldown === 0) {
+        const enemies = s.soldiers.filter((u) => u.hp > 0 && hostile(s, b.owner, u.owner));
+        if (enemies.length) {
+          for (const u of enemies) {
+            u.slowed = Math.max(u.slowed, 4);
+            u.slowFactor = Math.min(u.slowFactor, 1 - zhongSlow(b));
+          }
+          b.cooldown = 12;
+          s.effects.push({ type: "zhong-pulse", x: b.x, y: b.y, life: 0.8, total: 0.8 });
         }
-        const path = findSoldierPath(s, u, e);
-        if (path !== null) {
-          target = e;
-          u.path = path;
-          u.pathRevision = s.revision;
-          u.targetTile = tile;
-          break;
+      }
+      if (!d.damage || b.type === "barracks" || b.cooldown > 0) continue;
+      const targets = grid.near(b.x, b.y, d.range + (b.level - 1) * 0.35).filter((u) => hostile(s, b.owner, u.owner)).sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y) || a.id - c.id);
+      const target = targets[0];
+      if (!target) continue;
+      b.cooldown = d.interval;
+      const damage = d.damage * factor(b) * boost[b.owner];
+      if (d.splash) {
+        for (const u of grid.near(target.x, target.y, d.splash)) if (hostile(s, b.owner, u.owner)) unitHits.push([u, damage, b.owner]);
+      } else s.projectiles.push({ id: s.nextId++, owner: b.owner, type: b.type, x: b.x, y: b.y, tx: target.x, ty: target.y, targetId: target.id, damage, life: 0.3, total: 0.3 });
+    }
+    for (const u of s.soldiers) {
+      if (u.hp <= 0) continue;
+      u.attack = Math.max(0, u.attack - dt);
+      u.slowed = Math.max(0, u.slowed - dt);
+      if (!u.slowed) u.slowFactor = 1;
+      if (u.repelled > 0) {
+        u.repelled = Math.max(0, u.repelled - dt);
+        continue;
+      }
+      let target = grid.byId.get(u.targetId);
+      if (!target || target.hp <= 0 || !hostile(s, u.owner, target.owner) || Math.hypot(target.x - u.x, target.y - u.y) > 6) target = null;
+      let chase = target && localChase(s, u, target);
+      if (!chase) {
+        target = null;
+        const nearby = grid.near(u.x, u.y, 3).filter((e) => hostile(s, u.owner, e.owner)).sort((a, b2) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b2.x - u.x, b2.y - u.y) || a.id - b2.id);
+        for (const e of nearby) {
+          chase = localChase(s, u, e);
+          if (chase) {
+            target = e;
+            break;
+          }
         }
       }
       u.targetId = (_a = target == null ? void 0 : target.id) != null ? _a : null;
-      if (!target) {
-        u.path = [];
+      if (target) {
+        u.waypoint = null;
+        if (Math.hypot(target.x - u.x, target.y - u.y) <= 0.75 && clearSegment(s, u, target.x, target.y)) {
+          if (u.attack === 0) {
+            unitHits.push([target, u.baseDamage * boost[u.owner], u.owner]);
+            u.attack = 1;
+          }
+        } else move(s, u, chase, dt);
         continue;
       }
-      if (Math.hypot(target.x - u.x, target.y - u.y) > 0.75 || !safeUnitSegment(s, u, target.x, target.y, true)) moveUnit(s, u, target, 2.2, dt, true);
-      if (u.attack <= 1e-8 && Math.hypot(target.x - u.x, target.y - u.y) <= 0.75 && safeUnitSegment(s, u, target.x, target.y, true)) {
-        const b = s.buildings.find((b2) => b2.id === u.barracksId);
-        target.hp -= soldierDamage(s, b) * (target.type === "fox" ? 1.5 : 1);
-        u.attack = 1;
-        if (target.soldierTargetId !== u.id) {
-          target.path = [];
-          target.pathRevision = -1;
-          delete target.chaseTile;
-        }
-        target.soldierTargetId = u.id;
-        s.projectiles.push({ x: u.x, y: u.y, tx: target.x, ty: target.y, type: "barracks", life: 0.3, total: 0.3 });
+      let shrine = u.targetOwner !== null && !((_b = s.players[u.targetOwner]) == null ? void 0 : _b.eliminated) ? buildingIndex(s).owners[u.targetOwner].find((b2) => b2.type === "shrine") : null;
+      if (!shrine) {
+        u.waypoint = null;
+        shrine = targetEstate(s, u);
       }
-    }
-  }
-  function chaseSoldier(s, e, dt) {
-    var _a;
-    const u = s.soldiers.find((u2) => u2.id === e.soldierTargetId && u2.hp > 0);
-    if (!u || Math.hypot(u.x - e.x, u.y - e.y) > 8) return false;
-    const tile = Math.round(u.x) + "," + Math.round(u.y);
-    if (e.chaseTile !== tile || e.pathRevision !== s.revision) {
-      let path = findPath(s, e, u, false);
-      if (path === null) {
-        const candidates = [];
-        for (const [dx, dy] of NEIGHBORS8) {
-          const x = Math.round(u.x) + dx, y = Math.round(u.y) + dy;
-          if (walkable(s, x, y) && !(((_a = at(s, x, y)) == null ? void 0 : _a.hp) > 0)) candidates.push({ x, y });
-        }
-        candidates.sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y));
-        for (const p of candidates) {
-          path = findPath(s, e, p, false);
-          if (path !== null) break;
-        }
-      }
-      if (path === null) return false;
-      e.path = path;
-      e.pathRevision = s.revision;
-      e.chaseTile = tile;
-    }
-    if (Math.hypot(u.x - e.x, u.y - e.y) <= 0.75 && safeUnitSegment(s, e, u.x, u.y, false)) {
-      if (e.attack <= 1e-8) {
-        u.hp -= e.damage;
-        e.attack = 1;
-        s.effects.push({ type: "hit", x: u.x, y: u.y, life: 0.2, total: 0.2 });
-      }
-      return true;
-    }
-    if (!e.path.length && !safeUnitSegment(s, e, u.x, u.y, false)) return false;
-    moveUnit(s, e, u, e.speed * (e.slowed > 0 ? e.slowFactor : 1), dt, false);
-    return true;
-  }
-  function safeEnemySegment(s, e, x, y) {
-    const size = worldSize(s), sx = Math.round(e.x), sy = Math.round(e.y);
-    const clear = (tx, ty) => {
-      var _a;
-      return walkable(s, tx, ty) && !(((_a = at(s, tx, ty)) == null ? void 0 : _a.hp) > 0 && (tx !== sx || ty !== sy));
-    };
-    const samples = Math.max(1, Math.ceil(Math.hypot(x - e.x, y - e.y) / 0.05));
-    let lastX = sx, lastY = sy;
-    for (let i = 0; i <= samples; i++) {
-      const px = i === samples ? x : e.x + (x - e.x) * i / samples, py = i === samples ? y : e.y + (y - e.y) * i / samples;
-      if (px < 0 || py < 0 || px > size - 1 || py > worldHeight(s) - 1) return false;
-      const tx = Math.round(px), ty = Math.round(py);
-      if (!clear(tx, ty)) return false;
-      if (tx !== lastX && ty !== lastY && (!clear(tx, lastY) || !clear(lastX, ty))) return false;
-      lastX = tx;
-      lastY = ty;
-    }
-    return true;
-  }
-  function buildingGuard(s, b) {
-    let guard = 0;
-    for (const n of s.buildings) if (n.type === "earth" && Math.hypot(n.x - b.x, n.y - b.y) <= DEFS.earth.range) guard += DEFS.earth.guard * factor(n);
-    return Math.min(0.65, guard);
-  }
-  function defenseBoost(s) {
-    let boost = 0;
-    for (const b of s.buildings) if (b.type === "tao") boost += DEFS.tao.powerAura * factor(b);
-    return 1 + Math.min(1.5, boost);
-  }
-  const zhongSlow = (b) => Math.min(0.65, DEFS.zhong.slow + 0.08 * (b.level - 1));
-  function hurtBuilding(s, b, damage, raw = false) {
-    if (b.hp <= 0 || isWall(s, b.x, b.y)) return;
-    b.hp -= damage * (raw ? 1 : 1 - buildingGuard(s, b));
-    if (b.hp > 0) return;
-    if (b.type === "gate") b.hp = 0;
-    else s.buildings = s.buildings.filter((n) => n !== b);
-    if (b.type === "barracks") cleanSoldiers(s);
-    s.revision++;
-    event(s, DEFS[b.type].name + "被摧毁", "warning");
-    if (b.type === "shrine") {
-      s.over = true;
-      event(s, "祠堂失守，古坊灯火暂熄", "defeat");
-    }
-  }
-  function healBuilding(s, b, amount) {
-    if (b.type === "gate" && b.hp === 0) {
-      if (s.enemies.some((e) => e.hp > 0 && Math.abs(e.x - b.x) < 1 && Math.abs(e.y - b.y) < 1)) return;
-      s.revision++;
-      for (const e of s.enemies) {
-        e.path = [];
-        e.pathRevision = -1;
-      }
-    }
-    b.hp = Math.min(maxHP(b), b.hp + amount);
-  }
-  function collectDead(s) {
-    s = world(s);
-    s.enemies = s.enemies.filter((e) => {
-      if (e.hp > 0) return true;
-      const reward = ENEMIES[e.type].reward * (e.boss ? 5 : 1);
-      if (s.mode === "coop") {
-        s.coins += reward / 2;
-        s.partner.coins += reward / 2;
-      } else s.coins += reward;
-      s.kills++;
-      s.effects.push({ type: "coin", amount: ENEMIES[e.type].reward * (e.boss ? 5 : 1), x: e.x, y: e.y, life: 0.7, total: 0.7 });
-      return false;
-    });
-  }
-  function combat(s, dt) {
-    s.projectiles = s.projectiles.filter((p) => {
-      if (p.type !== "tower") return true;
-      const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
-      if (!target) return false;
-      p.tx = target.x;
-      p.ty = target.y;
-      if (p.life > 0) return true;
-      target.hp -= p.damage;
-      return false;
-    });
-    collectDead(s);
-    const w = s.wave;
-    if (!w) return;
-    w.timer -= dt;
-    if (w.spawned < w.total && w.timer <= 0) {
-      spawnEnemy(s);
-      if (s.mode === "coop" && w.spawned < w.total) spawnEnemy(s);
-      w.timer += Math.max(0.35, 1.15 - (s.day - 1) * 0.055);
-    }
-    for (const b of s.buildings) if (b.type === "zhong") {
-      b.cooldown = Math.max(0, b.cooldown - dt);
-      if (b.cooldown <= 0 && s.enemies.length) {
-        b.cooldown = DEFS.zhong.pulseInterval;
-        const slowFactor = 1 - zhongSlow(b);
-        for (const e of s.enemies) {
-          e.slowed = Math.max(e.slowed || 0, DEFS.zhong.slowDuration);
-          e.slowFactor = Math.min(e.slowFactor || 1, slowFactor);
-        }
-        s.effects.push({ type: "zhong-pulse", x: b.x, y: b.y, life: 0.8, total: 0.8 });
-      }
-    }
-    for (const b of s.buildings) {
-      const d = DEFS[b.type];
-      if (!d.damage || b.type === "barracks") continue;
-      b.cooldown -= dt;
-      if (b.cooldown > 0) continue;
-      const range = d.range + (b.level - 1) * 0.35;
-      let target, nearest = Infinity;
-      for (const e of s.enemies) {
-        if (e.hp <= 0) continue;
-        const distance = Math.hypot(e.x - b.x, e.y - b.y);
-        if (distance <= range && distance < nearest) {
-          target = e;
-          nearest = distance;
-        }
-      }
-      if (target && b.cooldown <= 0) {
-        b.cooldown = d.interval;
-        const damage = d.damage * factor(b) * defenseBoost(s);
-        if (d.splash) for (const e of s.enemies) {
-          if (Math.hypot(e.x - target.x, e.y - target.y) <= d.splash) e.hp -= damage * (e.type === "fox" ? 1.3 : 1);
-        }
-        else if (b.type !== "tower") target.hp -= damage;
-        s.projectiles.push(__spreadValues({ x: b.x, y: b.y, tx: target.x, ty: target.y, type: b.type, life: 0.3, total: 0.3 }, b.type === "tower" ? { targetId: target.id, damage } : {}));
-      }
-    }
-    soldierCombat(s, dt);
-    collectDead(s);
-    for (const e of s.enemies) {
-      if (s.over) break;
-      e.attack = Math.max(0, e.attack - dt);
-      e.slowed = Math.max(0, (e.slowed || 0) - dt);
-      if (e.slowed === 0) e.slowFactor = 1;
-      if (e.repelled > 0) {
-        e.repelled -= dt;
+      if (!shrine) continue;
+      const f = flow(s, shrine), tile = Math.round(u.y) * s.worldSize + Math.round(u.x);
+      if (!f || f.distance[tile] < 0) {
+        u.targetOwner = null;
+        u.waypoint = null;
         continue;
       }
-      enemyLane(e);
-      const nearby = s.soldiers.filter((u) => u.hp > 0 && Math.hypot(u.x - e.x, u.y - e.y) <= 1 && safeUnitSegment(s, e, u.x, u.y, false)).sort((a, b2) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b2.x - e.x, b2.y - e.y))[0];
-      if (nearby && e.soldierTargetId !== nearby.id) {
-        e.soldierTargetId = nearby.id;
-        e.path = [];
-        e.pathRevision = -1;
-        delete e.chaseTile;
+      let goal = u.waypoint;
+      if (!goal || Math.hypot(goal.x - u.x, goal.y - u.y) < 1e-3) {
+        const next = f.next[tile];
+        goal = { x: next % s.worldSize, y: Math.floor(next / s.worldSize) };
+        u.waypoint = goal;
       }
-      if (e.soldierTargetId != null) {
-        if (chaseSoldier(s, e, dt)) continue;
-        delete e.soldierTargetId;
-        delete e.chaseTile;
-        e.path = [];
-        e.pathRevision = -1;
-      }
-      const size = worldWidth(s), laneGoal = (p2) => ({ x: Math.max(0, Math.min(size - 1, p2.x + e.laneX)), y: Math.max(0, Math.min(worldHeight(s) - 1, p2.y + e.laneY)) });
-      if (e.pathRevision !== s.revision || !e.path.length) {
-        e.path = findPath(s, e);
-        e.pathRevision = s.revision;
-      }
-      let p = e.path[0];
-      if (!p) continue;
-      let b = at(s, p.x, p.y), goal = laneGoal(p);
-      const attacking = b && b.hp > 0 && Math.hypot(b.x - e.x, b.y - e.y) <= 1.05;
-      if (attacking) {
-        if (e.attack === 0) {
-          hurtBuilding(s, b, e.damage);
-          e.attack = 1;
-          s.effects.push({ type: "hit", x: b.x, y: b.y, life: 0.2, total: 0.2 });
-        }
-      }
-      const slow = e.slowed > 0 ? e.slowFactor : 1;
-      if (!attacking) {
-        if (!((b == null ? void 0 : b.hp) > 0) && !safeEnemySegment(s, e, goal.x, goal.y)) {
-          const tile = { x: Math.round(e.x), y: Math.round(e.y) };
-          if (tile.x !== p.x || tile.y !== p.y) {
-            e.path.unshift(tile);
-            p = tile;
-            b = at(s, p.x, p.y);
-            goal = laneGoal(p);
+      const b = at(s, goal.x, goal.y);
+      if ((b == null ? void 0 : b.hp) > 0 && hostile(s, u.owner, b.owner)) {
+        if (Math.hypot(b.x - u.x, b.y - u.y) <= 1.05) {
+          if (u.attack === 0) {
+            buildingHits.push([b, u.baseDamage * boost[u.owner]]);
+            u.attack = 1;
           }
+        } else {
+          const dist = Math.hypot(goal.x - u.x, goal.y - u.y), step2 = Math.min(2.2 * dt, Math.max(0, dist - 1));
+          if (step2 > 0) move(s, u, { x: u.x + (goal.x - u.x) / dist * step2, y: u.y + (goal.y - u.y) / dist * step2 }, dt);
         }
-        const dist = Math.hypot(goal.x - e.x, goal.y - e.y), step2 = Math.min(dist, e.speed * dt * slow);
-        if (dist > 1e-3) {
-          const x = step2 === dist ? goal.x : e.x + (goal.x - e.x) / dist * step2, y = step2 === dist ? goal.y : e.y + (goal.y - e.y) / dist * step2;
-          if (safeEnemySegment(s, e, x, y)) {
-            e.x = x;
-            e.y = y;
-          } else {
-            const tile = { x: Math.round(e.x), y: Math.round(e.y) };
-            if (tile.x !== p.x || tile.y !== p.y) e.path.unshift(tile);
-          }
-        }
-        if (Math.hypot(goal.x - e.x, goal.y - e.y) <= 1e-3) e.path.shift();
-      }
-      const dx = (attacking ? b.x : goal.x) - e.x, dy = (attacking ? b.y : goal.y) - e.y, length = Math.hypot(dx, dy);
-      if (length > 1e-3) {
-        const nx = -dy / length, ny = dx / length;
-        let push = 0;
-        for (const other of s.enemies) {
-          if (other === e || other.hp <= 0) continue;
-          const ox = e.x - other.x, oy = e.y - other.y, distance = Math.hypot(ox, oy);
-          if (distance < 0.3) push += (Math.sign(ox * nx + oy * ny) || (e.id < other.id ? -1 : 1)) * (1 - distance / 0.3);
-        }
-        const offset = Math.max(-1, Math.min(1, push)) * 0.08 * dt;
-        const x = e.x + nx * offset, y = e.y + ny * offset;
-        if (offset && (!attacking || Math.hypot(x - b.x, y - b.y) <= 1.05) && safeEnemySegment(s, e, x, y)) {
-          e.x = x;
-          e.y = y;
-        }
-      }
+      } else move(s, u, goal, dt);
     }
-    cleanSoldiers(s);
-    s.projectiles = s.projectiles.filter((p) => {
-      if (p.type !== "tower") return true;
-      const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
-      if (!target) return false;
-      p.tx = target.x;
-      p.ty = target.y;
-      return true;
-    });
-    if (!s.over && w.spawned >= w.total && !s.enemies.length) dawn(s);
+    for (const [u, damage, owner] of unitHits) damageUnit(u, damage, owner);
+    for (const [b, damage] of buildingHits) hurtBuilding(s, b, damage);
+    collectDead(s);
+    checkResult(s);
+  }
+  const skillZoneCache = /* @__PURE__ */ new WeakMap();
+  function inSkillZone(s, owner, u) {
+    const w = world(s);
+    let zones = skillZoneCache.get(w);
+    if (!zones) {
+      zones = [];
+      skillZoneCache.set(w, zones);
+    }
+    if (!zones[owner]) {
+      const e = map(s).land.estates[owner], zone = /* @__PURE__ */ new Set([...e.cells, ...e.walls]);
+      for (const k of [...e.walls, ...e.gates.map((g) => g.y * w.worldSize + g.x)]) for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) if (dx * dx + dy * dy <= 25) {
+        const x = k % w.worldSize + dx, y = Math.floor(k / w.worldSize) + dy;
+        if (inside(x, y, w)) zone.add(y * w.worldSize + x);
+      }
+      zones[owner] = zone;
+    }
+    return zones[owner].has(Math.round(u.y) * w.worldSize + Math.round(u.x));
   }
   function chooseSkill(s, id) {
     s = economicView(s);
-    if (typeof id !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return { ok: false, reason: "未知神技" };
-    if (s.selectedSkill !== null) return { ok: false, reason: "神技已选择，不可更换" };
-    if (s.over) return { ok: false, reason: "古坊已失守" };
+    if (!Object.prototype.hasOwnProperty.call(SKILLS, id) || typeof id !== "string") return { ok: false, reason: "未知神技" };
+    if (s.selectedSkill || s.eliminated || s.over) return { ok: false, reason: "本局神技不可更换" };
     s.selectedSkill = id;
     return { ok: true };
   }
   function skillReason(s, id) {
     s = economicView(s);
-    if (typeof id !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, id)) return "未知神技";
-    if (s.selectedSkill === null) return "请先选择神技";
+    if (!Object.prototype.hasOwnProperty.call(SKILLS, id) || typeof id !== "string") return "未知神技";
+    if (s.eliminated || s.over) return "该庄园已出局";
+    if (!s.selectedSkill) return "请先选择神技";
     if (s.selectedSkill !== id) return "未选择此神技";
-    if (s.over || s.phase !== "night") return "神技仅在夜晚使用";
-    if (s.cooldowns[id] > 0) return "还需 " + Math.ceil(s.cooldowns[id]) + " 秒";
-    return "";
+    return s.cooldowns[id] > 0 ? "还需 " + Math.ceil(s.cooldowns[id]) + " 秒" : "";
   }
   function skill(s, id) {
     s = economicView(s);
     const reason = skillReason(s, id);
     if (reason) return { ok: false, reason };
+    const w = world(s);
     s.cooldowns[id] = SKILLS[id].cooldown;
-    if (id === "repair") for (const b of s.buildings) healBuilding(s, b, maxHP(b) * 0.35);
-    if (id === "repel") for (const e of s.enemies) {
-      e.repelled = 4;
-      e.hp -= 20;
+    if (id === "repair") for (const b of s.buildings) healBuilding(w, b, maxHP(b) * 0.35);
+    else for (const u of hostileUnits(s)) if (inSkillZone(s, s.actorId, u)) {
+      if (id === "repel") u.repelled = 4;
+      damageUnit(u, id === "repel" ? 20 : 240, s.actorId);
+      if (id === "thunder") w.effects.push({ type: "thunder", x: u.x, y: u.y, life: 0.7, total: 0.7 });
     }
-    if (id === "thunder") for (const e of s.enemies) {
-      e.hp -= e.type === "ghost" ? 350 : 240;
-      s.effects.push({ type: "thunder", x: e.x, y: e.y, life: 0.7, total: 0.7 });
-    }
-    s.effects.push({ type: id, x: worldCenter(s), y: worldCenterY(s), life: 1, total: 1 });
-    collectDead(s);
+    const home = estate(s).center;
+    w.effects.push({ type: id, x: home.x, y: home.y, life: 1, total: 1 });
+    collectDead(w);
     return { ok: true };
   }
   function stepEconomy(s, dt, emitEffects = true) {
-    if (!Number.isFinite(dt) || dt <= 0 || s.over) return;
+    s = economicView(s);
+    if (!Number.isFinite(dt) || dt <= 0 || s.over || s.eliminated) return;
     dt = Math.min(dt, 0.25);
     settleIncome(s, dt, emitEffects);
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
   }
   function step(s, dt) {
+    s = world(s);
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.min(dt, 0.25);
-    s.time += dt;
     s.elapsed += dt;
-    for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
-    if (s.mode === "coop") for (const id in s.partner.cooldowns) s.partner.cooldowns[id] = Math.max(0, s.partner.cooldowns[id] - dt);
-    for (const group of [s.effects, s.projectiles]) {
-      for (const e of group) {
-        e.life -= dt;
-        if (e.type === "tower" && e.life < 1e-8) e.life = 0;
-      }
-    }
-    s.effects = s.effects.filter((e) => e.life > 0);
-    s.projectiles = s.projectiles.filter((e) => e.type === "tower" || e.life > 0);
-    for (const b of [...s.buildings]) if (dryFarm(s, b)) hurtBuilding(s, b, maxHP(b) * 0.05 * dt, true);
+    s.time = s.elapsed;
+    tickControllers(s, dt);
     settleIncome(s, dt);
-    if (s.phase === "day") {
-      s.repairTime += dt;
-      if (s.repairTime >= 1 - 1e-8) {
-        s.repairTime = Math.max(0, s.repairTime - 1);
-        for (const b of s.buildings) if (!dryFarm(s, b)) healBuilding(s, b, maxHP(b) * 0.1);
+    for (const p of s.players) if (!p.eliminated) for (const id in p.cooldowns) p.cooldowns[id] = Math.max(0, p.cooldowns[id] - dt);
+    for (const e of s.effects) e.life -= dt;
+    s.effects = s.effects.filter((e) => e.life > 0);
+    for (const b of [...s.buildings]) {
+      if (dryFarm(playerView(s, b.owner), b)) {
+        hurtBuilding(s, b, maxHP(b) * 0.05 * dt, true);
+        continue;
       }
-      if (s.time >= DAY) dusk(s);
-    } else if (s.phase === "dusk" && s.time >= DUSK) startNight(s);
-    else if (s.phase === "night") combat(s, dt);
+      if (s.elapsed - b.lastHit < 10 - 1e-8) continue;
+      if (b.type === "gate" && b.hp === 0 && s.soldiers.some((u) => u.hp > 0 && hostile(s, b.owner, u.owner) && Math.hypot(u.x - b.x, u.y - b.y) <= 3)) continue;
+      healBuilding(s, b, maxHP(b) * 0.02 * dt);
+    }
+    recruit(s, dt);
+    combat(s, dt);
     missions(s);
   }
   function serialize(s) {
     s = world(s);
-    const projectiles = s.projectiles.filter((p) => p.type === "tower" && p.life > 0 && s.enemies.some((e) => e.id === p.targetId && e.hp > 0)).map(({ type, targetId, damage, life, total, x, y, tx, ty }) => ({ type, targetId, damage, life, total, x, y, tx, ty }));
-    return JSON.stringify(__spreadProps(__spreadValues({}, s), { events: [], projectiles, effects: [] }));
+    return JSON.stringify(__spreadProps(__spreadValues({}, s), { events: [], effects: [] }));
   }
   function restore(raw) {
-    var _a;
     try {
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
-      if (!s || typeof s !== "object") return null;
-      for (const player of s.mode === "coop" ? [s, s.partner] : [s]) {
-        if (!player || typeof player !== "object") return null;
-        if (!Object.prototype.hasOwnProperty.call(player, "selectedSkill")) player.selectedSkill = null;
-        if (player.selectedSkill !== null && (typeof player.selectedSkill !== "string" || !Object.prototype.hasOwnProperty.call(SKILLS, player.selectedSkill))) return null;
+      if (!s || s.version !== VERSION || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
+      if (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295 || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;
+      const [width, height] = Maps.dimensions(s.mode, s.enemyCount), blue = s.mode === "coop" ? 2 : 1;
+      if (s.worldSize !== (s.rotation % 2 ? height : width) || s.worldHeight !== (s.rotation % 2 ? width : height) || !finite(s.elapsed) || !Number.isInteger(s.nextId) || s.nextId < 1 || !Number.isInteger(s.revision) || s.revision < 0 || typeof s.over !== "boolean" || ![null, "victory", "defeat", "draw"].includes(s.result) || !finite(s.kills)) return null;
+      if (!Array.isArray(s.players) || s.players.length !== blue + s.enemyCount || !Array.isArray(s.buildings) || !Array.isArray(s.soldiers) || !Array.isArray(s.projectiles)) return null;
+      for (const [i, p] of s.players.entries()) {
+        if (!p || p.id !== i || p.team !== (i < blue ? 0 : 1) || !["human", "computer", "autoplay"].includes(p.controller) || typeof p.eliminated !== "boolean" || !finite(p.coins) || !finite(p.materials) || !Number.isInteger(p.fortuneBuilt) || p.fortuneBuilt < 0 || p.fortuneBuilt > 10 || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > 15 || !Number.isInteger(p.mission) || p.mission < 0 || p.mission > MISSIONS.length || !finite(p.kills) || !Number.isInteger(p.recruitCursor) || p.recruitCursor < 0) return null;
+        if (p.selectedSkill !== null && (!Object.prototype.hasOwnProperty.call(SKILLS, p.selectedSkill) || typeof p.selectedSkill !== "string")) return null;
+        if (!p.cooldowns || !Object.keys(SKILLS).every((k) => finite(p.cooldowns[k])) || !p.ai || !["clock", "activeSeconds", "decisions", "builds", "upgrades", "casts"].every((k) => finite(p.ai[k])) || typeof p.ai.armyTurn !== "boolean" || typeof p.ai.lastAction !== "string") return null;
       }
-      if (s.worldSize === void 0) s.worldSize = 17;
-      const coop = s.mode === "coop";
-      if (s.mode !== void 0 && !coop) return null;
-      if (s.actorId !== void 0 || s._world !== void 0) return null;
-      if (coop !== [6, 7].includes(s.version)) return null;
-      if (coop) {
-        if (s.version === 6) {
-          if (s.worldSize !== 40 || s.worldHeight !== void 0 && s.worldHeight !== 40) return null;
-        } else {
-          const longSide = Math.max(s.worldSize, s.worldHeight);
-          if (![40, 50].includes(longSide) || s.worldSize !== (s.coopLayout === "horizontal" ? longSide : 25) || s.worldHeight !== (s.coopLayout === "horizontal" ? 25 : longSide)) return null;
-        }
-      } else if (![17, 25].includes(s.worldSize) || s.worldHeight !== void 0 && s.worldHeight !== s.worldSize) return null;
-      if (coop) {
-        const p = s.partner;
-        if (s.mapGeneration !== 2 || !["horizontal", "vertical"].includes(s.coopLayout) || !p || p.controller !== "computer" || !["coins", "materials"].every((k) => finite(p[k])) || !Number.isInteger(p.fortuneBuilt) || p.fortuneBuilt < 0 || !Number.isInteger(p.mission) || p.mission < 0 || p.mission > MISSIONS.length || !p.cooldowns || !Object.keys(SKILLS).every((k) => finite(p.cooldowns[k])) || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || s.direction > 2) return null;
-      }
-      const SIZE2 = worldWidth(s), HEIGHT = worldHeight(s);
-      if (s.mapGeneration !== void 0 && (s.mapGeneration !== 2 || !coop && (SIZE2 !== 25 || s.version !== 5) || s.mapSeed === void 0 || s.estateSeed === void 0)) return null;
-      if (s.estateSeed !== void 0 && (!coop && SIZE2 !== 25 || !Number.isInteger(s.estateSeed) || s.estateSeed < 0 || s.estateSeed > 4294967295 || s.mapSeed === void 0)) return null;
-      if (s.version === 5 && (SIZE2 !== 25 || s.estateSeed === void 0)) return null;
-      if (s.version < 5 && (SIZE2 !== 17 || s.estateSeed !== void 0)) return null;
-      if (s.materials === void 0) s.materials = 120;
-      delete s.prosperity;
-      delete s.incense;
-      if (s.fortuneBuilt === void 0) s.fortuneBuilt = 0;
-      if (s.mapSeed !== void 0 && (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295)) return null;
-      if (![1, 2, 3, 4, 5, 6, 7].includes(s.version) || !finite(s.coins) || !finite(s.materials) || !Number.isInteger(s.fortuneBuilt) || s.fortuneBuilt < 0 || !Number.isInteger(s.day) || s.day < 1 || !["day", "dusk", "night"].includes(s.phase) || !finite(s.time) || !finite(s.elapsed) || !finite(s.repairTime) || !Number.isInteger(s.mission) || s.mission < 0 || s.mission > MISSIONS.length || !Number.isInteger(s.seed) || !Number.isInteger(s.direction) || s.direction < 0 || s.direction > 3 || !finite(s.kills) || typeof s.over !== "boolean") return null;
-      if (!Array.isArray(s.buildings) || s.buildings.length > SIZE2 * HEIGHT || !Array.isArray(s.enemies) || s.enemies.length > (coop ? 300 : 150) || !s.cooldowns || !Object.keys(SKILLS).every((k) => finite(s.cooldowns[k]))) return null;
-      const legacySoldiers = s.soldiers === void 0;
-      if (legacySoldiers) s.soldiers = [];
-      if (!Array.isArray(s.soldiers) || s.soldiers.length > Math.min(SIZE2 * HEIGHT * MAX_LEVEL, 1500)) return null;
-      const ids = /* @__PURE__ */ new Set();
-      for (const entity of [...s.buildings, ...s.enemies, ...s.soldiers]) {
-        if (!entity || !Number.isSafeInteger(entity.id) || entity.id < 1 || ids.has(entity.id)) return null;
-        ids.add(entity.id);
-      }
-      const retired = s.buildings.filter((b) => RETIRED_TYPES.has(b.type)).length;
-      s.buildings = s.buildings.filter((b) => !RETIRED_TYPES.has(b.type));
-      const cells = /* @__PURE__ */ new Set(), land = estate(s);
+      const ids = /* @__PURE__ */ new Set(), tiles = /* @__PURE__ */ new Set(), count = s.players.map(() => 0), shrine = s.players.map(() => 0), owner = (n) => Number.isInteger(n) && n >= 0 && n < s.players.length;
+      const identity = (e) => {
+        if (!e || !Number.isInteger(e.id) || e.id < 1 || e.id >= s.nextId || ids.has(e.id) || !owner(e.owner)) return false;
+        ids.add(e.id);
+        return true;
+      };
       for (const b of s.buildings) {
-        if (!Object.prototype.hasOwnProperty.call(DEFS, b.type)) return null;
-        if (coop && (![0, 1].includes(b.owner) || !owns(playerView(s, b.owner), b.x, b.y))) return null;
-        const legacyGrowth = s.version === 1 ? 1.65 : 1.3;
-        const savedMaxLevel = s.version === 1 ? DEFS[b.type].max || 3 : s.version === 2 ? MAX_LEVEL : maxLevel(b);
-        const savedMaxHP = s.version < 3 ? Math.round(DEFS[b.type].hp * Math.pow(legacyGrowth, b.level - 1)) : maxHP(b);
-        if (!inside(b.x, b.y, s) || !Number.isInteger(b.level) || b.level < 1 || b.level > savedMaxLevel || !finite(b.hp) || b.hp === 0 && b.type !== "gate" || b.hp > savedMaxHP + 1 || !Number.isInteger(b.id) || b.id < 1) return null;
-        if (b.type === "gate") {
-          if (!(land == null ? void 0 : land.gates.some((g) => g.x === b.x && g.y === b.y && g.direction === b.direction))) return null;
-        } else if (land && (!land.cells.has(b.y * SIZE2 + b.x) || terrain(b.x, b.y, s) === "water")) return null;
-        const shrineCenter = coop ? land.estates[b.owner].center : { x: worldCenter(s), y: worldCenter(s) };
-        if (land && b.type === "shrine" && (b.x !== shrineCenter.x || b.y !== shrineCenter.y)) return null;
-        if (s.version < 3) b.hp = Math.max(1e-3, b.hp / savedMaxHP * maxHP(b));
-        if (b.materialPending === void 0) {
-          b.materialPending = DEFS[b.type].resource === "materials" ? b.coinPending || 0 : 0;
-          if (DEFS[b.type].resource === "materials") b.coinPending = 0;
-        }
-        for (const field of ["incomeTime", "coinPending", "materialPending"]) {
-          if (b[field] === void 0) b[field] = 0;
-          if (!finite(b[field])) return null;
-        }
-        delete b.incensePending;
-        if (b.originCost !== void 0 && (!b.originCost || !finite(b.originCost.coins) || !finite(b.originCost.materials))) return null;
-        if (b.type === "port" && b.coinPending > 0) {
-          b.materialPending += b.coinPending;
-          b.coinPending = 0;
-        }
-        if (b.incomeTime >= 1) return null;
-        const key = b.x + "," + b.y;
-        if (cells.has(key)) return null;
-        cells.add(key);
-        b.cooldown = 0;
-        delete b.soldier;
-        if (b.type === "barracks") {
-          if (b.musteredCount === void 0) {
-            if (!legacySoldiers && s.phase === "night") return null;
-            b.musteredCount = s.phase === "night" ? soldierLimit(b) : 0;
-          }
-          if (!Number.isInteger(b.musteredCount) || b.musteredCount < 0 || b.musteredCount > soldierLimit(b)) return null;
-          if (s.phase !== "night") delete b.musteredCount;
-        } else delete b.musteredCount;
+        if (!identity(b) || s.players[b.owner].eliminated || !Object.prototype.hasOwnProperty.call(DEFS, b.type) || !Number.isInteger(b.level) || b.level < 1 || b.level > maxLevel(b) || !inside(b.x, b.y, s) || ownerAt(s, b.x, b.y) !== b.owner || isWall(s, b.x, b.y) || !finite(b.hp) || b.hp > maxHP(b) + 1e-6 || !b.hp && b.type !== "gate") return null;
+        const key = b.y * s.worldSize + b.x;
+        if (tiles.has(key)) return null;
+        tiles.add(key);
+        if (!["cooldown", "incomeTime", "coinPending", "materialPending", "production"].every((k) => finite(b[k])) || typeof b.lastHit !== "number" || !Number.isFinite(b.lastHit) || b.lastHit > s.elapsed || b.lastHit < -10) return null;
+        if (b.type === "shrine") shrine[b.owner]++;
+        if (b.type === "gate" && !map(s).land.estates[b.owner].gates.some((g) => g.x === b.x && g.y === b.y && g.direction === b.direction)) return null;
       }
-      if (land && s.buildings.filter((b) => b.type === "gate").length !== (coop ? 6 : 4)) return null;
-      if (coop) {
-        for (const owner of [0, 1]) {
-          const p = playerView(s, owner), gates = p.buildings.filter((b) => b.type === "gate");
-          if (gates.length !== 3 || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > GATE_MAX_LEVEL || gates.some((b) => b.level !== p.gateLevel)) return null;
-          const count = p.buildings.filter((b) => b.type === "shrine").length;
-          if (count > 1 || !s.over && count !== 1) return null;
-        }
-      }
-      if (land && !coop) {
-        const gates = s.buildings.filter((b) => b.type === "gate");
-        if (s.gateLevel !== void 0 && (!Number.isInteger(s.gateLevel) || s.gateLevel < 1 || s.gateLevel > GATE_MAX_LEVEL || gates.some((b) => b.level !== s.gateLevel))) return null;
-        s.gateLevel = (_a = s.gateLevel) != null ? _a : Math.max(...gates.map((b) => b.level));
-        for (const gate of gates) {
-          const ratio = gate.hp / maxHP(gate);
-          gate.level = s.gateLevel;
-          gate.hp = maxHP(gate) * ratio;
-        }
-      }
-      if (!coop && (!s.over && s.buildings.filter((b) => b.type === "shrine").length !== 1 || s.buildings.filter((b) => b.type === "shrine").length > 1)) return null;
-      if (s.phase === "night" && (!s.wave || !Number.isInteger(s.wave.total) || s.wave.total < 1 || s.wave.total > (coop ? 240 : 120) || !Number.isInteger(s.wave.spawned) || s.wave.spawned < 0 || s.wave.spawned > s.wave.total || !Number.isFinite(s.wave.timer))) return null;
-      for (const e of s.enemies) {
-        enemyLane(e);
-        if (coop) {
-          if (e.targetGateId !== void 0) {
-            const gate = s.buildings.find((b) => b.id === e.targetGateId && b.type === "gate");
-            if (!gate || e.targetOwner !== gate.owner) return null;
-          } else if (e.targetOwner !== void 0 && ![0, 1].includes(e.targetOwner)) return null;
-        } else if (e.targetGateId !== void 0 || e.targetOwner !== void 0) return null;
-        if (![e.laneX, e.laneY].every((n) => Number.isFinite(n) && Math.abs(n) <= 0.3)) return null;
-        if (e.slowed === void 0) e.slowed = 0;
-        if (e.slowFactor === void 0) e.slowFactor = 1;
-        if (!Object.prototype.hasOwnProperty.call(ENEMIES, e.type) || !Number.isInteger(e.id) || e.id < 1 || !finite(e.x) || e.x >= SIZE2 || !finite(e.y) || e.y >= HEIGHT || !finite(e.hp) || e.hp <= 0 || !finite(e.maxHp) || e.hp > e.maxHp || !finite(e.speed) || e.speed <= 0 || !finite(e.damage) || e.damage <= 0 || !finite(e.attack) || !Number.isFinite(e.repelled) || !finite(e.slowed) || !Number.isFinite(e.slowFactor) || e.slowFactor <= 0 || e.slowFactor > 1) return null;
-        if (!walkable(s, Math.round(e.x), Math.round(e.y))) {
-          let nearest = null;
-          for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE2; x++) if (walkable(s, x, y)) {
-            const distance = (x - e.x) ** 2 + (y - e.y) ** 2;
-            if (!nearest || distance < nearest.distance) nearest = { x, y, distance };
-          }
-          e.x = nearest.x;
-          e.y = nearest.y;
-        }
-        e.path = [];
-        e.pathRevision = -1;
-      }
-      if (s.projectiles === void 0) s.projectiles = [];
-      if (!Array.isArray(s.projectiles) || s.projectiles.length > 1e3) return null;
-      const projectiles = [];
-      for (const p of s.projectiles) {
-        if (!p || p.type !== "tower" || !Number.isInteger(p.targetId) || p.targetId < 1 || !finite(p.damage) || !finite(p.life) || p.life <= 0 || p.life > 0.3 || p.total !== 0.3 || ![p.x, p.tx].every((n) => finite(n) && n < SIZE2) || ![p.y, p.ty].every((n) => finite(n) && n < HEIGHT)) return null;
-        const target = s.enemies.find((e) => e.id === p.targetId && e.hp > 0);
-        if (target) projectiles.push({ type: "tower", targetId: p.targetId, damage: p.damage, life: p.life, total: 0.3, x: p.x, y: p.y, tx: target.x, ty: target.y });
-      }
-      const occupiedLand = new Set(s.buildings.filter((b) => terrain(b.x, b.y, s) !== "water").map((b) => b.x + "," + b.y));
-      let moved = 0, stranded = 0;
-      for (const b of s.buildings.filter((b2) => !land && terrain(b2.x, b2.y, s) === "water").sort((a, z) => Number(z.type === "farm") - Number(a.type === "farm") || a.id - z.id)) {
-        const candidates = [];
-        for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < SIZE2; x++) {
-          const land2 = terrain(x, y, s);
-          if (land2 === "water" || b.type === "farm" && land2 !== "shore" || occupiedLand.has(x + "," + y)) continue;
-          candidates.push({ x, y, score: dist8(b.x, b.y, x, y) * 100 + (Math.abs(b.x - x) + Math.abs(b.y - y)) * 2 + (land2 === "shore" && b.type !== "farm" ? 1 : 0) });
-        }
-        candidates.sort((a, z) => a.score - z.score || a.y - z.y || a.x - z.x);
-        if (!candidates.length) {
-          stranded++;
-          continue;
-        }
-        b.x = candidates[0].x;
-        b.y = candidates[0].y;
-        occupiedLand.add(b.x + "," + b.y);
-        moved++;
-      }
-      if (s.phase !== "night" && s.soldiers.length) return null;
-      const livingCounts = /* @__PURE__ */ new Map();
+      if (s.players.some((p) => shrine[p.id] !== Number(!p.eliminated))) return null;
       for (const u of s.soldiers) {
-        const b = s.buildings.find((b2) => b2.id === u.barracksId && b2.type === "barracks" && b2.hp > 0);
-        if (!b || !Number.isSafeInteger(u.barracksId) || !finite(u.x) || u.x > SIZE2 - 1 || !finite(u.y) || u.y > HEIGHT - 1 || u.level !== b.level || u.maxHp !== soldierHP(b) || !finite(u.hp) || u.hp <= 0 || u.hp > u.maxHp || !finite(u.attack) || u.attack > 1 || u.targetId != null && (!Number.isSafeInteger(u.targetId) || u.targetId < 1)) return null;
-        const count = (livingCounts.get(b.id) || 0) + 1;
-        livingCounts.set(b.id, count);
-        if (count > b.musteredCount || count > soldierLimit(b)) return null;
-        if (!walkable(s, Math.round(u.x), Math.round(u.y))) {
-          if (!walkable(s, b.x, b.y)) return null;
-          u.x = b.x;
-          u.y = b.y;
-        }
-        if (!s.enemies.some((e) => e.id === u.targetId)) u.targetId = null;
-        u.path = [];
-        u.pathRevision = -1;
-        delete u.targetTile;
+        if (!identity(u) || s.players[u.owner].eliminated || ++count[u.owner] > UNIT_CAP || !finite(u.x) || !finite(u.y) || !walkable(s, Math.round(u.x), Math.round(u.y)) || !Number.isInteger(u.level) || u.level < 1 || u.level > 9 || !finite(u.hp) || u.hp <= 0 || !finite(u.maxHp) || u.hp > u.maxHp || !finite(u.baseDamage) || !["attack", "repelled", "slowed", "slowFactor"].every((k) => finite(u[k])) || !Number.isInteger(u.barracksId)) return null;
+        if (u.targetOwner !== null && (!owner(u.targetOwner) || !hostile(s, u.owner, u.targetOwner))) return null;
+        if (u.targetId !== null && (!Number.isInteger(u.targetId) || u.targetId < 1)) return null;
+        if (u.waypoint !== null && (!u.waypoint || !inside(u.waypoint.x, u.waypoint.y, s) || !walkable(s, u.waypoint.x, u.waypoint.y))) return null;
       }
-      for (const e of s.enemies) {
-        if (e.soldierTargetId != null && (!Number.isSafeInteger(e.soldierTargetId) || e.soldierTargetId < 1)) return null;
-        if (!s.soldiers.some((u) => u.id === e.soldierTargetId)) delete e.soldierTargetId;
-        delete e.chaseTile;
-      }
-      s.events = retired ? [{ text: "旧存档中 " + retired + " 栋已退役建筑被移除", kind: "info" }] : [];
-      if (moved) s.events.push({ text: "旧存档中 " + moved + " 栋建筑已迁出水域", kind: "info" });
-      if (stranded) s.events.push({ text: "岸地已满，" + stranded + " 栋旧建筑暂保留原位", kind: "warning" });
+      for (const p of s.projectiles) if (!identity(p) || !["tower", "rock"].includes(p.type) || !["x", "y", "tx", "ty", "damage", "life", "total"].every((k) => finite(p[k])) || !Number.isInteger(p.targetId)) return null;
+      const aliveBlue = s.players.some((p) => p.team === 0 && !p.eliminated), aliveRed = s.players.some((p) => p.team === 1 && !p.eliminated);
+      if (s.over !== (!aliveBlue || !aliveRed) || s.result !== (aliveBlue && aliveRed ? null : aliveBlue ? "victory" : aliveRed ? "defeat" : "draw")) return null;
+      s.phase = "day";
+      s.day = 1;
+      s.time = s.elapsed;
+      s.events = [];
       s.effects = [];
-      s.projectiles = projectiles;
-      s.revision = 1;
-      s.version = coop ? s.version : land ? 5 : 4;
-      s.nextId = Math.max(0, ...ids) + 1;
-      if (!Number.isSafeInteger(s.nextId)) return null;
       return s;
     } catch (e) {
       return null;
     }
   }
-  return { createCoopState, playerView, raidDirections, SIZE, CENTER, worldSize, worldWidth, worldHeight, worldCenter, worldCenterY, estate, owns, isWall, walkable, DAY, DUSK, MAX_LEVEL, SHRINE_MAX_LEVEL, GROWTH, HP_GROWTH, UPGRADE_GROWTH, MATERIAL_COST_FACTOR, ECONOMY_UPGRADE_WAIT, ECONOMY_UPGRADE_GROWTH, SHRINE_REQUIREMENTS, TERRAIN, DEFS, ENEMIES, SKILLS, MISSIONS, chains, terrain, dist8, at, adjacent, dryFarm, factor, incomeFactor, auraFactor, hpFactor, maxLevel, shrineLevel, requiredShrineLevel, unlockedBuildingLevel, maxHP, soldierLimit, soldierHP, soldierDamage, soldierPower, findSoldierPath, visualLevel, name, createState, buildCost, fortuneCandidates, grantBuilding, buildReason, buildHints, build, upgradeCost, upgradeReason, upgradeOptions, bulkUpgrade, upgrade, demolishReason, demolish, income, rates, buildingGuard, defenseBoost, zhongSlow, dusk, startNight, spawnPlots, findPath, chooseSkill, skillReason, skill, stepEconomy, step, serialize, restore };
+  return {
+    VERSION,
+    UNIT_CAP,
+    createMatch,
+    createState,
+    createCoopState,
+    playerView,
+    ownerAt,
+    hostile,
+    hostileUnits,
+    inSkillZone,
+    ready,
+    setControllerFactory,
+    SIZE,
+    CENTER,
+    worldSize,
+    worldWidth,
+    worldHeight,
+    worldCenter,
+    worldCenterY,
+    estate,
+    owns,
+    isWall,
+    walkable,
+    MAX_LEVEL,
+    SHRINE_MAX_LEVEL,
+    GROWTH,
+    HP_GROWTH,
+    UPGRADE_GROWTH,
+    MATERIAL_COST_FACTOR,
+    ECONOMY_UPGRADE_WAIT,
+    ECONOMY_UPGRADE_GROWTH,
+    SHRINE_REQUIREMENTS,
+    TERRAIN,
+    DEFS,
+    SKILLS,
+    MISSIONS,
+    chains,
+    terrain,
+    dist8,
+    at,
+    adjacent,
+    dryFarm,
+    factor,
+    incomeFactor,
+    auraFactor,
+    hpFactor,
+    maxLevel,
+    shrineLevel,
+    requiredShrineLevel,
+    unlockedBuildingLevel,
+    maxHP,
+    soldierRate,
+    soldierHP,
+    soldierDamage,
+    soldierPower,
+    findSoldierPath,
+    visualLevel,
+    name,
+    buildCost,
+    fortuneCandidates,
+    grantBuilding,
+    buildReason,
+    buildHints,
+    build,
+    upgradeCost,
+    upgradeReason,
+    upgradeOptions,
+    bulkUpgrade,
+    upgrade,
+    demolishReason,
+    demolish,
+    income,
+    rates,
+    buildingGuard,
+    defenseBoost,
+    zhongSlow,
+    findPath,
+    chooseSkill,
+    skillReason,
+    skill,
+    stepEconomy,
+    step,
+    serialize,
+    restore
+  };
 });
 
 (function(root, factory) {
@@ -1752,22 +1524,24 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const personalKeys = ["coins", "materials", "fortuneBuilt", "gateLevel", "cooldowns", "selectedSkill", "mission"];
   const progressKeys = ["incomeTime", "coinPending", "materialPending"];
-  const metaKeys = ["day", "phase", "time", "elapsed", "direction", "kills", "wave", "over", "celebrated", "revision", "nextId"];
+  const metaKeys = ["time", "elapsed", "kills", "over", "result", "revision", "nextId"];
   function economy(s, owner) {
     const player = G.playerView(s, owner), values = {};
     for (const key of personalKeys) values[key] = clone(player[key]);
     return { at: s.elapsed, player: values, buildings: player.buildings.map((b) => [b.id, ...progressKeys.map((key) => b[key] || 0)]) };
   }
   function snapshot(s, owner) {
-    const next = JSON.parse(G.serialize(s)), other = owner === 0 ? next.partner : next;
-    other.coins = other.materials = other.fortuneBuilt = other.mission = 0;
-    other.cooldowns = { repel: 0, repair: 0, thunder: 0 };
+    const next = JSON.parse(G.serialize(s));
+    for (const p of next.players) if (p.id !== owner) {
+      p.coins = p.materials = p.fortuneBuilt = p.mission = 0;
+      p.cooldowns = { repel: 0, repair: 0, thunder: 0 };
+    }
     for (const b of next.buildings) if (b.owner !== owner) for (const key of progressKeys) b[key] = 0;
     return JSON.stringify(next);
   }
   function packed(entity, group) {
     const row = {};
-    const keys = group === "buildings" ? Object.keys(entity) : group === "enemies" ? ["id", "type", "x", "y", "hp", "maxHp", "boss", "repelled", "slowed", "slowFactor"] : ["id", "barracksId", "x", "y", "hp", "maxHp", "level"];
+    const keys = group === "buildings" ? Object.keys(entity) : ["id", "owner", "barracksId", "x", "y", "hp", "maxHp", "level", "baseDamage", "repelled", "slowed", "slowFactor"];
     for (const key of keys) {
       if (["path", "pathRevision", "targetTile", "chaseTile"].includes(key) || group === "buildings" && (progressKeys.includes(key) || key === "cooldown")) continue;
       if (entity[key] !== void 0) row[key] = ["x", "y"].includes(key) ? Math.round(entity[key] * 1e3) / 1e3 : entity[key];
@@ -1775,12 +1549,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return row;
   }
   function delta(s, previous = {}) {
-    const next = {}, message = { meta: {}, players: [0, 1].map((owner) => {
-      const player = G.playerView(s, owner);
-      return { selectedSkill: player.selectedSkill, gateLevel: player.gateLevel };
-    }) };
+    const next = {}, message = { meta: {}, players: s.players.map((p) => ({ id: p.id, team: p.team, controller: p.controller, selectedSkill: p.selectedSkill, gateLevel: p.gateLevel, eliminated: p.eliminated, kills: p.kills, ai: p.ai })) };
     for (const key of metaKeys) message.meta[key] = clone(s[key]);
-    for (const key of ["buildings", "enemies", "soldiers"]) {
+    for (const key of ["buildings", "soldiers"]) {
       const before = previous[key] || /* @__PURE__ */ new Map(), after = /* @__PURE__ */ new Map(), upsert = [];
       for (const entity of s[key]) {
         const row = packed(entity, key), text = JSON.stringify(row);
@@ -1818,15 +1589,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function predict(s, owner, action) {
     const player = G.playerView(s, owner), { kind, x, y } = action, b = G.at(s, x, y);
-    if (kind === "choose-skill") return { ok: !player.selectedSkill };
+    if (player.eliminated || s.over) return { ok: false, reason: "该庄园已出局" };
+    if (kind === "choose-skill") return G.chooseSkill(player, action.skill);
     if (kind === "skill") {
       const reason = G.skillReason(player, action.skill);
       if (reason) return { ok: false, reason };
       player.cooldowns[action.skill] = G.SKILLS[action.skill].cooldown;
       return { ok: true };
     }
-    const phase = s.phase;
-    s.phase = "day";
+    const nextId = s.nextId;
     s.nextId = -action.id * 10;
     try {
       if (kind === "build" && action.building === "fortune") {
@@ -1836,7 +1607,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         player.coins -= cost.coins;
         player.materials -= cost.materials;
         player.fortuneBuilt++;
-        s.buildings.push({ id: s.nextId, type: "fortune", owner, x, y, level: 1, hp: 1, cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 });
+        s.buildings.push({ id: s.nextId, type: "fortune", owner, x, y, level: 1, hp: 1, cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, production: 0, lastHit: -10 });
+        s.revision++;
         return { ok: true };
       }
       if (kind === "build") return G.build(player, action.building, x, y);
@@ -1846,7 +1618,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (kind === "demolish") return G.demolish(player, b);
       return { ok: false, reason: "未知操作" };
     } finally {
-      s.phase = phase;
+      s.nextId = nextId;
     }
   }
   function createReplica(raw, owner, session, seq, ack = 0) {
@@ -1856,12 +1628,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     replica.reconcile = () => {
       const effects = state.effects, projectiles = state.projectiles;
       for (const key of metaKeys) state[key] = clone(base[key]);
-      for (const key of ["buildings", "enemies", "soldiers"]) state[key] = copyEntities(state[key], base[key]);
+      for (const key of ["buildings", "soldiers"]) state[key] = copyEntities(state[key], base[key]);
       for (const key of personalKeys) G.playerView(state, owner)[key] = clone(replica.economic.player[key]);
-      for (const other of [0, 1]) {
-        const source = G.playerView(base, other), target = G.playerView(state, other);
-        target.selectedSkill = source.selectedSkill;
-        target.gateLevel = source.gateLevel;
+      for (const p of base.players) {
+        const target = state.players[p.id];
+        for (const key of ["selectedSkill", "gateLevel", "eliminated", "controller", "kills", "ai"]) target[key] = clone(p[key]);
       }
       const byId = new Map(state.buildings.map((b) => [b.id, b]));
       for (const [id, ...values] of replica.economic.buildings) {
@@ -1885,8 +1656,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (message.session !== replica.session || message.seq <= replica.seq) return false;
       if (message.seq !== replica.seq + 1) return null;
       Object.assign(base, clone(message.meta));
-      for (const key of ["buildings", "enemies", "soldiers"]) base[key] = updateEntities(base[key], message[key], key === "buildings");
-      message.players.forEach((values, index) => Object.assign(G.playerView(base, index), values));
+      for (const key of ["buildings", "soldiers"]) base[key] = updateEntities(base[key], message[key], key === "buildings");
+      message.players.forEach((values, index) => Object.assign(base.players[index], values));
       if (message.economy) replica.economic = clone(message.economy);
       replica.ack = message.ack;
       replica.pending = replica.pending.filter((action) => action.id > message.ack);
@@ -2307,13 +2078,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     thumbs.set(key, url);
     return url;
   }
-  function makeGround(s, occupied) {
+  function makeGround(s, occupied, left, top, right, bottom, scale) {
     const size = GF.worldWidth(s), height = GF.worldHeight(s), center = GF.worldCenter(s), estate = GF.estate(s);
     const canvas = document.createElement("canvas");
-    canvas.width = size * T;
-    canvas.height = height * T;
+    canvas.width = Math.ceil(((right - left + 1) * T + 96) * scale);
+    canvas.height = Math.ceil(((bottom - top + 1) * T + 96) * scale);
     const c = canvas.getContext("2d");
-    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) {
+    c.scale(scale, scale);
+    c.translate(48 - left * T, 48 - top * T);
+    for (let y = Math.max(0, top - 1); y <= Math.min(height - 1, bottom + 1); y++) for (let x = Math.max(0, left - 1); x <= Math.min(size - 1, right + 1); x++) {
       const type = GF.terrain(x, y, s), px = x * T, py = y * T;
       rect(c, px, py, T, T, palette[type]);
       if (type === "water") {
@@ -2410,7 +2183,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     } else {
       const has = (set, x, y) => x >= 0 && y >= 0 && x < size && y < height && set.has(y * size + x);
       for (const index of estate.roads) {
-        const x = index % size, y = Math.floor(index / size), px = x * T, py = y * T, water = GF.terrain(x, y, s) === "water";
+        const x = index % size, y = Math.floor(index / size);
+        if (x < left - 1 || x > right + 1 || y < top - 1 || y > bottom + 1) continue;
+        const px = x * T, py = y * T, water = GF.terrain(x, y, s) === "water";
         const north = has(estate.roads, x, y - 1), south = has(estate.roads, x, y + 1), east = has(estate.roads, x + 1, y), west = has(estate.roads, x - 1, y);
         c.save();
         c.beginPath();
@@ -2430,7 +2205,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.restore();
       }
       for (const index of estate.cells) {
-        const x = index % size, y = Math.floor(index / size), px = x * T, py = y * T;
+        const x = index % size, y = Math.floor(index / size);
+        if (x < left - 1 || x > right + 1 || y < top - 1 || y > bottom + 1) continue;
+        const px = x * T, py = y * T;
         for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) if (!GF.owns(s, x + dx, y + dy)) {
           const edge = dx === 1 ? [[px + T - 2, py + 2], [px + T - 2, py + T - 2]] : dx === -1 ? [[px + 2, py + 2], [px + 2, py + T - 2]] : dy === 1 ? [[px + 2, py + T - 2], [px + T - 2, py + T - 2]] : [[px + 2, py + 2], [px + T - 2, py + 2]];
           line(c, edge, "#f3df9b99", 2);
@@ -2438,7 +2215,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       const connects = (x, y) => GF.isWall(s, x, y) || estate.gates.some((g) => g.x === x && g.y === y);
       for (const index of estate.walls) {
-        const x = index % size, y = Math.floor(index / size), px = x * T, py = y * T;
+        const x = index % size, y = Math.floor(index / size);
+        if (x < left - 1 || x > right + 1 || y < top - 1 || y > bottom + 1) continue;
+        const px = x * T, py = y * T;
         c.save();
         c.beginPath();
         c.rect(px + 19, py + 19, 26, 26);
@@ -2468,29 +2247,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.restore();
       }
     }
-    const padded = document.createElement("canvas");
-    padded.width = canvas.width + 96;
-    padded.height = canvas.height + 96;
-    const ctx = padded.getContext("2d");
-    ctx.shadowColor = "#40583e18";
-    ctx.shadowBlur = 35;
-    ctx.shadowOffsetY = 8;
-    ctx.drawImage(canvas, 48, 48);
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.translate(48, 48);
-    const base = document.createElement("canvas");
-    base.width = padded.width;
-    base.height = padded.height;
-    base.getContext("2d").drawImage(padded, 0, 0);
-    padded.base = base;
-    padded.occupied = new Set(occupied);
-    const waterRows = Array.from({ length: height }, () => []);
-    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) if (GF.terrain(x, y, s) === "water" && !GF.isWall(s, x, y) && !(estate == null ? void 0 : estate.roads.has(y * size + x))) waterRows[y].push({ x, outside: !!estate && !GF.owns(s, x, y) });
-    drawGroundDecorations(ctx, s, occupied, 0, 0, size - 1, height - 1);
-    padded.waterRows = waterRows;
-    return padded;
+    drawGroundDecorations(c, s, occupied, Math.max(0, left - 2), Math.max(0, top - 2), Math.min(size - 1, right + 2), Math.min(height - 1, bottom + 2));
+    return { canvas, left, top, right, bottom, scale };
+  }
+  function newGround(s, occupied) {
+    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), waterRows = Array.from({ length: height }, () => []);
+    for (let y = 0; y < height; y++) for (let x = 0; x < size; x++) if (GF.terrain(x, y, s) === "water" && !GF.isWall(s, x, y) && !estate.roads.has(y * size + x)) waterRows[y].push({ x, outside: !GF.owns(s, x, y) });
+    return { occupied: new Set(occupied), chunks: /* @__PURE__ */ new Map(), waterRows };
   }
   function drawGroundDecorations(ctx, s, occupied, left, top, right, bottom) {
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s);
@@ -2524,23 +2287,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   function updateGround(s, occupied) {
-    const changed = [...ground.occupied].filter((key) => !occupied.has(key)).concat([...occupied].filter((key) => !ground.occupied.has(key)));
-    if (!changed.length) return;
-    const ctx = ground.getContext("2d"), size = GF.worldWidth(s), height = GF.worldHeight(s);
+    const changed = [...ground.occupied].filter((k) => !occupied.has(k)).concat([...occupied].filter((k) => !ground.occupied.has(k)));
     for (const key of changed) {
       const [x, y] = key.split(",").map(Number);
-      const px = Math.max(0, x * T + 48 - 32), py = Math.max(0, y * T + 48 - 32);
-      const width = Math.min(ground.width - px, T + 64), patchHeight = Math.min(ground.height - py, T + 64);
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(px, py, width, patchHeight);
-      ctx.drawImage(ground.base, px, py, width, patchHeight, px, py, width, patchHeight);
-      ctx.beginPath();
-      ctx.rect(px, py, width, patchHeight);
-      ctx.clip();
-      ctx.translate(48, 48);
-      drawGroundDecorations(ctx, s, occupied, Math.max(0, x - 2), Math.max(0, y - 2), Math.min(size - 1, x + 2), Math.min(height - 1, y + 2));
-      ctx.restore();
+      for (const [id, tile] of ground.chunks) if (x >= tile.left - 2 && x <= tile.right + 2 && y >= tile.top - 2 && y <= tile.bottom + 2) ground.chunks.delete(id);
     }
     ground.occupied = new Set(occupied);
   }
@@ -2570,7 +2320,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function directChainLink(consumer, producer) {
     var _a;
     const d = GF.DEFS[consumer.type];
-    if (!d.radius || GF.dist8(consumer.x, consumer.y, producer.x, producer.y) > d.radius) return false;
+    if (consumer.owner !== producer.owner || !d.radius || GF.dist8(consumer.x, consumer.y, producer.x, producer.y) > d.radius) return false;
     return d.prev === producer.type || !!((_a = d.required) == null ? void 0 : _a.includes(producer.type));
   }
   function selectedLinks(s, b) {
@@ -2614,8 +2364,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function render(canvas, s, cam, selected, options = {}) {
     var _a;
-    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.estateSeed, size, height, s.mapGeneration, s.coopLayout]);
-    const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, player = s.mode === "coop" ? GF.playerView(s, options.player || 0) : s;
+    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
+    const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, player = GF.playerView(s, options.player || 0);
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let hints = hintCaches.get(s);
     if (!hints || hints.key !== hintKey) {
@@ -2623,16 +2373,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       hintCaches.set(s, hints);
     }
     const blockedHints = /* @__PURE__ */ new Set();
-    for (const e of s.enemies) for (let y = Math.floor(e.y) - 1; y <= Math.ceil(e.y) + 1; y++) for (let x = Math.floor(e.x) - 1; x <= Math.ceil(e.x) + 1; x++) {
+    for (const e of GF.hostileUnits(player)) for (let y = Math.floor(e.y) - 1; y <= Math.ceil(e.y) + 1; y++) for (let x = Math.floor(e.x) - 1; x <= Math.ceil(e.x) + 1; x++) {
       if (Math.hypot(e.x - x, e.y - y) < 0.65) blockedHints.add(y * size + x);
     }
     const occupied = new Set(s.buildings.map((b) => b.x + "," + b.y));
     if (!ground || groundSeed !== cacheKey) {
-      ground = makeGround(s, occupied);
+      ground = newGround(s, occupied);
       groundSeed = cacheKey;
     } else updateGround(s, occupied);
     const c = canvas.getContext("2d"), w = canvas.clientWidth, h = canvas.clientHeight, dpr = canvas.width / w;
-    const night = s.phase === "night", dusk = s.phase === "dusk";
+    const night = false, dusk = false;
     const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
     const visible = (x, y, rx, ry = rx) => x + rx >= -cam.x / cam.zoom && x - rx <= (w - cam.x) / cam.zoom && y + ry >= -cam.y / cam.zoom && y - ry <= (h - cam.y) / cam.zoom;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2648,9 +2398,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if ((h - cam.y) / cam.zoom > height * T) poly(c, [[x - 90, height * T + 10], [x - 20, height * T + 100 + noise(i, 2) * 70], [x + 90, height * T + 10]], night ? "#3f5754" : "#aebda03b");
       }
     }
-    const gx = Math.max(0, Math.floor(-cam.x / cam.zoom + 48)), gy = Math.max(0, Math.floor(-cam.y / cam.zoom + 48));
-    const gw = Math.min(ground.width, Math.ceil((w - cam.x) / cam.zoom + 48) + 1) - gx, gh = Math.min(ground.height, Math.ceil((h - cam.y) / cam.zoom + 48) + 1) - gy;
-    if (gw > 0 && gh > 0) c.drawImage(ground, gx, gy, gw, gh, gx - 48, gy - 48, gw, gh);
+    const scale = cam.zoom < 0.3 ? 0.25 : cam.zoom < 0.65 ? 0.5 : 1;
+    for (let cy = Math.floor(top / 16); cy <= Math.floor(bottom / 16); cy++) for (let cx = Math.floor(left / 16); cx <= Math.floor(right / 16); cx++) {
+      const key = cx + "," + cy + "," + scale;
+      let tile = ground.chunks.get(key);
+      if (!tile) {
+        tile = makeGround(s, occupied, cx * 16, cy * 16, Math.min(size - 1, cx * 16 + 15), Math.min(height - 1, cy * 16 + 15), scale);
+        ground.chunks.set(key, tile);
+      } else {
+        ground.chunks.delete(key);
+        ground.chunks.set(key, tile);
+      }
+      const tw = (tile.right - tile.left + 1) * T, th = (tile.bottom - tile.top + 1) * T;
+      c.drawImage(tile.canvas, 48 * scale, 48 * scale, tw * scale, th * scale, tile.left * T, tile.top * T, tw, th);
+    }
+    while (ground.chunks.size > 40) ground.chunks.delete(ground.chunks.keys().next().value);
     if (options.grid) {
       c.strokeStyle = night ? "#c6d7a855" : "#5d785055";
       c.lineWidth = 1.4;
@@ -2706,12 +2468,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.translate(b.x * T + 32, b.y * T + 32);
       drawBaked(c, "building:" + b.type + ":" + GF.visualLevel(b.level), (ctx) => building(ctx, b.type, b.level, 0, true));
       buildingAnimation(c, b.type, animationTime);
-      if (s.mode === "coop" && b.type === "shrine") {
-        rect(c, -38, -57, 76, 19, b.owner === options.player ? "#3d685deb" : "#8a6647eb");
+      if (b.type === "shrine") {
+        rect(c, -38, -57, 76, 19, s.players[b.owner].team === 1 ? "#a74e3ceb" : b.owner === options.player ? "#3d685deb" : "#597f96eb");
         c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#fff4d9";
-        c.fillText(b.owner === options.player ? "你的庄园" : options.online ? "队友庄园" : "电脑庄园", 0, -43);
+        c.fillText(b.owner === options.player ? "你的庄园" : s.players[b.owner].team === 0 ? "队友庄园" : "敌方庄园 " + (b.owner + 1), 0, -43);
       }
       if (b.type === "gate") {
         if (b.hp <= 0) {
@@ -2779,12 +2541,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const units = [...s.enemies.map((unit) => ({ unit, soldier: false })), ...s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: true }))].map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 48 : 30)).sort((a, b) => a.unit.y - b.unit.y);
+    const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 48 : 30)).sort((a, b) => a.unit.y - b.unit.y);
     for (const { unit: e, soldier } of units) {
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      person(c, soldier ? "soldier" : e.type, animationTime, e.repelled > 0);
+      person(c, soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0);
       if (e.slowed > 0) ellipse(c, 0, 2, 13, 18, "#8bb7a029", "#76a08f");
       c.restore();
     }
@@ -2932,10 +2694,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       poly(c, [[4, 0 + bob], [5, -9 + bob], [9, -4 + bob], [13, -9 + bob], [13, 1 + bob]], "#d8b891", "#996d56");
       rect(c, 7, -2 + bob, 1.5, 1.5, "#565246");
     } else {
-      const color = type === "ghost" ? "#849b9c" : type === "soldier" ? "#818967" : "#916b60";
+      const color = type === "ghost" ? "#849b9c" : type === "soldier" ? "#4f8b9a" : "#b75548";
       poly(c, [[-5, -3 + bob], [5, -3 + bob], [8, 9], [-7, 9]], color, "#52605b");
       ellipse(c, 0, -8 + bob, 4.5, 5, type === "ghost" ? "#b4c8bb" : "#c6b592");
-      rect(c, -5, -13 + bob, 10, 3, type === "soldier" ? "#526d60" : "#5a625b");
+      rect(c, -5, -13 + bob, 10, 3, type === "soldier" ? "#32677c" : "#8c3f35");
       line(c, [[-3, 9], [-4, 14 + bob]], "#4c5851", 2);
       line(c, [[3, 9], [5, 14 - bob]], "#4c5851", 2);
       line(c, [[7, 1], [10, -11]], type === "ghost" ? "#a5c3b5" : "#bec1a7", 2);
@@ -2948,7 +2710,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.fillText("封", 0, -18);
     }
   }
-  window.GFArt = { T, thumbnail, render };
+  window.GFArt = { T, thumbnail, render, cacheStats: () => ({ chunks: (ground == null ? void 0 : ground.chunks.size) || 0, pixels: [...(ground == null ? void 0 : ground.chunks.values()) || []].reduce((n, t) => n + t.canvas.width * t.canvas.height, 0), largestSide: Math.max(0, ...[...(ground == null ? void 0 : ground.chunks.values()) || []].map((t) => Math.max(t.canvas.width, t.canvas.height))) }) };
 })();
 
 var __defProp = Object.defineProperty;
@@ -2971,314 +2733,137 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function(root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory(require("./game.js"));
-  else root.GFAutoplay = factory(root.GF);
+  const api = factory(typeof module === "object" && module.exports ? require("./game") : root.GF);
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.GFAutoplay = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function(G) {
   "use strict";
-  const key = (p) => `${p.x},${p.y}`;
-  const near = (a, b) => G.dist8(a.x, a.y, b.x, b.y) === 1;
-  const coversGate = (p, gate) => {
-    const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][gate.direction];
-    return Math.hypot(p.x - gate.x, p.y - gate.y) <= G.DEFS.tower.range && Math.hypot(p.x - gate.x - dx, p.y - gate.y - dy) <= G.DEFS.tower.range;
-  };
-  function layout(s, towersPerGate) {
-    const size = G.worldSize(s), center = G.worldCenter(s);
-    const plots = [...G.estate(s).cells].map((k) => ({ x: k % size, y: Math.floor(k / size) })).filter((p) => G.terrain(p.x, p.y, s) !== "water" && !G.at(s, p.x, p.y));
-    const reserved = /* @__PURE__ */ new Set(), towers = [];
-    for (const gate of G.estate(s).gates) {
-      let score = function(p) {
-        return Math.hypot(p.x - gate.x, p.y - gate.y) + (G.estate(s).roads.has(p.y * size + p.x) ? 20 : 0) + (G.terrain(p.x, p.y, s) === "plain" ? 0 : 10);
-      };
-      const candidates = plots.filter((p) => coversGate(p, gate)).sort((a, b) => score(a) - score(b) || a.y - b.y || a.x - b.x);
-      for (let i = 0; i < towersPerGate; i++) {
-        const p = candidates.find((p2) => !reserved.has(key(p2)));
-        if (!p) throw new Error(`No land tower coverage for gate ${gate.direction}`);
-        reserved.add(key(p));
-        towers.push(__spreadProps(__spreadValues({}, p), { type: "tower", direction: gate.direction }));
-      }
-    }
-    const available = plots.filter((p) => !reserved.has(key(p)));
-    const neighbors = (p) => available.filter((q) => near(p, q));
-    const ordinary = (p) => ["plain", "shore"].includes(G.terrain(p.x, p.y, s));
-    const used = new Set(reserved), plan = [];
-    function pair(chainA, chainB, final) {
-      const connectors = available.filter(ordinary).sort((a, b) => G.dist8(a.x, a.y, center, center) - G.dist8(b.x, b.y, center, center) || a.y - b.y || a.x - b.x);
-      function triples(chain, connector) {
-        const [root, middle, end] = chain, found = [];
-        for (const e of neighbors(connector).filter(ordinary)) {
-          if (used.has(key(e))) continue;
-          for (const m of neighbors(e).filter(ordinary)) {
-            if (used.has(key(m)) || key(m) === key(connector)) continue;
-            for (const r of neighbors(m)) {
-              if (used.has(key(r)) || key(r) === key(e) || key(r) === key(connector)) continue;
-              if (G.terrain(r.x, r.y, s) !== G.DEFS[root].terrain) continue;
-              found.push([__spreadProps(__spreadValues({}, r), { type: root }), __spreadProps(__spreadValues({}, m), { type: middle }), __spreadProps(__spreadValues({}, e), { type: end })]);
-            }
-          }
-        }
-        return found;
-      }
-      for (const c of connectors) {
-        if (used.has(key(c))) continue;
-        for (const a of triples(chainA, c)) {
-          a.forEach((p) => used.add(key(p)));
-          const b = triples(chainB, c)[0];
-          if (b) {
-            b.forEach((p) => used.add(key(p)));
-            used.add(key(c));
-            plan.push(...a, ...b, __spreadProps(__spreadValues({}, c), { type: final }));
-            return true;
-          }
-          a.forEach((p) => used.delete(key(p)));
-        }
-      }
-      return false;
-    }
-    if (!pair(["tea", "inn", "bank"], ["farm", "mill", "wine"], "guild") || !pair(["mulberry", "weaver", "tailor"], ["quarry", "kiln", "trade"], "port")) {
-      throw new Error(`Cannot fit complete economy layout for seed ${s.mapSeed}`);
-    }
-    plan.sort((a, b) => {
-      var _a, _b;
-      return ((_a = G.DEFS[a.type].tier) != null ? _a : 3) - ((_b = G.DEFS[b.type].tier) != null ? _b : 3) || ["tea", "mulberry", "quarry", "farm"].indexOf(a.type) - ["tea", "mulberry", "quarry", "farm"].indexOf(b.type);
-    });
-    return { economy: plan, towers, plots };
-  }
+  const coversGate = (p, g) => Math.hypot(p.x - g.x, p.y - g.y) <= 3.5;
   function create(s) {
-    var _a, _b;
-    if (!s.selectedSkill) G.chooseSkill(s, "thunder");
-    const size = G.worldSize(s), center = G.worldCenter(s), land = G.estate(s);
-    const plots = [];
-    for (let y = 0; y < G.worldHeight(s); y++) for (let x = 0; x < size; x++) {
-      if (G.owns(s, x, y) && !G.isWall(s, x, y) && G.terrain(x, y, s) !== "water" && !(land == null ? void 0 : land.gates.some((g) => g.x === x && g.y === y))) plots.push({ x, y });
-    }
-    let planned = null;
-    if (land && s.buildings.every((b) => ["shrine", "gate"].includes(b.type))) {
-      try {
-        planned = layout(s, 1);
-      } catch (e) {
-      }
-    }
-    const gates = (land == null ? void 0 : land.gates) || [{ x: center, y: center - 3, direction: 0 }, { x: center + 3, y: center, direction: 1 }, { x: center, y: center + 3, direction: 2 }, { x: center - 3, y: center, direction: 3 }];
-    const stats = { activeSeconds: 0, decisions: 0, builds: 0, upgrades: 0, skills: { repair: 0, thunder: 0, repel: 0 }, lastAction: "等待开始", startDay: s.day, startElapsed: s.elapsed, mapSeed: (_a = s.mapSeed) != null ? _a : null, mapGeneration: (_b = s.mapGeneration) != null ? _b : 1, actions: [], droppedActions: 0 };
-    let clock = 1, forecastDay = 0, forecast = null, decisionReason = "发展产业", defenseBudget = { coins: 0, materials: 0 };
-    function record(kind, type, building) {
-      const name = kind === "skill" ? G.SKILLS[type].name : G.DEFS[type].name;
-      stats.lastAction = (kind === "build" ? "建造" : kind === "upgrade" ? "升级" : "施放") + name + (kind === "upgrade" ? " Lv." + building.level : "");
-      const entry = { second: +stats.activeSeconds.toFixed(1), day: s.day, phase: s.phase, kind, type, reason: decisionReason, coins: s.coins, materials: s.materials };
-      if (building) Object.assign(entry, { x: building.x, y: building.y, level: building.level });
-      stats.actions.push(entry);
-      if (stats.actions.length > 2e3) {
-        stats.actions.shift();
-        stats.droppedActions++;
-      }
-      if (kind === "skill") stats.skills[type]++;
-      else if (kind === "build") stats.builds++;
-      else stats.upgrades++;
+    const land = G.estate(s), width = G.worldWidth(s), stats = s.ai;
+    const plots = [...land.cells].map((k) => ({ x: k % width, y: Math.floor(k / width) })).filter((p) => G.terrain(p.x, p.y, s) !== "water");
+    const actions = [];
+    function record(kind, type) {
+      var _a;
+      const text = (kind === "build" ? "建造" : kind === "upgrade" ? "升级" : "施放") + (((_a = G.DEFS[type]) == null ? void 0 : _a.name) || G.SKILLS[type].name);
+      stats.lastAction = text;
+      if (kind === "build") stats.builds++;
+      else if (kind === "upgrade") stats.upgrades++;
+      else stats.casts++;
+      actions.push({ second: s.elapsed, kind, type });
+      if (actions.length > 200) actions.shift();
       return true;
     }
-    function build(type, p) {
-      if (!p || G.buildReason(s, type, p.x, p.y)) return false;
-      const r = G.build(s, type, p.x, p.y);
-      return r.ok && record("build", r.rolled || type, r.building);
-    }
-    function upgradeFoundation(b) {
-      if (!b || !["shrine", "gate"].includes(b.type)) return b;
+    const build = (type, p) => p && G.build(s, type, p.x, p.y).ok && record("build", type);
+    const upgrade = (b) => b && G.upgrade(s, b).ok && record("upgrade", b.type);
+    function foundation(b) {
+      if (!b) return false;
       const reason = G.upgradeReason(s, b, true);
-      const type = b.type === "shrine" && reason.startsWith("需城门") ? "gate" : b.type === "gate" && reason.startsWith("需祠堂") ? "shrine" : null;
-      if (!type) return b;
-      return s.buildings.find((n) => n.type === type && n.level < b.level);
+      if (reason.startsWith("需祠堂")) return foundation(s.buildings.find((n) => n.type === "shrine"));
+      if (reason.startsWith("需城门")) return foundation(s.buildings.find((n) => n.type === "gate"));
+      return upgrade(b);
     }
-    function upgrade(b) {
-      b = upgradeFoundation(b);
-      return b && !G.upgradeReason(s, b) && G.upgrade(s, b).ok && record("upgrade", b.type, b);
+    function available(type) {
+      return plots.filter((p) => !G.buildReason(s, type, p.x, p.y, true));
     }
-    function towerPlots() {
-      if (planned == null ? void 0 : planned.towers.some((p) => {
-        const b = G.at(s, p.x, p.y);
-        return b && b.type !== "tower";
-      })) planned = null;
-      if (planned) return planned.towers;
-      const reserved = /* @__PURE__ */ new Set(), result = [];
-      for (const gate of gates) {
-        let score = function(p) {
-          return Math.hypot(p.x - gate.x, p.y - gate.y) + ((land == null ? void 0 : land.roads.has(p.y * size + p.x)) ? 20 : 0) + (G.terrain(p.x, p.y, s) === "plain" ? 0 : 10);
-        };
-        const present = s.buildings.filter((b) => b.type === "tower" && coversGate(b, gate)).length;
-        const choices = plots.filter((p) => !G.at(s, p.x, p.y) && coversGate(p, gate) && !reserved.has(key(p)));
-        choices.sort((a, b) => score(a) - score(b));
-        for (const p of choices.slice(0, Math.max(0, 1 - present))) {
-          reserved.add(key(p));
-          result.push(__spreadProps(__spreadValues({}, p), { type: "tower", direction: gate.direction }));
+    function defense() {
+      const enemies = G.hostileUnits(s);
+      for (const g of land.gates) {
+        const nearby = enemies.filter((u) => Math.hypot(u.x - g.x, u.y - g.y) <= 5), gate = G.at(s, g.x, g.y);
+        if (!nearby.length) continue;
+        const towers = s.buildings.filter((b) => b.type === "tower" && coversGate(b, g));
+        const force = nearby.reduce((n, u) => n + u.baseDamage, 0), power = towers.reduce((n, b) => n + G.DEFS.tower.damage * G.factor(b) / G.DEFS.tower.interval, 0);
+        if (power >= force && (gate == null ? void 0 : gate.hp) > G.maxHP(gate) * 0.5) continue;
+        const existing = towers.find((b) => !G.upgradeReason(s, b));
+        if (existing && upgrade(existing)) return true;
+        if (towers.length < 2) {
+          const p = available("tower").filter((p2) => coversGate(p2, g)).sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0];
+          if (build("tower", p)) return true;
         }
+        if ((gate == null ? void 0 : gate.hp) < G.maxHP(gate) * 0.5 && foundation(gate)) return true;
       }
-      return result;
+      return false;
     }
-    function economy(towers) {
-      if (planned == null ? void 0 : planned.economy.some((p) => {
-        const b = G.at(s, p.x, p.y);
-        return b && b.type !== p.type;
-      })) planned = null;
+    function economy() {
       const rates = G.rates(s), weights = { coins: 1 / Math.max(0.5, rates.coins), materials: 1 / Math.max(0.5, rates.materials) };
-      const value = (cost) => cost.coins * weights.coins + cost.materials * weights.materials;
-      const options = [], base = G.rates(s);
-      const reserve = s.phase === "day" && s.time > G.DAY - 18 ? G.DEFS.tower.cost : defenseBudget;
-      const affordable = (cost) => s.coins >= cost.coins + reserve.coins && s.materials >= cost.materials + reserve.materials;
-      function gain(buildings) {
-        const next = G.rates(__spreadProps(__spreadValues({}, s), { buildings }));
-        return (next.coins - base.coins) * weights.coins + (next.materials - base.materials) * weights.materials;
-      }
+      const value = (c) => c.coins * weights.coins + c.materials * weights.materials, options = [];
       for (const d of Object.values(G.DEFS).filter((d2) => d2.cat === "economy")) {
-        if (d.limit && s.buildings.filter((b) => b.type === d.id).length >= d.limit) continue;
-        const cost = G.buildCost(s, d.id);
-        let best2 = null;
-        for (const p of plots) {
-          if (towers.some((t) => key(t) === key(p))) continue;
-          if (planned == null ? void 0 : planned.economy.some((q) => key(q) === key(p) && q.type !== d.id)) continue;
-          const reason = G.buildReason(s, d.id, p.x, p.y);
-          if (reason && !reason.startsWith("差 ")) continue;
-          const b = __spreadProps(__spreadValues({}, p), { type: d.id, level: 1 }), increase = gain([...s.buildings, b]);
-          let open = 0;
-          for (const q of plots) if (near(p, q) && !G.at(s, q.x, q.y) && ["plain", "shore"].includes(G.terrain(q.x, q.y, s))) open++;
-          const plannedPlot = planned == null ? void 0 : planned.economy.some((q) => q.type === d.id && key(q) === key(p));
-          const score = increase / Math.max(1, value(cost)) * (plannedPlot ? 1.12 : 1) * (1 + open * 5e-3);
-          if (!best2 || score > best2.score) best2 = { score, cost, run: () => build(d.id, p), reason: "扩建" + d.name + "，提高" + (d.resource === "materials" ? "工材" : "铜钱") + "收入" };
+        let best = null;
+        for (const p of available(d.id)) {
+          const b = __spreadProps(__spreadValues({}, p), { type: d.id, level: 1, owner: s.actorId }), gain = G.income(s, b) * weights[d.resource];
+          const score = gain / Math.max(1, value(G.buildCost(s, d.id))) * (land.roads.has(p.y * width + p.x) ? 0.85 : 1);
+          if (!best || score > best.score) best = { score, run: () => build(d.id, p) };
         }
-        if (best2) options.push(best2);
+        if (best) options.push(best);
       }
-      const shrineBuilding = s.buildings.find((b) => b.type === "shrine");
       for (const b of s.buildings.filter((b2) => G.DEFS[b2.type].income)) {
         if (b.level >= G.maxLevel(b)) continue;
-        const reason = G.upgradeReason(s, b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), cost = G.upgradeCost(b);
-        const increase = gain(s.buildings.map((n) => n === b ? next : n));
-        if (!reason || reason.startsWith("差 ")) options.push({ score: increase / Math.max(1, value(cost)), cost, run: () => upgrade(b), reason: "升级" + G.DEFS[b.type].name + "，提高单位投入收益" });
-        else if (reason.startsWith("需祠堂") && shrineBuilding) {
-          const foundation = upgradeFoundation(shrineBuilding);
-          if (!foundation || G.upgradeReason(s, foundation, true)) continue;
-          const required = G.requiredShrineLevel(next.level), total = __spreadValues({}, cost);
-          for (let level = shrineBuilding.level; level < required; level++) {
-            const c = G.upgradeCost(__spreadProps(__spreadValues({}, shrineBuilding), { level }));
-            total.coins += c.coins;
-            total.materials += c.materials;
-          }
-          const gate = s.buildings.find((n) => n.type === "gate");
-          if (gate) for (let level = gate.level; level < required - 1; level++) {
-            const c = G.upgradeCost(__spreadProps(__spreadValues({}, gate), { level }));
-            total.coins += c.coins;
-            total.materials += c.materials;
-          }
-          options.push({ score: increase / Math.max(1, value(total)), cost: G.upgradeCost(foundation), run: () => upgrade(shrineBuilding), reason: "提升祠堂与城门，解锁产业升级" });
-        }
+        const next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), d = G.DEFS[b.type], reason = G.upgradeReason(s, b, true);
+        const gain = (G.income(s, next) - G.income(s, b)) * weights[d.resource], score = gain / Math.max(1, value(G.upgradeCost(b)));
+        if (!reason) options.push({ score, run: () => upgrade(b) });
+        else if (reason.startsWith("需祠堂")) options.push({ score: score * 0.3, run: () => foundation(s.buildings.find((n) => n.type === "shrine")) });
       }
       options.sort((a, b) => b.score - a.score);
-      const best = options[0], ready = options.find((o) => affordable(o.cost));
-      if (best && ready && best.score > ready.score * 1.5 && !affordable(best.cost)) {
-        const wait = Math.max(Math.max(0, best.cost.coins + reserve.coins - s.coins) / (rates.coins || 1e-4), Math.max(0, best.cost.materials + reserve.materials - s.materials) / (rates.materials || 1e-4));
-        if (wait <= 8) return false;
-      }
-      if (ready) {
-        decisionReason = ready.reason;
-        return ready.run();
-      }
+      for (const option of options) if (option.run()) return true;
       return false;
     }
-    function defense(towers) {
-      var _a2, _b2, _c, _d, _e, _f;
-      if (s.phase === "day") return false;
-      if (forecastDay !== s.day) {
-        const probe = G.restore(G.serialize(s));
-        if (probe) {
-          probe.enemies = [];
-          probe.buildings = probe.buildings.filter((b) => !G.DEFS[b.type].damage);
-          G.startNight(probe);
-          G.step(probe, 0.25);
-          G.step(probe, 0.25);
-          forecast = { hp: ((_a2 = probe.enemies[0]) == null ? void 0 : _a2.maxHp) || 45, total: ((_b2 = probe.wave) == null ? void 0 : _b2.total) || 5, interval: (((_c = probe.wave) == null ? void 0 : _c.timer) || 1) + 0.15 };
-        } else forecast = { hp: 45, total: 5, interval: 1.3 };
-        forecastDay = s.day;
-      }
-      const boss = s.day % 7 === 0 && s.mode !== "coop", directions = G.raidDirections(s), pending = s.phase === "night" ? Math.max(0, (((_d = s.wave) == null ? void 0 : _d.total) || 0) - (((_e = s.wave) == null ? void 0 : _e.spawned) || 0)) : forecast.total;
-      const damage = (b) => G.DEFS[b.type].damage * G.factor(b) * G.defenseBoost(s) / G.DEFS[b.type].interval;
-      const covers = (b, g) => Math.hypot(b.x - g.x, b.y - g.y) <= G.DEFS[b.type].range + (b.level - 1) * 0.35;
-      const needs = [];
-      for (const gate of gates) {
-        const enemies = s.enemies.filter((e) => e.targetGateId != null ? s.buildings.some((b) => b.id === e.targetGateId && b.x === gate.x && b.y === gate.y) : gates.reduce((a, b) => Math.hypot(e.x - a.x, e.y - a.y) <= Math.hypot(e.x - b.x, e.y - b.y) ? a : b) === gate);
-        if (!directions.includes(gate.direction) && !enemies.length) continue;
-        if (!pending && !enemies.length) continue;
-        const defenders = s.buildings.filter((b) => G.DEFS[b.type].damage && covers(b, gate)), firepower = defenders.reduce((n, b) => n + damage(b), 0);
-        const nearEnemies = enemies.filter((e) => Math.hypot(e.x - gate.x, e.y - gate.y) < 4);
-        const gateBuilding = s.buildings.find((b) => b.type === "gate" && b.direction === gate.direction), health = gateBuilding ? gateBuilding.hp / G.maxHP(gateBuilding) : 1;
-        const remaining = pending / (s.mode === "coop" ? 2 : boss ? 4 : 1) + enemies.length;
-        const sustained = forecast.hp * (s.day >= 4 ? 1.45 : 1) / forecast.interval * 0.6 * (boss ? 0.6 : 1) * Math.min(1, remaining / 5);
-        const urgent = nearEnemies.reduce((n, e) => n + e.hp, 0) / (health < 0.5 ? 4 : 10);
-        const target = Math.max(sustained, urgent);
-        if (firepower >= target) continue;
-        needs.push({ gate, defenders, missing: target - firepower, urgent: health < 0.5 && nearEnemies.length > 0 });
-      }
-      needs.sort((a, b) => Number(b.urgent) - Number(a.urgent) || b.missing - a.missing);
-      for (const { gate, defenders, missing, urgent } of needs) {
-        decisionReason = ["北", "东", "南", "西"][gate.direction] + "方" + (urgent ? "城门受压" : "来袭火力不足") + "，补强防守";
-        const choices = [];
-        for (const b of defenders) {
-          if (!G.upgradeReason(s, b)) {
-            const cost = G.upgradeCost(b), gain = damage(__spreadProps(__spreadValues({}, b), { level: b.level + 1 })) - damage(b);
-            choices.push({ score: Math.min(missing, gain) * 1.5 / (cost.coins + cost.materials), run: () => upgrade(b) });
-          }
+    function army() {
+      const barracks = s.buildings.filter((b) => b.type === "barracks").sort((a, b) => a.level - b.level || a.id - b.id), rates = G.rates(s);
+      if (!barracks.length && (rates.coins < 3 || rates.materials < 2)) return false;
+      if (barracks.length) {
+        const b = barracks.find((b2) => b2.level < 9 && !G.upgradeReason(s, b2, true));
+        if (b) {
+          if (upgrade(b)) return true;
+          stats.lastAction = "为升级兵营留资";
+          return "saving";
         }
-        choices.sort((a, b) => b.score - a.score);
-        if ((_f = choices[0]) == null ? void 0 : _f.run()) return true;
-        const shrineBuilding = s.buildings.find((b) => b.type === "shrine");
-        const locked = defenders.some((b) => G.upgradeReason(s, b).startsWith("需祠堂"));
-        if (locked && upgrade(shrineBuilding)) return true;
-        if (defenders.some((b) => b.level < G.maxLevel(b)) && !urgent) {
-          const foundation = locked && upgradeFoundation(shrineBuilding);
-          const costs = foundation ? [G.upgradeCost(foundation)] : defenders.filter((b) => b.level < G.maxLevel(b)).map(G.upgradeCost);
-          costs.sort((a, b) => a.coins + a.materials - b.coins - b.materials);
-          defenseBudget = costs[0] || G.DEFS.tower.cost;
-          continue;
+        if (barracks.length >= 3) {
+          if (foundation(s.buildings.find((b2) => b2.type === "shrine"))) return true;
+          return false;
         }
-        const candidates = plots.filter((p) => coversGate(p, gate) && !G.buildReason(s, "tower", p.x, p.y) && !(planned == null ? void 0 : planned.economy.some((q) => key(q) === key(p))));
-        candidates.sort((a, b) => Number(towers.some((t) => key(t) === key(b))) - Number(towers.some((t) => key(t) === key(a))) || Math.hypot(a.x - gate.x, a.y - gate.y) - Math.hypot(b.x - gate.x, b.y - gate.y));
-        if (candidates.length && build("tower", candidates[0])) return true;
-        defenseBudget = G.DEFS.tower.cost;
-        const gateBuilding = s.buildings.find((b) => b.type === "gate" && b.direction === gate.direction);
-        if (urgent && (gateBuilding == null ? void 0 : gateBuilding.hp) > 0 && upgrade(gateBuilding)) return true;
       }
-      return false;
+      const p = available("barracks").sort((a, b) => Math.min(...land.gates.map((g) => Math.hypot(a.x - g.x, a.y - g.y))) - Math.min(...land.gates.map((g) => Math.hypot(b.x - g.x, b.y - g.y))))[0];
+      if (!p) return false;
+      if (build("barracks", p)) return true;
+      stats.lastAction = "为新兵营留资";
+      return "saving";
     }
     function skills() {
-      if (s.phase !== "night") return false;
-      const damaged = s.buildings.some((b) => b.hp / G.maxHP(b) < 0.6);
-      const pressure = s.enemies.filter((e) => gates.some((g) => Math.hypot(e.x - g.x, e.y - g.y) < 2)).length;
-      const shrine = s.buildings.find((b) => b.type === "shrine");
-      const nearShrine = shrine && s.enemies.some((e) => Math.hypot(e.x - shrine.x, e.y - shrine.y) < 3);
-      for (const [id, wanted] of [["repair", damaged], ["thunder", s.enemies.length >= 5 || nearShrine], ["repel", pressure >= 3 || nearShrine]]) {
-        if (wanted && !G.skillReason(s, id) && G.skill(s, id).ok) {
-          decisionReason = "按当前战况施法";
-          return record("skill", id);
-        }
-      }
-      return false;
+      const id = s.selectedSkill;
+      if (!id || G.skillReason(s, id)) return false;
+      const enemies = G.hostileUnits(s).filter((u) => G.inSkillZone(s, s.actorId, u));
+      const wanted = id === "repair" ? s.buildings.some((b) => b.hp / G.maxHP(b) < 0.6) : enemies.length >= 3 || enemies.some((u) => Math.hypot(u.x - land.center.x, u.y - land.center.y) < 3);
+      return wanted && G.skill(s, id).ok && record("skill", id);
     }
     function tick(dt) {
-      if (s.over || !Number.isFinite(dt) || dt <= 0) return false;
+      if (s.over || s.eliminated || !Number.isFinite(dt) || dt <= 0) return false;
       stats.activeSeconds += dt;
-      clock += dt;
-      if (clock < 1) return false;
-      clock %= 1;
+      stats.clock += dt;
+      if (stats.clock < 1 - 1e-8) return false;
+      stats.clock = Math.max(0, stats.clock - 1);
       stats.decisions++;
-      const cast = skills(), towers = towerPlots();
-      defenseBudget = { coins: 0, materials: 0 };
-      const acted = defense(towers) || economy(towers);
-      return !!(acted || cast);
+      const cast = skills();
+      if (defense()) return true;
+      if (!s.buildings.some((b) => b.type === "barracks") || stats.armyTurn) {
+        const action = army();
+        if (action) {
+          if (action === true) stats.armyTurn = false;
+          return action === true || cast;
+        }
+      }
+      if (economy()) {
+        stats.armyTurn = true;
+        return true;
+      }
+      return !!army() || cast;
     }
-    function report() {
-      return __spreadProps(__spreadValues({ schema: 1, controller: "income-pressure-v2" }, stats), { activeSeconds: +stats.activeSeconds.toFixed(1), day: s.day, phase: s.phase, over: s.over, kills: s.kills, buildings: s.buildings.length, rates: G.rates(s), skills: __spreadValues({}, stats.skills), actions: stats.actions.map((a) => __spreadValues({}, a)) });
-    }
+    const report = () => __spreadProps(__spreadValues({ schema: 2, controller: "estate-attack-v1" }, stats), { skills: { total: stats.casts }, actions: [...actions], mapSeed: s.mapSeed, owner: s.actorId, over: s.over, eliminated: s.eliminated, rates: G.rates(s) });
     return { tick, report, get lastAction() {
       return stats.lastAction;
     } };
   }
-  return { create, layout, coversGate };
+  G.setControllerFactory(create);
+  return { create, coversGate };
 });
 
 var __defProp = Object.defineProperty;
@@ -3302,9 +2887,11 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function() {
   "use strict";
-  const $ = (id) => document.getElementById(id), canvas = $("map"), KEY = "gufang-qitan-save-v1";
+  const $ = (id) => document.getElementById(id), canvas = $("map"), KEY = "gufang-qitan-match-v8";
   let storageWarning = false, saved = null;
   try {
+    localStorage.removeItem("gufang-qitan-save-v1");
+    localStorage.removeItem("gufang-qitan-save-v1-backup");
     saved = localStorage.getItem(KEY);
   } catch (e) {
     storageWarning = true;
@@ -3335,13 +2922,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function beginRemoteFrame(span = 100) {
     const now = performance.now(), positions = /* @__PURE__ */ new Map();
-    for (const [units, soldier] of [[state.enemies, false], [state.soldiers, true]]) for (const unit of units) positions.set((soldier ? "s" : "e") + unit.id, remotePosition(unit, soldier));
+    for (const [units, soldier] of [[state.soldiers, true]]) for (const unit of units) positions.set((soldier ? "s" : "e") + unit.id, remotePosition(unit, soldier));
     remoteMotion = positions;
     remoteSpan = Math.max(50, Math.min(150, span));
     remoteAt = now;
   }
   const playerOwner = () => (online == null ? void 0 : online.role) === "guest" ? 1 : 0;
-  const playerState = () => state.mode === "coop" ? GF.playerView(state, playerOwner()) : state;
+  const playerState = () => GF.playerView(state, playerOwner());
   const onlineSend = (message) => {
     var _a;
     if (((_a = online == null ? void 0 : online.socket) == null ? void 0 : _a.readyState) === WebSocket.OPEN) online.socket.send(JSON.stringify(message));
@@ -3422,7 +3009,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       state.projectiles.push(...message.projectiles);
       state.events.push(...message.events);
       if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
-      if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
+      if (selected && !GF.at(state, selected.x, selected.y) && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
       handleEvents();
       refresh();
     } else if (message.type === "result" && replica && message.session === replica.session) {
@@ -3460,7 +3047,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
     online = { kind: "server", socket, role: kind === "create" ? "host" : "guest", code, peerConnected: false, started: false, serverPaused: true };
     socket.onopen = () => {
-      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code });
+      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code, enemyCount: Number($("coop-enemies").value) });
     };
     socket.onmessage = (event) => {
       if ((online == null ? void 0 : online.socket) !== socket) return;
@@ -3470,7 +3057,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } catch (e) {
         return;
       }
+      if (message.type === "settings") {
+        $("coop-enemies").value = String(message.enemyCount);
+        updateCoopSeat();
+        return;
+      }
       if (message.type === "created" || message.type === "joined") {
+        $("coop-enemies").value = String(message.enemyCount);
         online.code = message.code;
         online.peerConnected = message.type === "created" ? false : true;
         $("coop-code").value = message.code;
@@ -3520,7 +3113,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const renderInterval = mobileRendering ? 1e3 / 60 : 0;
   function center(owner = 0) {
     cam.zoom = Math.max(0.55, Math.min(0.86, view.width / 550));
-    const home = state.mode === "coop" ? GF.estate(GF.playerView(state, owner)).center : { x: GF.worldCenter(state), y: GF.worldCenter(state) };
+    const home = GF.estate(GF.playerView(state, owner)).center;
     cam.x = view.width * 0.5 - (home.x + 0.5) * GFArt.T * cam.zoom;
     cam.y = view.height * 0.48 - (home.y + 0.5) * GFArt.T * cam.zoom;
     clampCamera();
@@ -3549,7 +3142,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function zoom(factor, x = view.width / 2, y = view.height / 2) {
     const old = cam.zoom;
-    cam.zoom = Math.max(0.36, Math.min(1.8, old * factor));
+    cam.zoom = Math.max(0.12, Math.min(1.8, old * factor));
     cam.x = x - (x - cam.x) * cam.zoom / old;
     cam.y = y - (y - cam.y) * cam.zoom / old;
     clampCamera();
@@ -3615,9 +3208,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       toast("庄园城墙 · 不可建设、升级或拆除");
       return;
     }
-    if (!GF.owns(playerState(), x, y)) {
+    if (!GF.owns(playerState(), x, y) && !GF.at(state, x, y)) {
       closePanel();
-      toast(state.mode === "coop" && GF.owns(state, x, y) ? "队友的庄园 · 由队友自行经营" : "庄园外区域 · 不可建设或操作", "warning");
+      toast("庄园外或遗址 · 不可建设", "warning");
       return;
     }
     selected = { x, y };
@@ -3642,7 +3235,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function effect(d, b) {
     var _a, _b;
-    if (d.id === "barracks") return `自动派出${GF.soldierLimit(b || { type: d.id, level: 1 })}名民兵`;
+    if (d.id === "barracks") return `每秒派出${GF.soldierRate(b || { type: d.id, level: 1 })}名民兵 · 本庄上限120人`;
     if (!d.income) return d.desc || "";
     const building = b || { type: d.id, x: (_a = selected == null ? void 0 : selected.x) != null ? _a : GF.worldCenter(state), y: (_b = selected == null ? void 0 : selected.y) != null ? _b : GF.worldCenter(state), level: 1 };
     const economic = playerState(), preview = b ? economic : __spreadProps(__spreadValues({}, economic), { buildings: [...economic.buildings, building] });
@@ -3662,7 +3255,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return center2([label("生产"), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === "tower") return rows([["攻击", d.damage], ["射程", d.range]]);
-    if (d.id === "barracks") return rows([["士兵", GF.soldierLimit({ type: "barracks", level: 1 })], ["战力", GF.soldierPower(playerState(), { type: "barracks", level: 1 })]]);
+    if (d.id === "barracks") return rows([["出兵效率", GF.soldierRate({ type: "barracks", level: 1 }) + "人/秒"], ["战力", GF.soldierPower(playerState(), { type: "barracks", level: 1 })]]);
     if (d.id === "rock") return rows([["攻击范围", d.range], ["溅射", d.splash]]);
     if (d.id === "well") return center2([label("农田"), figure(`${icon("coins")}<span class="effect-value">+20%</span>`)]);
     if (d.id === "stage") return center2([label("全镇"), figure(`${icon("coins")}<span class="effect-value">+3%</span> ${icon("materials")}<span class="effect-value">+3%</span>`)]);
@@ -3698,14 +3291,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return 6;
   }
   function detailHTML(b) {
-    const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), nextF = GF.factor(next);
+    const context = GF.playerView(state, b.owner), d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), nextF = GF.factor(next);
     const name = b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : GF.name(b), demolishReason = GF.demolishReason(playerState(), b);
     const base = d.income ? d.income * GF.incomeFactor(b) : 0;
-    const bonus = d.income ? rateText(Math.max(0, GF.income(playerState(), b) - base)) : "0";
+    const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : "0";
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === "materials" ? "material-icon" : "coin-icon"}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === "0" ? "" : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : "";
     let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(playerState(), b).toFixed(1)}${max ? "" : " → " + GF.income(playerState(), next).toFixed(1)}</strong></div>`;
-    else if (b.type === "barracks") stats += `<div>出兵上限<strong>${GF.soldierLimit(b)}${max ? "" : " → " + GF.soldierLimit(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(playerState(), b)}${max ? "" : " → " + GF.soldierPower(playerState(), next)}</strong></div>`;
+    if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
+    else if (b.type === "barracks") stats += `<div>出兵效率（人/秒）<strong>${GF.soldierRate(b)}${max ? "" : " → " + GF.soldierRate(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(context, b)}${max ? "" : " → " + GF.soldierPower(context, next)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (["well", "stage"].includes(b.type)) {
       const v = { well: 20, stage: 3 }[b.type];
@@ -3719,7 +3312,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
-    if (GF.isWall(state, x, y) || !GF.owns(playerState(), x, y)) {
+    if (GF.isWall(state, x, y) || !b && !GF.owns(playerState(), x, y)) {
       closePanel();
       return;
     }
@@ -3739,6 +3332,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
     if (b) {
+      const readonly = b.owner !== playerOwner() || playerState().eliminated;
+      $("detail-view").classList.toggle("readonly", readonly);
+      if (readonly) $("plot-label").textContent = (state.players[b.owner].team === 0 ? "友方" : "敌方") + "庄园 " + (b.owner + 1) + " · 仅查看";
       $("detail-hp").textContent = Math.ceil(Math.max(0, b.hp)) + " / " + GF.maxHP(b);
       $("detail-hp-fill").style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + "%";
       const options = GF.upgradeOptions(playerState(), b), reason = GF.upgradeReason(playerState(), b), max = b.level >= GF.maxLevel(b);
@@ -3776,29 +3372,24 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
   }
+  const duration = (n) => Math.floor(n / 60) + ":" + String(Math.floor(n % 60)).padStart(2, "0");
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
-    var _a, _b, _c;
-    const invasion = started && state.phase !== "day";
-    const directions = GF.raidDirections(state);
-    $("invasion-indicators").hidden = !invasion;
-    for (const el of $("invasion-indicators").children) el.hidden = !invasion || !directions.includes(Number(el.dataset.direction));
-    $("coop-status").hidden = !started || state.mode !== "coop";
-    $("coop-action").textContent = online ? online.peerConnected ? (online.serverPaused ? "对局已暂停 · " : "服务器联机 · ") + "房间 " + online.code : "等待队友重新连接" : paused ? "队友已暂停" : "电脑队友：" + ((partnerPilot == null ? void 0 : partnerPilot.lastAction) || "准备经营");
+    var _a;
+    $("coop-status").hidden = !started;
+    $("coop-action").textContent = playerState().eliminated ? "你的庄园已出局 · 观战中" : online ? (online.serverPaused ? "对局已暂停 · " : "服务器联机 · ") + "房间 " + online.code : state.mode === "coop" ? "电脑队友：" + state.players[1].ai.lastAction : "自动出征 · 攻破所有敌方主城";
     $("coop-home").textContent = "我的庄园";
-    $("coop-ally").textContent = online ? "队友庄园" : "电脑庄园";
-    $("autoplay-status").hidden = !autoplay || !started;
+    $("coop-ally").hidden = state.mode !== "coop";
+    $("coop-ally").textContent = ((_a = state.players[1]) == null ? void 0 : _a.eliminated) ? "队友遗址" : "队友庄园";
+    $("autoplay-status").hidden = !autoplay || !started || playerState().eliminated;
     $("autoplay-status").querySelector("strong").textContent = paused ? "托管已暂停" : "托管中";
-    $("autoplay-action").textContent = (pilot == null ? void 0 : pilot.lastAction) || "准备经营";
+    $("autoplay-action").textContent = playerState().ai.lastAction;
     $("coins").textContent = fmt(playerState().coins);
     $("materials").textContent = fmt(playerState().materials);
-    $("day-label").textContent = "第 " + state.day + " 日 · " + { day: "白昼", dusk: "黄昏", night: "长夜" }[state.phase] + (state.day % 7 === 0 ? " · 灯会" : "");
-    $("phase-icon").textContent = { day: "☀", dusk: "◒", night: "☾" }[state.phase];
-    const liveTime = online && !online.serverPaused && online.peerConnected ? guestTimeBase + Math.min(0.25, (performance.now() - guestClockAt) / 1e3) : state.time;
-    const remaining = state.phase === "day" ? GF.DAY - liveTime : GF.DUSK - liveTime;
-    $("day-fill").style.width = state.phase === "night" ? Math.max(0, 100 * ((((_a = state.wave) == null ? void 0 : _a.total) || 1) - (((_b = state.wave) == null ? void 0 : _b.spawned) || 0) + state.enemies.length) / (((_c = state.wave) == null ? void 0 : _c.total) || 1)) + "%" : Math.max(0, remaining / (state.phase === "day" ? GF.DAY : GF.DUSK) * 100) + "%";
-    $("countdown").textContent = state.phase === "night" ? "" : Math.max(0, Math.ceil(remaining)) + "s";
-    $("skills").hidden = state.phase !== "night" || state.over;
+    const elapsed = online ? guestLive() : state.elapsed;
+    $("day-label").textContent = "对局 " + duration(elapsed);
+    $("countdown").textContent = "敌庄 " + state.players.filter((p) => p.team === 1 && !p.eliminated).length + " / " + state.enemyCount;
+    $("skills").hidden = !started || state.over || playerState().eliminated;
     for (const el of document.querySelectorAll("[data-skill]")) {
       el.hidden = el.dataset.skill !== playerState().selectedSkill;
       const id = el.dataset.skill, reason = GF.skillReason(playerState(), id);
@@ -3806,28 +3397,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       el.setAttribute("aria-disabled", String(!!reason));
       el.querySelector("small").textContent = playerState().cooldowns[id] > 0 ? Math.ceil(playerState().cooldowns[id]) + " 秒" : "可施展";
     }
-    if (lastPhase !== state.phase) {
-      document.body.classList.toggle("night", state.phase === "night");
-      lastPhase = state.phase;
-    }
     renderPanel();
   }
   function handleEvents() {
     const events = state.events.splice(0);
-    if (!events.length) return;
-    const important = events.find((e) => ["victory", "defeat"].includes(e.kind));
-    if ((important == null ? void 0 : important.kind) === "defeat") {
+    if (events.some((e2) => e2.kind === "finished")) {
       save();
       showEnd();
-    } else if ((important == null ? void 0 : important.kind) === "victory") {
-      save();
-      if (autoplay) toast("七夜长明 · 托管继续跑测", "reward");
-      else showVictory();
-    } else {
-      const e = events[events.length - 1];
-      if (!e.text.startsWith("坊志达成")) toast(e.text, e.kind);
-      if (e.kind === "reward") tone("reward");
+      return;
     }
+    if (playerState().eliminated) {
+      autoplay = false;
+      if (selected && !GF.at(state, selected.x, selected.y)) closePanel();
+    }
+    const e = events.filter((e2) => !e2.text.startsWith("坊志达成")).pop();
+    if (e) toast(e.text, e.kind);
   }
   function blocked(el, reason) {
     el == null ? void 0 : el.classList.remove("shake");
@@ -3954,7 +3538,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function updateStartMenu() {
     const loaded = readSave();
     $("start-load").disabled = !loaded;
-    $("start-save-detail").textContent = loaded ? "第 " + loaded.day + " 日 · " + { day: "白昼", dusk: "黄昏", night: "长夜" }[loaded.phase] + (loaded.over ? " · 已失守" : " · 继续故事") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
+    $("start-save-detail").textContent = loaded ? duration(loaded.elapsed) + " · " + loaded.enemyCount + "个敌庄" + (loaded.over ? " · 已结束" : " · 继续对局") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
     updateSound();
   }
   function showStartMenu() {
@@ -3980,6 +3564,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     state = next;
     started = true;
     saveClock = 0;
+    if (!online) {
+      state.players[0].controller = "human";
+      for (const p of state.players.slice(1)) {
+        p.controller = "computer";
+        p.selectedSkill || (p.selectedSkill = "thunder");
+      }
+    }
     if (online) saveStatus = "服务器运行中 · 可手动保存完整进度";
     partnerPilot = state.mode === "coop" && !online ? GFAutoplay.create(GF.playerView(state, 1)) : null;
     $("start-menu").hidden = true;
@@ -3990,7 +3581,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     closeModal();
   }
   function showSkillChoice() {
-    const descriptions = { repel: "封住敌人 4 秒，造成 20 伤害", repair: "全体建筑恢复 35% 耐久", thunder: "全场雷击，阴兵 350、其余 240 伤害" }, symbols = { repel: "符", repair: "愈", thunder: "雷" };
+    const descriptions = { repel: "本庄及墙外5格敌兵定身4秒、受到20伤害", repair: "本庄建筑恢复35%耐久", thunder: "本庄及墙外5格内敌兵受到240伤害" }, symbols = { repel: "符", repair: "愈", thunder: "雷" };
     modal('<div class="skill-selection"><p class="modal-kicker">本局神技 · 三选一</p><h2>择一守坊</h2><div class="skill-options">' + Object.entries(GF.SKILLS).map(([id, d]) => `<button data-modal="choose-skill" data-choice="${id}" class="skill-option"><i aria-hidden="true">${symbols[id]}</i><strong>${d.name}</strong><span>${descriptions[id]}</span><small>冷却 ${d.cooldown} 秒</small></button>`).join("") + "</div></div>");
     $("close-modal").hidden = true;
     $("modal-content").querySelector("[data-choice]").focus();
@@ -4008,7 +3599,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     enterGame(loaded);
-    toast("故人归坊 · 已续接第 " + state.day + " 日的灯火");
+    toast("已恢复对局 · " + duration(state.elapsed));
     if (state.over) showEnd();
   };
   $("start-sound").onclick = toggleSound;
@@ -4016,6 +3607,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const linked = (online == null ? void 0 : online.role) === "host" && online.peerConnected, joining = (online == null ? void 0 : online.role) === "guest" && online.peerConnected;
     $("coop-seat").setAttribute("aria-pressed", String(computerSeat));
     $("coop-seat").disabled = !!online;
+    $("coop-enemies").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
     $("coop-seat").classList.toggle("is-ready", computerSeat || linked || joining);
     $("coop-avatar").textContent = computerSeat ? "智" : linked || joining ? "友" : "候";
     $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : linked || joining ? "联机队友<small>已加入房间</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
@@ -4046,6 +3638,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!/^\d{6}$/.test(code)) return toast("请输入六位房号", "warning");
     computerSeat = false;
     connectOnline("join", code);
+  };
+  $("coop-enemies").onchange = () => {
+    if ((online == null ? void 0 : online.role) === "host") onlineSend({ type: "settings", enemyCount: Number($("coop-enemies").value) });
   };
   $("coop-back").onclick = showStartMenu;
   $("coop-start").onclick = () => {
@@ -4096,36 +3691,32 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
       return;
     }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + " 日" + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
   }
   function autoplaySettings() {
     const r = pilot == null ? void 0 : pilot.report(), seconds = Math.floor((r == null ? void 0 : r.activeSeconds) || 0);
     return '<section class="autoplay-settings" aria-label="托管跑测"><button class="modal-secondary" data-modal="autoplay" aria-pressed="' + autoplay + '" ' + (state.over ? "disabled" : "") + ">" + (autoplay ? "关闭托管 · 手动接管" : "启用托管 · 电脑游玩") + "</button><p>自动经营、升级、防守与施法。启用即继续游戏；打开菜单或切到后台会暂停，失守后停止。</p>" + (r ? "<p>累计托管 " + Math.floor(seconds / 60) + " 分 " + seconds % 60 + " 秒 · 建造 " + r.builds + " · 升级 " + r.upgrades + " · 施法 " + Object.values(r.skills).reduce((a, b) => a + b, 0) + " 次<br>最近操作：" + r.lastAction + '</p><button class="modal-secondary autoplay-report" data-modal="autoplay-report">导出托管报告</button>' : "") + "</section>";
   }
   function toggleAutoplay() {
-    if (state.over) return;
+    if (state.over || playerState().eliminated) return;
     if (autoplay) {
       autoplay = false;
+      playerState().controller = "human";
       showMenu();
       toast("托管已关闭，可手动接管");
       return;
     }
     if (!pilot) pilot = GFAutoplay.create(GF.playerView(state));
     autoplay = true;
+    playerState().controller = "autoplay";
     closePanel();
     closeModal();
     toast("托管已启用 · 电脑开始经营");
   }
   function showEnd() {
     autoplay = false;
-    if ((online == null ? void 0 : online.role) === "guest") {
-      modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><p>等待主机重新开始，或返回庄园查看战况。</p><button class="modal-primary" data-modal="close">返回古坊</button><button class="modal-secondary" data-modal="title">离开房间</button>');
-      return;
-    }
-    modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><div class="modal-stats"><div><strong>' + (state.day - 1) + "</strong><span>守过长夜</span></div><div><strong>" + state.kills + "</strong><span>击退来敌</span></div></div>" + (pilot ? autoplaySettings() : "") + '<button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="close">返回古坊</button>');
-  }
-  function showVictory() {
-    modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + "</strong><span>现存建筑</span></div><div><strong>" + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
+    const title = { victory: "攻城告捷", defeat: "古坊失守", draw: "双方同归" }[state.result] || "对局结束";
+    modal('<p class="modal-kicker">庄园攻防</p><h2>' + title + '</h2><div class="modal-stats"><div><strong>' + duration(state.elapsed) + "</strong><span>对局时长</span></div><div><strong>" + state.players.filter((p) => p.team === 0).reduce((n, p) => n + p.kills, 0) + "</strong><span>我方击杀</span></div></div>" + ((online == null ? void 0 : online.role) === "guest" ? "" : '<button class="modal-primary" data-modal="new">重新开始</button>') + '<button class="modal-secondary" data-modal="close">查看战场</button><button class="modal-secondary" data-modal="title">返回开始菜单</button>');
   }
   function newGame(coop = started && state.mode === "coop") {
     if (online) {
@@ -4135,13 +3726,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return;
     }
-    enterGame(coop ? GF.createCoopState() : GF.createState());
+    const enemyCount = started && state.mode === (coop ? "coop" : "single") ? state.enemyCount : Number($(coop ? "coop-enemies" : "single-enemies").value);
+    enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount }));
     save();
   }
   function downloadSave(raw) {
     const blob = new Blob([raw], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
     a.href = url;
-    a.download = "古坊奇谭-第" + state.day + "日.json";
+    a.download = "古坊奇谭-攻防-" + Math.floor(state.elapsed) + "秒.json";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1e3);
   }
@@ -4185,7 +3777,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (action === "autoplay-report" && pilot) {
       const report = __spreadProps(__spreadValues({}, pilot.report()), { enabled: autoplay, finalSave: JSON.parse(GF.serialize(state)) }), blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
       a.href = url;
-      a.download = "古坊奇谭-托管报告-第" + state.day + "日.json";
+      a.download = "古坊奇谭-攻防托管报告.json";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1e3);
       toast("托管报告已导出");
@@ -4232,7 +3824,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
-        if (file.size > 2e6) {
+        if (file.size > 8e6) {
           toast("存档文件过大", "warning");
           return;
         }
@@ -4243,18 +3835,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           reader.readAsText(file);
         }));
         if (!loaded) {
-          toast("存档无效或版本不兼容，现有进度已保留", "warning");
+          toast("存档无效；旧版防守存档不再支持，请重开", "warning");
           return;
-        }
-        const backup = GF.serialize(state);
-        try {
-          localStorage.setItem(KEY + "-backup", backup);
-        } catch (e2) {
         }
         enterGame(loaded);
         save();
         refresh();
-        toast("已载入第 " + state.day + " 日的古坊");
+        toast("已载入攻防对局");
         if (state.over) showEnd();
       };
       input.click();
@@ -4398,7 +3985,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function frame(now) {
     const dt = lastFrame ? Math.max(0, Math.min(1, (now - lastFrame) / 1e3)) : 0;
     lastFrame = now;
-    const running = started && !paused && !hiddenPause && !state.over && !!state.selectedSkill && (state.mode !== "coop" || !!state.partner.selectedSkill) && !online;
+    const running = started && !paused && !hiddenPause && !state.over && GF.ready(state) && !online;
     if (running) {
       simulationClock += dt;
       if (simulationClock + 1e-8 >= 1 / 30) {
@@ -4406,25 +3993,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         simulationClock = 0;
         while (remaining > 0 && !paused && !state.over) {
           const tick = Math.min(0.1, remaining);
-          if (autoplay) {
-            try {
-              if (pilot.tick(tick)) panelKey = "";
-            } catch (error) {
-              autoplay = false;
-              showMenu();
-              toast("托管已停止：" + error.message, "warning");
-              break;
-            }
-          }
-          if (partnerPilot) {
-            try {
-              partnerPilot.tick(tick);
-            } catch (error) {
-              showMenu();
-              toast("电脑队友已暂停：" + error.message, "warning");
-              break;
-            }
-          }
           GF.step(state, tick);
           remaining -= tick;
         }
@@ -4438,9 +4006,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       state.effects = state.effects.filter((e) => e.life > 0);
       state.projectiles = state.projectiles.filter((e) => e.life > 0);
       for (const projectile of state.projectiles) {
-        const target = state.enemies.find((e) => e.id === projectile.targetId);
+        const target = state.soldiers.find((e) => e.id === projectile.targetId);
         if (target) {
-          const p = remotePosition(target, false);
+          const p = remotePosition(target, true);
           projectile.tx = p.x;
           projectile.ty = p.y;
         }

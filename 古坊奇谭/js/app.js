@@ -1,8 +1,8 @@
 (function () {
   'use strict';
-  const $ = id => document.getElementById(id), canvas = $('map'), KEY = 'gufang-qitan-save-v1';
+  const $ = id => document.getElementById(id), canvas = $('map'), KEY = 'gufang-qitan-match-v8';
   let storageWarning = false, saved = null;
-  try { saved = localStorage.getItem(KEY); } catch { storageWarning = true; }
+  try { localStorage.removeItem('gufang-qitan-save-v1'); localStorage.removeItem('gufang-qitan-save-v1-backup'); saved = localStorage.getItem(KEY); } catch { storageWarning = true; }
   const SOUND_KEY = 'gufang-qitan-sound';
   const GRID_KEY = 'gufang-qitan-grid';
   let grid = true;
@@ -24,11 +24,11 @@
   // Capture where every unit is currently drawn so the next packet interpolates from it.
   function beginRemoteFrame(span = 100) {
     const now = performance.now(), positions = new Map();
-    for (const [units, soldier] of [[state.enemies,false],[state.soldiers,true]]) for (const unit of units) positions.set((soldier?'s':'e')+unit.id, remotePosition(unit, soldier));
+    for (const [units, soldier] of [[state.soldiers,true]]) for (const unit of units) positions.set((soldier?'s':'e')+unit.id, remotePosition(unit, soldier));
     remoteMotion = positions; remoteSpan = Math.max(50, Math.min(150, span)); remoteAt = now;
   }
   const playerOwner = () => online?.role === 'guest' ? 1 : 0;
-  const playerState = () => state.mode === 'coop' ? GF.playerView(state, playerOwner()) : state;
+  const playerState = () => GF.playerView(state, playerOwner());
   const onlineSend = message => { if (online?.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); };
   function sendPresence() {
     if (!online || !replica || online.awaitingState || !started) return;
@@ -79,7 +79,7 @@
       updateOnlineClock(message);
       state.effects.push(...message.effects); state.projectiles.push(...message.projectiles); state.events.push(...message.events);
       if(playerState().selectedSkill&&!$('modal').hidden&&$('modal-content').querySelector('.skill-selection'))closeModal();
-      if (selected && !GF.owns(playerState(), selected.x, selected.y)) closePanel();
+      if(selected&&!GF.at(state,selected.x,selected.y)&&!GF.owns(playerState(),selected.x,selected.y))closePanel();
       handleEvents(); refresh();
     } else if (message.type === 'result' && replica && message.session === replica.session) {
       if (!message.ok) {toast(message.reason || '操作未成功', 'warning');for(const el of $('modal-content').querySelectorAll('[data-choice]'))el.disabled=false;}
@@ -95,11 +95,13 @@
     leaveOnline();
     const socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     online = { kind:'server', socket, role: kind === 'create' ? 'host' : 'guest', code, peerConnected: false, started: false, serverPaused: true };
-    socket.onopen = () => { if (online?.socket === socket) onlineSend({ type: kind, code }); };
+    socket.onopen = () => { if (online?.socket === socket) onlineSend({ type: kind, code, enemyCount:Number($('coop-enemies').value) }); };
     socket.onmessage = event => {
       if (online?.socket !== socket) return;
       let message; try { message = JSON.parse(event.data); } catch { return; }
+      if(message.type==='settings'){$('coop-enemies').value=String(message.enemyCount);updateCoopSeat();return;}
       if (message.type === 'created' || message.type === 'joined') {
+        $('coop-enemies').value=String(message.enemyCount);
         online.code = message.code; online.peerConnected = message.type === 'created' ? false : true;
         $('coop-code').value = message.code; $('coop-code').readOnly = true; updateCoopSeat();
         toast(message.type === 'created' ? '主机已创建，配对码 ' + message.code : '已加入房间，等待主机开始');
@@ -134,7 +136,7 @@
   const renderInterval = mobileRendering ? 1000 / 60 : 0;
   function center(owner = 0) {
     cam.zoom = Math.max(.55, Math.min(.86, view.width / 550));
-    const home = state.mode === 'coop' ? GF.estate(GF.playerView(state, owner)).center : {x:GF.worldCenter(state),y:GF.worldCenter(state)};
+    const home = GF.estate(GF.playerView(state,owner)).center;
     cam.x = view.width * .5 - (home.x + .5) * GFArt.T * cam.zoom;
     cam.y = view.height * .48 - (home.y + .5) * GFArt.T * cam.zoom;
     clampCamera();
@@ -153,7 +155,7 @@
     cam.y = Math.max(150 - height, Math.min(view.height - marginY, cam.y));
   }
   function zoom(factor, x = view.width / 2, y = view.height / 2) {
-    const old = cam.zoom; cam.zoom = Math.max(.36, Math.min(1.8, old * factor));
+    const old = cam.zoom; cam.zoom = Math.max(.12, Math.min(1.8, old * factor));
     cam.x = x - (x - cam.x) * cam.zoom / old; cam.y = y - (y - cam.y) * cam.zoom / old; clampCamera();
   }
   function screenPoint(x, y) { const r=canvas.getBoundingClientRect();return { x: r.left + cam.x + (x + .5) * GFArt.T * cam.zoom, y: r.top + cam.y + (y + .5) * GFArt.T * cam.zoom }; }
@@ -177,7 +179,7 @@
     if (!started) return;
     if (x < 0 || y < 0 || x >= GF.worldWidth(state) || y >= GF.worldHeight(state) || state.over) return;
     if (GF.isWall(state, x, y)) { closePanel(); toast('庄园城墙 · 不可建设、升级或拆除'); return; }
-    if (!GF.owns(playerState(), x, y)) { closePanel(); toast(state.mode === 'coop' && GF.owns(state, x, y) ? '队友的庄园 · 由队友自行经营' : '庄园外区域 · 不可建设或操作', 'warning'); return; }
+    if (!GF.owns(playerState(), x, y) && !GF.at(state,x,y)) { closePanel(); toast('庄园外或遗址 · 不可建设', 'warning'); return; }
     selected = { x, y }; panelKey = ''; $('cards').scrollLeft = 0; $('panel').hidden = false; $('game').classList.add('has-panel'); refresh();
   }
   function closePanel() { selected = null; panelKey = ''; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
@@ -189,7 +191,7 @@
     return `${resource} +${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
   }
   function effect(d, b) {
-    if (d.id === 'barracks') return `自动派出${GF.soldierLimit(b || { type: d.id, level: 1 })}名民兵`;
+    if (d.id === 'barracks') return `每秒派出${GF.soldierRate(b || { type: d.id, level: 1 })}名民兵 · 本庄上限120人`;
     if (!d.income) return d.desc || '';
     const building = b || { type: d.id, x: selected?.x ?? GF.worldCenter(state), y: selected?.y ?? GF.worldCenter(state), level: 1 };
     const economic = playerState(), preview = b ? economic : { ...economic, buildings: [...economic.buildings, building] };
@@ -211,7 +213,7 @@
       return center([label('生产'), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
-    if (d.id === 'barracks') return rows([['士兵', GF.soldierLimit({ type: 'barracks', level: 1 })], ['战力', GF.soldierPower(playerState(), { type: 'barracks', level: 1 })]]);
+    if (d.id === 'barracks') return rows([['出兵效率', GF.soldierRate({ type: 'barracks', level: 1 })+'人/秒'], ['战力', GF.soldierPower(playerState(), { type: 'barracks', level: 1 })]]);
     if (d.id === 'rock') return rows([['攻击范围', d.range], ['溅射', d.splash]]);
     if (d.id === 'well') return center([label('农田'), figure(`${icon('coins')}<span class="effect-value">+20%</span>`)]);
     if (d.id === 'stage') return center([label('全镇'), figure(`${icon('coins')}<span class="effect-value">+3%</span> ${icon('materials')}<span class="effect-value">+3%</span>`)]);
@@ -247,14 +249,14 @@
     return 6;
   }
   function detailHTML(b) {
-    const d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
+    const context=GF.playerView(state,b.owner), d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
     const name = b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.name(b), demolishReason = GF.demolishReason(playerState(), b);
     const base = d.income ? d.income * GF.incomeFactor(b) : 0;
-    const bonus = d.income ? rateText(Math.max(0, GF.income(playerState(), b) - base)) : '0';
+    const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : '0';
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(playerState(), b).toFixed(1)}${max ? '' : ' → ' + GF.income(playerState(), next).toFixed(1)}</strong></div>`;
-    else if (b.type === 'barracks') stats += `<div>出兵上限<strong>${GF.soldierLimit(b)}${max ? '' : ' → ' + GF.soldierLimit(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(playerState(), b)}${max ? '' : ' → ' + GF.soldierPower(playerState(), next)}</strong></div>`;
+    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`;
+    else if (b.type === 'barracks') stats += `<div>出兵效率（人/秒）<strong>${GF.soldierRate(b)}${max ? '' : ' → ' + GF.soldierRate(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(context, b)}${max ? '' : ' → ' + GF.soldierPower(context, next)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
@@ -266,7 +268,7 @@
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
-    if (GF.isWall(state, x, y) || !GF.owns(playerState(), x, y)) { closePanel(); return; }
+    if (GF.isWall(state,x,y)||(!b&&!GF.owns(playerState(),x,y))) {closePanel();return;}
     const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly && !d.fixed);
     const key = `${x},${y},${b?.id || ''},${b?.level || ''},${b?.type === 'barracks' ? GF.soldierPower(playerState(), b) : ''}`;
     $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
@@ -283,6 +285,9 @@
       }
     }
     if (b) {
+      const readonly=b.owner!==playerOwner()||playerState().eliminated;
+      $('detail-view').classList.toggle('readonly',readonly);
+      if(readonly)$('plot-label').textContent=(state.players[b.owner].team===0?'友方':'敌方')+'庄园 '+(b.owner+1)+' · 仅查看';
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
       const options = GF.upgradeOptions(playerState(), b), reason = GF.upgradeReason(playerState(), b), max = b.level >= GF.maxLevel(b);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
@@ -309,41 +314,34 @@
       }
     }
   }
+  const duration=n=>Math.floor(n/60)+':'+String(Math.floor(n%60)).padStart(2,'0');
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
-    const invasion = started && state.phase !== 'day';
-    const directions = GF.raidDirections(state);
-    $('invasion-indicators').hidden = !invasion;
-    for (const el of $('invasion-indicators').children) el.hidden = !invasion || !directions.includes(Number(el.dataset.direction));
-    $('coop-status').hidden = !started || state.mode !== 'coop';
-    $('coop-action').textContent = online ? (online.peerConnected ? (online.serverPaused ? '对局已暂停 · ' : '服务器联机 · ') + '房间 ' + online.code : '等待队友重新连接') : (paused ? '队友已暂停' : '电脑队友：' + (partnerPilot?.lastAction || '准备经营'));
-    $('coop-home').textContent = '我的庄园'; $('coop-ally').textContent = online ? '队友庄园' : '电脑庄园';
-    $('autoplay-status').hidden = !autoplay || !started;
-    $('autoplay-status').querySelector('strong').textContent = paused ? '托管已暂停' : '托管中';
-    $('autoplay-action').textContent = pilot?.lastAction || '准备经营';
-    $('coins').textContent = fmt(playerState().coins); $('materials').textContent = fmt(playerState().materials);
-    $('day-label').textContent = '第 ' + state.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[state.phase]) + (state.day % 7 === 0 ? ' · 灯会' : '');
-    $('phase-icon').textContent = { day: '☀', dusk: '◒', night: '☾' }[state.phase];
-    const liveTime = online && !online.serverPaused && online.peerConnected ? guestTimeBase + Math.min(.25, (performance.now() - guestClockAt) / 1000) : state.time;
-    const remaining = state.phase === 'day' ? GF.DAY - liveTime : GF.DUSK - liveTime;
-    $('day-fill').style.width = state.phase === 'night' ? Math.max(0, 100 * ((state.wave?.total || 1) - (state.wave?.spawned || 0) + state.enemies.length) / (state.wave?.total || 1)) + '%' : Math.max(0, remaining / (state.phase === 'day' ? GF.DAY : GF.DUSK) * 100) + '%';
-    $('countdown').textContent = state.phase === 'night' ? '' : Math.max(0, Math.ceil(remaining)) + 's';
-    $('skills').hidden = state.phase !== 'night' || state.over;
+    $('coop-status').hidden = !started;
+    $('coop-action').textContent = playerState().eliminated ? '你的庄园已出局 · 观战中' : online ? (online.serverPaused?'对局已暂停 · ':'服务器联机 · ')+'房间 '+online.code : state.mode==='coop'?'电脑队友：'+state.players[1].ai.lastAction:'自动出征 · 攻破所有敌方主城';
+    $('coop-home').textContent='我的庄园';$('coop-ally').hidden=state.mode!=='coop';
+    $('coop-ally').textContent=state.players[1]?.eliminated?'队友遗址':'队友庄园';
+    $('autoplay-status').hidden=!autoplay||!started||playerState().eliminated;
+    $('autoplay-status').querySelector('strong').textContent=paused?'托管已暂停':'托管中';
+    $('autoplay-action').textContent=playerState().ai.lastAction;
+    $('coins').textContent=fmt(playerState().coins);$('materials').textContent=fmt(playerState().materials);
+    const elapsed=online?guestLive():state.elapsed;
+    $('day-label').textContent='对局 '+duration(elapsed);
+    $('countdown').textContent='敌庄 '+state.players.filter(p=>p.team===1&&!p.eliminated).length+' / '+state.enemyCount;
+    $('skills').hidden=!started||state.over||playerState().eliminated;
     for (const el of document.querySelectorAll('[data-skill]')) {
       el.hidden = el.dataset.skill !== playerState().selectedSkill;
       const id = el.dataset.skill, reason = GF.skillReason(playerState(), id);
       el.classList.toggle('unavailable', !!reason); el.setAttribute('aria-disabled', String(!!reason));
       el.querySelector('small').textContent = playerState().cooldowns[id] > 0 ? Math.ceil(playerState().cooldowns[id]) + ' 秒' : '可施展';
     }
-    if (lastPhase !== state.phase) { document.body.classList.toggle('night', state.phase === 'night'); lastPhase = state.phase; }
     renderPanel();
   }
   function handleEvents() {
-    const events = state.events.splice(0); if (!events.length) return;
-    const important = events.find(e => ['victory', 'defeat'].includes(e.kind));
-    if (important?.kind === 'defeat') { save(); showEnd(); }
-    else if (important?.kind === 'victory') { save(); if(autoplay)toast('七夜长明 · 托管继续跑测','reward');else showVictory(); }
-    else { const e = events[events.length - 1]; if (!e.text.startsWith('坊志达成')) toast(e.text, e.kind); if (e.kind === 'reward') tone('reward'); }
+    const events=state.events.splice(0);
+    if(events.some(e=>e.kind==='finished')){save();showEnd();return;}
+    if(playerState().eliminated){autoplay=false;if(selected&&!GF.at(state,selected.x,selected.y))closePanel();}
+    const e=events.filter(e=>!e.text.startsWith('坊志达成')).pop();if(e)toast(e.text,e.kind);
   }
   function blocked(el, reason) { el?.classList.remove('shake'); if (el) { void el.offsetWidth; el.classList.add('shake'); } toast(reason, 'warning'); }
   function performBuild(type, el) {
@@ -401,7 +399,7 @@
   function updateStartMenu() {
     const loaded = readSave();
     $('start-load').disabled = !loaded;
-    $('start-save-detail').textContent = loaded ? '第 ' + loaded.day + ' 日 · ' + ({ day: '白昼', dusk: '黄昏', night: '长夜' }[loaded.phase]) + (loaded.over ? ' · 已失守' : ' · 继续故事') : storageWarning ? '本地存档不可用' : saved ? '存档损坏或版本不兼容' : '暂无本地存档';
+    $('start-save-detail').textContent = loaded ? duration(loaded.elapsed)+' · '+loaded.enemyCount+'个敌庄'+(loaded.over?' · 已结束':' · 继续对局') : storageWarning ? '本地存档不可用' : saved ? '存档损坏或版本不兼容' : '暂无本地存档';
     updateSound();
   }
   function showStartMenu() {
@@ -418,13 +416,14 @@
   function enterGame(next) {
     autoplay = false; pilot = null;
     state = next; started = true; saveClock = 0;
+    if(!online){state.players[0].controller='human';for(const p of state.players.slice(1)){p.controller='computer';p.selectedSkill||='thunder';}}
     if (online) saveStatus = '服务器运行中 · 可手动保存完整进度';
     partnerPilot = state.mode === 'coop' && !online ? GFAutoplay.create(GF.playerView(state, 1)) : null;
     $('start-menu').hidden = true; $('coop-lobby').hidden = true; $('game').classList.remove('at-title');
     closePanel(); center(playerOwner()); closeModal();
   }
   function showSkillChoice(){
-    const descriptions={repel:'封住敌人 4 秒，造成 20 伤害',repair:'全体建筑恢复 35% 耐久',thunder:'全场雷击，阴兵 350、其余 240 伤害'},symbols={repel:'符',repair:'愈',thunder:'雷'};
+    const descriptions={repel:'本庄及墙外5格敌兵定身4秒、受到20伤害',repair:'本庄建筑恢复35%耐久',thunder:'本庄及墙外5格内敌兵受到240伤害'},symbols={repel:'符',repair:'愈',thunder:'雷'};
     modal('<div class="skill-selection"><p class="modal-kicker">本局神技 · 三选一</p><h2>择一守坊</h2><div class="skill-options">'+Object.entries(GF.SKILLS).map(([id,d])=>`<button data-modal="choose-skill" data-choice="${id}" class="skill-option"><i aria-hidden="true">${symbols[id]}</i><strong>${d.name}</strong><span>${descriptions[id]}</span><small>冷却 ${d.cooldown} 秒</small></button>`).join('')+'</div></div>');
     $('close-modal').hidden=true;$('modal-content').querySelector('[data-choice]').focus();
   }
@@ -436,7 +435,7 @@
   $('start-load').onclick = () => {
     const loaded = readSave();
     if (!loaded) { updateStartMenu(); toast('无法读取本地存档', 'warning'); return; }
-    enterGame(loaded); toast('故人归坊 · 已续接第 ' + state.day + ' 日的灯火');
+    enterGame(loaded); toast('已恢复对局 · '+duration(state.elapsed));
     if (state.over) showEnd();
   };
   $('start-sound').onclick = toggleSound;
@@ -444,6 +443,7 @@
     const linked = online?.role === 'host' && online.peerConnected, joining = online?.role === 'guest' && online.peerConnected;
     $('coop-seat').setAttribute('aria-pressed', String(computerSeat));
     $('coop-seat').disabled = !!online;
+    $('coop-enemies').disabled=online?.role==='guest'||!!online?.started;
     $('coop-seat').classList.toggle('is-ready', computerSeat || linked || joining);
     $('coop-avatar').textContent = computerSeat ? '智' : linked || joining ? '友' : '候';
     $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已加入房间</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
@@ -457,6 +457,7 @@
   $('coop-seat').onclick = () => { if (online) return; computerSeat = !computerSeat; updateCoopSeat(); };
   $('coop-host').onclick = () => { computerSeat = false; connectOnline('create'); };
   $('coop-join').onclick = () => { const code = $('coop-code').value.trim(); if (!/^\d{6}$/.test(code)) return toast('请输入六位房号', 'warning'); computerSeat = false; connectOnline('join', code); };
+  $('coop-enemies').onchange=()=>{if(online?.role==='host')onlineSend({type:'settings',enemyCount:Number($('coop-enemies').value)});};
   $('coop-back').onclick = showStartMenu;
   $('coop-start').onclick = () => {
     if (!computerSeat && !(online?.role === 'host' && online.peerConnected)) return;
@@ -486,33 +487,31 @@
   function showMenu() {
     if (!started) return;
     if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>第 ' + state.day + ' 日' + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
   }
   function autoplaySettings() {
     const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
     return '<section class="autoplay-settings" aria-label="托管跑测"><button class="modal-secondary" data-modal="autoplay" aria-pressed="'+autoplay+'" '+(state.over?'disabled':'')+'>'+(autoplay?'关闭托管 · 手动接管':'启用托管 · 电脑游玩')+'</button><p>自动经营、升级、防守与施法。启用即继续游戏；打开菜单或切到后台会暂停，失守后停止。</p>'+(r?'<p>累计托管 '+Math.floor(seconds/60)+' 分 '+seconds%60+' 秒 · 建造 '+r.builds+' · 升级 '+r.upgrades+' · 施法 '+Object.values(r.skills).reduce((a,b)=>a+b,0)+' 次<br>最近操作：'+r.lastAction+'</p><button class="modal-secondary autoplay-report" data-modal="autoplay-report">导出托管报告</button>':'')+'</section>';
   }
   function toggleAutoplay() {
-    if(state.over)return;
-    if(autoplay){autoplay=false;showMenu();toast('托管已关闭，可手动接管');return;}
+    if(state.over||playerState().eliminated)return;
+    if(autoplay){autoplay=false;playerState().controller='human';showMenu();toast('托管已关闭，可手动接管');return;}
     if(!pilot)pilot=GFAutoplay.create(GF.playerView(state));
-    autoplay=true;closePanel();closeModal();toast('托管已启用 · 电脑开始经营');
+    autoplay=true;playerState().controller='autoplay';closePanel();closeModal();toast('托管已启用 · 电脑开始经营');
   }
   function showEnd() {
     autoplay=false;
-    if (online?.role === 'guest') { modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><p>等待主机重新开始，或返回庄园查看战况。</p><button class="modal-primary" data-modal="close">返回古坊</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
-    modal('<p class="modal-kicker">第 ' + state.day + ' 夜</p><h2>古坊失守</h2><div class="modal-stats"><div><strong>' + (state.day - 1) + '</strong><span>守过长夜</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div>'+(pilot?autoplaySettings():'')+'<button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="close">返回古坊</button>');
-  }
-  function showVictory() {
-    modal('<p class="modal-kicker">七夜长明</p><h2>古坊初兴</h2><div class="modal-stats"><div><strong>' + state.buildings.length + '</strong><span>现存建筑</span></div><div><strong>' + state.kills + '</strong><span>击退来敌</span></div></div><button class="modal-primary" data-modal="close">继续游戏</button>');
+    const title={victory:'攻城告捷',defeat:'古坊失守',draw:'双方同归'}[state.result]||'对局结束';
+    modal('<p class="modal-kicker">庄园攻防</p><h2>'+title+'</h2><div class="modal-stats"><div><strong>'+duration(state.elapsed)+'</strong><span>对局时长</span></div><div><strong>'+state.players.filter(p=>p.team===0).reduce((n,p)=>n+p.kills,0)+'</strong><span>我方击杀</span></div></div>'+(online?.role==='guest'?'':'<button class="modal-primary" data-modal="new">重新开始</button>')+'<button class="modal-secondary" data-modal="close">查看战场</button><button class="modal-secondary" data-modal="title">返回开始菜单</button>');
   }
   function newGame(coop = started && state.mode === 'coop'){
     if(online){if(online.role==='host'){online.awaitingState=true;onlineSend({type:'start'});}return;}
-    enterGame(coop?GF.createCoopState():GF.createState());save();
+    const enemyCount=started&&state.mode===(coop?'coop':'single')?state.enemyCount:Number($(coop?'coop-enemies':'single-enemies').value);
+    enterGame(GF.createMatch({mode:coop?'coop':'single',enemyCount}));save();
   }
   function downloadSave(raw) {
     const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='古坊奇谭-第'+state.day+'日.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    a.href=url;a.download='古坊奇谭-攻防-'+Math.floor(state.elapsed)+'秒.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
@@ -529,7 +528,7 @@
       const button=e.target.closest('[data-modal]');button.textContent='地图网格：'+(grid?'开':'关');button.setAttribute('aria-pressed',String(grid));
     }
     if(action==='autoplay')toggleAutoplay();
-    if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-托管报告-第'+state.day+'日.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
+    if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-攻防托管报告.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
     if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;if(online){closeModal();if(b)onlineAction('demolish',{x:b.x,y:b.y});return;}const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast(r.dryFarms ? '已拆除，' + r.dryFarms + ' 块农田缺水，耐久持续下降' : '已拆除，返还 ' + costText(r.refund), r.dryFarms ? 'warning' : 'info');panelKey='';handleEvents();save();}refresh();}
     if(action==='cancel-demolish'){demolishTarget=null;closeModal();}
     if(action==='reset')modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
@@ -537,10 +536,9 @@
     if(action==='export'){if(online)onlineSend({type:'save',export:true});else{downloadSave(GF.serialize(state));toast('存档已导出');}}
     if(action==='import'){
       if(online){toast('请先退出联机，再导入存档','warning');return;}
-      const input=$('save-file');input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2e6){toast('存档文件过大','warning');return;}
-        const loaded=GF.restore(await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsText(file);}));if(!loaded){toast('存档无效或版本不兼容，现有进度已保留','warning');return;}
-        const backup=GF.serialize(state);try{localStorage.setItem(KEY+'-backup',backup);}catch{}
-        enterGame(loaded);save();refresh();toast('已载入第 '+state.day+' 日的古坊');if(state.over)showEnd();};input.click();
+      const input=$('save-file');input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>8e6){toast('存档文件过大','warning');return;}
+        const loaded=GF.restore(await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsText(file);}));if(!loaded){toast('存档无效；旧版防守存档不再支持，请重开','warning');return;}
+        enterGame(loaded);save();refresh();toast('已载入攻防对局');if(state.over)showEnd();};input.click();
     }
   });
   let gesture=null, suppressMapClick=false;
@@ -594,17 +592,17 @@
   if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
   function frame(now){
     const dt=lastFrame?Math.max(0,Math.min(1,(now-lastFrame)/1000)):0;lastFrame=now;
-    const running=started&&!paused&&!hiddenPause&&!state.over&&!!state.selectedSkill&&(state.mode!=='coop'||!!state.partner.selectedSkill)&&!online;
+    const running=started&&!paused&&!hiddenPause&&!state.over&&GF.ready(state)&&!online;
     if(running){simulationClock+=dt;
       // Keep simulation work independent of 90/120 Hz displays without losing elapsed time.
-      if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);if(autoplay){try{if(pilot.tick(tick))panelKey='';}catch(error){autoplay=false;showMenu();toast('托管已停止：'+error.message,'warning');break;}}if(partnerPilot){try{partnerPilot.tick(tick);}catch(error){showMenu();toast('电脑队友已暂停：'+error.message,'warning');break;}}GF.step(state,tick);remaining-=tick;}handleEvents();}
+      if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);GF.step(state,tick);remaining-=tick;}handleEvents();}
     }else simulationClock=0;
     if(online&&started&&!hiddenPause){
       const live=online.peerConnected&&!online.serverPaused&&!online.awaitingState&&performance.now()-guestClockAt<250;
       if(live)GF.stepEconomy(playerState(),Math.min(dt,.1));
       if(live)for(const group of [state.effects,state.projectiles])for(const effect of group)effect.life-=dt;
       state.effects=state.effects.filter(e=>e.life>0);state.projectiles=state.projectiles.filter(e=>e.life>0);
-      for(const projectile of state.projectiles){const target=state.enemies.find(e=>e.id===projectile.targetId);if(target){const p=remotePosition(target,false);projectile.tx=p.x;projectile.ty=p.y;}}
+      for(const projectile of state.projectiles){const target=state.soldiers.find(e=>e.id===projectile.targetId);if(target){const p=remotePosition(target,true);projectile.tx=p.x;projectile.ty=p.y;}}
     }
     uiClock+=dt;saveClock+=dt;if(uiClock>.2){refresh();uiClock=0;}if(saveClock>8){if(!state.over)save();saveClock=0;}
     if(started&&!hiddenPause){const remote=!!online;
