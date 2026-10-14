@@ -433,30 +433,31 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
   chains.forEach((a, ci) => {
     for (let i = 0; i < 3; i++) {
-      const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
+      const coinChain = ci === 0 || ci === 2, baseCost = (coinChain ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
       const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
-      def(a[i], a[i + 3], "economy", { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
+      def(a[i], a[i + 3], "economy", { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], __spreadProps(__spreadValues({
         income: (high ? [2, 8, 48] : [1, 5, 30])[i],
-        resource: ci < 2 ? "coins" : "materials",
+        resource: coinChain ? "coins" : "materials",
         terrain: i === 0 ? a[6] : null,
         prev: i ? a[i - 1] : null,
-        upgradeWeight: i === 0 ? high ? 7 / 6 : 11 / 15 : 1,
+        upgradeWeight: i === 0 ? high ? 7 / 6 : 11 / 15 : 1
+      }, i === 0 && (ci === 1 || ci === 2) ? { buildCostScale: [0.1, 1.2] } : {}), {
         chain: a[7],
         color: a[8],
         end: i === 2,
         tier: i,
         radius: 1,
-        limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
+        limit: i === 0 ? [4, 6, 6, 4][ci] : i === 1 ? 2 : 1,
         names: [a[i + 3], i === 0 ? ["清茗茶肆", "临水良田", "葱郁桑园", "青石矿场"][ci] : "兴旺" + a[i + 3], "鼎盛" + a[i + 3]]
-      });
+      }));
     }
   });
-  def("guild", "汇财会馆", "economy", { coins: 18e3, materials: 24e3 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "wine"], radius: 1, limit: 1 });
-  def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["tailor", "trade"], radius: 1, limit: 1 });
+  def("guild", "汇财会馆", "economy", { coins: 18e3, materials: 24e3 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "tailor"], radius: 1, limit: 1 });
+  def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["wine", "trade"], radius: 1, limit: 1 });
   def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
   def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
-  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "持续出兵 · 自动出征攻城" });
-  def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { fortuneOnly: true, desc: "井旁平地可建农田 · 相邻农田收入 +20%" });
+  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "持续出兵 · 一级 5s/1兵" });
+  def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { farmAura: 0.2, fortuneOnly: true, desc: "全庄农田收入 +20% · 仅可由造化匣获得" });
   def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
   def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
   def("earth", "土地庙", "temple", { coins: 180, materials: 130 }, 260, { guard: 0.2, range: 3, fortuneOnly: true, desc: "三格内建筑受到伤害 -20% · 仅可由造化匣获得" });
@@ -464,7 +465,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("tao", "道观", "temple", { coins: 600, materials: 440 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15% · 仅可由造化匣获得" });
   def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { limit: 10, desc: "变化为随机建筑" });
   def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: "庄园出入口 · 可升级与修复" });
-  const SKILLS = { repel: { name: "驱鬼符", cooldown: 18 }, repair: { name: "回春诀", cooldown: 24 }, thunder: { name: "九霄天雷", cooldown: 22 } };
+  const SKILLS = { repel: { name: "驱鬼符", cooldown: 18 }, repair: { name: "回春诀", cooldown: 24 }, thunder: { name: "九霄天雷", cooldown: 120 } };
   const MISSIONS = [
     { title: "一盏茶，起一座坊", desc: "在平地建造一间茶肆", reward: 60, test: (s) => s.buildings.some((b) => b.type === "tea") },
     { title: "客来茶香，产业相连", desc: "紧挨茶肆建造客栈", reward: 90, test: (s) => s.buildings.some((b) => b.type === "inn") },
@@ -473,7 +474,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     { title: "百业初兴", desc: "建成任意两种经济链终点建筑", reward: 200, test: (s) => new Set(s.buildings.filter((b) => DEFS[b.type].end).map((b) => b.type)).size >= 2 },
     { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") }
   ];
-  const VERSION = 8, UNIT_CAP = 120;
+  const VERSION = 9, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
   const world = (s) => s._world || s;
   const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
   const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -596,8 +597,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       team: id < blue ? 0 : 1,
       controller: id === 0 ? "human" : "computer",
       eliminated: false,
-      coins: 150,
-      materials: 200,
+      coins: 0,
+      materials: 0,
       fortuneBuilt: 0,
       gateLevel: 1,
       cooldowns: { repel: 0, repair: 0, thunder: 0 },
@@ -621,7 +622,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return b && (s.actorId === void 0 || b.owner === s.actorId) ? b : void 0;
   };
   const adjacent = (s, x, y) => NEIGHBORS8.map(([dx, dy]) => at(s, x + dx, y + dy)).filter(Boolean);
-  const dryFarm = (s, b) => b.type === "farm" && terrain(b.x, b.y, s) !== "shore" && !adjacent(s, b.x, b.y).some((n) => n.type === "well");
+  const dryFarm = () => false;
   const isPrereq = (d, nd) => {
     var _a;
     return d.chain ? nd.id === d.prev : !!((_a = d.required) == null ? void 0 : _a.includes(nd.id));
@@ -644,10 +645,28 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return unlocked;
   };
   const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
-  const soldierRate = (b) => 1 + 0.25 * (b.level - 1);
-  const soldierHP = (b) => Math.round(120 * hpFactor(b));
-  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s);
-  const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(b) * soldierDamage(s, b)));
+  const soldierRate = (b) => 1 / 5 + (b.level - 1) / 24;
+  function soldierBoost(s) {
+    return 1 + 0.1 * Math.max(0, shrineLevel(s) - 1);
+  }
+  function soldierHP(s, b) {
+    if (b === void 0) {
+      b = s;
+      return Math.round(44 * hpFactor(b));
+    }
+    return Math.round(44 * hpFactor(b) * soldierBoost(s));
+  }
+  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s) * soldierBoost(s);
+  const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(s, b) * soldierDamage(s, b)));
+  function syncSoldierHealth(s) {
+    for (const u of s.soldiers) {
+      const nextMax = soldierHP(playerView(s, u.owner), u);
+      if (u.maxHp !== nextMax) {
+        u.hp = Math.min(nextMax, nextMax * u.hp / u.maxHp);
+        u.maxHp = nextMax;
+      }
+    }
+  }
   const visualLevel = (level) => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = (b) => {
     var _a;
@@ -682,9 +701,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.materials -= cost.materials;
   }
   function buildCost(s, type) {
-    var _a;
     s = economicView(s);
-    if (type !== "fortune") return ((_a = DEFS[type]) == null ? void 0 : _a.cost) || { coins: 0, materials: 0 };
+    if (type !== "fortune") {
+      const d = DEFS[type];
+      if (!d) return { coins: 0, materials: 0 };
+      let factor2 = 1;
+      if (d.buildCostScale) {
+        const count = Math.min(d.limit - 1, s.buildings.filter((b) => b.type === type).length), [start, end] = d.buildCostScale;
+        factor2 = start + (end - start) * count / (d.limit - 1);
+      }
+      const scaled = (value) => value ? Math.ceil(value * factor2 - 1e-9) : 0;
+      return { coins: scaled(d.cost.coins), materials: scaled(d.cost.materials) };
+    }
     const multiple = Math.pow(1.55, s.fortuneBuilt || 0);
     return { coins: Math.ceil(DEFS.fortune.cost.coins * multiple), materials: Math.ceil(DEFS.fortune.cost.materials * multiple) };
   }
@@ -697,7 +725,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (d.id === "fortune" || d.unique || d.fixed || d.income || d.limit && s.buildings.filter((b) => b.type === d.id).length >= d.limit) return false;
       if (d.cat === "economy" && plot === "forest" && d.id !== "mulberry") return false;
       if (d.cat === "economy" && plot === "mountain" && d.id !== "quarry") return false;
-      if (d.id === "farm" && plot !== "shore" && !(plot === "plain" && adjacent(s, x, y).some((b) => b.type === "well"))) return false;
+      if (d.id === "farm" && plot !== "shore") return false;
       if (d.id !== "farm" && d.terrain && plot !== d.terrain) return false;
       return true;
     });
@@ -722,7 +750,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.cat === "economy" && plot === "forest" && type !== "mulberry") return "林地仅可建桑园";
     if (d.cat === "economy" && plot === "mountain" && type !== "quarry") return "山地仅可建石场";
     if (type === "farm") {
-      if (plot !== "shore" && !(plot === "plain" && adjacent(s, x, y).some((b) => b.type === "well"))) return "需水岸或水井旁平地";
+      if (plot !== "shore") return "需水岸";
     } else if (d.terrain && plot !== d.terrain) return "需" + TERRAIN[d.terrain];
     if (d.prev && !adjacent(s, x, y).some((b) => b.type === d.prev)) return "需紧挨" + DEFS[d.prev].name;
     if (d.required) {
@@ -765,7 +793,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       missions(s);
       return { ok: true, building: b2, rolled: rolled.id };
     }
-    const b = addBuilding(s, type, x, y);
+    const b = addBuilding(s, type, x, y, 1, { originCost: cost });
     missions(s);
     return { ok: true, building: b };
   }
@@ -883,13 +911,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s = economicView(s);
     const reason = demolishReason(s, b);
     if (reason) return { ok: false, reason };
-    const cost = b.originCost || DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * 0.4), materials: Math.floor(cost.materials * 0.4) };
+    const cost = b.originCost || buildCost(s, b.type), refund = { coins: Math.floor(cost.coins * 0.4), materials: Math.floor(cost.materials * 0.4) };
     s.coins += refund.coins;
     s.materials += refund.materials;
     s.buildings = s.buildings.filter((n) => n !== b);
     s.revision++;
-    const dryFarms = b.type === "well" ? s.buildings.filter((n) => n.type === "farm" && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
-    return { ok: true, refund, dryFarms };
+    return { ok: true, refund, dryFarms: 0 };
   }
   function income(s, b, buildings) {
     var _a;
@@ -900,7 +927,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const n of buildings || s.buildings) {
       const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
       if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * auraFactor(n);
-      if (n.type === "well" && dist === 1 && b.type === "farm") bonus += 0.2 * auraFactor(n);
+      if (n.type === "well" && b.type === "farm") bonus += DEFS.well.farmAura * auraFactor(n);
       if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += 0.1 * auraFactor(n);
     }
     return d.income * incomeFactor(b) * (1 + Math.min(2, bonus));
@@ -1049,6 +1076,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (b.production < 1 - 1e-8) continue;
         b.production = Math.max(0, b.production - 1);
         counts[p.id]++;
+        const maxHp = soldierHP(playerView(s, p.id), b);
         s.soldiers.push({
           id: s.nextId++,
           owner: p.id,
@@ -1056,8 +1084,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           x: b.x,
           y: b.y,
           level: b.level,
-          hp: soldierHP(b),
-          maxHp: soldierHP(b),
+          hp: maxHp,
+          maxHp,
           baseDamage: 18 * factor(b),
           attack: 0,
           targetOwner: null,
@@ -1181,7 +1209,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (clearSegment(s, u, home.x, home.y)) goal = home;
       else return;
     }
-    const distance = Math.hypot(goal.x - u.x, goal.y - u.y), stride = Math.min(distance, 2.2 * (u.slowed > 0 ? u.slowFactor : 1) * dt);
+    const distance = Math.hypot(goal.x - u.x, goal.y - u.y), stride = Math.min(distance, SOLDIER_SPEED * (u.slowed > 0 ? u.slowFactor : 1) * dt);
     if (distance > 1e-4) {
       u.x += (goal.x - u.x) / distance * stride;
       u.y += (goal.y - u.y) / distance * stride;
@@ -1189,7 +1217,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function combat(s, dt) {
     var _a, _b;
-    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id)));
+    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id))), armyBoost = s.players.map((p, i) => boost[i] * soldierBoost(playerView(s, p.id)));
     for (const p of s.projectiles) {
       p.life -= dt;
       const target = grid.byId.get(p.targetId);
@@ -1253,7 +1281,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         u.waypoint = null;
         if (Math.hypot(target.x - u.x, target.y - u.y) <= 0.75 && clearSegment(s, u, target.x, target.y)) {
           if (u.attack === 0) {
-            unitHits.push([target, u.baseDamage * boost[u.owner], u.owner]);
+            unitHits.push([target, u.baseDamage * armyBoost[u.owner], u.owner]);
             u.attack = 1;
           }
         } else move(s, u, chase, dt);
@@ -1281,11 +1309,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if ((b == null ? void 0 : b.hp) > 0 && hostile(s, u.owner, b.owner)) {
         if (Math.hypot(b.x - u.x, b.y - u.y) <= 1.05) {
           if (u.attack === 0) {
-            buildingHits.push([b, u.baseDamage * boost[u.owner]]);
+            buildingHits.push([b, u.baseDamage * armyBoost[u.owner]]);
             u.attack = 1;
           }
         } else {
-          const dist = Math.hypot(goal.x - u.x, goal.y - u.y), step2 = Math.min(2.2 * dt, Math.max(0, dist - 1));
+          const dist = Math.hypot(goal.x - u.x, goal.y - u.y), step2 = Math.min(SOLDIER_SPEED * dt, Math.max(0, dist - 1));
           if (step2 > 0) move(s, u, { x: u.x + (goal.x - u.x) / dist * step2, y: u.y + (goal.y - u.y) / dist * step2 }, dt);
         }
       } else move(s, u, goal, dt);
@@ -1372,6 +1400,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (b.type === "gate" && b.hp === 0 && s.soldiers.some((u) => u.hp > 0 && hostile(s, b.owner, u.owner) && Math.hypot(u.x - b.x, u.y - b.y) <= 3)) continue;
       healBuilding(s, b, maxHP(b) * 0.02 * dt);
     }
+    syncSoldierHealth(s);
     recruit(s, dt);
     combat(s, dt);
     missions(s);
@@ -1411,6 +1440,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (s.players.some((p) => shrine[p.id] !== Number(!p.eliminated))) return null;
       for (const u of s.soldiers) {
         if (!identity(u) || s.players[u.owner].eliminated || ++count[u.owner] > UNIT_CAP || !finite(u.x) || !finite(u.y) || !walkable(s, Math.round(u.x), Math.round(u.y)) || !Number.isInteger(u.level) || u.level < 1 || u.level > 9 || !finite(u.hp) || u.hp <= 0 || !finite(u.maxHp) || u.hp > u.maxHp || !finite(u.baseDamage) || !["attack", "repelled", "slowed", "slowFactor"].every((k) => finite(u[k])) || !Number.isInteger(u.barracksId)) return null;
+        const nextMax = soldierHP(playerView(s, u.owner), u);
+        if (u.maxHp !== nextMax) {
+          u.hp = Math.min(nextMax, nextMax * u.hp / u.maxHp);
+          u.maxHp = nextMax;
+        }
         if (u.targetOwner !== null && (!owner(u.targetOwner) || !hostile(s, u.owner, u.targetOwner))) return null;
         if (u.targetId !== null && (!Number.isInteger(u.targetId) || u.targetId < 1)) return null;
         if (u.waypoint !== null && (!u.waypoint || !inside(u.waypoint.x, u.waypoint.y, s) || !walkable(s, u.waypoint.x, u.waypoint.y))) return null;
@@ -1431,6 +1465,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   return {
     VERSION,
     UNIT_CAP,
+    SOLDIER_SPEED,
     createMatch,
     createState,
     createCoopState,
@@ -1481,6 +1516,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     unlockedBuildingLevel,
     maxHP,
     soldierRate,
+    soldierBoost,
     soldierHP,
     soldierDamage,
     soldierPower,
@@ -2739,101 +2775,243 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 })(typeof globalThis !== "undefined" ? globalThis : this, function(G) {
   "use strict";
   const coversGate = (p, g) => Math.hypot(p.x - g.x, p.y - g.y) <= 3.5;
-  function create(s) {
-    const land = G.estate(s), width = G.worldWidth(s), stats = s.ai;
+  const NEXT = { tea: "inn", inn: "bank", farm: "mill", mill: "wine", mulberry: "weaver", weaver: "tailor", quarry: "kiln", kiln: "trade" };
+  const PARTNER = { bank: "tailor", tailor: "bank", wine: "trade", trade: "wine" };
+  const REPORTS = /* @__PURE__ */ new WeakMap();
+  function create(state) {
+    const s = state.actorId === void 0 && state.players ? G.playerView(state, 0) : state;
+    const land = G.estate(s), width = G.worldWidth(s), stats = s.ai || (s.ai = {});
+    const defaults = { clock: 0, armyTurn: true, activeSeconds: 0, decisions: 0, builds: 0, upgrades: 0, casts: 0, lastAction: "准备经营" };
+    for (const [key, value] of Object.entries(defaults)) if (stats[key] === void 0) stats[key] = value;
     const plots = [...land.cells].map((k) => ({ x: k % width, y: Math.floor(k / width) })).filter((p) => G.terrain(p.x, p.y, s) !== "water");
-    const actions = [];
-    function record(kind, type) {
+    const plotKeys = new Set(plots.map((p) => p.y * width + p.x));
+    let telemetry = REPORTS.get(stats);
+    if (!telemetry) {
+      telemetry = { actions: [], skills: { repel: 0, repair: 0, thunder: 0 } };
+      REPORTS.set(stats, telemetry);
+    }
+    function record(kind, type, reason) {
       var _a;
       const text = (kind === "build" ? "建造" : kind === "upgrade" ? "升级" : "施放") + (((_a = G.DEFS[type]) == null ? void 0 : _a.name) || G.SKILLS[type].name);
       stats.lastAction = text;
       if (kind === "build") stats.builds++;
       else if (kind === "upgrade") stats.upgrades++;
-      else stats.casts++;
-      actions.push({ second: s.elapsed, kind, type });
-      if (actions.length > 200) actions.shift();
+      else {
+        stats.casts++;
+        telemetry.skills[type]++;
+      }
+      telemetry.actions.push({ second: s.elapsed, kind, type, reason });
+      if (telemetry.actions.length > 240) telemetry.actions.shift();
       return true;
     }
-    const build = (type, p) => p && G.build(s, type, p.x, p.y).ok && record("build", type);
-    const upgrade = (b) => b && G.upgrade(s, b).ok && record("upgrade", b.type);
-    function foundation(b) {
-      if (!b) return false;
-      const reason = G.upgradeReason(s, b, true);
-      if (reason.startsWith("需祠堂")) return foundation(s.buildings.find((n) => n.type === "shrine"));
-      if (reason.startsWith("需城门")) return foundation(s.buildings.find((n) => n.type === "gate"));
-      return upgrade(b);
+    function build(type, p, reason) {
+      const result = p && G.build(s, type, p.x, p.y);
+      return !!(result == null ? void 0 : result.ok) && record("build", type, reason);
+    }
+    function upgrade(b, reason) {
+      const result = b && G.upgrade(s, b);
+      return !!(result == null ? void 0 : result.ok) && record("upgrade", b.type, reason);
+    }
+    const count = (type) => s.buildings.filter((b) => b.type === type).length;
+    const canAfford = (cost) => s.coins >= cost.coins && s.materials >= cost.materials;
+    function waitSeconds(cost, rates = G.rates(s)) {
+      const coin = Math.max(0, cost.coins - s.coins) / (rates.coins || Number.EPSILON);
+      const material = Math.max(0, cost.materials - s.materials) / (rates.materials || Number.EPSILON);
+      return Math.max(coin, material);
     }
     function available(type) {
       return plots.filter((p) => !G.buildReason(s, type, p.x, p.y, true));
     }
-    function defense() {
+    function neighbors(p) {
+      const result = [];
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) result.push({ x: p.x + dx, y: p.y + dy });
+      return result;
+    }
+    function futureEconomyCell(p, excluded = []) {
+      const key = p.y * width + p.x, terrain = G.terrain(p.x, p.y, s);
+      return plotKeys.has(key) && !land.roads.has(key) && !land.gates.some((g) => g.x === p.x && g.y === p.y) && !G.at(s, p.x, p.y) && !excluded.some((n) => n.x === p.x && n.y === p.y) && terrain !== "water" && terrain !== "forest" && terrain !== "mountain";
+    }
+    function commonFuture(a, b, excluded = []) {
+      return neighbors(a).some((p) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) <= 1 && futureEconomyCell(p, [a, b, ...excluded]));
+    }
+    function chainPotential(type, p) {
+      const d = G.DEFS[type], counterpart = PARTNER[type] && s.buildings.find((b) => b.type === PARTNER[type]);
+      if (d.end) return counterpart && commonFuture(p, counterpart) ? 30 : neighbors(p).filter((n) => futureEconomyCell(n, [p])).length;
+      const next = NEXT[type];
+      if (!next) return 0;
+      let best = 0;
+      for (const middle of neighbors(p).filter((n) => futureEconomyCell(n, [p]))) {
+        if (G.DEFS[next].end) {
+          const other = PARTNER[next] && s.buildings.find((b) => b.type === PARTNER[next]);
+          const ends = neighbors(middle).filter((n) => futureEconomyCell(n, [p, middle]));
+          best = Math.max(best, ...ends.map((end) => other && commonFuture(end, other, [p, middle]) ? 30 : neighbors(end).filter((n) => futureEconomyCell(n, [p, middle, end])).length));
+        } else best = Math.max(best, neighbors(middle).filter((n) => futureEconomyCell(n, [p, middle])).length);
+      }
+      return best;
+    }
+    function placementScore(type, p) {
+      const d = G.DEFS[type], key = p.y * width + p.x;
+      let score = -Math.hypot(p.x - land.center.x, p.y - land.center.y) * 0.08 + (land.roads.has(key) ? -8 : 0);
+      score += neighbors(p).filter((n) => futureEconomyCell(n, [p])).length * 0.35;
+      if (d.cat === "economy") {
+        if (count(type) === 0 || d.tier > 0) score += chainPotential(type, p) * 1.5;
+        if (d.prev) score += s.buildings.filter((b) => b.type === d.prev && Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)) <= 1).reduce((n, b) => n + b.level * 2, 0);
+      }
+      return score;
+    }
+    function bestPlot(type, filter) {
+      const choices = available(type).filter(filter || (() => true));
+      return choices.sort((a, b) => placementScore(type, b) - placementScore(type, a) || a.y - b.y || a.x - b.x)[0];
+    }
+    function buildPlan(type, p, reason) {
+      return p && { cost: G.buildCost(s, type), reason, run: () => build(type, p, reason) };
+    }
+    function upgradePlan(b, reason) {
+      return b && { cost: G.upgradeCost(b), reason, run: () => upgrade(b, reason) };
+    }
+    function perform(plan, saveLimit = 0, forceSave = false) {
+      if (!plan) return null;
+      if (canAfford(plan.cost)) return plan.run() ? "acted" : null;
+      const wait = waitSeconds(plan.cost);
+      if (Number.isFinite(wait) && (forceSave || wait <= saveLimit)) {
+        stats.lastAction = `储备资源 · ${plan.reason}`;
+        return "saving";
+      }
+      return null;
+    }
+    function foundationTarget(b) {
+      if (!b) return null;
+      const reason = G.upgradeReason(s, b, true);
+      if (reason.startsWith("需祠堂")) return foundationTarget(s.buildings.find((n) => n.type === "shrine"));
+      if (reason.startsWith("需城门")) return foundationTarget(s.buildings.find((n) => n.type === "gate"));
+      return reason ? null : b;
+    }
+    function opening() {
+      const firstFarm = count("farm") === 0 && bestPlot("farm");
+      if (firstFarm) return perform(buildPlan("farm", firstFarm, "建立工材来源"), 0, true);
+      const firstMulberry = count("mulberry") === 0 && bestPlot("mulberry");
+      if (firstMulberry) return perform(buildPlan("mulberry", firstMulberry, "建立铜钱来源"), 0, true);
+      const rates = G.rates(s), plans = [];
+      for (const type of ["farm", "mulberry"]) if (count(type) < 4) {
+        const p = bestPlot(type);
+        if (p) plans.push(buildPlan(type, p, type === "farm" ? "扩充基础工材" : "扩充基础铜钱"));
+      }
+      if (!plans.length) return null;
+      const affordable = plans.filter((plan) => canAfford(plan.cost));
+      const selected = (affordable.length ? affordable : plans).sort((a, b) => {
+        const ar = a.reason.includes("工材") ? rates.materials : rates.coins, br = b.reason.includes("工材") ? rates.materials : rates.coins;
+        return ar - br || waitSeconds(a.cost, rates) - waitSeconds(b.cost, rates);
+      })[0];
+      return perform(selected, 0, true);
+    }
+    function gateTowerPlot(gate) {
+      return bestPlot("tower", (p) => coversGate(p, gate)) || bestPlot("tower", (p) => Math.hypot(p.x - gate.x, p.y - gate.y) <= 5);
+    }
+    function primaryGate() {
       const enemies = G.hostileUnits(s);
-      for (const g of land.gates) {
-        const nearby = enemies.filter((u) => Math.hypot(u.x - g.x, u.y - g.y) <= 5), gate = G.at(s, g.x, g.y);
-        if (!nearby.length) continue;
-        const towers = s.buildings.filter((b) => b.type === "tower" && coversGate(b, g));
-        const force = nearby.reduce((n, u) => n + u.baseDamage, 0), power = towers.reduce((n, b) => n + G.DEFS.tower.damage * G.factor(b) / G.DEFS.tower.interval, 0);
-        if (power >= force && (gate == null ? void 0 : gate.hp) > G.maxHP(gate) * 0.5) continue;
-        const existing = towers.find((b) => !G.upgradeReason(s, b));
-        if (existing && upgrade(existing)) return true;
-        if (towers.length < 2) {
-          const p = available("tower").filter((p2) => coversGate(p2, g)).sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0];
-          if (build("tower", p)) return true;
-        }
-        if ((gate == null ? void 0 : gate.hp) < G.maxHP(gate) * 0.5 && foundation(gate)) return true;
-      }
-      return false;
+      return [...land.gates].sort((a, b) => {
+        const da = enemies.length ? Math.min(...enemies.map((u) => Math.hypot(u.x - a.x, u.y - a.y))) : Math.hypot(a.x - land.center.x, a.y - land.center.y);
+        const db = enemies.length ? Math.min(...enemies.map((u) => Math.hypot(u.x - b.x, u.y - b.y))) : Math.hypot(b.x - land.center.x, b.y - land.center.y);
+        return da - db;
+      })[0];
     }
-    function economy() {
-      const rates = G.rates(s), weights = { coins: 1 / Math.max(0.5, rates.coins), materials: 1 / Math.max(0.5, rates.materials) };
-      const value = (c) => c.coins * weights.coins + c.materials * weights.materials, options = [];
-      for (const d of Object.values(G.DEFS).filter((d2) => d2.cat === "economy")) {
-        let best = null;
-        for (const p of available(d.id)) {
-          const b = __spreadProps(__spreadValues({}, p), { type: d.id, level: 1, owner: s.actorId }), gain = G.income(s, b) * weights[d.resource];
-          const score = gain / Math.max(1, value(G.buildCost(s, d.id))) * (land.roads.has(p.y * width + p.x) ? 0.85 : 1);
-          if (!best || score > best.score) best = { score, run: () => build(d.id, p) };
-        }
-        if (best) options.push(best);
+    function firstArmy() {
+      if (!count("barracks")) {
+        const gate = primaryGate(), p = bestPlot("barracks", (n) => Math.hypot(n.x - gate.x, n.y - gate.y) <= 6) || bestPlot("barracks");
+        return perform(buildPlan("barracks", p, "组建首支守军"), 0, true);
       }
-      for (const b of s.buildings.filter((b2) => G.DEFS[b2.type].income)) {
-        if (b.level >= G.maxLevel(b)) continue;
-        const next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), d = G.DEFS[b.type], reason = G.upgradeReason(s, b, true);
-        const gain = (G.income(s, next) - G.income(s, b)) * weights[d.resource], score = gain / Math.max(1, value(G.upgradeCost(b)));
-        if (!reason) options.push({ score, run: () => upgrade(b) });
-        else if (reason.startsWith("需祠堂")) options.push({ score: score * 0.3, run: () => foundation(s.buildings.find((n) => n.type === "shrine")) });
+      if (!count("tower")) {
+        const gate = primaryGate();
+        return perform(buildPlan("tower", gateTowerPlot(gate), "建立城门基础防线"), 0, true);
       }
-      options.sort((a, b) => b.score - a.score);
-      for (const option of options) if (option.run()) return true;
-      return false;
-    }
-    function army() {
-      const barracks = s.buildings.filter((b) => b.type === "barracks").sort((a, b) => a.level - b.level || a.id - b.id), rates = G.rates(s);
-      if (!barracks.length && (rates.coins < 3 || rates.materials < 2)) return false;
-      if (barracks.length) {
-        const b = barracks.find((b2) => b2.level < 9 && !G.upgradeReason(s, b2, true));
-        if (b) {
-          if (upgrade(b)) return true;
-          stats.lastAction = "为升级兵营留资";
-          return "saving";
-        }
-        if (barracks.length >= 3) {
-          if (foundation(s.buildings.find((b2) => b2.type === "shrine"))) return true;
-          return false;
-        }
-      }
-      const p = available("barracks").sort((a, b) => Math.min(...land.gates.map((g) => Math.hypot(a.x - g.x, a.y - g.y))) - Math.min(...land.gates.map((g) => Math.hypot(b.x - g.x, b.y - g.y))))[0];
-      if (!p) return false;
-      if (build("barracks", p)) return true;
-      stats.lastAction = "为新兵营留资";
-      return "saving";
+      return null;
     }
     function skills() {
       const id = s.selectedSkill;
       if (!id || G.skillReason(s, id)) return false;
       const enemies = G.hostileUnits(s).filter((u) => G.inSkillZone(s, s.actorId, u));
-      const wanted = id === "repair" ? s.buildings.some((b) => b.hp / G.maxHP(b) < 0.6) : enemies.length >= 3 || enemies.some((u) => Math.hypot(u.x - land.center.x, u.y - land.center.y) < 3);
-      return wanted && G.skill(s, id).ok && record("skill", id);
+      const damaged = s.buildings.some((b) => b.hp / G.maxHP(b) < 0.65);
+      const urgent = enemies.some((u) => Math.hypot(u.x - land.center.x, u.y - land.center.y) < 5 || land.gates.some((g) => Math.hypot(u.x - g.x, u.y - g.y) < 4));
+      const wanted = id === "repair" ? damaged : enemies.length >= 2 || urgent;
+      return wanted && G.skill(s, id).ok && record("skill", id, id === "repair" ? "修复受损建筑" : "压制入侵部队");
+    }
+    function defense() {
+      const enemies = G.hostileUnits(s), threats = [];
+      for (const gate of land.gates) {
+        const nearby = enemies.filter((u) => Math.hypot(u.x - gate.x, u.y - gate.y) <= 9);
+        if (nearby.length) threats.push({ gate, nearby, closest: Math.min(...nearby.map((u) => Math.hypot(u.x - gate.x, u.y - gate.y))) });
+      }
+      threats.sort((a, b) => a.closest - b.closest || b.nearby.length - a.nearby.length);
+      for (const threat of threats) {
+        const { gate, nearby, closest } = threat, towers = s.buildings.filter((b) => b.type === "tower" && coversGate(b, gate)).sort((a, b) => a.level - b.level), gateBuilding = G.at(s, gate.x, gate.y);
+        if (!towers.length) {
+          const result = perform(buildPlan("tower", gateTowerPlot(gate), "敌军逼近，补建箭塔"), 4, closest <= 5);
+          if (result) return result;
+        }
+        const strength = towers.reduce((sum, b) => sum + b.level, 0);
+        if (towers.length && nearby.length > strength * 2) {
+          const target = towers.find((b) => !G.upgradeReason(s, b, true));
+          const result = perform(upgradePlan(target, "敌军集结，强化箭塔"), 5, closest <= 4);
+          if (result) return result;
+          if (towers.length < 2) {
+            const result2 = perform(buildPlan("tower", gateTowerPlot(gate), "敌军集结，增设箭塔"), 5, closest <= 4);
+            if (result2) return result2;
+          }
+        }
+        if (gateBuilding && gateBuilding.hp / G.maxHP(gateBuilding) < 0.6) {
+          const target = foundationTarget(gateBuilding), result = perform(upgradePlan(target, "城门受损，提升耐久"), 4, closest <= 3);
+          if (result) return result;
+        }
+      }
+      return null;
+    }
+    function economyPlan() {
+      const rates = G.rates(s), options = [], resourceWeight = (resource) => {
+        const own = Math.max(0.5, rates[resource]), other = Math.max(0.5, rates[resource === "coins" ? "materials" : "coins"]);
+        return Math.max(0.7, Math.min(2.2, other / own));
+      };
+      function score(gain, cost, d, multiplier = 1) {
+        const productionSeconds = cost.coins / Math.max(1, rates.coins) + cost.materials / Math.max(1, rates.materials);
+        return gain * resourceWeight(d.resource) * multiplier / Math.max(1, productionSeconds);
+      }
+      for (const d of Object.values(G.DEFS).filter((d2) => d2.cat === "economy")) {
+        const p = bestPlot(d.id);
+        if (!p) continue;
+        const hypothetical = __spreadProps(__spreadValues({}, p), { type: d.id, level: 1, owner: s.actorId }), gain = G.income(s, hypothetical), cost = G.buildCost(s, d.id), first = count(d.id) === 0;
+        let multiplier = first ? 1.25 : 1;
+        if (d.tier === 0 && (d.id === "farm" || d.id === "mulberry" ? count(d.id) < 6 : count(d.id) < 2)) multiplier *= 1.25;
+        if (d.tier === 1) multiplier *= 1.15;
+        if (d.end) multiplier *= 1.35;
+        if (d.required) multiplier *= 1.5;
+        options.push({ score: score(gain, cost, d, multiplier), cost, reason: `发展${d.name}产业`, run: () => build(d.id, p, `发展${d.name}产业`) });
+      }
+      for (const b of s.buildings.filter((b2) => G.DEFS[b2.type].income && b2.type !== "shrine")) {
+        if (b.level >= G.maxLevel(b) || G.upgradeReason(s, b, true)) continue;
+        const d = G.DEFS[b.type], next = __spreadProps(__spreadValues({}, b), { level: b.level + 1 }), gain = G.income(s, next) - G.income(s, b), cost = G.upgradeCost(b);
+        options.push({ score: score(gain, cost, d, b.level === 1 ? 1.18 : 1), cost, reason: `提升${d.name}产能`, run: () => upgrade(b, `提升${d.name}产能`) });
+      }
+      if (!options.length) return null;
+      options.sort((a, b) => b.score - a.score);
+      const best = options[0], affordable = options.find((option) => canAfford(option.cost));
+      return waitSeconds(best.cost, rates) <= 9 ? best : affordable || best;
+    }
+    function militaryPlan() {
+      const rates = G.rates(s), minimum = Math.min(rates.coins, rates.materials), barracks = s.buildings.filter((b) => b.type === "barracks").sort((a, b) => a.level - b.level || a.id - b.id);
+      const desiredBarracks = 1 + (minimum >= 8 ? 1 : 0) + (minimum >= 16 ? 1 : 0);
+      if (barracks.length < desiredBarracks) {
+        const gate = primaryGate(), p = bestPlot("barracks", (n) => Math.hypot(n.x - gate.x, n.y - gate.y) <= 7) || bestPlot("barracks");
+        if (p) return buildPlan("barracks", p, "扩大常备军规模");
+      }
+      const shrine = s.buildings.find((b) => b.type === "shrine"), desiredShrine = Math.min(5, 1 + Math.floor(minimum / 7));
+      if (shrine && shrine.level < desiredShrine) {
+        const target = foundationTarget(shrine);
+        if (target) return upgradePlan(target, target.type === "shrine" ? "升级主城，强化全军" : "同步强化城门");
+      }
+      const desiredBarracksLevel = 1 + (minimum >= 10 ? 1 : 0) + (minimum >= 18 ? 1 : 0), training = barracks.find((b) => b.level < desiredBarracksLevel && !G.upgradeReason(s, b, true));
+      if (training) return upgradePlan(training, "提升士兵训练质量");
+      const desiredTowerLevel = 1 + (minimum >= 12 ? 1 : 0), tower = s.buildings.filter((b) => b.type === "tower").sort((a, b) => a.level - b.level)[0];
+      if (tower && tower.level < desiredTowerLevel && !G.upgradeReason(s, tower, true)) return upgradePlan(tower, "巩固常备防线");
+      return null;
     }
     function tick(dt) {
       if (s.over || s.eliminated || !Number.isFinite(dt) || dt <= 0) return false;
@@ -2842,22 +3020,29 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (stats.clock < 1 - 1e-8) return false;
       stats.clock = Math.max(0, stats.clock - 1);
       stats.decisions++;
-      const cast = skills();
-      if (defense()) return true;
-      if (!s.buildings.some((b) => b.type === "barracks") || stats.armyTurn) {
-        const action = army();
-        if (action) {
-          if (action === true) stats.armyTurn = false;
-          return action === true || cast;
+      const cast = skills(), danger = defense();
+      if (danger) return danger === "acted" || cast;
+      const start = opening();
+      if (start) return start === "acted" || cast;
+      const armyStart = firstArmy();
+      if (armyStart) return armyStart === "acted" || cast;
+      if (stats.armyTurn) {
+        const plan = militaryPlan(), result = perform(plan, 7);
+        if (result) {
+          if (result === "acted") stats.armyTurn = false;
+          return result === "acted" || cast;
         }
       }
-      if (economy()) {
-        stats.armyTurn = true;
-        return true;
+      const economy = economyPlan(), economicResult = perform(economy, 9);
+      if (economicResult) {
+        if (economicResult === "acted") stats.armyTurn = true;
+        return economicResult === "acted" || cast;
       }
-      return !!army() || cast;
+      const military = militaryPlan(), militaryResult = perform(military, 0, true);
+      if (militaryResult === "acted") stats.armyTurn = false;
+      return militaryResult === "acted" || cast;
     }
-    const report = () => __spreadProps(__spreadValues({ schema: 2, controller: "estate-attack-v1" }, stats), { skills: { total: stats.casts }, actions: [...actions], mapSeed: s.mapSeed, owner: s.actorId, over: s.over, eliminated: s.eliminated, rates: G.rates(s) });
+    const report = () => __spreadProps(__spreadValues({ schema: 3, controller: "balanced-estate-v2" }, stats), { skills: __spreadValues({}, telemetry.skills), actions: telemetry.actions.map((a) => __spreadValues({}, a)), mapSeed: s.mapSeed, owner: s.actorId, over: s.over, eliminated: s.eliminated, rates: G.rates(s) });
     return { tick, report, get lastAction() {
       return stats.lastAction;
     } };
@@ -2887,11 +3072,12 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function() {
   "use strict";
-  const $ = (id) => document.getElementById(id), canvas = $("map"), KEY = "gufang-qitan-match-v8";
+  const $ = (id) => document.getElementById(id), canvas = $("map"), KEY = "gufang-qitan-match-v9";
   let storageWarning = false, saved = null;
   try {
     localStorage.removeItem("gufang-qitan-save-v1");
     localStorage.removeItem("gufang-qitan-save-v1-backup");
+    localStorage.removeItem("gufang-qitan-match-v8");
     saved = localStorage.getItem(KEY);
   } catch (e) {
     storageWarning = true;
@@ -3227,6 +3413,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("game").classList.remove("has-panel");
   }
   const rateText = (value) => String(Math.round((value + Number.EPSILON) * 10) / 10);
+  const soldierTrainingText = (b) => {
+    const seconds = 1 / GF.soldierRate(b), rounded = Math.round(seconds);
+    return `${Math.abs(seconds - rounded) < 1e-8 ? rounded : rateText(seconds)}s`;
+  };
   const costText = (cost) => [cost.coins ? cost.coins + " 铜钱" : "", cost.materials ? cost.materials + " 工材" : ""].filter(Boolean).join(" · ") || "免费";
   const costHTML = (cost, markMissing = false) => `<span class="cost-parts">${cost.coins ? `<span class="cost-part"><i class="coin-icon"></i><b class="cost-number${markMissing && playerState().coins < cost.coins ? " insufficient" : ""}">${cost.coins}</b></span>` : ""}${cost.materials ? `<span class="cost-part"><i class="material-icon"></i><b class="cost-number${markMissing && playerState().materials < cost.materials ? " insufficient" : ""}">${cost.materials}</b></span>` : ""}</span>`;
   function productionLine(resource, base, total) {
@@ -3235,7 +3425,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function effect(d, b) {
     var _a, _b;
-    if (d.id === "barracks") return `每秒派出${GF.soldierRate(b || { type: d.id, level: 1 })}名民兵 · 本庄上限120人`;
+    if (d.id === "barracks") return `训练时间 ${soldierTrainingText(b || { type: d.id, level: 1 })} · 本庄上限120人`;
     if (!d.income) return d.desc || "";
     const building = b || { type: d.id, x: (_a = selected == null ? void 0 : selected.x) != null ? _a : GF.worldCenter(state), y: (_b = selected == null ? void 0 : selected.y) != null ? _b : GF.worldCenter(state), level: 1 };
     const economic = playerState(), preview = b ? economic : __spreadProps(__spreadValues({}, economic), { buildings: [...economic.buildings, building] });
@@ -3255,9 +3445,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return center2([label("生产"), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === "tower") return rows([["攻击", d.damage], ["射程", d.range]]);
-    if (d.id === "barracks") return rows([["出兵效率", GF.soldierRate({ type: "barracks", level: 1 }) + "人/秒"], ["战力", GF.soldierPower(playerState(), { type: "barracks", level: 1 })]]);
+    if (d.id === "barracks") return center2([label("训练时间"), figure(`<span class="effect-value">${soldierTrainingText({ type: "barracks", level: 1 })}</span>`)]);
     if (d.id === "rock") return rows([["攻击范围", d.range], ["溅射", d.splash]]);
-    if (d.id === "well") return center2([label("农田"), figure(`${icon("coins")}<span class="effect-value">+20%</span>`)]);
+    if (d.id === "well") return center2([label("全庄农田"), figure(`${icon("coins")}<span class="effect-value">+20%</span>`)]);
     if (d.id === "stage") return center2([label("全镇"), figure(`${icon("coins")}<span class="effect-value">+3%</span> ${icon("materials")}<span class="effect-value">+3%</span>`)]);
     if (d.id === "earth") return center2([label("守护"), figure('<span class="effect-value">-20%</span>')]);
     if (d.id === "tao") return center2([label("道法"), figure('<span class="effect-value">+15%</span>')]);
@@ -3277,7 +3467,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.cat === "economy" && plot === "forest" && d.id !== "mulberry") return true;
     if (d.cat === "economy" && plot === "mountain" && d.id !== "quarry") return true;
     if (d.id === "farm") {
-      if (plot !== "shore" && !(plot === "plain" && nearby.some((b) => b.type === "well"))) return true;
+      if (plot !== "shore") return true;
     } else if (d.terrain && plot !== d.terrain) return true;
     if (d.prev && !nearby.some((b) => b.type === d.prev)) return true;
     if (d.required && d.required.some((type) => !nearby.some((b) => b.type === type))) return true;
@@ -3297,8 +3487,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : "0";
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === "materials" ? "material-icon" : "coin-icon"}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === "0" ? "" : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : "";
     let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
-    else if (b.type === "barracks") stats += `<div>出兵效率（人/秒）<strong>${GF.soldierRate(b)}${max ? "" : " → " + GF.soldierRate(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(context, b)}${max ? "" : " → " + GF.soldierPower(context, next)}</strong></div>`;
+    if (d.income) {
+      stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
+      if (b.type === "shrine") stats += `<div>士兵战力<strong>${(b.level - 1) * 10}%${max ? "" : " → " + b.level * 10 + "%"}</strong></div>`;
+    } else if (b.type === "barracks") stats += `<div>训练时间<strong>${soldierTrainingText(b)}${max ? "" : " → " + soldierTrainingText(next)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (["well", "stage"].includes(b.type)) {
       const v = { well: 20, stage: 3 }[b.type];
@@ -3376,7 +3568,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
     var _a;
-    $("coop-status").hidden = !started;
+    $("coop-status").hidden = !started || state.mode !== "coop";
     $("coop-action").textContent = playerState().eliminated ? "你的庄园已出局 · 观战中" : online ? (online.serverPaused ? "对局已暂停 · " : "服务器联机 · ") + "房间 " + online.code : state.mode === "coop" ? "电脑队友：" + state.players[1].ai.lastAction : "自动出征 · 攻破所有敌方主城";
     $("coop-home").textContent = "我的庄园";
     $("coop-ally").hidden = state.mode !== "coop";
@@ -3492,8 +3684,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const reason = GF.demolishReason(playerState(), b);
       if (reason) return blocked($("demolish-building"), reason);
       demolishTarget = b;
-      const cost = b.originCost || GF.DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * 0.4), materials: Math.floor(cost.materials * 0.4) };
-      modal('<p class="modal-kicker">拆除建筑</p><h2>拆除' + GF.name(b) + "？</h2><p>拆除后返还 " + costText(refund) + "，且无法恢复。</p>" + (b.type === "well" ? "<p>失去水井的非水岸农田会持续掉耐久。</p>" : "") + '<button class="modal-primary" data-modal="confirm-demolish">确认拆除</button><button class="modal-secondary" data-modal="cancel-demolish">返回</button>');
+      const cost = b.originCost || GF.buildCost(playerState(), b.type), refund = { coins: Math.floor(cost.coins * 0.4), materials: Math.floor(cost.materials * 0.4) };
+      modal('<p class="modal-kicker">拆除建筑</p><h2>拆除' + GF.name(b) + "？</h2><p>拆除后返还 " + costText(refund) + '，且无法恢复。</p><button class="modal-primary" data-modal="confirm-demolish">确认拆除</button><button class="modal-secondary" data-modal="cancel-demolish">返回</button>');
     }
   });
   for (const el of document.querySelectorAll("[data-skill]")) el.addEventListener("click", () => {
@@ -3551,6 +3743,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     closePanel();
     $("modal").hidden = true;
     $("start-menu").hidden = false;
+    $("single-settings").hidden = true;
     $("coop-lobby").hidden = true;
     $("game").classList.add("at-title");
     $("menu-pause").setAttribute("aria-expanded", "false");
@@ -3574,6 +3767,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (online) saveStatus = "服务器运行中 · 可手动保存完整进度";
     partnerPilot = state.mode === "coop" && !online ? GFAutoplay.create(GF.playerView(state, 1)) : null;
     $("start-menu").hidden = true;
+    $("single-settings").hidden = true;
     $("coop-lobby").hidden = true;
     $("game").classList.remove("at-title");
     closePanel();
@@ -3586,9 +3780,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("close-modal").hidden = true;
     $("modal-content").querySelector("[data-choice]").focus();
   }
-  $("start-single").onclick = () => {
+  function showSingleSettings() {
+    $("start-menu").hidden = true;
+    $("coop-lobby").hidden = true;
+    $("single-settings").hidden = false;
+    $("single-start").focus();
+  }
+  $("start-single").onclick = showSingleSettings;
+  $("single-back").onclick = showStartMenu;
+  $("single-start").onclick = () => {
     readSave();
-    if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开始菜单</button>');
+    if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开局设置</button>');
     else newGame();
   };
   $("start-load").onclick = () => {
@@ -3620,6 +3822,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   $("start-coop").onclick = () => {
     computerSeat = false;
     $("start-menu").hidden = true;
+    $("single-settings").hidden = true;
     $("coop-lobby").hidden = false;
     updateCoopSeat();
     $("coop-seat").focus();
@@ -3676,7 +3879,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     paused = !started;
     $("close-modal").hidden = false;
     $("menu-pause").setAttribute("aria-expanded", "false");
-    (started ? $("menu-pause") : !$("coop-lobby").hidden ? $("coop-seat") : $("start-single")).focus();
+    (started ? $("menu-pause") : !$("single-settings").hidden ? $("single-start") : !$("coop-lobby").hidden ? $("coop-seat") : $("start-single")).focus();
     lastFrame = performance.now();
     refresh();
     sendPresence();
@@ -3726,7 +3929,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return;
     }
-    const enemyCount = started && state.mode === (coop ? "coop" : "single") ? state.enemyCount : Number($(coop ? "coop-enemies" : "single-enemies").value);
+    const selectedEnemies = document.querySelector('input[name="single-enemies"]:checked');
+    const enemyCount = started && state.mode === (coop ? "coop" : "single") ? state.enemyCount : Number(coop ? $("coop-enemies").value : (selectedEnemies == null ? void 0 : selectedEnemies.value) || 1);
     enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount }));
     save();
   }
@@ -3793,7 +3997,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const r = b ? GF.demolish(state, b) : { ok: false };
       closeModal();
       if (r.ok) {
-        toast(r.dryFarms ? "已拆除，" + r.dryFarms + " 块农田缺水，耐久持续下降" : "已拆除，返还 " + costText(r.refund), r.dryFarms ? "warning" : "info");
+        toast("已拆除，返还 " + costText(r.refund));
         panelKey = "";
         handleEvents();
         save();
@@ -3927,10 +4131,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     cardDrag.y = e.clientY;
     cardDrag.scroll = $("cards").scrollLeft;
   });
+  $("cards").addEventListener("dragstart", (e) => e.preventDefault());
   window.addEventListener("pointermove", (e) => {
+    var _a;
     if (!cardDrag.active) return;
     if (Math.abs(e.clientX - cardDrag.x) > 6 || Math.abs(e.clientY - cardDrag.y) > 6) cardDrag.moved = true;
     if (cardDrag.moved && e.pointerType === "mouse") {
+      e.preventDefault();
+      (_a = window.getSelection()) == null ? void 0 : _a.removeAllRanges();
       $("cards").scrollLeft = cardDrag.scroll - (e.clientX - cardDrag.x);
       cardDrag.suppress = true;
     }
@@ -3951,9 +4159,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     setTimeout(() => cardDrag.suppress = false, 0);
   });
   window.addEventListener("keydown", (e) => {
-    const overlay = !$("modal").hidden ? $("modal") : !$("coop-lobby").hidden ? $("coop-lobby") : !started ? $("start-menu") : null;
+    const overlay = !$("modal").hidden ? $("modal") : !$("single-settings").hidden ? $("single-settings") : !$("coop-lobby").hidden ? $("coop-lobby") : !started ? $("start-menu") : null;
     if (e.key === "Tab" && overlay) {
-      const buttons = [...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')].filter((el) => !el.hidden && el.getClientRects().length), first = buttons[0], last = buttons[buttons.length - 1];
+      const buttons = [...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')].filter((el) => !el.hidden && el.getClientRects().length), first = buttons[0], last = buttons[buttons.length - 1];
       if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
         e.preventDefault();
         last == null ? void 0 : last.focus();
@@ -3969,7 +4177,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     if (e.key === "Escape") {
       if (!$("modal").hidden) closeModal();
-      else if (!$("coop-lobby").hidden) showStartMenu();
+      else if (!$("single-settings").hidden || !$("coop-lobby").hidden) showStartMenu();
       else if (started) closePanel();
     }
   });

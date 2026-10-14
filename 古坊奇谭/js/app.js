@@ -1,8 +1,8 @@
 (function () {
   'use strict';
-  const $ = id => document.getElementById(id), canvas = $('map'), KEY = 'gufang-qitan-match-v8';
+  const $ = id => document.getElementById(id), canvas = $('map'), KEY = 'gufang-qitan-match-v9';
   let storageWarning = false, saved = null;
-  try { localStorage.removeItem('gufang-qitan-save-v1'); localStorage.removeItem('gufang-qitan-save-v1-backup'); saved = localStorage.getItem(KEY); } catch { storageWarning = true; }
+  try { localStorage.removeItem('gufang-qitan-save-v1'); localStorage.removeItem('gufang-qitan-save-v1-backup'); localStorage.removeItem('gufang-qitan-match-v8'); saved = localStorage.getItem(KEY); } catch { storageWarning = true; }
   const SOUND_KEY = 'gufang-qitan-sound';
   const GRID_KEY = 'gufang-qitan-grid';
   let grid = true;
@@ -184,6 +184,7 @@
   }
   function closePanel() { selected = null; panelKey = ''; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
   const rateText = value => String(Math.round((value + Number.EPSILON) * 10) / 10);
+  const soldierTrainingText = b => { const seconds=1/GF.soldierRate(b),rounded=Math.round(seconds);return `${Math.abs(seconds-rounded)<1e-8?rounded:rateText(seconds)}s`; };
   const costText = cost => [cost.coins ? cost.coins + ' 铜钱' : '', cost.materials ? cost.materials + ' 工材' : ''].filter(Boolean).join(' · ') || '免费';
   const costHTML = (cost, markMissing = false) => `<span class="cost-parts">${cost.coins ? `<span class="cost-part"><i class="coin-icon"></i><b class="cost-number${markMissing && playerState().coins < cost.coins ? ' insufficient' : ''}">${cost.coins}</b></span>` : ''}${cost.materials ? `<span class="cost-part"><i class="material-icon"></i><b class="cost-number${markMissing && playerState().materials < cost.materials ? ' insufficient' : ''}">${cost.materials}</b></span>` : ''}</span>`;
   function productionLine(resource, base, total) {
@@ -191,7 +192,7 @@
     return `${resource} +${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
   }
   function effect(d, b) {
-    if (d.id === 'barracks') return `每秒派出${GF.soldierRate(b || { type: d.id, level: 1 })}名民兵 · 本庄上限120人`;
+    if (d.id === 'barracks') return `训练时间 ${soldierTrainingText(b || { type: d.id, level: 1 })} · 本庄上限120人`;
     if (!d.income) return d.desc || '';
     const building = b || { type: d.id, x: selected?.x ?? GF.worldCenter(state), y: selected?.y ?? GF.worldCenter(state), level: 1 };
     const economic = playerState(), preview = b ? economic : { ...economic, buildings: [...economic.buildings, building] };
@@ -213,9 +214,9 @@
       return center([label('生产'), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
-    if (d.id === 'barracks') return rows([['出兵效率', GF.soldierRate({ type: 'barracks', level: 1 })+'人/秒'], ['战力', GF.soldierPower(playerState(), { type: 'barracks', level: 1 })]]);
+    if (d.id === 'barracks') return center([label('训练时间'), figure(`<span class="effect-value">${soldierTrainingText({ type: 'barracks', level: 1 })}</span>`)]);
     if (d.id === 'rock') return rows([['攻击范围', d.range], ['溅射', d.splash]]);
-    if (d.id === 'well') return center([label('农田'), figure(`${icon('coins')}<span class="effect-value">+20%</span>`)]);
+    if (d.id === 'well') return center([label('全庄农田'), figure(`${icon('coins')}<span class="effect-value">+20%</span>`)]);
     if (d.id === 'stage') return center([label('全镇'), figure(`${icon('coins')}<span class="effect-value">+3%</span> ${icon('materials')}<span class="effect-value">+3%</span>`)]);
     if (d.id === 'earth') return center([label('守护'), figure('<span class="effect-value">-20%</span>')]);
     if (d.id === 'tao') return center([label('道法'), figure('<span class="effect-value">+15%</span>')]);
@@ -235,7 +236,7 @@
     if (d.cat === 'economy' && plot === 'forest' && d.id !== 'mulberry') return true;
     if (d.cat === 'economy' && plot === 'mountain' && d.id !== 'quarry') return true;
     if (d.id === 'farm') {
-      if (plot !== 'shore' && !(plot === 'plain' && nearby.some(b => b.type === 'well'))) return true;
+      if (plot !== 'shore') return true;
     } else if (d.terrain && plot !== d.terrain) return true;
     if (d.prev && !nearby.some(b => b.type === d.prev)) return true;
     if (d.required && d.required.some(type => !nearby.some(b => b.type === type))) return true;
@@ -255,8 +256,8 @@
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : '0';
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
-    if (d.income) stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`;
-    else if (b.type === 'barracks') stats += `<div>出兵效率（人/秒）<strong>${GF.soldierRate(b)}${max ? '' : ' → ' + GF.soldierRate(next)}</strong></div><div>士兵战力<strong>${GF.soldierPower(context, b)}${max ? '' : ' → ' + GF.soldierPower(context, next)}</strong></div>`;
+    if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>士兵战力<strong>${(b.level-1)*10}%${max ? '' : ' → ' + b.level*10 + '%'}</strong></div>`; }
+    else if (b.type === 'barracks') stats += `<div>训练时间<strong>${soldierTrainingText(b)}${max ? '' : ' → ' + soldierTrainingText(next)}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
@@ -317,7 +318,7 @@
   const duration=n=>Math.floor(n/60)+':'+String(Math.floor(n%60)).padStart(2,'0');
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
-    $('coop-status').hidden = !started;
+    $('coop-status').hidden = !started || state.mode !== 'coop';
     $('coop-action').textContent = playerState().eliminated ? '你的庄园已出局 · 观战中' : online ? (online.serverPaused?'对局已暂停 · ':'服务器联机 · ')+'房间 '+online.code : state.mode==='coop'?'电脑队友：'+state.players[1].ai.lastAction:'自动出征 · 攻破所有敌方主城';
     $('coop-home').textContent='我的庄园';$('coop-ally').hidden=state.mode!=='coop';
     $('coop-ally').textContent=state.players[1]?.eliminated?'队友遗址':'队友庄园';
@@ -375,8 +376,8 @@
     } else if (e.target.closest('#demolish-building')) {
       const reason = GF.demolishReason(playerState(), b); if (reason) return blocked($('demolish-building'), reason);
       demolishTarget = b;
-      const cost=b.originCost||GF.DEFS[b.type].cost,refund={coins:Math.floor(cost.coins*.4),materials:Math.floor(cost.materials*.4)};
-      modal('<p class="modal-kicker">拆除建筑</p><h2>拆除' + GF.name(b) + '？</h2><p>拆除后返还 ' + costText(refund) + '，且无法恢复。</p>' + (b.type === 'well' ? '<p>失去水井的非水岸农田会持续掉耐久。</p>' : '') + '<button class="modal-primary" data-modal="confirm-demolish">确认拆除</button><button class="modal-secondary" data-modal="cancel-demolish">返回</button>');
+      const cost=b.originCost||GF.buildCost(playerState(),b.type),refund={coins:Math.floor(cost.coins*.4),materials:Math.floor(cost.materials*.4)};
+      modal('<p class="modal-kicker">拆除建筑</p><h2>拆除' + GF.name(b) + '？</h2><p>拆除后返还 ' + costText(refund) + '，且无法恢复。</p><button class="modal-primary" data-modal="confirm-demolish">确认拆除</button><button class="modal-secondary" data-modal="cancel-demolish">返回</button>');
     }
   });
   for (const el of document.querySelectorAll('[data-skill]')) el.addEventListener('click', () => { const reason = GF.skillReason(playerState(), el.dataset.skill); if (reason) return blocked(el, reason); if (online) { onlineAction('skill', { skill: el.dataset.skill }); return; } const r = GF.skill(state, el.dataset.skill); if (!r.ok) return blocked(el, r.reason); tone('skill'); toast(GF.SKILLS[el.dataset.skill].name + ' · 已施展'); save(); refresh(); });
@@ -407,7 +408,7 @@
     leaveOnline();
     autoplay = false; partnerPilot = null;
     started = false; paused = true; closePanel();
-    $('modal').hidden = true; $('start-menu').hidden = false; $('coop-lobby').hidden = true;
+    $('modal').hidden = true; $('start-menu').hidden = false; $('single-settings').hidden = true; $('coop-lobby').hidden = true;
     $('game').classList.add('at-title');
     $('menu-pause').setAttribute('aria-expanded', 'false');
     updateStartMenu(); $('start-single').focus();
@@ -419,7 +420,7 @@
     if(!online){state.players[0].controller='human';for(const p of state.players.slice(1)){p.controller='computer';p.selectedSkill||='thunder';}}
     if (online) saveStatus = '服务器运行中 · 可手动保存完整进度';
     partnerPilot = state.mode === 'coop' && !online ? GFAutoplay.create(GF.playerView(state, 1)) : null;
-    $('start-menu').hidden = true; $('coop-lobby').hidden = true; $('game').classList.remove('at-title');
+    $('start-menu').hidden = true; $('single-settings').hidden = true; $('coop-lobby').hidden = true; $('game').classList.remove('at-title');
     closePanel(); center(playerOwner()); closeModal();
   }
   function showSkillChoice(){
@@ -427,9 +428,15 @@
     modal('<div class="skill-selection"><p class="modal-kicker">本局神技 · 三选一</p><h2>择一守坊</h2><div class="skill-options">'+Object.entries(GF.SKILLS).map(([id,d])=>`<button data-modal="choose-skill" data-choice="${id}" class="skill-option"><i aria-hidden="true">${symbols[id]}</i><strong>${d.name}</strong><span>${descriptions[id]}</span><small>冷却 ${d.cooldown} 秒</small></button>`).join('')+'</div></div>');
     $('close-modal').hidden=true;$('modal-content').querySelector('[data-choice]').focus();
   }
-  $('start-single').onclick = () => {
+  function showSingleSettings() {
+    $('start-menu').hidden = true; $('coop-lobby').hidden = true; $('single-settings').hidden = false;
+    $('single-start').focus();
+  }
+  $('start-single').onclick = showSingleSettings;
+  $('single-back').onclick = showStartMenu;
+  $('single-start').onclick = () => {
     readSave();
-    if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开始菜单</button>');
+    if (saved) modal('<p class="modal-kicker">另起新篇</p><h2>开启新的古坊？</h2><p>单人模式将新建古坊，并替换本地存档。想继续原来的故事，请返回并选择“读档”。</p><button class="modal-primary" data-modal="new">新建古坊</button><button class="modal-secondary" data-modal="close">返回开局设置</button>');
     else newGame();
   };
   $('start-load').onclick = () => {
@@ -453,7 +460,7 @@
     $('coop-start').disabled = !computerSeat && !linked;
     $('coop-start').textContent = computerSeat || linked ? '开始合作' : joining ? '等待主机开始' : '等待队友就绪';
   }
-  $('start-coop').onclick = () => { computerSeat = false; $('start-menu').hidden = true; $('coop-lobby').hidden = false; updateCoopSeat(); $('coop-seat').focus(); };
+  $('start-coop').onclick = () => { computerSeat = false; $('start-menu').hidden = true; $('single-settings').hidden = true; $('coop-lobby').hidden = false; updateCoopSeat(); $('coop-seat').focus(); };
   $('coop-seat').onclick = () => { if (online) return; computerSeat = !computerSeat; updateCoopSeat(); };
   $('coop-host').onclick = () => { computerSeat = false; connectOnline('create'); };
   $('coop-join').onclick = () => { const code = $('coop-code').value.trim(); if (!/^\d{6}$/.test(code)) return toast('请输入六位房号', 'warning'); computerSeat = false; connectOnline('join', code); };
@@ -480,7 +487,7 @@
     $('modal').hidden = true; paused = !started;
     $('close-modal').hidden=false;
     $('menu-pause').setAttribute('aria-expanded', 'false');
-    (started ? $('menu-pause') : !$('coop-lobby').hidden ? $('coop-seat') : $('start-single')).focus(); lastFrame = performance.now(); refresh(); sendPresence();
+    (started ? $('menu-pause') : !$('single-settings').hidden ? $('single-start') : !$('coop-lobby').hidden ? $('coop-seat') : $('start-single')).focus(); lastFrame = performance.now(); refresh(); sendPresence();
   }
   $('close-modal').onclick = closeModal;
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
@@ -506,7 +513,8 @@
   }
   function newGame(coop = started && state.mode === 'coop'){
     if(online){if(online.role==='host'){online.awaitingState=true;onlineSend({type:'start'});}return;}
-    const enemyCount=started&&state.mode===(coop?'coop':'single')?state.enemyCount:Number($(coop?'coop-enemies':'single-enemies').value);
+    const selectedEnemies=document.querySelector('input[name="single-enemies"]:checked');
+    const enemyCount=started&&state.mode===(coop?'coop':'single')?state.enemyCount:Number(coop?$('coop-enemies').value:selectedEnemies?.value||1);
     enterGame(GF.createMatch({mode:coop?'coop':'single',enemyCount}));save();
   }
   function downloadSave(raw) {
@@ -529,7 +537,7 @@
     }
     if(action==='autoplay')toggleAutoplay();
     if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-攻防托管报告.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
-    if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;if(online){closeModal();if(b)onlineAction('demolish',{x:b.x,y:b.y});return;}const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast(r.dryFarms ? '已拆除，' + r.dryFarms + ' 块农田缺水，耐久持续下降' : '已拆除，返还 ' + costText(r.refund), r.dryFarms ? 'warning' : 'info');panelKey='';handleEvents();save();}refresh();}
+    if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;if(online){closeModal();if(b)onlineAction('demolish',{x:b.x,y:b.y});return;}const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast('已拆除，返还 ' + costText(r.refund));panelKey='';handleEvents();save();}refresh();}
     if(action==='cancel-demolish'){demolishTarget=null;closeModal();}
     if(action==='reset')modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
     if(action==='new')newGame();if(action==='coop-new')newGame(true);if(action==='menu')showMenu();
@@ -570,22 +578,23 @@
   // swipe that scrolls the strip (native touch or mouse drag) cannot accidentally build.
   const cardDrag={active:false,moved:false,suppress:false,x:0,y:0,scroll:0};
   $('cards').addEventListener('pointerdown',e=>{cardDrag.active=true;cardDrag.moved=false;cardDrag.suppress=false;cardDrag.x=e.clientX;cardDrag.y=e.clientY;cardDrag.scroll=$('cards').scrollLeft;});
+  $('cards').addEventListener('dragstart',e=>e.preventDefault());
   window.addEventListener('pointermove',e=>{
     if(!cardDrag.active)return;
     if(Math.abs(e.clientX-cardDrag.x)>6||Math.abs(e.clientY-cardDrag.y)>6)cardDrag.moved=true;
-    if(cardDrag.moved&&e.pointerType==='mouse'){$('cards').scrollLeft=cardDrag.scroll-(e.clientX-cardDrag.x);cardDrag.suppress=true;}
+    if(cardDrag.moved&&e.pointerType==='mouse'){e.preventDefault();window.getSelection()?.removeAllRanges();$('cards').scrollLeft=cardDrag.scroll-(e.clientX-cardDrag.x);cardDrag.suppress=true;}
   });
   window.addEventListener('pointerup',()=>{if(!cardDrag.active)return;cardDrag.active=false;if(cardDrag.moved){cardDrag.suppress=true;setTimeout(()=>cardDrag.suppress=false,0);}});
   window.addEventListener('pointercancel',()=>{if(!cardDrag.active)return;cardDrag.active=false;cardDrag.moved=true;cardDrag.suppress=true;setTimeout(()=>cardDrag.suppress=false,0);});
   window.addEventListener('keydown',e=>{
-    const overlay = !$('modal').hidden ? $('modal') : !$('coop-lobby').hidden ? $('coop-lobby') : !started ? $('start-menu') : null;
+    const overlay = !$('modal').hidden ? $('modal') : !$('single-settings').hidden ? $('single-settings') : !$('coop-lobby').hidden ? $('coop-lobby') : !started ? $('start-menu') : null;
     if(e.key==='Tab' && overlay){
-      const buttons=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')].filter(el=>!el.hidden&&el.getClientRects().length),first=buttons[0],last=buttons[buttons.length-1];
+      const buttons=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')].filter(el=>!el.hidden&&el.getClientRects().length),first=buttons[0],last=buttons[buttons.length-1];
       if(e.shiftKey && (document.activeElement===first || !overlay.contains(document.activeElement))){e.preventDefault();last?.focus();}
       else if(!e.shiftKey && (document.activeElement===last || !overlay.contains(document.activeElement))){e.preventDefault();first?.focus();}
     }
     if(e.code==='Space' && started && !e.target.closest('button,input')){e.preventDefault();if(paused)closeModal();else showMenu();}
-    if(e.key==='Escape'){if(!$('modal').hidden)closeModal();else if(!$('coop-lobby').hidden)showStartMenu();else if(started)closePanel();}
+    if(e.key==='Escape'){if(!$('modal').hidden)closeModal();else if(!$('single-settings').hidden||!$('coop-lobby').hidden)showStartMenu();else if(started)closePanel();}
   });
   document.addEventListener('visibilitychange',()=>{hiddenPause=document.hidden;if(hiddenPause)save();sendPresence();lastFrame=performance.now();});
   window.addEventListener('pagehide',()=>save());window.addEventListener('resize',resize);

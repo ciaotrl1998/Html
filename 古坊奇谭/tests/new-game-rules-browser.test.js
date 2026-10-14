@@ -46,7 +46,7 @@ const {chromium}=require('playwright');
       assert.equal(await page.locator('[data-skill]:visible').getAttribute('data-skill'),'repair');
       await page.evaluate(()=>GFArt.render(document.getElementById('map'),Gufang.state,Gufang.camera,null,{grid:true}));
       await page.screenshot({path:path.join(os.tmpdir(),`gufang-skill-${viewport.width}.png`)});
-      assert.deepEqual(errors,[]);console.log('PASS '+file+' '+viewport.width+': 150 coins / 200 materials, opening choice, single skill, exponential income, save and old-save selection');
+      assert.deepEqual(errors,[]);console.log('PASS '+file+' '+viewport.width+': zero starting resources, opening choice, single skill, exponential income, save and old-save selection');
       await context.close();
     }
   }finally{await browser.close();}

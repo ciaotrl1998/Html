@@ -365,7 +365,7 @@ async function mapClick(page,x,y){const p=await page.evaluate(([x,y])=>Gufang.sc
       page.on('pageerror',e=>errors.push(e.stack));
       await page.goto(url('dist/古坊奇谭.html'));await page.waitForFunction(()=>!!window.Gufang);await enterFromMenu(page);
       assert.equal(await page.evaluate(()=>window.startedWithoutSave),true,'Default estate starts without an old localStorage save');
-       assert.deepEqual(await page.evaluate(()=>[Gufang.state.coins,Gufang.state.materials]),[150,200],'New estate starts with 150 coins and 200 materials');
+       assert.deepEqual(await page.evaluate(()=>[Gufang.state.coins,Gufang.state.materials]),[0,0],'New estate starts with zero resources');
        assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),'thunder');
        await page.evaluate(()=>{GF.startNight(Gufang.state);Gufang.refresh();});
        assert.deepEqual(await page.locator('[data-skill]:visible').evaluateAll(els=>els.map(el=>el.dataset.skill)),['thunder']);

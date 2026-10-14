@@ -1,103 +1,85 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const G=require('../js/game.js'),A=require('../js/autoplay.js');
-function advance(s,bot,seconds){for(let i=0;i<seconds*4&&!s.over;i++){bot.tick(.25);G.step(s,.25);}}
 
-test('autoplay obeys action rules and resource costs without modifying the simulation clock',()=>{
-  const s=G.createState(42);s.coins=200;s.materials=220;G.chooseSkill(s,'thunder');const before=G.serialize(s),bot=A.create(s);
-  assert.equal(G.serialize(s),before,'Planning does not alter the town');
-  const originals={},counts={build:0,upgrade:0,skill:0};
-  for(const name of Object.keys(counts)){
+function advanceEconomy(s,bot,seconds){
+  const view=G.playerView(s,0);
+  for(let i=0;i<seconds*4&&!s.over;i++){
+    bot.tick(.25);G.stepEconomy(view,.25,false);s.elapsed+=.25;s.time=s.elapsed;
+  }
+}
+function count(view,type){return view.buildings.filter(b=>b.type===type).length;}
+
+test('autoplay uses public actions and pays normal costs',()=>{
+  const s=G.createState(42),view=G.playerView(s,0);view.coins=view.materials=1000;G.chooseSkill(view,'thunder');
+  const before=G.serialize(s),bot=A.create(view);assert.equal(G.serialize(s),before,'planning must not change the estate');
+  const originals={},calls={build:0,upgrade:0};
+  for(const name of Object.keys(calls)){
     originals[name]=G[name];
     G[name]=(...args)=>{
-      const [state,type,x,y]=args;
-      assert.equal(name==='build'?G.buildReason(state,type,x,y):name==='upgrade'?G.upgradeReason(state,type):G.skillReason(state,type),'');
-      const result=originals[name](...args);assert(result.ok);counts[name]++;return result;
+      const [state,target,x,y]=args;
+      assert.equal(name==='build'?G.buildReason(state,target,x,y):G.upgradeReason(state,target),'');
+      const result=originals[name](...args);assert(result.ok);calls[name]++;return result;
     };
   }
   try{
-    bot.tick(.1);assert.equal(s.elapsed,0);assert.equal(s.time,0);
-    assert(counts.build+counts.upgrade>0,'First action goes through a funded public action API');
-    assert(s.coins<200||s.materials<220,'First action pays its normal resource cost');
-    advance(s,bot,900);
-    assert(counts.build>10);assert(counts.upgrade>10);assert(counts.skill>0);
-    const r=bot.report();assert.equal(r.builds,counts.build);assert.equal(r.upgrades,counts.upgrade);
-    assert.equal(Object.values(r.skills).reduce((a,b)=>a+b,0),counts.skill);
-    assert(s.coins>=0&&s.materials>=0);assert(G.restore(G.serialize(s)));
-    const snapshot=G.serialize(s);s.over=true;const ended=G.serialize(s),report=bot.report();
-    bot.tick(100);assert.equal(G.serialize(s),ended);assert.deepEqual(bot.report(),report);
-    assert.notEqual(snapshot,ended);
+    advanceEconomy(s,bot,120);
+    assert(calls.build>=20);assert(calls.upgrade>=5);
+    assert.equal(bot.report().builds,calls.build);assert.equal(bot.report().upgrades,calls.upgrade);
+    assert(view.coins>=0&&view.materials>=0);assert(G.restore(G.serialize(s)));
+    assert(bot.report().actions.every(a=>typeof a.reason==='string'&&a.reason.length>0));
   }finally{Object.assign(G,originals);}
 });
 
-test('five procedural maps can be played automatically through the seventh-night victory',()=>{
-  for(const seed of [1,7,42,73193,99991]){
-    const s=G.createState(seed),bot=A.create(s);advance(s,bot,1000);
-    assert(!s.over,`seed ${seed}`);assert(s.day>=9,`seed ${seed}`);assert(s.celebrated);
-    assert(s.buildings.filter(b=>b.type==='tower').length>=1);
-    assert(s.buildings.filter(b=>b.type==='tower').length<=12,'Only reinforce threatened fronts');
-    assert(s.buildings.filter(b=>G.DEFS[b.type].cat==='economy').length>=15,'Expand income beyond one building per industry');
-    assert(s.buildings.some(b=>G.DEFS[b.type].cat==='economy'&&b.level>1));
-    assert(bot.report().skills.thunder>0);
+test('zero-resource opening establishes both resources before military spending',()=>{
+  const s=G.createState(42),view=G.playerView(s,0),bot=A.create(view);advanceEconomy(s,bot,145);
+  const builds=bot.report().actions.filter(a=>a.kind==='build'),types=builds.map(a=>a.type);
+  assert.deepEqual(types.slice(0,2),['farm','mulberry']);
+  const barracksAt=types.indexOf('barracks'),towerAt=types.indexOf('tower');
+  assert.equal(types.slice(0,barracksAt).filter(type=>type==='farm'||type==='mulberry').length,8);
+  assert(barracksAt>=8);assert(towerAt>barracksAt);
+  assert(count(view,'farm')>=4);assert(count(view,'mulberry')>=4);
+  assert(G.rates(view).coins>=5);assert(G.rates(view).materials>=4);
+});
+
+test('midgame route grows industry, main city and army across map seeds',()=>{
+  for(const seed of [1,42,99991]){
+    const s=G.createState(seed),view=G.playerView(s,0),bot=A.create(view);advanceEconomy(s,bot,360);
+    const rates=G.rates(view),upgradedEconomy=view.buildings.filter(b=>G.DEFS[b.type].income&&b.type!=='shrine'&&b.level>1);
+    assert.equal(count(view,'farm'),6,`farm seed ${seed}`);assert.equal(count(view,'mulberry'),6,`mulberry seed ${seed}`);
+    assert(count(view,'tea')>=2,`tea seed ${seed}`);assert(count(view,'quarry')>=2,`quarry seed ${seed}`);
+    assert(count(view,'mill')>=1,`mill seed ${seed}`);assert(count(view,'weaver')>=1,`weaver seed ${seed}`);
+    assert(count(view,'barracks')>=2,`barracks seed ${seed}`);assert(count(view,'tower')>=1,`tower seed ${seed}`);
+    assert(G.shrineLevel(view)>=2,`shrine seed ${seed}`);assert(upgradedEconomy.length>=8,`upgrades seed ${seed}`);
+    assert(rates.coins>=80&&rates.materials>=80,`balanced rates seed ${seed}`);
   }
 });
 
-test('opening expands repeated income buildings instead of filling eight tower slots',()=>{
-  const s=G.createState(42);s.coins=200;s.materials=220;const bot=A.create(s);advance(s,bot,G.DAY-.25);
-  assert.equal(s.phase,'day');
-  assert.equal(s.buildings.filter(b=>b.type==='tower').length,0,'No known attackers during the first day');
-  const eco=s.buildings.filter(b=>G.DEFS[b.type].cat==='economy');
-  assert(eco.length>=8);assert(eco.filter(b=>b.type==='farm').length>1);assert(eco.filter(b=>b.type==='mulberry').length>1);
-  const rates=G.rates(s);assert(rates.coins>=8);assert(rates.materials>=6);
-  assert(s.coins>=G.DEFS.tower.cost.coins&&s.materials>=G.DEFS.tower.cost.materials,'Keep an emergency tower budget for dusk');
+test('nearby attackers trigger immediate tower reinforcement',()=>{
+  const s=G.createState(7),view=G.playerView(s,0);view.coins=view.materials=1e6;
+  const bot=A.create(view);for(let i=0;i<10;i++)bot.tick(1);
+  const gate=G.estate(view).gates[0],tower=view.buildings.find(b=>b.type==='tower'&&A.coversGate(b,gate));
+  assert(tower);assert.equal(tower.level,1);
+  for(let i=0;i<3;i++)s.soldiers.push({id:s.nextId++,owner:1,x:gate.x,y:gate.y+i*.1,hp:44,maxHp:44,baseDamage:18});
+  bot.tick(1);assert(tower.level>1||count(view,'tower')>1);
 });
 
-test('one adequate tower upgrades under stronger opening pressure without adding towers',()=>{
-  const s=G.createState(42);s.coins=s.materials=1e6;G.dusk(s);
-  const bot=A.create(s);bot.tick(1);
-  assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
-  const tower=s.buildings.find(b=>b.type==='tower'),gate=G.estate(s).gates[s.direction];
-  assert(A.coversGate(tower,gate),'Build on the announced front');
-  for(let i=0;i<15;i++)bot.tick(1);
-  assert.equal(s.buildings.filter(b=>b.type==='tower').length,1,'Sufficient firepower must not trigger extra towers');
-  assert(tower.level>1,'Opening pressure upgrades the existing tower');
-  assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
-  assert(bot.report().actions.some(a=>a.kind==='build'&&G.DEFS[a.type].cat==='economy'));
-  assert(bot.report().actions.every(a=>typeof a.reason==='string'&&a.reason.length>0));
-});
-
-test('actual pressure triggers upgrades and repairs instead of ignoring defense',()=>{
-  const s=G.createState(42);s.coins=s.materials=1e6;G.chooseSkill(s,'repair');
-  const shrine=s.buildings.find(b=>b.type==='shrine');shrine.level=15;shrine.hp=G.maxHP(shrine);
-  G.dusk(s);const bot=A.create(s);bot.tick(1);
-  const tower=s.buildings.find(b=>b.type==='tower'),gate=G.estate(s).gates[s.direction];
-  G.startNight(s);for(let i=0;i<10&&!s.enemies.length;i++)G.step(s,.25);
-  const e=s.enemies[0];e.hp=e.maxHp=1000;e.x=gate.x;e.y=gate.y;
-  s.cooldowns.thunder=s.cooldowns.repel=99;
-  const gateBuilding=s.buildings.find(b=>b.type==='gate'&&b.direction===gate.direction);gateBuilding.hp=G.maxHP(gateBuilding)*.4;
-  bot.tick(1);
-  assert.equal(bot.report().skills.repair,1);assert(tower.level>1,'Upgrade the existing tower under pressure');
-  assert.equal(s.buildings.filter(b=>b.type==='tower').length,1);
-});
-
-test('autoplay can take over existing, legacy, crowded and resource-poor games without deleting player buildings',()=>{
-  for(const seed of [null,42]){
-    const s=G.createState(seed),center=G.worldCenter(s);s.coins=200;s.materials=220;
-    const placed=G.grantBuilding(s,'tower',center+1,center);
-    const bot=A.create(s);advance(s,bot,60);
-    assert(s.buildings.some(b=>b.id===placed.id));assert(bot.report().builds>0);
-    assert(s.buildings.some(b=>G.DEFS[b.type].cat==='economy'));assert(G.restore(G.serialize(s)));
+test('game controller runs the same balanced route for computer players',()=>{
+  const s=G.createState(42);s.players[0].controller='computer';s.players[0].selectedSkill='thunder';
+  for(let i=0;i<960&&!s.over;i++)G.step(s,.25);
+  assert.equal(s.over,false);
+  for(const player of s.players){
+    const view=G.playerView(s,player.id);
+    assert.equal(player.eliminated,false);assert(count(view,'farm')>=5);assert(count(view,'mulberry')>=5);
+    assert(count(view,'barracks')>=2);assert(count(view,'tower')>=1);
+    assert(G.rates(view).coins>=15&&G.rates(view).materials>=15);
   }
-  const crowded=G.createState(42);crowded.coins=crowded.materials=0;
-  for(let y=0;y<25;y++)for(let x=0;x<25;x++)G.grantBuilding(crowded,'tower',x,y);
-  const bot=A.create(crowded),before=G.serialize(crowded);bot.tick(1);
-  assert.equal(G.serialize(crowded),before);assert.equal(bot.report().builds,0);
 });
 
-test('disabled ticking and exported report copies cannot change game or controller state',()=>{
-  const s=G.createState(7);s.coins=200;s.materials=220;const bot=A.create(s),before=G.serialize(s);
+test('invalid ticking and exported report copies cannot mutate controller state',()=>{
+  const s=G.createState(7),view=G.playerView(s,0),bot=A.create(view),before=G.serialize(s);
   for(const dt of [0,-1,NaN,Infinity])bot.tick(dt);
   assert.equal(G.serialize(s),before);assert.equal(bot.report().decisions,0);
-  bot.tick(1);const report=bot.report();report.actions[0].type='changed';report.skills.repair=99;
-  assert.notEqual(bot.report().actions[0].type,'changed');assert.equal(bot.report().skills.repair,0);
+  view.coins=view.materials=1000;bot.tick(1);const report=bot.report();report.actions[0].type='changed';report.skills.thunder=99;
+  assert.notEqual(bot.report().actions[0].type,'changed');assert.equal(bot.report().skills.thunder,0);
 });

@@ -61,8 +61,8 @@ test('same-level endpoints beat densely supplied middles at every level, with eq
 
 test('same-level ultimates with one of each endpoint beat fully supplied highest-income endpoints at every level', () => {
   for (const [ultimate,start,middle,end,otherStart,otherMiddle,otherEnd] of [
-    ['guild','tea','inn','bank','farm','mill','wine'],
-    ['port','quarry','kiln','trade','mulberry','weaver','tailor']
+    ['guild','tea','inn','bank','mulberry','weaver','tailor'],
+    ['port','quarry','kiln','trade','farm','mill','wine']
   ]) {
     assert.equal(G.DEFS[end].income,48);
     assert.equal(G.DEFS[end].resource,G.DEFS[ultimate].resource);

@@ -30,20 +30,21 @@
   const COIN_CHAIN_COSTS = [{ coins: 0, materials: 50 }, { coins: 90, materials: 160 }, { coins: 430, materials: 750 }];
   const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
   chains.forEach((a, ci) => { for (let i = 0; i < 3; i++) {
-    const baseCost = (ci < 2 ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
+    const coinChain = ci === 0 || ci === 2, baseCost = (coinChain ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
     const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
     def(a[i], a[i + 3], 'economy', { coins: Math.ceil(baseCost.coins * costFactor), materials: Math.ceil(baseCost.materials * costFactor) }, [180, 250, 340][i], {
-    income: (high ? [2, 8, 48] : [1, 5, 30])[i], resource: ci < 2 ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
+    income: (high ? [2, 8, 48] : [1, 5, 30])[i], resource: coinChain ? 'coins' : 'materials', terrain: i === 0 ? a[6] : null, prev: i ? a[i - 1] : null,
     upgradeWeight: i === 0 ? (high ? 7 / 6 : 11 / 15) : 1,
-    chain: a[7], color: a[8], end: i === 2, tier: i, radius: 1, limit: i === 0 ? [6, 8, 8, 6][ci] : i === 1 ? 3 : 1,
+    ...(i === 0 && (ci === 1 || ci === 2) ? { buildCostScale: [.1, 1.2] } : {}),
+    chain: a[7], color: a[8], end: i === 2, tier: i, radius: 1, limit: i === 0 ? [4, 6, 6, 4][ci] : i === 1 ? 2 : 1,
     names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
   }); } });
-  def('guild', '汇财会馆', 'economy', { coins: 18000, materials: 24000 }, 600, { income: 240, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'wine'], radius: 1, limit: 1 });
-  def('port', '百工院', 'economy', { coins: 24000, materials: 15000 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['tailor', 'trade'], radius: 1, limit: 1 });
+  def('guild', '汇财会馆', 'economy', { coins: 18000, materials: 24000 }, 600, { income: 240, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'tailor'], radius: 1, limit: 1 });
+  def('port', '百工院', 'economy', { coins: 24000, materials: 15000 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['wine', 'trade'], radius: 1, limit: 1 });
   def('tower', '箭塔', 'defense', { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
   def('rock', '擂石台', 'defense', { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: '范围轰击 · 仅可由造化匣获得' });
-  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '持续出兵 · 自动出征攻城' });
-  def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { fortuneOnly: true, desc: '井旁平地可建农田 · 相邻农田收入 +20%' });
+  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '持续出兵 · 一级 5s/1兵' });
+  def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { farmAura: .2, fortuneOnly: true, desc: '全庄农田收入 +20% · 仅可由造化匣获得' });
   def('stage', '戏台', 'support', { coins: 300, materials: 220 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
   def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
   def('earth', '土地庙', 'temple', { coins: 180, materials: 130 }, 260, { guard: .2, range: 3, fortuneOnly: true, desc: '三格内建筑受到伤害 -20% · 仅可由造化匣获得' });
@@ -51,7 +52,7 @@
   def('tao', '道观', 'temple', { coins: 600, materials: 440 }, 380, { powerAura: .15, fortuneOnly: true, desc: '全镇防御建筑攻击 +15% · 仅可由造化匣获得' });
   def('fortune', '造化匣', 'mystery', { coins: 90, materials: 60 }, 1, { limit: 10, desc: '变化为随机建筑' });
   def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: '庄园出入口 · 可升级与修复' });
-  const SKILLS = { repel: { name: '驱鬼符', cooldown: 18 }, repair: { name: '回春诀', cooldown: 24 }, thunder: { name: '九霄天雷', cooldown: 22 } };
+  const SKILLS = { repel: { name: '驱鬼符', cooldown: 18 }, repair: { name: '回春诀', cooldown: 24 }, thunder: { name: '九霄天雷', cooldown: 120 } };
   const MISSIONS = [
     { title: '一盏茶，起一座坊', desc: '在平地建造一间茶肆', reward: 60, test: s => s.buildings.some(b => b.type === 'tea') },
     { title: '客来茶香，产业相连', desc: '紧挨茶肆建造客栈', reward: 90, test: s => s.buildings.some(b => b.type === 'inn') },
@@ -61,7 +62,7 @@
     { title: '四方会聚', desc: '建成一座汇财会馆', reward: 300, test: s => s.buildings.some(b => b.type === 'guild') },
   ];
 
-  const VERSION=8, UNIT_CAP=120;
+  const VERSION=9, UNIT_CAP=120, SOLDIER_SPEED=.8;
   const world=s=>s._world||s;
   const inside=(x,y,s)=>Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&x<worldWidth(s)&&y<worldHeight(s);
   const dist8=(ax,ay,bx,by)=>Math.max(Math.abs(ax-bx),Math.abs(ay-by));
@@ -108,7 +109,7 @@
       seed:mapSeed,nextId:1,elapsed:0,time:0,day:1,phase:'day',revision:0,over:false,result:null,kills:0,
       players:[],buildings:[],soldiers:[],projectiles:[],effects:[],events:[]};
     for(let id=0;id<blue+enemyCount;id++)s.players.push({id,team:id<blue?0:1,controller:id===0?'human':'computer',eliminated:false,
-      coins:150,materials:200,fortuneBuilt:0,gateLevel:1,cooldowns:{repel:0,repair:0,thunder:0},selectedSkill:id===0?null:'thunder',mission:0,kills:0,recruitCursor:0,
+      coins:0,materials:0,fortuneBuilt:0,gateLevel:1,cooldowns:{repel:0,repair:0,thunder:0},selectedSkill:id===0?null:'thunder',mission:0,kills:0,recruitCursor:0,
       ai:{clock:0,armyTurn:true,activeSeconds:0,decisions:0,builds:0,upgrades:0,casts:0,lastAction:'准备经营'}});
     for(const e of map(s).land.estates){addBuilding(s,'shrine',e.center.x,e.center.y,1,{owner:e.owner});for(const g of e.gates)addBuilding(s,'gate',g.x,g.y,1,{owner:e.owner,direction:g.direction});}
     return s;
@@ -118,7 +119,7 @@
   const createCoopState=(mapSeed)=>createMatch({mode:'coop',mapSeed});
   const at = (s,x,y) => {if(!inside(x,y,s))return undefined;const b=buildingIndex(s).tiles.get(y*worldWidth(s)+x);return b&&(s.actorId===undefined||b.owner===s.actorId)?b:undefined;};
   const adjacent = (s,x,y) => NEIGHBORS8.map(([dx,dy])=>at(s,x+dx,y+dy)).filter(Boolean);
-  const dryFarm = (s, b) => b.type === 'farm' && terrain(b.x, b.y, s) !== 'shore' && !adjacent(s, b.x, b.y).some(n => n.type === 'well');
+  const dryFarm = () => false;
   const isPrereq = (d, nd) => d.chain ? nd.id === d.prev : !!d.required?.includes(nd.id);
   const RETIRED_TYPES = new Set(['home', 'market', 'fence']);
   const factor = b => Math.pow(GROWTH, b.level - 1);
@@ -134,10 +135,12 @@
     return unlocked;
   };
   const maxHP = b => Math.round(DEFS[b.type].hp * hpFactor(b));
-  const soldierRate = b => 1 + .25 * (b.level - 1);
-  const soldierHP = b => Math.round(120 * hpFactor(b));
-  const soldierDamage = (s,b) => 18 * factor(b) * defenseBoost(s);
-  const soldierPower = (s,b) => Math.round(Math.sqrt(soldierHP(b)*soldierDamage(s,b)));
+  const soldierRate = b => 1 / 5 + (b.level - 1) / 24;
+  function soldierBoost(s){return 1+.1*Math.max(0,shrineLevel(s)-1);}
+  function soldierHP(s,b){if(b===undefined){b=s;return Math.round(44*hpFactor(b));}return Math.round(44*hpFactor(b)*soldierBoost(s));}
+  const soldierDamage = (s,b) => 18 * factor(b) * defenseBoost(s) * soldierBoost(s);
+  const soldierPower = (s,b) => Math.round(Math.sqrt(soldierHP(s,b)*soldierDamage(s,b)));
+  function syncSoldierHealth(s){for(const u of s.soldiers){const nextMax=soldierHP(playerView(s,u.owner),u);if(u.maxHp!==nextMax){u.hp=Math.min(nextMax,nextMax*u.hp/u.maxHp);u.maxHp=nextMax;}}}
   const visualLevel = level => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = b => DEFS[b.type].names?.[visualLevel(b.level) - 1] || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? '兴盛' : '鼎盛') + DEFS[b.type].name);
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
@@ -160,7 +163,12 @@
   function pay(s, cost) { s.coins -= cost.coins; s.materials -= cost.materials; }
   function buildCost(s, type) {
     s = economicView(s);
-    if (type !== 'fortune') return DEFS[type]?.cost || { coins: 0, materials: 0 };
+    if (type !== 'fortune') {
+      const d=DEFS[type];if(!d)return {coins:0,materials:0};let factor=1;
+      if(d.buildCostScale){const count=Math.min(d.limit-1,s.buildings.filter(b=>b.type===type).length),[start,end]=d.buildCostScale;factor=start+(end-start)*count/(d.limit-1);}
+      const scaled=value=>value?Math.ceil(value*factor-1e-9):0;
+      return {coins:scaled(d.cost.coins),materials:scaled(d.cost.materials)};
+    }
     const multiple = Math.pow(1.55, s.fortuneBuilt || 0);
     return { coins: Math.ceil(DEFS.fortune.cost.coins * multiple), materials: Math.ceil(DEFS.fortune.cost.materials * multiple) };
   }
@@ -172,7 +180,7 @@
       if (d.id === 'fortune' || d.unique || d.fixed || d.income || (d.limit && s.buildings.filter(b => b.type === d.id).length >= d.limit)) return false;
       if (d.cat === 'economy' && plot === 'forest' && d.id !== 'mulberry') return false;
       if (d.cat === 'economy' && plot === 'mountain' && d.id !== 'quarry') return false;
-      if (d.id === 'farm' && plot !== 'shore' && !(plot === 'plain' && adjacent(s, x, y).some(b => b.type === 'well'))) return false;
+      if (d.id === 'farm' && plot !== 'shore') return false;
       if (d.id !== 'farm' && d.terrain && plot !== d.terrain) return false;
       return true;
     });
@@ -196,7 +204,7 @@
     if (d.cat === 'economy' && plot === 'forest' && type !== 'mulberry') return '林地仅可建桑园';
     if (d.cat === 'economy' && plot === 'mountain' && type !== 'quarry') return '山地仅可建石场';
     if (type === 'farm') {
-      if (plot !== 'shore' && !(plot === 'plain' && adjacent(s, x, y).some(b => b.type === 'well'))) return '需水岸或水井旁平地';
+      if (plot !== 'shore') return '需水岸';
     } else if (d.terrain && plot !== d.terrain) return '需' + TERRAIN[d.terrain];
     if (d.prev && !adjacent(s, x, y).some(b => b.type === d.prev)) return '需紧挨' + DEFS[d.prev].name;
     if (d.required) {
@@ -224,7 +232,7 @@
       s.fortuneBuilt++; const b = grantBuilding(s, rolled.id, x, y, level, cost);
       event(s, '造化匣化为' + rolled.name + ' Lv' + level, 'reward'); missions(s); return { ok: true, building: b, rolled: rolled.id };
     }
-    const b = addBuilding(s, type, x, y); missions(s); return { ok: true, building: b };
+    const b = addBuilding(s, type, x, y, 1, { originCost: cost }); missions(s); return { ok: true, building: b };
   }
   function upgradeCost(b) {
     const d = DEFS[b.type], base = d.upgradeBase || d.cost;
@@ -320,10 +328,9 @@
   function demolish(s, b) {
     s = economicView(s);
     const reason = demolishReason(s, b); if (reason) return { ok: false, reason };
-    const cost = b.originCost || DEFS[b.type].cost, refund = { coins: Math.floor(cost.coins * .4), materials: Math.floor(cost.materials * .4) };
+    const cost = b.originCost || buildCost(s, b.type), refund = { coins: Math.floor(cost.coins * .4), materials: Math.floor(cost.materials * .4) };
     s.coins += refund.coins; s.materials += refund.materials; s.buildings = s.buildings.filter(n => n !== b); s.revision++;
-    const dryFarms = b.type === 'well' ? s.buildings.filter(n => n.type === 'farm' && dist8(n.x, n.y, b.x, b.y) === 1 && dryFarm(s, n)).length : 0;
-    return { ok: true, refund, dryFarms };
+    return { ok: true, refund, dryFarms: 0 };
   }
   function income(s, b, buildings) {
     if (s.actorId === undefined && s.players) s = playerView(s, b.owner ?? 0);
@@ -332,7 +339,7 @@
     for (const n of buildings || s.buildings) {
       const nd = DEFS[n.type], dist = dist8(n.x, n.y, b.x, b.y);
       if (nd.aura && (!nd.auraResource || nd.auraResource === d.resource)) bonus += nd.aura * auraFactor(n);
-      if (n.type === 'well' && dist === 1 && b.type === 'farm') bonus += .2 * auraFactor(n);
+      if (n.type === 'well' && b.type === 'farm') bonus += DEFS.well.farmAura * auraFactor(n);
       if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += .1 * auraFactor(n);
     }
     return d.income * incomeFactor(b) * (1 + Math.min(2, bonus));
@@ -442,7 +449,8 @@
         const i=(p.recruitCursor+n)%barracks.length,b=barracks[i];
         if(b.production<1-1e-8)continue;
         b.production=Math.max(0,b.production-1);counts[p.id]++;
-        s.soldiers.push({id:s.nextId++,owner:p.id,barracksId:b.id,x:b.x,y:b.y,level:b.level,hp:soldierHP(b),maxHp:soldierHP(b),baseDamage:18*factor(b),attack:0,
+        const maxHp=soldierHP(playerView(s,p.id),b);
+        s.soldiers.push({id:s.nextId++,owner:p.id,barracksId:b.id,x:b.x,y:b.y,level:b.level,hp:maxHp,maxHp,baseDamage:18*factor(b),attack:0,
           targetOwner:null,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null});
         p.nextRecruit=(i+1)%barracks.length;
       }
@@ -505,11 +513,11 @@
     if(!goal)return;
     // First return to the current tile centre when a route changes mid-edge.
     if(!clearSegment(s,u,goal.x,goal.y)){const home={x:Math.round(u.x),y:Math.round(u.y)};if(clearSegment(s,u,home.x,home.y))goal=home;else return;}
-    const distance=Math.hypot(goal.x-u.x,goal.y-u.y),stride=Math.min(distance,2.2*(u.slowed>0?u.slowFactor:1)*dt);
+    const distance=Math.hypot(goal.x-u.x,goal.y-u.y),stride=Math.min(distance,SOLDIER_SPEED*(u.slowed>0?u.slowFactor:1)*dt);
     if(distance>.0001){u.x+=(goal.x-u.x)/distance*stride;u.y+=(goal.y-u.y)/distance*stride;}
   }
   function combat(s,dt){
-    const grid=spatial(s),unitHits=[],buildingHits=[],boost=s.players.map(p=>defenseBoost(playerView(s,p.id)));
+    const grid=spatial(s),unitHits=[],buildingHits=[],boost=s.players.map(p=>defenseBoost(playerView(s,p.id))),armyBoost=s.players.map((p,i)=>boost[i]*soldierBoost(playerView(s,p.id)));
     for(const p of s.projectiles){p.life-=dt;const target=grid.byId.get(p.targetId);if(target){p.tx=target.x;p.ty=target.y;if(p.life<=0&&hostile(s,p.owner,target.owner))unitHits.push([target,p.damage,p.owner]);}}
     s.projectiles=s.projectiles.filter(p=>p.life>0&&grid.byId.has(p.targetId)&&!s.players[p.owner].eliminated);
     for(const b of s.buildings){
@@ -536,7 +544,7 @@
       u.targetId=target?.id??null;
       if(target){
         u.waypoint=null;
-        if(Math.hypot(target.x-u.x,target.y-u.y)<=.75&&clearSegment(s,u,target.x,target.y)){if(u.attack===0){unitHits.push([target,u.baseDamage*boost[u.owner],u.owner]);u.attack=1;}}
+        if(Math.hypot(target.x-u.x,target.y-u.y)<=.75&&clearSegment(s,u,target.x,target.y)){if(u.attack===0){unitHits.push([target,u.baseDamage*armyBoost[u.owner],u.owner]);u.attack=1;}}
         else move(s,u,chase,dt);
         continue;
       }
@@ -548,8 +556,8 @@
       if(!goal||Math.hypot(goal.x-u.x,goal.y-u.y)<.001){const next=f.next[tile];goal={x:next%s.worldSize,y:Math.floor(next/s.worldSize)};u.waypoint=goal;}
       const b=at(s,goal.x,goal.y);
       if(b?.hp>0&&hostile(s,u.owner,b.owner)){
-        if(Math.hypot(b.x-u.x,b.y-u.y)<=1.05){if(u.attack===0){buildingHits.push([b,u.baseDamage*boost[u.owner]]);u.attack=1;}}else{
-          const dist=Math.hypot(goal.x-u.x,goal.y-u.y),step=Math.min(2.2*dt,Math.max(0,dist-1));
+        if(Math.hypot(b.x-u.x,b.y-u.y)<=1.05){if(u.attack===0){buildingHits.push([b,u.baseDamage*armyBoost[u.owner]]);u.attack=1;}}else{
+          const dist=Math.hypot(goal.x-u.x,goal.y-u.y),step=Math.min(SOLDIER_SPEED*dt,Math.max(0,dist-1));
           if(step>0)move(s,u,{x:u.x+(goal.x-u.x)/dist*step,y:u.y+(goal.y-u.y)/dist*step},dt);
         }
       }else move(s,u,goal,dt);
@@ -590,7 +598,7 @@
       if(b.type==='gate'&&b.hp===0&&s.soldiers.some(u=>u.hp>0&&hostile(s,b.owner,u.owner)&&Math.hypot(u.x-b.x,u.y-b.y)<=3))continue;
       healBuilding(s,b,maxHP(b)*.02*dt);
     }
-    recruit(s,dt);combat(s,dt);missions(s);
+    syncSoldierHealth(s);recruit(s,dt);combat(s,dt);missions(s);
   }
   function serialize(s){s=world(s);return JSON.stringify({...s,events:[],effects:[]});}
   function restore(raw){
@@ -618,6 +626,7 @@
       if(s.players.some(p=>shrine[p.id]!==Number(!p.eliminated)))return null;
       for(const u of s.soldiers){
         if(!identity(u)||s.players[u.owner].eliminated||++count[u.owner]>UNIT_CAP||!finite(u.x)||!finite(u.y)||!walkable(s,Math.round(u.x),Math.round(u.y))||!Number.isInteger(u.level)||u.level<1||u.level>9||!finite(u.hp)||u.hp<=0||!finite(u.maxHp)||u.hp>u.maxHp||!finite(u.baseDamage)||!['attack','repelled','slowed','slowFactor'].every(k=>finite(u[k]))||!Number.isInteger(u.barracksId))return null;
+        const nextMax=soldierHP(playerView(s,u.owner),u);if(u.maxHp!==nextMax){u.hp=Math.min(nextMax,nextMax*u.hp/u.maxHp);u.maxHp=nextMax;}
         if(u.targetOwner!==null&&(!owner(u.targetOwner)||!hostile(s,u.owner,u.targetOwner)))return null;
         if(u.targetId!==null&&(!Number.isInteger(u.targetId)||u.targetId<1))return null;
         if(u.waypoint!==null&&(!u.waypoint||!inside(u.waypoint.x,u.waypoint.y,s)||!walkable(s,u.waypoint.x,u.waypoint.y)))return null;
@@ -628,6 +637,6 @@
       s.phase='day';s.day=1;s.time=s.elapsed;s.events=[];s.effects=[];return s;
     }catch{return null;}
   }
-  return {VERSION,UNIT_CAP,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,
-    SIZE,CENTER,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierRate,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
+  return {VERSION,UNIT_CAP,SOLDIER_SPEED,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,
+    SIZE,CENTER,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierRate,soldierBoost,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
 });

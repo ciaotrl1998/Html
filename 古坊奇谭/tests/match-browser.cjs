@@ -15,7 +15,7 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
    await c.addInitScript(()=>{localStorage.setItem('gufang-qitan-save-v1','old');localStorage.setItem('gufang-qitan-save-v1-backup','backup');});
    const p=await c.newPage();await p.goto(address);
    assert.deepEqual(await p.evaluate(()=>[localStorage.getItem('gufang-qitan-save-v1'),localStorage.getItem('gufang-qitan-save-v1-backup')]),[null,null]);
-   await p.locator('#single-enemies').selectOption('4');await p.locator('#start-single').click();await p.locator('[data-choice="thunder"]').click();
+   await p.locator('#start-single').click();await p.locator('input[name="single-enemies"][value="4"]').check();await p.locator('#single-start').click();await p.locator('[data-choice="thunder"]').click();
    assert.equal(await p.evaluate(()=>Gufang.state.enemyCount),4);
    const skill=p.locator('[data-skill="thunder"]'),before=await skill.boundingBox();assert(before);
    const plot=await p.evaluate(()=>{const s=Gufang.state,v=GF.playerView(s),h=GF.estate(v).center;const k=[...GF.estate(v).cells].map(k=>({x:k%s.worldSize,y:Math.floor(k/s.worldSize)})).filter(p=>!GF.buildReason(v,'tea',p.x,p.y)).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];Gufang.select(k.x,k.y);return k;});

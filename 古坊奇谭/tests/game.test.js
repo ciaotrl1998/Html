@@ -274,14 +274,14 @@ test('same building may stand directly next to another of its type',()=>{
   build(s,'mulberry',11,3);assert.equal(G.build(s,'mulberry',12,4).ok,true);
 });
 test('industry building limits shrink by tier and reject excess construction',()=>{
-  assert.deepEqual([G.DEFS.farm.limit,G.DEFS.mulberry.limit,G.DEFS.tea.limit,G.DEFS.quarry.limit],[8,8,6,6]);
-  for(const type of ['inn','mill','weaver','kiln'])assert.equal(G.DEFS[type].limit,3);
+  assert.deepEqual([G.DEFS.farm.limit,G.DEFS.mulberry.limit,G.DEFS.tea.limit,G.DEFS.quarry.limit],[6,6,4,4]);
+  for(const type of ['inn','mill','weaver','kiln'])assert.equal(G.DEFS[type].limit,2);
   for(const type of ['bank','wine','tailor','trade'])assert.equal(G.DEFS[type].limit,1);
   assert.equal(G.DEFS.guild.limit,1);assert.equal(G.DEFS.port.limit,1);
   const s=rich();let built=0;
   const size=G.worldSize(s);
   for(let y=0;y<size&&built<G.DEFS.farm.limit;y++)for(let x=0;x<size&&built<G.DEFS.farm.limit;x++)if(!G.buildReason(s,'farm',x,y)){build(s,'farm',x,y);built++;}
-  assert.equal(built,8);assert.equal(G.buildReason(s,'farm',0,0),'已达上限（8座）');
+  assert.equal(built,6);assert.equal(G.buildReason(s,'farm',0,0),'已达上限（6座）');
 });
 test('the level-15 shrine gates all nine ordinary building levels',()=>{
   const s=rich();s.coins=s.materials=1e9;const tea=build(s,'tea',7,8),shrine=s.buildings[0];
@@ -472,15 +472,15 @@ test('two-resource chains have the intended costs, production and formula upgrad
   assert.equal(G.MATERIAL_COST_FACTOR,1.3);
   assert.deepEqual(G.DEFS.barracks.cost,{coins:240,materials:234});
   const fresh=G.createState(null);
-  assert.deepEqual({coins:fresh.coins,materials:fresh.materials,fortuneBuilt:fresh.fortuneBuilt},{coins:150,materials:200,fortuneBuilt:0});
+  assert.deepEqual({coins:fresh.coins,materials:fresh.materials,fortuneBuilt:fresh.fortuneBuilt},{coins:0,materials:0,fortuneBuilt:0});
   assert.equal('prosperity' in fresh,false);
   for(const d of Object.values(G.DEFS)){assert.equal('prosperity' in d,false);assert.equal('unlock' in d,false);}
-  for(const type of ['tea','inn','bank','farm','mill','wine']) assert.equal(G.DEFS[type].resource,'coins');
-  for(const type of ['mulberry','weaver','tailor','quarry','kiln','trade']) assert.equal(G.DEFS[type].resource,'materials');
+  for(const type of ['tea','inn','bank','mulberry','weaver','tailor']) assert.equal(G.DEFS[type].resource,'coins');
+  for(const type of ['farm','mill','wine','quarry','kiln','trade']) assert.equal(G.DEFS[type].resource,'materials');
   for(const [types,incomes,costs] of [
      [['tea','inn','bank'],[2,8,48],[[0,98],[135,312],[1290,2925]]],
-     [['farm','mill','wine'],[1,5,30],[[0,65],[90,208],[860,1950]]],
-     [['mulberry','weaver','tailor'],[1,5,30],[[75,0],[190,65],[1840,780]]],
+     [['farm','mill','wine'],[1,5,30],[[75,0],[190,65],[1840,780]]],
+     [['mulberry','weaver','tailor'],[1,5,30],[[0,65],[90,208],[860,1950]]],
      [['quarry','kiln','trade'],[2,8,48],[[113,0],[285,98],[2760,1170]]],
      [['guild'],[240],[[18000,31200]]],
      [['port'],[300],[[24000,19500]]]
@@ -488,18 +488,16 @@ test('two-resource chains have the intended costs, production and formula upgrad
     assert.equal(G.DEFS[type].income,incomes[i],type);
     assert.deepEqual(G.DEFS[type].cost,{coins:costs[i][0],materials:costs[i][1]},type);
   }
-  for(const type of ['tea','farm']){
+  for(const type of ['tea','mulberry']){
     const d=G.DEFS[type];assert.equal(d.cost.coins,0);assert(d.cost.materials>0);
     for(const level of [1,2]){const cost=G.upgradeCost({type,level});assert.equal(cost.coins,0);assert(cost.materials>d.cost.materials);}
   }
-  for(const type of ['mulberry','quarry']){
+  for(const type of ['farm','quarry']){
     const d=G.DEFS[type];assert(d.cost.coins>0);assert.equal(d.cost.materials,0);
     for(const level of [1,2]){const cost=G.upgradeCost({type,level});assert(cost.coins>d.cost.coins);assert.equal(cost.materials,0);}
   }
-   for(const group of [['inn','bank'],['mill','wine'],['guild']])for(const type of group){const c=G.DEFS[type].cost;assert(c.materials>c.coins);assert(c.coins>0);}
-   for(const group of [['weaver','tailor'],['kiln','trade'],['port']])for(const type of group){const c=G.DEFS[type].cost;assert(c.coins>c.materials);assert(c.materials>0);}
-  assert(G.DEFS.tailor.cost.coins>G.DEFS.weaver.cost.coins);
-  assert(G.DEFS.tailor.cost.materials>G.DEFS.weaver.cost.materials);
+   for(const group of [['inn','bank'],['weaver','tailor'],['guild']])for(const type of group){const c=G.DEFS[type].cost;assert(c.materials>c.coins);assert(c.coins>0);}
+   for(const group of [['mill','wine'],['kiln','trade'],['port']])for(const type of group){const c=G.DEFS[type].cost;assert(c.coins>c.materials);assert(c.materials>0);}
    for(const type of ['tea','inn','bank','farm','mill','wine','mulberry','weaver','tailor','quarry','kiln','trade','guild','port']){
     const d=G.DEFS[type], tier=d.tier??3;
     const ownShare=[0,.2,.3,.4][tier],opposite=d.resource==='coins'?'materials':'coins';
@@ -526,7 +524,7 @@ test('default estates can immediately fund tea or towers on legal plots',()=>{
       assert.deepEqual([opening.coins,opening.materials],[150-cost.coins+reward,200-cost.materials]);
     }
     assert.equal(s.coins,150);assert.equal(s.materials,200);
-    const loaded=G.restore(G.serialize(s));assert(loaded);assert.deepEqual([loaded.coins,loaded.materials],[150,200]);
+    const loaded=G.restore(G.serialize(s));assert(loaded);assert.deepEqual([loaded.coins,loaded.materials],[0,0]);
   }
 });
 test('construction and upgrading check and deduct each resource atomically',()=>{

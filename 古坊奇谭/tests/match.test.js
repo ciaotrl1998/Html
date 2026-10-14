@@ -15,7 +15,7 @@ test('all layouts, rotations and seeded terrain are connected and have the speci
   assert.deepEqual([s.worldSize,s.worldHeight],rotation%2?[...expected].reverse():expected);
   assert.equal(s.players.length,blue+count);const land=G.estate(s),own=new Set();
   for(const p of s.players){
-   const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[150,200]);assert.deepEqual(G.rates(view),{coins:1,materials:0});
+   const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[0,0]);assert.deepEqual(G.rates(view),{coins:1,materials:0});
    for(const k of e.cells){assert(!own.has(k),'interiors do not overlap');own.add(k);}
    for(const type of ['forest','mountain','plain'])assert([...e.cells].some(k=>G.terrain(k%s.worldSize,Math.floor(k/s.worldSize),s)===type),type);
    for(const g of e.gates){assert(!G.isWall(s,g.x,g.y));assert(G.findPath(s,e.center,g));}
@@ -27,19 +27,19 @@ test('all layouts, rotations and seeded terrain are connected and have the speci
  }
 });
 test('barracks rate, fractional production and birth stats survive upgrade, removal and saves',()=>{
- const s=match(),b=add(s,0),p=G.playerView(s,0);advance(s,3);assert.equal(s.soldiers.length,3);assert.equal(G.soldierRate({level:9}),3);
+ const s=match(),b=add(s,0),p=G.playerView(s,0);advance(s,5);assert.equal(s.soldiers.length,1);assert.equal(G.soldierRate({level:9}),8/15);
  const old=s.soldiers[0],hp=old.maxHp,damage=old.baseDamage;
- shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b).ok);advance(s,4);assert.equal(s.soldiers.length,8);
+ shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b).ok);advance(s,9);assert.equal(s.soldiers.length,3);
  assert.equal(old.maxHp,hp);assert.equal(old.baseDamage,damage);assert(s.soldiers.some(u=>u.level===2));
- assert(G.demolish(p,b).ok);assert.equal(s.soldiers.length,8);advance(s,.1);assert.equal(s.soldiers.length,8);
+ assert(G.demolish(p,b).ok);assert.equal(s.soldiers.length,3);advance(s,.1);assert.equal(s.soldiers.length,3);
  assert(G.restore(G.serialize(s)));
 });
 test('population cap is per estate, fair among barracks and never accumulates backlog',()=>{
  const s=match(),a=add(s,0),b=add(s,0),home=G.estate(G.playerView(s,0)).center;
  for(let i=0;i<119;i++)unit(s,0,home.x,home.y);
- advance(s,1);assert.equal(s.soldiers.length,120);assert.equal(s.soldiers.at(-1).barracksId,a.id);
+ advance(s,5);assert.equal(s.soldiers.length,120);assert.equal(s.soldiers.at(-1).barracksId,a.id);
  advance(s,3);assert.equal(a.production,0);assert.equal(b.production,0);
- s.soldiers.shift();advance(s,.5);assert.equal(s.soldiers.length,119);advance(s,.5);assert.equal(s.soldiers.length,120);assert.equal(s.soldiers.at(-1).barracksId,b.id);
+ s.soldiers.shift();advance(s,2.5);assert.equal(s.soldiers.length,119);advance(s,2.5);assert.equal(s.soldiers.length,120);assert.equal(s.soldiers.at(-1).barracksId,b.id);
 });
 test('soldiers leave by doors, destroy hostile gates and eventually attack the main city',()=>{
  const s=match();for(const b of s.buildings)if(b.owner===1)b.hp=1;

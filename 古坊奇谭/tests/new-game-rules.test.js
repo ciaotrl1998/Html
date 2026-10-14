@@ -4,16 +4,16 @@ const assert = require('node:assert/strict');
 const G = require('../js/game.js');
 const advance = (s, seconds) => { for (let i = 0; i < seconds * 10; i++) G.step(s, .1); };
 
-test('all new game modes start with 150 coins, 200 materials and no selected skill', () => {
+test('all new game modes start with zero resources and no selected skill', () => {
   for (const s of [G.createState(), G.createState(null), G.createState(42, 1), G.createState(42), G.createCoopState(42, 'horizontal'), G.createCoopState(42, 'vertical')]) {
     const players = s.mode === 'coop' ? [G.playerView(s), G.playerView(s, 1)] : [s];
     for (const p of players) {
-      assert.deepEqual([p.coins, p.materials, p.selectedSkill], [150, 200, null]);
+      assert.deepEqual([p.coins, p.materials, p.selectedSkill], [0, 0, null]);
       assert.deepEqual(p.cooldowns, {repel:0, repair:0, thunder:0});
       assert.deepEqual(G.rates(p), {coins:1, materials:0});
     }
     advance(s, 1);
-    for (const p of players) assert.deepEqual([p.coins, p.materials], [151, 200]);
+    for (const p of players) assert.deepEqual([p.coins, p.materials], [1, 0]);
   }
 });
 

@@ -6,14 +6,14 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
 const G = require('../js/game.js');
-const KEY = 'gufang-qitan-save-v1';
+const KEY = 'gufang-qitan-match-v8';
 const layoutFailures=[];
 const shots = process.env.GUFANG_SHOTS || path.join(os.tmpdir(), 'gufang-screenshots');
 fs.mkdirSync(shots, { recursive: true });
 const root = path.join(__dirname, '..');
 const sourceOnly = process.argv.includes('--source-only') || !!process.env.GUFANG_SOURCE_ONLY;
 const url = file => pathToFileURL(path.join(root, sourceOnly ? 'index.html' : file)).href;
-async function sourceContext(context) { await context.route('**/js/runtime.js', route => route.fulfill({contentType:'application/javascript', body:['game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')})); }
+async function sourceContext(context) { await context.route('**/js/runtime.js', route => route.fulfill({contentType:'application/javascript', body:['maps','game','network','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')})); }
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true });
   try {
@@ -51,8 +51,20 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       await page.reload(); await page.waitForFunction(() => !!window.Gufang);
       assert.equal(await page.locator('#start-sound').getAttribute('aria-checked'), 'true', 'Enabled sound survives reload');
       await page.locator('#start-single').click();
+      assert(await page.locator('#single-settings').isVisible());
+      assert.equal(await page.locator('.fixed-difficulty strong').first().textContent(), '正常标准经营与攻防节奏');
+      const settingsLayout = await page.locator('#single-settings').evaluate(el => ({ width:el.clientWidth, scroll:el.scrollWidth, height:el.clientHeight, scrollHeight:el.scrollHeight }));
+      assert.equal(settingsLayout.width, settingsLayout.scroll);
+      try { assert.equal(settingsLayout.height, settingsLayout.scrollHeight, 'Settings fit the portrait viewport'); }
+      catch(error) { layoutFailures.push(`settings ${viewport.width}x${viewport.height}: ${error.message}; ${JSON.stringify(settingsLayout)}`); }
+      await page.locator('input[name="single-enemies"][value="3"]').check();
+      assert(await page.locator('input[name="single-enemies"][value="3"]').isChecked());
+      await page.locator('input[name="single-enemies"][value="1"]').check();
+      await page.screenshot({ path:path.join(shots, `single-settings-${viewport.width}.png`) });
+      await page.locator('#single-start').click();
       assert(await page.locator('#start-menu').isHidden());
-      assert.equal(await page.evaluate(() => Gufang.state.selectedSkill), null);
+      assert(await page.locator('#single-settings').isHidden());
+      assert.equal(await page.evaluate(() => GF.playerView(Gufang.state).selectedSkill), null);
       assert.equal(await page.evaluate(() => Gufang.paused), true);
       assert.equal(await page.locator('[data-modal="choose-skill"]:visible').count(), 3);
       assert(await page.locator('#close-modal').isHidden());
@@ -74,8 +86,8 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       await page.keyboard.press('Enter');
       assert(await page.locator('#modal').isHidden());
       assert.equal(await page.evaluate(() => Gufang.paused), false);
-      assert.equal(await page.evaluate(() => Gufang.state.selectedSkill), 'thunder');
-      assert.deepEqual(await page.evaluate(() => [Gufang.state.coins,Gufang.state.materials]), [150,200]);
+      assert.equal(await page.evaluate(() => GF.playerView(Gufang.state).selectedSkill), 'thunder');
+      assert.deepEqual(await page.evaluate(() => { const p=GF.playerView(Gufang.state); return [p.coins,p.materials]; }), [0,0]);
       await page.clock.runFor(1000);
       assert((await page.evaluate(() => Gufang.state.time)) > 0);
       await page.locator('#menu-pause').click();
@@ -86,8 +98,12 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       assert.equal(await page.locator('#start-sound').getAttribute('aria-checked'), 'false');
       const save = await page.evaluate(key => localStorage.getItem(key), KEY);
       await page.locator('#start-single').click();
+      assert(await page.locator('#single-settings').isVisible());
+      await page.locator('#single-start').click();
       assert(await page.locator('[data-modal="new"]').isVisible());
       await page.keyboard.press('Escape');
+      assert(await page.locator('#single-settings').isVisible());
+      await page.locator('#single-back').click();
       assert(await page.locator('#start-menu').isVisible());
       assert.equal(await page.evaluate(() => Gufang.paused), true);
       assert.equal(await page.evaluate(key => localStorage.getItem(key), KEY), save);
@@ -99,13 +115,14 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       assert.equal(await page.evaluate(() => Gufang.state.mapSeed), JSON.parse(save).mapSeed);
       await page.locator('[data-modal="title"]').click();
       await page.locator('#start-single').click();
+      await page.locator('#single-start').click();
       await page.locator('[data-modal="new"]').click();
       assert.equal(await page.locator('[data-modal="choose-skill"]:visible').count(),3);
       await page.locator('[data-choice="repair"]').click();
-      assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),'repair');
+      assert.equal(await page.evaluate(()=>GF.playerView(Gufang.state).selectedSkill),'repair');
       assert(await page.locator('#start-menu').isHidden());
       assert.equal(await page.evaluate(() => Gufang.state.day), 1);
-      assert.equal(await page.evaluate(() => Gufang.state.mapGeneration), 2);
+      assert.equal(await page.evaluate(() => Gufang.state.mapGeneration), 3);
       assert.notEqual(await page.evaluate(() => Gufang.state.mapSeed),JSON.parse(save).mapSeed,'New game uses a new procedural seed');
       const old=G.restore(save),size=G.worldSize(old),oldMap=Array.from({length:size*size},(_,k)=>G.terrain(k%size,Math.floor(k/size),old));
       assert.notDeepEqual(await page.evaluate(()=>Array.from({length:625},(_,k)=>GF.terrain(k%25,Math.floor(k/25),Gufang.state))),oldMap,'New game renders different terrain');
@@ -116,7 +133,7 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
     for (const kind of ['corrupt', 'unavailable', 'defeat']) {
       const context = await browser.newContext(), page = await context.newPage(), errors = [];
       await sourceContext(context);
-      const state = G.createState(); state.selectedSkill='thunder'; state.over = true;
+      const state = G.createState(); state.players[0].selectedSkill='thunder'; state.players[0].eliminated=true; state.buildings=state.buildings.filter(b=>b.owner!==0); state.soldiers=state.soldiers.filter(u=>u.owner!==0); state.over=true; state.result='defeat'; state.revision++;
       page.on('pageerror', e => errors.push(e.message));
       await context.addInitScript(({kind, key, raw}) => {
         if (kind === 'unavailable') {
@@ -134,6 +151,7 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
         await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
         if (kind === 'corrupt') assert.equal(await page.evaluate(key => localStorage.getItem(key), KEY), '{broken');
         await page.locator('#start-single').click();
+        await page.locator('#single-start').click();
         if (kind === 'corrupt') await page.locator('[data-modal="new"]').click();
         await page.locator('[data-choice="thunder"]').click();
         assert(await page.locator('#start-menu').isHidden());

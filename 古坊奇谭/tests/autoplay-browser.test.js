@@ -10,16 +10,16 @@ const shots=process.env.GUFANG_SHOTS||path.join(os.tmpdir(),'gufang-screenshots'
     for(const width of [320,390,1440]){
       const context=await browser.newContext({viewport:{width,height:width===320?568:844}}),page=await context.newPage(),errors=[];
       page.on('pageerror',e=>errors.push(e.message));
-      await context.route('**/js/runtime.js',route=>route.fulfill({contentType:'application/javascript',body:['game','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')}));
+      await context.route('**/js/runtime.js',route=>route.fulfill({contentType:'application/javascript',body:['maps','game','network','art','autoplay','app'].map(name=>fs.readFileSync(path.join(root,'js',name+'.js'),'utf8')).join('\n;\n')}));
       await page.clock.install();
       await page.clock.pauseAt(await page.evaluate(()=>Date.now()));
       await page.goto(pathToFileURL(path.join(root,sourceOnly||width===1440?'index.html':'dist/古坊奇谭.html')).href);
-      await page.waitForFunction(()=>!!window.Gufang);await page.locator('#start-single').click();
+      await page.waitForFunction(()=>!!window.Gufang);await page.locator('#start-single').click();await page.locator('#single-start').click();
       await page.locator('[data-choice="thunder"]').click();
       assert.equal(await page.evaluate(()=>Gufang.autoplay),false);
-      assert.deepEqual(await page.evaluate(()=>[Gufang.state.coins,Gufang.state.materials]),[150,200]);
-      assert.equal(await page.evaluate(()=>Gufang.state.selectedSkill),'thunder');
-      await page.evaluate(()=>{Gufang.state.coins=Gufang.state.materials=1000;Gufang.refresh();});
+      assert.deepEqual(await page.evaluate(()=>{const p=GF.playerView(Gufang.state);return [p.coins,p.materials];}),[0,0]);
+      assert.equal(await page.evaluate(()=>GF.playerView(Gufang.state).selectedSkill),'thunder');
+      await page.evaluate(()=>{const p=GF.playerView(Gufang.state);p.coins=p.materials=1000;Gufang.refresh();});
       await page.locator('#menu-pause').click();await page.locator('[data-modal="autoplay"]').click();
       assert.equal(await page.evaluate(()=>Gufang.autoplay),true);assert(await page.locator('#modal').isHidden());
       await page.clock.runFor(20000);
@@ -50,15 +50,14 @@ const shots=process.env.GUFANG_SHOTS||path.join(os.tmpdir(),'gufang-screenshots'
       assert.equal(await page.evaluate(()=>Gufang.autoplay),false);assert.equal(await page.evaluate(()=>Gufang.autoplayReport),null);
       await page.locator('#menu-pause').click();await page.locator('[data-modal="autoplay"]').click();
       await page.evaluate(()=>{
-        const s=Gufang.state,c=GF.worldCenter(s);GF.startNight(s);for(let i=0;i<10&&!s.enemies.length;i++)GF.step(s,.25);
-        const shrine=s.buildings.find(b=>b.type==='shrine');shrine.hp=1;
-        s.cooldowns.repair=s.cooldowns.thunder=s.cooldowns.repel=100;
-        const enemy=s.enemies[0];enemy.x=c;enemy.y=c-1;enemy.path=[];enemy.pathRevision=-1;enemy.damage=1e6;enemy.attack=0;enemy.hp=enemy.maxHp=1e6;
+        const s=Gufang.state,p=GF.playerView(s),shrine=p.buildings.find(b=>b.type==='shrine'),enemyOwner=s.players.find(n=>n.team!==p.team).id;
+        shrine.hp=1;p.cooldowns.repair=p.cooldowns.thunder=p.cooldowns.repel=100;
+        s.soldiers=[];s.soldiers.push({id:s.nextId++,owner:enemyOwner,barracksId:-1,x:shrine.x,y:shrine.y,level:1,hp:1e6,maxHp:1e6,baseDamage:1e6,attack:0,targetOwner:0,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null});
       });
       await page.clock.runFor(1000);
       assert.equal(await page.evaluate(()=>Gufang.state.over),true);assert.equal(await page.evaluate(()=>Gufang.autoplay),false);
-      assert.equal(await page.locator('#modal h2').textContent(),'古坊失守');assert(await page.locator('[data-modal="autoplay-report"]').isVisible());
-      assert(await page.locator('[data-modal="autoplay"]').isDisabled());
+      assert.equal(await page.locator('#modal h2').textContent(),'古坊失守');assert(await page.locator('[data-modal="new"]').isVisible());
+      assert(await page.locator('#autoplay-status').isHidden());
       await page.locator('[data-modal="new"]').click();assert.equal(await page.evaluate(()=>Gufang.autoplay),false);assert.equal(await page.evaluate(()=>Gufang.autoplayReport),null);
       await page.locator('[data-choice="thunder"]').click();
       assert.deepEqual(errors,[]);await context.close();
