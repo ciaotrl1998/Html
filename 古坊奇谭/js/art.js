@@ -4,6 +4,19 @@
   const T = 64, palette = { plain: '#ced5af', shore: '#d9cda7', water: '#a9c9bd', forest: '#b4c49a', mountain: '#c3c5af' };
   const hintCaches = new WeakMap();
   const sprites = new Map();
+  const soldierAtlasSources={
+    player:'assets/sprites/soldiers/player-red.png',
+    ally:'assets/sprites/soldiers/ally-green.png',
+    enemy:'assets/sprites/soldiers/enemy-purple.png'
+  };
+  const soldierAtlases={};
+  const soldierMotionCaches=new WeakMap();
+  let soldierSpriteVersion=0;
+  for(const [faction,source] of Object.entries(soldierAtlasSources)){
+    const image=new Image();
+    image.onload=image.onerror=()=>soldierSpriteVersion++;
+    image.src=source;soldierAtlases[faction]=image;
+  }
   let glowSprite = null;
   // Bake the night lantern glow once; drawing a cached image beats creating a radial gradient per
   // building every frame.
@@ -317,7 +330,7 @@
   }
   function render(canvas,s,cam,selected,options={}){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount]);
-    const animationTime=options.animationTime??s.elapsed,player=GF.playerView(s,options.player||0);
+    const animationTime=options.animationTime??s.elapsed,playerOwner=options.player??0,player=GF.playerView(s,playerOwner);
     // Enemy occupancy changes every frame; economic recommendations only change with the town.
     const hintKey=JSON.stringify([cacheKey,player.actorId,s.over,s.day,player.buildings.map(b=>[b.type,b.x,b.y,b.level,b.owner])]);
     let hints=hintCaches.get(s);
@@ -391,10 +404,23 @@
       c.restore();
     }
     // Units use their own positions, even when their barracks is offscreen.
-    const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?48:30)).sort((a,b)=>a.unit.y-b.unit.y);
-    for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);person(c,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0);if(e.slowed>0)ellipse(c,0,2,13,18,'#8bb7a029','#76a08f');c.restore();}
+    const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52)).sort((a,b)=>a.unit.y-b.unit.y);
+    let soldierMotion=soldierMotionCaches.get(s);
+    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map()};soldierMotionCaches.set(s,soldierMotion);}
+    const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
+    for(const {unit:e,soldier} of units){
+      const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||e.waypoint;
+      let dx=previous?e.x-previous.x:0,dy=previous?e.y-previous.y:0;
+      if(Math.abs(dx)+Math.abs(dy)<=.001&&goal){dx=goal.x-e.x;dy=goal.y-e.y;}
+      if(Math.abs(dx)+Math.abs(dy)>.001)soldierMotion.facing.set(e.id,Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'back':'front'));
+      soldierMotion.positions.set(e.id,{x:e.x,y:e.y});
+      const faction=s.players[e.owner].team!==s.players[playerOwner].team?'enemy':e.owner===playerOwner?'player':'ally';
+      c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);
+      soldierSprite(c,soldierAtlases[faction],e.level,soldierMotion.facing.get(e.id)||'front',soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0);
+      if(e.slowed>0)ellipse(c,0,2,13,5,'#8bb7a029','#76a08f');c.restore();
+    }
     // Keep health bars above all unit bodies during close combat.
-    for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);rect(c,-14,-27,28,4.5,soldier?'#254a31':'#273e3480',soldier?'#c9dfaa':null);rect(c,-13,-26,26*Math.max(0,Math.min(1,e.hp/e.maxHp)),2.5,soldier?'#91c967':'#bb775a');c.restore();}
+    for(const {unit:e,soldier} of units){c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);rect(c,-14,-43,28,4.5,soldier?'#254a31':'#273e3480',soldier?'#c9dfaa':null);rect(c,-13,-42,26*Math.max(0,Math.min(1,e.hp/e.maxHp)),2.5,soldier?'#91c967':'#bb775a');c.restore();}
     if(night||dusk){c.fillStyle=night?'#19395878':'#ac723222';c.fillRect(left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);if(night){const glow=nightGlow();c.globalCompositeOperation='screen';for(const b of s.buildings){if(!visible(b.x*T+32,b.y*T+36,64))continue;if(['shrine','earth','tao','tower','inn'].includes(b.type))c.drawImage(glow,b.x*T+32-64,b.y*T+36-64,128,128);}c.globalCompositeOperation='source-over';}}
     const hintPulse=reducedMotion||options.reducedMotion===true?1:1+.035*Math.sin(animationTime*2.4);
     for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
@@ -462,5 +488,47 @@
     else {const color=type==='ghost'?'#849b9c':type==='soldier'?'#4f8b9a':'#b75548';poly(c,[[-5,-3+bob],[5,-3+bob],[8,9],[-7,9]],color,'#52605b');ellipse(c,0,-8+bob,4.5,5,type==='ghost'?'#b4c8bb':'#c6b592');rect(c,-5,-13+bob,10,3,type==='soldier'?'#32677c':'#8c3f35');line(c,[[-3,9],[-4,14+bob]],'#4c5851',2);line(c,[[3,9],[5,14-bob]],'#4c5851',2);line(c,[[7,1],[10,-11]],type==='ghost'?'#a5c3b5':'#bec1a7',2);}
     if(frozen){ellipse(c,0,-1,14,19,null,'#e9d28d');c.fillStyle='#eddda5';c.font='10px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-18);}
   }
-  window.GFArt={T,thumbnail,render,cacheStats:()=>({chunks:ground?.chunks.size||0,pixels:[...(ground?.chunks.values()||[])].reduce((n,t)=>n+t.canvas.width*t.canvas.height,0),largestSide:Math.max(0,...[...(ground?.chunks.values()||[])].map(t=>Math.max(t.canvas.width,t.canvas.height)))})};
+  function soldierSprite(c,atlas,level,direction,fallback,time,frozen){
+    if(!atlas.complete||!atlas.naturalWidth){person(c,fallback,time,frozen);return;}
+    const directionIndex={front:0,back:1,left:2,right:3},safeLevel=Math.max(1,Math.min(9,level||1));
+    const row=Math.floor((safeLevel-1)/3),col=((safeLevel-1)%3)*4+directionIndex[direction];
+    c.save();c.imageSmoothingEnabled=false;c.drawImage(atlas,col*20,row*30,20,30,-16,-45,32,48);c.restore();
+    if(frozen){ellipse(c,0,-16,14,24,null,'#e9d28d');c.fillStyle='#eddda5';c.font='8px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-43);}
+  }
+  function assetCanvas(width,height,paint){const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;paint(canvas.getContext('2d'));return canvas.toDataURL('image/png');}
+  function paintTerrainTile(c,type){
+    rect(c,0,0,T,T,palette[type]);
+    for(let j=0;j<9;j++){const gx=noise(3,7,j+2)*60+2,gy=noise(7,3,j+31)*60+2;if(type==='water')line(c,[[gx-3,gy],[gx+4,gy]],'#d1e1c65c',.8);else if(type==='shore')ellipse(c,gx,gy,1.2,.7,'#9eaa873f');else line(c,[[gx-2,gy-2],[gx,gy+1],[gx+2,gy-3]],'#81986238',.8);}
+    if(type==='shore')for(let j=0;j<3;j++){const gx=10+noise(3,7,j+65)*44,gy=10+noise(7,3,j+81)*44;line(c,[[gx-2,gy+4],[gx,gy-2],[gx+2,gy+4]],'#a9ad765c',.9);}
+    if(type==='water'){ellipse(c,17,38,4,2,'#9fb993');ellipse(c,24,41,3,1.8,'#9db88e');}
+  }
+  function paintConnectedTile(c,mask,kind){
+    const north=mask&1,east=mask&2,south=mask&4,west=mask&8;
+    if(kind==='wall'){
+      c.beginPath();c.rect(19,19,26,26);if(north)c.rect(19,0,26,32);if(south)c.rect(19,32,26,32);if(west)c.rect(0,19,32,26);if(east)c.rect(32,19,32,26);
+      c.fillStyle='#667367';c.shadowColor='#34463866';c.shadowBlur=4;c.shadowOffsetY=3;c.fill();c.shadowColor='transparent';c.strokeStyle='#4b5c51';c.lineWidth=3;c.stroke();c.clip();rect(c,0,0,T,T,'#b7bba7');
+      for(let row=0;row<8;row++){const yy=row*8;line(c,[[0,yy],[T,yy]],'#788775',1);for(let col=0;col<5;col++){const xx=col*16+(row%2)*8;line(c,[[xx,yy],[xx,yy+8]],'#87927e',1);}}
+      return;
+    }
+    c.beginPath();c.rect(21,21,22,22);if(north)c.rect(21,0,22,32);if(south)c.rect(21,32,22,32);if(west)c.rect(0,21,32,22);if(east)c.rect(32,21,32,22);c.clip();
+    rect(c,0,0,T,T,kind==='bridge'?'#ad9063':'#dfd5b494');
+    if(kind==='bridge')for(let i=0;i<T;i+=7){if(north||south||!east&&!west)line(c,[[19,i],[45,i]],'#655c43',1.5);if(east||west)line(c,[[i,19],[i,45]],'#655c43',1.5);}
+  }
+  function exportPngAssets(){
+    const assets={};
+    for(const type of Object.keys(GF.DEFS))for(let level=1;level<=3;level++)assets[`assets/sprites/buildings/${type}/level-${level}.png`]=assetCanvas(128,128,c=>{c.translate(64,96);building(c,type,level,0,true);});
+    for(const type of Object.keys(palette))assets[`assets/tiles/terrain/${type}.png`]=assetCanvas(T,T,c=>paintTerrainTile(c,type));
+    assets['assets/tiles/resources/forest.png']=assetCanvas(128,128,c=>{c.translate(64,64);tree(c,-14,7,.95);tree(c,10,-8,1.1);bamboo(c,15,19,.66);});
+    assets['assets/tiles/resources/mountain.png']=assetCanvas(128,128,c=>{c.translate(64,64);stone(c,-9,9,1.1);stone(c,15,-4,1.2);stone(c,-13,-13,.6);});
+    assets['assets/tiles/resources/border-tree.png']=assetCanvas(128,128,c=>{c.translate(64,72);tree(c,0,0,1,true);});
+    assets['assets/tiles/resources/reeds.png']=assetCanvas(64,64,c=>{for(let i=0;i<4;i++)line(c,[[9+i*3,54],[7+i*3,39+i%2*4]],'#739575',1.3);});
+    for(let mask=0;mask<16;mask++){
+      const name=mask.toString(16).padStart(2,'0');
+      assets[`assets/tiles/walls/${name}.png`]=assetCanvas(T,T,c=>paintConnectedTile(c,mask,'wall'));
+      assets[`assets/tiles/roads/ground-${name}.png`]=assetCanvas(T,T,c=>paintConnectedTile(c,mask,'ground'));
+      assets[`assets/tiles/roads/bridge-${name}.png`]=assetCanvas(T,T,c=>paintConnectedTile(c,mask,'bridge'));
+    }
+    return assets;
+  }
+  window.GFArt={T,thumbnail,render,exportPngAssets,spriteVersion:()=>soldierSpriteVersion,cacheStats:()=>({chunks:ground?.chunks.size||0,pixels:[...(ground?.chunks.values()||[])].reduce((n,t)=>n+t.canvas.width*t.canvas.height,0),largestSide:Math.max(0,...[...(ground?.chunks.values()||[])].map(t=>Math.max(t.canvas.width,t.canvas.height)))})};
 })();

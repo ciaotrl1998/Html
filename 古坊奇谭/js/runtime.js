@@ -1756,6 +1756,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
   const hintCaches = /* @__PURE__ */ new WeakMap();
   const sprites = /* @__PURE__ */ new Map();
+  const soldierAtlasSources = {
+    player: "assets/sprites/soldiers/player-red.png",
+    ally: "assets/sprites/soldiers/ally-green.png",
+    enemy: "assets/sprites/soldiers/enemy-purple.png"
+  };
+  const soldierAtlases = {};
+  const soldierMotionCaches = /* @__PURE__ */ new WeakMap();
+  let soldierSpriteVersion = 0;
+  for (const [faction, source] of Object.entries(soldierAtlasSources)) {
+    const image = new Image();
+    image.onload = image.onerror = () => soldierSpriteVersion++;
+    image.src = source;
+    soldierAtlases[faction] = image;
+  }
   let glowSprite = null;
   function nightGlow() {
     if (glowSprite) return glowSprite;
@@ -2419,9 +2433,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
-    var _a;
+    var _a, _b;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
-    const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, player = GF.playerView(s, options.player || 0);
+    const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let hints = hintCaches.get(s);
     if (!hints || hints.key !== hintKey) {
@@ -2597,21 +2611,36 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 48 : 30)).sort((a, b) => a.unit.y - b.unit.y);
+    const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 38 : 24, unit.boss ? 76 : 52)).sort((a, b) => a.unit.y - b.unit.y);
+    let soldierMotion = soldierMotionCaches.get(s);
+    if (!soldierMotion) {
+      soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map() };
+      soldierMotionCaches.set(s, soldierMotion);
+    }
+    const unitById = new Map(s.soldiers.map((unit) => [unit.id, unit]));
     for (const { unit: e, soldier } of units) {
+      const previous = soldierMotion.positions.get(e.id), goal = unitById.get(e.targetId) || e.waypoint;
+      let dx = previous ? e.x - previous.x : 0, dy = previous ? e.y - previous.y : 0;
+      if (Math.abs(dx) + Math.abs(dy) <= 1e-3 && goal) {
+        dx = goal.x - e.x;
+        dy = goal.y - e.y;
+      }
+      if (Math.abs(dx) + Math.abs(dy) > 1e-3) soldierMotion.facing.set(e.id, Math.abs(dx) > Math.abs(dy) ? dx < 0 ? "left" : "right" : dy < 0 ? "back" : "front");
+      soldierMotion.positions.set(e.id, { x: e.x, y: e.y });
+      const faction = s.players[e.owner].team !== s.players[playerOwner].team ? "enemy" : e.owner === playerOwner ? "player" : "ally";
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      person(c, soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0);
-      if (e.slowed > 0) ellipse(c, 0, 2, 13, 18, "#8bb7a029", "#76a08f");
+      soldierSprite(c, soldierAtlases[faction], e.level, soldierMotion.facing.get(e.id) || "front", soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0);
+      if (e.slowed > 0) ellipse(c, 0, 2, 13, 5, "#8bb7a029", "#76a08f");
       c.restore();
     }
     for (const { unit: e, soldier } of units) {
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      rect(c, -14, -27, 28, 4.5, soldier ? "#254a31" : "#273e3480", soldier ? "#c9dfaa" : null);
-      rect(c, -13, -26, 26 * Math.max(0, Math.min(1, e.hp / e.maxHp)), 2.5, soldier ? "#91c967" : "#bb775a");
+      rect(c, -14, -43, 28, 4.5, soldier ? "#254a31" : "#273e3480", soldier ? "#c9dfaa" : null);
+      rect(c, -13, -42, 26 * Math.max(0, Math.min(1, e.hp / e.maxHp)), 2.5, soldier ? "#91c967" : "#bb775a");
       c.restore();
     }
     if (night || dusk) {
@@ -2766,7 +2795,127 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.fillText("封", 0, -18);
     }
   }
-  window.GFArt = { T, thumbnail, render, cacheStats: () => ({ chunks: (ground == null ? void 0 : ground.chunks.size) || 0, pixels: [...(ground == null ? void 0 : ground.chunks.values()) || []].reduce((n, t) => n + t.canvas.width * t.canvas.height, 0), largestSide: Math.max(0, ...[...(ground == null ? void 0 : ground.chunks.values()) || []].map((t) => Math.max(t.canvas.width, t.canvas.height))) }) };
+  function soldierSprite(c, atlas, level, direction, fallback, time, frozen) {
+    if (!atlas.complete || !atlas.naturalWidth) {
+      person(c, fallback, time, frozen);
+      return;
+    }
+    const directionIndex = { front: 0, back: 1, left: 2, right: 3 }, safeLevel = Math.max(1, Math.min(9, level || 1));
+    const row = Math.floor((safeLevel - 1) / 3), col = (safeLevel - 1) % 3 * 4 + directionIndex[direction];
+    c.save();
+    c.imageSmoothingEnabled = false;
+    c.drawImage(atlas, col * 20, row * 30, 20, 30, -16, -45, 32, 48);
+    c.restore();
+    if (frozen) {
+      ellipse(c, 0, -16, 14, 24, null, "#e9d28d");
+      c.fillStyle = "#eddda5";
+      c.font = '8px "SimHei","Microsoft YaHei",sans-serif';
+      c.textAlign = "center";
+      c.fillText("封", 0, -43);
+    }
+  }
+  function assetCanvas(width, height, paint) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    paint(canvas.getContext("2d"));
+    return canvas.toDataURL("image/png");
+  }
+  function paintTerrainTile(c, type) {
+    rect(c, 0, 0, T, T, palette[type]);
+    for (let j = 0; j < 9; j++) {
+      const gx = noise(3, 7, j + 2) * 60 + 2, gy = noise(7, 3, j + 31) * 60 + 2;
+      if (type === "water") line(c, [[gx - 3, gy], [gx + 4, gy]], "#d1e1c65c", 0.8);
+      else if (type === "shore") ellipse(c, gx, gy, 1.2, 0.7, "#9eaa873f");
+      else line(c, [[gx - 2, gy - 2], [gx, gy + 1], [gx + 2, gy - 3]], "#81986238", 0.8);
+    }
+    if (type === "shore") for (let j = 0; j < 3; j++) {
+      const gx = 10 + noise(3, 7, j + 65) * 44, gy = 10 + noise(7, 3, j + 81) * 44;
+      line(c, [[gx - 2, gy + 4], [gx, gy - 2], [gx + 2, gy + 4]], "#a9ad765c", 0.9);
+    }
+    if (type === "water") {
+      ellipse(c, 17, 38, 4, 2, "#9fb993");
+      ellipse(c, 24, 41, 3, 1.8, "#9db88e");
+    }
+  }
+  function paintConnectedTile(c, mask, kind) {
+    const north = mask & 1, east = mask & 2, south = mask & 4, west = mask & 8;
+    if (kind === "wall") {
+      c.beginPath();
+      c.rect(19, 19, 26, 26);
+      if (north) c.rect(19, 0, 26, 32);
+      if (south) c.rect(19, 32, 26, 32);
+      if (west) c.rect(0, 19, 32, 26);
+      if (east) c.rect(32, 19, 32, 26);
+      c.fillStyle = "#667367";
+      c.shadowColor = "#34463866";
+      c.shadowBlur = 4;
+      c.shadowOffsetY = 3;
+      c.fill();
+      c.shadowColor = "transparent";
+      c.strokeStyle = "#4b5c51";
+      c.lineWidth = 3;
+      c.stroke();
+      c.clip();
+      rect(c, 0, 0, T, T, "#b7bba7");
+      for (let row = 0; row < 8; row++) {
+        const yy = row * 8;
+        line(c, [[0, yy], [T, yy]], "#788775", 1);
+        for (let col = 0; col < 5; col++) {
+          const xx = col * 16 + row % 2 * 8;
+          line(c, [[xx, yy], [xx, yy + 8]], "#87927e", 1);
+        }
+      }
+      return;
+    }
+    c.beginPath();
+    c.rect(21, 21, 22, 22);
+    if (north) c.rect(21, 0, 22, 32);
+    if (south) c.rect(21, 32, 22, 32);
+    if (west) c.rect(0, 21, 32, 22);
+    if (east) c.rect(32, 21, 32, 22);
+    c.clip();
+    rect(c, 0, 0, T, T, kind === "bridge" ? "#ad9063" : "#dfd5b494");
+    if (kind === "bridge") for (let i = 0; i < T; i += 7) {
+      if (north || south || !east && !west) line(c, [[19, i], [45, i]], "#655c43", 1.5);
+      if (east || west) line(c, [[i, 19], [i, 45]], "#655c43", 1.5);
+    }
+  }
+  function exportPngAssets() {
+    const assets = {};
+    for (const type of Object.keys(GF.DEFS)) for (let level = 1; level <= 3; level++) assets[`assets/sprites/buildings/${type}/level-${level}.png`] = assetCanvas(128, 128, (c) => {
+      c.translate(64, 96);
+      building(c, type, level, 0, true);
+    });
+    for (const type of Object.keys(palette)) assets[`assets/tiles/terrain/${type}.png`] = assetCanvas(T, T, (c) => paintTerrainTile(c, type));
+    assets["assets/tiles/resources/forest.png"] = assetCanvas(128, 128, (c) => {
+      c.translate(64, 64);
+      tree(c, -14, 7, 0.95);
+      tree(c, 10, -8, 1.1);
+      bamboo(c, 15, 19, 0.66);
+    });
+    assets["assets/tiles/resources/mountain.png"] = assetCanvas(128, 128, (c) => {
+      c.translate(64, 64);
+      stone(c, -9, 9, 1.1);
+      stone(c, 15, -4, 1.2);
+      stone(c, -13, -13, 0.6);
+    });
+    assets["assets/tiles/resources/border-tree.png"] = assetCanvas(128, 128, (c) => {
+      c.translate(64, 72);
+      tree(c, 0, 0, 1, true);
+    });
+    assets["assets/tiles/resources/reeds.png"] = assetCanvas(64, 64, (c) => {
+      for (let i = 0; i < 4; i++) line(c, [[9 + i * 3, 54], [7 + i * 3, 39 + i % 2 * 4]], "#739575", 1.3);
+    });
+    for (let mask = 0; mask < 16; mask++) {
+      const name = mask.toString(16).padStart(2, "0");
+      assets[`assets/tiles/walls/${name}.png`] = assetCanvas(T, T, (c) => paintConnectedTile(c, mask, "wall"));
+      assets[`assets/tiles/roads/ground-${name}.png`] = assetCanvas(T, T, (c) => paintConnectedTile(c, mask, "ground"));
+      assets[`assets/tiles/roads/bridge-${name}.png`] = assetCanvas(T, T, (c) => paintConnectedTile(c, mask, "bridge"));
+    }
+    return assets;
+  }
+  window.GFArt = { T, thumbnail, render, exportPngAssets, spriteVersion: () => soldierSpriteVersion, cacheStats: () => ({ chunks: (ground == null ? void 0 : ground.chunks.size) || 0, pixels: [...(ground == null ? void 0 : ground.chunks.values()) || []].reduce((n, t) => n + t.canvas.width * t.canvas.height, 0), largestSide: Math.max(0, ...[...(ground == null ? void 0 : ground.chunks.values()) || []].map((t) => Math.max(t.canvas.width, t.canvas.height))) }) };
 })();
 
 var __defProp = Object.defineProperty;
@@ -3593,20 +3742,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const duration = (n) => Math.floor(n / 60) + ":" + String(Math.floor(n % 60)).padStart(2, "0");
   const fmt = (n) => n >= 1e4 ? (n / 1e4).toFixed(1).replace(/\.0$/, "") + "万" : Math.floor(n).toLocaleString("en-US");
   function refresh() {
-    var _a;
-    $("coop-status").hidden = !started || state.mode !== "coop";
-    $("coop-action").textContent = playerState().eliminated ? "你的庄园已出局 · 观战中" : online ? (online.serverPaused ? "对局已暂停 · " : "服务器联机 · ") + "房间 " + online.code : state.mode === "coop" ? "电脑队友：" + state.players[1].ai.lastAction : "自动出征 · 攻破所有敌方主城";
-    $("coop-home").textContent = "我的庄园";
-    $("coop-ally").hidden = state.mode !== "coop";
-    $("coop-ally").textContent = ((_a = state.players[1]) == null ? void 0 : _a.eliminated) ? "队友遗址" : "队友庄园";
     $("autoplay-status").hidden = !autoplay || !started || playerState().eliminated;
     $("autoplay-status").querySelector("strong").textContent = paused ? "托管已暂停" : "托管中";
     $("autoplay-action").textContent = playerState().ai.lastAction;
     $("coins").textContent = fmt(playerState().coins);
     $("materials").textContent = fmt(playerState().materials);
-    const elapsed = online ? guestLive() : state.elapsed;
-    $("day-label").textContent = "对局 " + duration(elapsed);
-    $("countdown").textContent = "敌庄 " + state.players.filter((p) => p.team === 1 && !p.eliminated).length + " / " + state.enemyCount;
     $("skills").hidden = !started || state.over || playerState().eliminated;
     for (const el of document.querySelectorAll("[data-skill]")) {
       el.hidden = el.dataset.skill !== playerState().selectedSkill;
@@ -3880,14 +4020,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     readSave();
     if (saved) modal('<p class="modal-kicker">双庄共守</p><h2>开启合作新局？</h2><p>将与' + (online ? "联机" : "电脑") + '队友开始合作，并替换本地存档。</p><button class="modal-primary" data-modal="coop-new">开始合作</button><button class="modal-secondary" data-modal="close">返回等待界面</button>');
     else newGame(true);
-  };
-  $("coop-home").onclick = () => {
-    closePanel();
-    center(playerOwner());
-  };
-  $("coop-ally").onclick = () => {
-    closePanel();
-    center(1 - playerOwner());
   };
   function modal(html) {
     paused = true;
@@ -4266,7 +4398,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (started && !hiddenPause) {
       const remote = !!online;
       const animationTime = remote ? guestLive() : state.elapsed + (running && !paused && !state.over ? simulationClock : 0);
-      const renderKey = [state.mapSeed, state.estateSeed, state.day, animationTime, state.revision, state.phase, state.over, playerState().coins, playerState().materials, cam.x, cam.y, cam.zoom, selected == null ? void 0 : selected.x, selected == null ? void 0 : selected.y, grid, playerOwner(), remoteAt].join("|");
+      const renderKey = [state.mapSeed, state.estateSeed, state.day, animationTime, state.revision, state.phase, state.over, playerState().coins, playerState().materials, cam.x, cam.y, cam.zoom, selected == null ? void 0 : selected.x, selected == null ? void 0 : selected.y, grid, playerOwner(), remoteAt, GFArt.spriteVersion()].join("|");
       if (renderKey !== lastRenderKey && (!renderInterval || now - lastRenderAt >= renderInterval - 1)) {
         GFArt.render(canvas, state, cam, selected, __spreadValues({ grid, player: playerOwner(), online: !!online, animationTime }, remote ? { unitPosition: remotePosition } : {}));
         lastRenderKey = renderKey;

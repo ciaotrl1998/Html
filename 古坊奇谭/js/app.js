@@ -320,17 +320,10 @@
   const duration=n=>Math.floor(n/60)+':'+String(Math.floor(n%60)).padStart(2,'0');
   const fmt = n => n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : Math.floor(n).toLocaleString('en-US');
   function refresh() {
-    $('coop-status').hidden = !started || state.mode !== 'coop';
-    $('coop-action').textContent = playerState().eliminated ? '你的庄园已出局 · 观战中' : online ? (online.serverPaused?'对局已暂停 · ':'服务器联机 · ')+'房间 '+online.code : state.mode==='coop'?'电脑队友：'+state.players[1].ai.lastAction:'自动出征 · 攻破所有敌方主城';
-    $('coop-home').textContent='我的庄园';$('coop-ally').hidden=state.mode!=='coop';
-    $('coop-ally').textContent=state.players[1]?.eliminated?'队友遗址':'队友庄园';
     $('autoplay-status').hidden=!autoplay||!started||playerState().eliminated;
     $('autoplay-status').querySelector('strong').textContent=paused?'托管已暂停':'托管中';
     $('autoplay-action').textContent=playerState().ai.lastAction;
     $('coins').textContent=fmt(playerState().coins);$('materials').textContent=fmt(playerState().materials);
-    const elapsed=online?guestLive():state.elapsed;
-    $('day-label').textContent='对局 '+duration(elapsed);
-    $('countdown').textContent='敌庄 '+state.players.filter(p=>p.team===1&&!p.eliminated).length+' / '+state.enemyCount;
     $('skills').hidden=!started||state.over||playerState().eliminated;
     for (const el of document.querySelectorAll('[data-skill]')) {
       el.hidden = el.dataset.skill !== playerState().selectedSkill;
@@ -477,8 +470,6 @@
     if (saved) modal('<p class="modal-kicker">双庄共守</p><h2>开启合作新局？</h2><p>将与' + (online ? '联机' : '电脑') + '队友开始合作，并替换本地存档。</p><button class="modal-primary" data-modal="coop-new">开始合作</button><button class="modal-secondary" data-modal="close">返回等待界面</button>');
     else newGame(true);
   };
-  $('coop-home').onclick = () => { closePanel(); center(playerOwner()); };
-  $('coop-ally').onclick = () => { closePanel(); center(1 - playerOwner()); };
   function modal(html) {
     paused = true;
     $('close-modal').hidden=false;
@@ -624,7 +615,7 @@
     if(started&&!hiddenPause){const remote=!!online;
       // Advance local animation between simulation batches; stopped views only redraw when dirty.
       const animationTime=remote?guestLive():state.elapsed+(running&&!paused&&!state.over?simulationClock:0);
-      const renderKey=[state.mapSeed,state.estateSeed,state.day,animationTime,state.revision,state.phase,state.over,playerState().coins,playerState().materials,cam.x,cam.y,cam.zoom,selected?.x,selected?.y,grid,playerOwner(),remoteAt].join('|');
+      const renderKey=[state.mapSeed,state.estateSeed,state.day,animationTime,state.revision,state.phase,state.over,playerState().coins,playerState().materials,cam.x,cam.y,cam.zoom,selected?.x,selected?.y,grid,playerOwner(),remoteAt,GFArt.spriteVersion()].join('|');
       if(renderKey!==lastRenderKey&&(!renderInterval||now-lastRenderAt>=renderInterval-1)){
         GFArt.render(canvas,state,cam,selected,{grid,player:playerOwner(),online:!!online,animationTime,...(remote?{unitPosition:remotePosition}:{})});
         lastRenderKey=renderKey;lastRenderAt=now;

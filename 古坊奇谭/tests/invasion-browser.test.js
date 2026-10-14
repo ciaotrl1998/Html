@@ -48,13 +48,13 @@ const { chromium } = require('playwright');
       assert((await arrows.evaluateAll(els => els.every(el => getComputedStyle(el).pointerEvents === 'none' && getComputedStyle(el.querySelector('svg')).pointerEvents === 'none'))));
       const boxes = async () => Promise.all([0, 1, 2, 3].map(i => arrows.nth(i).boundingBox()));
       const before = await boxes(), frame = await page.locator('#game').boundingBox();
-       const timeBar = await page.locator('.daybar').boundingBox();
-       assert.equal(before[0].y - timeBar.y - timeBar.height, 8);
+       const topbar = await page.locator('.topbar').boundingBox();
+       assert.equal(before[0].y - topbar.y - topbar.height, 10);
        assert(before.every(box => box.width === 24 && box.height === 24), 'Indicators are smaller');
        assert.equal(frame.x + frame.width - before[1].x - before[1].width, 2);
        assert.equal(frame.y + frame.height - before[2].y - before[2].height, 2);
        assert.equal(before[3].x - frame.x, 2);
-       assert.equal(await page.locator('#countdown').textContent(), '');
+       assert.equal(await page.locator('.daybar').count(), 0);
        assert(await arrows.evaluateAll(els => els.every(el => {
          const style = getComputedStyle(el);
          return style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.borderTopWidth === '0px' && style.boxShadow === 'none' && el.querySelector('path').getAttribute('d') === 'M0 24L18 0L36 24Z';

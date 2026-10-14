@@ -102,7 +102,7 @@ const fs=require('node:fs'),path=require('node:path');
     assert(predicted<0,'Host responds locally before server confirmation');
     await guest.waitForFunction(({x,y})=>Gufang.state.buildings.some(b=>b.owner===0&&b.type==='tower'&&b.x===x&&b.y===y&&b.id>0),hostBuild);
     await host.locator('#menu-pause').click();
-    await guest.waitForFunction(()=>document.getElementById('coop-action').textContent.includes('暂停'));
+    assert.equal(await guest.locator('#coop-status').count(),0);
     room.state.partner.coins=room.state.partner.materials=1000;service.publish(room,true);
     await guest.waitForFunction(()=>Gufang.state.partner.materials>=1000);
     const hostMap = await host.evaluate(() => ({ seed: Gufang.state.mapSeed, width: GF.worldWidth(Gufang.state), height: GF.worldHeight(Gufang.state) }));
