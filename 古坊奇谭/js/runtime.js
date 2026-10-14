@@ -1595,9 +1595,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const b of next.buildings) if (b.owner !== owner) for (const key of progressKeys) b[key] = 0;
     return JSON.stringify(next);
   }
-  function packed(entity, group) {
+  function packed(entity, group, initial = false) {
     const row = {};
-    const keys = group === "buildings" ? Object.keys(entity) : ["id", "owner", "barracksId", "x", "y", "hp", "maxHp", "level", "baseDamage", "repelled", "slowed", "slowFactor"];
+    const keys = group === "buildings" ? Object.keys(entity) : initial ? ["id", "owner", "barracksId", "x", "y", "hp", "maxHp", "level", "baseDamage"] : ["id", "x", "y", "hp"];
     for (const key of keys) {
       if (["path", "pathRevision", "targetTile", "chaseTile"].includes(key) || group === "buildings" && (progressKeys.includes(key) || key === "cooldown")) continue;
       if (entity[key] !== void 0) row[key] = ["x", "y"].includes(key) ? Math.round(entity[key] * 1e3) / 1e3 : entity[key];
@@ -1610,7 +1610,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const key of ["buildings", "soldiers"]) {
       const before = previous[key] || /* @__PURE__ */ new Map(), after = /* @__PURE__ */ new Map(), upsert = [];
       for (const entity of s[key]) {
-        const row = packed(entity, key), text = JSON.stringify(row);
+        const initial = !before.has(entity.id), row = packed(entity, key, initial), text = JSON.stringify(packed(entity, key));
         after.set(entity.id, text);
         if (before.get(entity.id) !== text) upsert.push(row);
       }
@@ -1627,8 +1627,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!entity) {
         entity = building ? { cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 } : { path: [], pathRevision: -1 };
         result.push(entity);
-      } else if (!building) {
-        for (const key of Object.keys(entity)) if (!(key in row) && !["path", "pathRevision"].includes(key)) delete entity[key];
       }
       Object.assign(entity, clone(row));
     }
@@ -2298,7 +2296,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
-    var _a, _b;
+    var _a, _b, _c;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
@@ -2483,10 +2481,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 38 : 24, unit.boss ? 76 : 52)).sort((a, b) => a.unit.y - b.unit.y);
     let soldierMotion = soldierMotionCaches.get(s);
     if (!soldierMotion) {
-      soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map(), walking: /* @__PURE__ */ new Map() };
+      soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map(), walking: /* @__PURE__ */ new Map(), health: /* @__PURE__ */ new Map(), hitUntil: /* @__PURE__ */ new Map(), attacks: /* @__PURE__ */ new Map() };
       soldierMotionCaches.set(s, soldierMotion);
     }
     const unitById = new Map(s.soldiers.map((unit) => [unit.id, unit]));
+    for (const { unit } of units) {
+      const previousHp = soldierMotion.health.get(unit.id);
+      if (previousHp !== void 0 && unit.hp < previousHp) {
+        soldierMotion.hitUntil.set(unit.id, animationTime + 0.2);
+        if (options.online) {
+          const attacker = (_c = units.filter((item) => s.players[item.unit.owner].team !== s.players[unit.owner].team && Math.hypot(item.unit.x - unit.x, item.unit.y - unit.y) <= 0.8).sort((a, b) => Math.hypot(a.unit.x - unit.x, a.unit.y - unit.y) - Math.hypot(b.unit.x - unit.x, b.unit.y - unit.y) || a.unit.id - b.unit.id)[0]) == null ? void 0 : _c.unit;
+          if (attacker) soldierMotion.attacks.set(attacker.id, animationTime);
+        }
+      }
+      soldierMotion.health.set(unit.id, unit.hp);
+    }
     for (const { unit: e, soldier } of units) {
       const previous = soldierMotion.positions.get(e.id), goal = unitById.get(e.targetId) || e.waypoint;
       let dx = previous ? e.x - previous.x : 0, dy = previous ? e.y - previous.y : 0;
@@ -2505,10 +2514,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       soldierMotion.positions.set(e.id, { x: e.x, y: e.y });
       const bounce = walk && animationTime < walk.until && !e.repelled && !reducedMotion ? soldierWalkBounce(animationTime - walk.started) : { stretch: 0, lift: 0 };
       const faction = s.players[e.owner].team !== s.players[playerOwner].team ? "enemy" : e.owner === playerOwner ? "player" : "ally";
+      const direction = soldierMotion.facing.get(e.id) || "front", localAttack = soldierMotion.attacks.get(e.id), attackCooldown = options.online && localAttack !== void 0 ? 1 - (animationTime - localAttack) : e.attack;
+      const attackAngle = !reducedMotion && !e.repelled ? soldierAttackAngle(attackCooldown, direction) : 0, hit = animationTime < (soldierMotion.hitUntil.get(e.id) || 0);
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      soldierSprite(c, soldierAtlases[faction], e.level, soldierMotion.facing.get(e.id) || "front", soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0, bounce);
+      c.save();
+      c.rotate(attackAngle);
+      soldierSprite(c, soldierAtlases[faction], e.level, direction, soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0, bounce, hit);
+      c.restore();
       if (e.slowed > 0) ellipse(c, 0, 2, 13, 5, "#8bb7a029", "#76a08f");
       c.restore();
     }
@@ -2676,7 +2690,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const phase = (time % 0.3 + 0.3) % 0.3, amount = phase < 0.1 ? phase / 0.1 : 1 - (phase - 0.1) / 0.2, value = 2 * Math.max(0, Math.min(1, amount));
     return { stretch: value, lift: value };
   }
-  function soldierSprite(c, atlas, level, direction, fallback, time, frozen, bounce = { stretch: 0, lift: 0 }) {
+  function soldierAttackAngle(cooldown, direction) {
+    if (!(cooldown > 0 && cooldown <= 1)) return 0;
+    const elapsed = 1 - cooldown, amount = elapsed < 0.05 ? elapsed / 0.05 : elapsed < 0.1 ? 1 - (elapsed - 0.05) / 0.05 : 0, degrees = 20 * Math.max(0, amount);
+    return degrees * (direction === "left" || direction === "back" ? -1 : 1) * Math.PI / 180;
+  }
+  function soldierSprite(c, atlas, level, direction, fallback, time, frozen, bounce = { stretch: 0, lift: 0 }, hit = false) {
     if (!atlas.complete || !atlas.naturalWidth) {
       person(c, fallback, time, frozen);
       return;
@@ -2685,6 +2704,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const row = Math.floor((safeLevel - 1) / 3), col = (safeLevel - 1) % 3 * 4 + directionIndex[direction];
     c.save();
     c.imageSmoothingEnabled = false;
+    if (hit) c.filter = "brightness(0) invert(1)";
     c.drawImage(atlas, col * 20, row * 30, 20, 30, -16, -45 - bounce.stretch - bounce.lift, 32, 48 + bounce.stretch);
     c.restore();
     if (frozen) {

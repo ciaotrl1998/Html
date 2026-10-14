@@ -19,9 +19,9 @@
     for (const b of next.buildings) if (b.owner !== owner) for (const key of progressKeys) b[key] = 0;
     return JSON.stringify(next);
   }
-  function packed(entity, group) {
+  function packed(entity, group, initial = false) {
     const row = {};
-    const keys = group==='buildings'?Object.keys(entity):['id','owner','barracksId','x','y','hp','maxHp','level','baseDamage','repelled','slowed','slowFactor'];
+    const keys = group==='buildings'?Object.keys(entity):initial?['id','owner','barracksId','x','y','hp','maxHp','level','baseDamage']:['id','x','y','hp'];
     for (const key of keys) {
       if (['path', 'pathRevision', 'targetTile', 'chaseTile'].includes(key) ||
           (group === 'buildings' && (progressKeys.includes(key) || key === 'cooldown'))) continue;
@@ -35,7 +35,7 @@
     for (const key of ['buildings', 'soldiers']) {
       const before = previous[key] || new Map(), after = new Map(), upsert = [];
       for (const entity of s[key]) {
-        const row = packed(entity, key), text = JSON.stringify(row);
+        const initial=!before.has(entity.id),row=packed(entity,key,initial),text=JSON.stringify(packed(entity,key));
         after.set(entity.id, text);
         if (before.get(entity.id) !== text) upsert.push(row);
       }
@@ -52,8 +52,6 @@
       if (!entity) {
         entity = building ? { cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0 } : { path: [], pathRevision: -1 };
         result.push(entity);
-      } else if (!building) {
-        for (const key of Object.keys(entity)) if (!(key in row) && !['path', 'pathRevision'].includes(key)) delete entity[key];
       }
       Object.assign(entity, clone(row));
     }

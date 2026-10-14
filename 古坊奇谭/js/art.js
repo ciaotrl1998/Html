@@ -352,8 +352,19 @@
     // Units use their own positions, even when their barracks is offscreen.
     const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52)).sort((a,b)=>a.unit.y-b.unit.y);
     let soldierMotion=soldierMotionCaches.get(s);
-    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map()};soldierMotionCaches.set(s,soldierMotion);}
+    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map(),health:new Map(),hitUntil:new Map(),attacks:new Map()};soldierMotionCaches.set(s,soldierMotion);}
     const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
+    for(const {unit} of units){
+      const previousHp=soldierMotion.health.get(unit.id);
+      if(previousHp!==undefined&&unit.hp<previousHp){
+        soldierMotion.hitUntil.set(unit.id,animationTime+.2);
+        if(options.online){
+          const attacker=units.filter(item=>s.players[item.unit.owner].team!==s.players[unit.owner].team&&Math.hypot(item.unit.x-unit.x,item.unit.y-unit.y)<=.8).sort((a,b)=>Math.hypot(a.unit.x-unit.x,a.unit.y-unit.y)-Math.hypot(b.unit.x-unit.x,b.unit.y-unit.y)||a.unit.id-b.unit.id)[0]?.unit;
+          if(attacker)soldierMotion.attacks.set(attacker.id,animationTime);
+        }
+      }
+      soldierMotion.health.set(unit.id,unit.hp);
+    }
     for(const {unit:e,soldier} of units){
       const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||e.waypoint;
       let dx=previous?e.x-previous.x:0,dy=previous?e.y-previous.y:0;
@@ -369,8 +380,10 @@
       soldierMotion.positions.set(e.id,{x:e.x,y:e.y});
       const bounce=walk&&animationTime<walk.until&&!e.repelled&&!reducedMotion?soldierWalkBounce(animationTime-walk.started):{stretch:0,lift:0};
       const faction=s.players[e.owner].team!==s.players[playerOwner].team?'enemy':e.owner===playerOwner?'player':'ally';
+      const direction=soldierMotion.facing.get(e.id)||'front',localAttack=soldierMotion.attacks.get(e.id),attackCooldown=options.online&&localAttack!==undefined?1-(animationTime-localAttack):e.attack;
+      const attackAngle=!reducedMotion&&!e.repelled?soldierAttackAngle(attackCooldown,direction):0,hit=animationTime<(soldierMotion.hitUntil.get(e.id)||0);
       c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);
-      soldierSprite(c,soldierAtlases[faction],e.level,soldierMotion.facing.get(e.id)||'front',soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce);
+      c.save();c.rotate(attackAngle);soldierSprite(c,soldierAtlases[faction],e.level,direction,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce,hit);c.restore();
       if(e.slowed>0)ellipse(c,0,2,13,5,'#8bb7a029','#76a08f');c.restore();
     }
     // Keep health bars above all unit bodies during close combat.
@@ -446,11 +459,16 @@
     const phase=((time%.3)+.3)%.3,amount=phase<.1?phase/.1:1-(phase-.1)/.2,value=2*Math.max(0,Math.min(1,amount));
     return {stretch:value,lift:value};
   }
-  function soldierSprite(c,atlas,level,direction,fallback,time,frozen,bounce={stretch:0,lift:0}){
+  function soldierAttackAngle(cooldown,direction){
+    if(!(cooldown>0&&cooldown<=1))return 0;
+    const elapsed=1-cooldown,amount=elapsed<.05?elapsed/.05:elapsed<.1?1-(elapsed-.05)/.05:0,degrees=20*Math.max(0,amount);
+    return degrees*(direction==='left'||direction==='back'?-1:1)*Math.PI/180;
+  }
+  function soldierSprite(c,atlas,level,direction,fallback,time,frozen,bounce={stretch:0,lift:0},hit=false){
     if(!atlas.complete||!atlas.naturalWidth){person(c,fallback,time,frozen);return;}
     const directionIndex={front:0,back:1,left:2,right:3},safeLevel=Math.max(1,Math.min(9,level||1));
     const row=Math.floor((safeLevel-1)/3),col=((safeLevel-1)%3)*4+directionIndex[direction];
-    c.save();c.imageSmoothingEnabled=false;c.drawImage(atlas,col*20,row*30,20,30,-16,-45-bounce.stretch-bounce.lift,32,48+bounce.stretch);c.restore();
+    c.save();c.imageSmoothingEnabled=false;if(hit)c.filter='brightness(0) invert(1)';c.drawImage(atlas,col*20,row*30,20,30,-16,-45-bounce.stretch-bounce.lift,32,48+bounce.stretch);c.restore();
     if(frozen){ellipse(c,0,-16,14,24,null,'#e9d28d');c.fillStyle='#eddda5';c.font='8px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-43);}
   }
   function assetCanvas(width,height,paint){
