@@ -2141,6 +2141,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     canvas.width = Math.ceil(((right - left + 1) * T + 96) * scale);
     canvas.height = Math.ceil(((bottom - top + 1) * T + 96) * scale);
     const c = canvas.getContext("2d");
+    c.imageSmoothingEnabled = false;
     c.scale(scale, scale);
     c.translate(48 - left * T, 48 - top * T);
     for (let y = Math.max(0, top - 1); y <= Math.min(height - 1, bottom + 1); y++) for (let x = Math.max(0, left - 1); x <= Math.min(size - 1, right + 1); x++) {
@@ -2320,6 +2321,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
     const visible = (x, y, rx, ry = rx) => x + rx >= -cam.x / cam.zoom && x - rx <= (w - cam.x) / cam.zoom && y + ry >= -cam.y / cam.zoom && y - ry <= (h - cam.y) / cam.zoom;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.imageSmoothingEnabled = false;
     c.fillStyle = night ? "#31494a" : dusk ? "#b9b89b" : "#d5dcc5";
     c.fillRect(0, 0, w, h);
     c.save();
@@ -2401,7 +2403,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
       const buildingImage = artImage(buildingPath(b.type, b.level));
-      if (buildingImage.complete && buildingImage.naturalWidth) c.drawImage(buildingImage, -64, -96, 128, 128);
+      if (buildingImage.complete && buildingImage.naturalWidth) {
+        c.imageSmoothingEnabled = false;
+        c.drawImage(buildingImage, -64, -96, 128, 128);
+      }
       if (b.type === "shrine") {
         rect(c, -38, -57, 76, 19, s.players[b.owner].team === 1 ? "#a74e3ceb" : b.owner === options.player ? "#3d685deb" : "#597f96eb");
         c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
@@ -2478,7 +2483,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 38 : 24, unit.boss ? 76 : 52)).sort((a, b) => a.unit.y - b.unit.y);
     let soldierMotion = soldierMotionCaches.get(s);
     if (!soldierMotion) {
-      soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map() };
+      soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map(), walking: /* @__PURE__ */ new Map() };
       soldierMotionCaches.set(s, soldierMotion);
     }
     const unitById = new Map(s.soldiers.map((unit) => [unit.id, unit]));
@@ -2490,12 +2495,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         dy = goal.y - e.y;
       }
       if (Math.abs(dx) + Math.abs(dy) > 1e-3) soldierMotion.facing.set(e.id, Math.abs(dx) > Math.abs(dy) ? dx < 0 ? "left" : "right" : dy < 0 ? "back" : "front");
+      const moved = !!previous && Math.hypot(e.x - previous.x, e.y - previous.y) > 1e-4;
+      let walk = soldierMotion.walking.get(e.id);
+      if (moved && !e.repelled) {
+        if (!walk || animationTime >= walk.until) walk = { started: animationTime, until: animationTime + 0.3 };
+        else walk.until = walk.started + (Math.floor((animationTime - walk.started) / 0.3) + 1) * 0.3;
+        soldierMotion.walking.set(e.id, walk);
+      }
       soldierMotion.positions.set(e.id, { x: e.x, y: e.y });
+      const bounce = walk && animationTime < walk.until && !e.repelled && !reducedMotion ? soldierWalkBounce(animationTime - walk.started) : { stretch: 0, lift: 0 };
       const faction = s.players[e.owner].team !== s.players[playerOwner].team ? "enemy" : e.owner === playerOwner ? "player" : "ally";
       c.save();
       c.translate(e.x * T + 32, e.y * T + 32);
       if (e.boss) c.scale(1.6, 1.6);
-      soldierSprite(c, soldierAtlases[faction], e.level, soldierMotion.facing.get(e.id) || "front", soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0);
+      soldierSprite(c, soldierAtlases[faction], e.level, soldierMotion.facing.get(e.id) || "front", soldier ? "soldier" : "enemy-soldier", animationTime, e.repelled > 0, bounce);
       if (e.slowed > 0) ellipse(c, 0, 2, 13, 5, "#8bb7a029", "#76a08f");
       c.restore();
     }
@@ -2659,7 +2672,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.fillText("封", 0, -18);
     }
   }
-  function soldierSprite(c, atlas, level, direction, fallback, time, frozen) {
+  function soldierWalkBounce(time) {
+    const phase = (time % 0.3 + 0.3) % 0.3, amount = phase < 0.1 ? phase / 0.1 : 1 - (phase - 0.1) / 0.2, value = 2 * Math.max(0, Math.min(1, amount));
+    return { stretch: value, lift: value };
+  }
+  function soldierSprite(c, atlas, level, direction, fallback, time, frozen, bounce = { stretch: 0, lift: 0 }) {
     if (!atlas.complete || !atlas.naturalWidth) {
       person(c, fallback, time, frozen);
       return;
@@ -2668,7 +2685,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const row = Math.floor((safeLevel - 1) / 3), col = (safeLevel - 1) % 3 * 4 + directionIndex[direction];
     c.save();
     c.imageSmoothingEnabled = false;
-    c.drawImage(atlas, col * 20, row * 30, 20, 30, -16, -45, 32, 48);
+    c.drawImage(atlas, col * 20, row * 30, 20, 30, -16, -45 - bounce.stretch - bounce.lift, 32, 48 + bounce.stretch);
     c.restore();
     if (frozen) {
       ellipse(c, 0, -16, 14, 24, null, "#e9d28d");
@@ -2679,10 +2696,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   function assetCanvas(width, height, paint) {
+    const source = document.createElement("canvas");
+    source.width = width;
+    source.height = height;
+    paint(source.getContext("2d"));
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    paint(canvas.getContext("2d"));
+    canvas.width = canvas.height = 64;
+    const c = canvas.getContext("2d");
+    c.imageSmoothingEnabled = false;
+    c.drawImage(source, 0, 0, width, height, 0, 0, 64, 64);
+    const pixels = c.getImageData(0, 0, 64, 64);
+    for (let i = 3; i < pixels.data.length; i += 4) pixels.data[i] = pixels.data[i] < 128 ? 0 : 255;
+    c.putImageData(pixels, 0, 0);
     return canvas.toDataURL("image/png");
   }
   function paintTerrainTile(c, type) {

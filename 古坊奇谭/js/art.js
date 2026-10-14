@@ -153,7 +153,7 @@
   }
   function makeGround(s,occupied,left,top,right,bottom,scale){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
-    const canvas=document.createElement('canvas');canvas.width=Math.ceil(((right-left+1)*T+96)*scale);canvas.height=Math.ceil(((bottom-top+1)*T+96)*scale);const c=canvas.getContext('2d');c.scale(scale,scale);c.translate(48-left*T,48-top*T);
+    const canvas=document.createElement('canvas');canvas.width=Math.ceil(((right-left+1)*T+96)*scale);canvas.height=Math.ceil(((bottom-top+1)*T+96)*scale);const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.scale(scale,scale);c.translate(48-left*T,48-top*T);
     for(let y=Math.max(0,top-1);y<=Math.min(height-1,bottom+1);y++)for(let x=Math.max(0,left-1);x<=Math.min(size-1,right+1);x++){
       const type=GF.terrain(x,y,s),px=x*T,py=y*T,image=artImage(`assets/tiles/terrain/${type}.png`);
       if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
@@ -292,6 +292,7 @@
     const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
     const visible=(x,y,rx,ry=rx)=>x+rx>=-cam.x/cam.zoom&&x-rx<=(w-cam.x)/cam.zoom&&y+ry>=-cam.y/cam.zoom&&y-ry<=(h-cam.y)/cam.zoom;
     c.setTransform(dpr,0,0,dpr,0,0);
+    c.imageSmoothingEnabled=false;
     c.fillStyle=night?'#31494a':dusk?'#b9b89b':'#d5dcc5';c.fillRect(0,0,w,h);
     c.save();c.translate(cam.x,cam.y);c.scale(cam.zoom,cam.zoom);
     // Soft ink mountain silhouettes outside the map.
@@ -329,7 +330,7 @@
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
       const buildingImage=artImage(buildingPath(b.type,b.level));
-      if(buildingImage.complete&&buildingImage.naturalWidth)c.drawImage(buildingImage,-64,-96,128,128);
+      if(buildingImage.complete&&buildingImage.naturalWidth){c.imageSmoothingEnabled=false;c.drawImage(buildingImage,-64,-96,128,128);}
       if(b.type==='shrine'){rect(c,-38,-57,76,19,s.players[b.owner].team===1?'#a74e3ceb':b.owner===options.player?'#3d685deb':'#597f96eb');c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
       if(b.type==='gate'){
         if(b.hp<=0){poly(c,[[-16,-6],[-5,1],[-10,20],[12,20],[5,4],[17,-6]],'#34443bee');line(c,[[-14,17],[-3,9],[10,21]],'#b19872',3);c.font='bold 11px "Microsoft YaHei",sans-serif';c.textAlign='center';rect(c,-19,-19,38,15,'#714a3be8');c.fillStyle='#ffe0b0';c.fillText('毁损',0,-8);}
@@ -351,17 +352,25 @@
     // Units use their own positions, even when their barracks is offscreen.
     const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52)).sort((a,b)=>a.unit.y-b.unit.y);
     let soldierMotion=soldierMotionCaches.get(s);
-    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map()};soldierMotionCaches.set(s,soldierMotion);}
+    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map()};soldierMotionCaches.set(s,soldierMotion);}
     const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
     for(const {unit:e,soldier} of units){
       const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||e.waypoint;
       let dx=previous?e.x-previous.x:0,dy=previous?e.y-previous.y:0;
       if(Math.abs(dx)+Math.abs(dy)<=.001&&goal){dx=goal.x-e.x;dy=goal.y-e.y;}
       if(Math.abs(dx)+Math.abs(dy)>.001)soldierMotion.facing.set(e.id,Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'back':'front'));
+      const moved=!!previous&&Math.hypot(e.x-previous.x,e.y-previous.y)>.0001;
+      let walk=soldierMotion.walking.get(e.id);
+      if(moved&&!e.repelled){
+        if(!walk||animationTime>=walk.until)walk={started:animationTime,until:animationTime+.3};
+        else walk.until=walk.started+(Math.floor((animationTime-walk.started)/.3)+1)*.3;
+        soldierMotion.walking.set(e.id,walk);
+      }
       soldierMotion.positions.set(e.id,{x:e.x,y:e.y});
+      const bounce=walk&&animationTime<walk.until&&!e.repelled&&!reducedMotion?soldierWalkBounce(animationTime-walk.started):{stretch:0,lift:0};
       const faction=s.players[e.owner].team!==s.players[playerOwner].team?'enemy':e.owner===playerOwner?'player':'ally';
       c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);
-      soldierSprite(c,soldierAtlases[faction],e.level,soldierMotion.facing.get(e.id)||'front',soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0);
+      soldierSprite(c,soldierAtlases[faction],e.level,soldierMotion.facing.get(e.id)||'front',soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce);
       if(e.slowed>0)ellipse(c,0,2,13,5,'#8bb7a029','#76a08f');c.restore();
     }
     // Keep health bars above all unit bodies during close combat.
@@ -433,14 +442,22 @@
     else {const color=type==='ghost'?'#849b9c':type==='soldier'?'#4f8b9a':'#b75548';poly(c,[[-5,-3+bob],[5,-3+bob],[8,9],[-7,9]],color,'#52605b');ellipse(c,0,-8+bob,4.5,5,type==='ghost'?'#b4c8bb':'#c6b592');rect(c,-5,-13+bob,10,3,type==='soldier'?'#32677c':'#8c3f35');line(c,[[-3,9],[-4,14+bob]],'#4c5851',2);line(c,[[3,9],[5,14-bob]],'#4c5851',2);line(c,[[7,1],[10,-11]],type==='ghost'?'#a5c3b5':'#bec1a7',2);}
     if(frozen){ellipse(c,0,-1,14,19,null,'#e9d28d');c.fillStyle='#eddda5';c.font='10px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-18);}
   }
-  function soldierSprite(c,atlas,level,direction,fallback,time,frozen){
+  function soldierWalkBounce(time){
+    const phase=((time%.3)+.3)%.3,amount=phase<.1?phase/.1:1-(phase-.1)/.2,value=2*Math.max(0,Math.min(1,amount));
+    return {stretch:value,lift:value};
+  }
+  function soldierSprite(c,atlas,level,direction,fallback,time,frozen,bounce={stretch:0,lift:0}){
     if(!atlas.complete||!atlas.naturalWidth){person(c,fallback,time,frozen);return;}
     const directionIndex={front:0,back:1,left:2,right:3},safeLevel=Math.max(1,Math.min(9,level||1));
     const row=Math.floor((safeLevel-1)/3),col=((safeLevel-1)%3)*4+directionIndex[direction];
-    c.save();c.imageSmoothingEnabled=false;c.drawImage(atlas,col*20,row*30,20,30,-16,-45,32,48);c.restore();
+    c.save();c.imageSmoothingEnabled=false;c.drawImage(atlas,col*20,row*30,20,30,-16,-45-bounce.stretch-bounce.lift,32,48+bounce.stretch);c.restore();
     if(frozen){ellipse(c,0,-16,14,24,null,'#e9d28d');c.fillStyle='#eddda5';c.font='8px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-43);}
   }
-  function assetCanvas(width,height,paint){const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;paint(canvas.getContext('2d'));return canvas.toDataURL('image/png');}
+  function assetCanvas(width,height,paint){
+    const source=document.createElement('canvas');source.width=width;source.height=height;paint(source.getContext('2d'));
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.drawImage(source,0,0,width,height,0,0,64,64);
+    const pixels=c.getImageData(0,0,64,64);for(let i=3;i<pixels.data.length;i+=4)pixels.data[i]=pixels.data[i]<128?0:255;c.putImageData(pixels,0,0);return canvas.toDataURL('image/png');
+  }
   function paintTerrainTile(c,type){
     rect(c,0,0,T,T,palette[type]);
     for(let j=0;j<9;j++){const gx=noise(3,7,j+2)*60+2,gy=noise(7,3,j+31)*60+2;if(type==='water')line(c,[[gx-3,gy],[gx+4,gy]],'#d1e1c65c',.8);else if(type==='shore')ellipse(c,gx,gy,1.2,.7,'#9eaa873f');else line(c,[[gx-2,gy-2],[gx,gy+1],[gx+2,gy-3]],'#81986238',.8);}
