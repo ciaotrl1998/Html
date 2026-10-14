@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
 const G = require('../js/game.js');
-const KEY = 'gufang-qitan-match-v8';
+const KEY = 'gufang-qitan-match-v9';
 const layoutFailures=[];
 const shots = process.env.GUFANG_SHOTS || path.join(os.tmpdir(), 'gufang-screenshots');
 fs.mkdirSync(shots, { recursive: true });
@@ -50,9 +50,19 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       await page.screenshot({ path:path.join(shots, `start-menu-${viewport.width}.png`) });
       await page.reload(); await page.waitForFunction(() => !!window.Gufang);
       assert.equal(await page.locator('#start-sound').getAttribute('aria-checked'), 'true', 'Enabled sound survives reload');
+      await page.locator('#start-coop').click();
+      assert.deepEqual(await page.locator('#coop-difficulty option').evaluateAll(options=>options.map(option=>[option.value,option.textContent])),[['beginner','入门'],['hard','困难'],['extreme','极难'],['hell','地狱']]);
+      await page.locator('#coop-difficulty').selectOption('hell');
+      const coopLayout=await page.locator('#coop-lobby').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,height:el.clientHeight,scrollHeight:el.scrollHeight}));
+      assert.equal(coopLayout.width,coopLayout.scroll);
+      try{assert.equal(coopLayout.height,coopLayout.scrollHeight,'Coop settings fit the portrait viewport');}
+      catch(error){layoutFailures.push(`coop ${viewport.width}x${viewport.height}: ${error.message}; ${JSON.stringify(coopLayout)}`);}
+      await page.screenshot({path:path.join(shots,`coop-settings-${viewport.width}.png`)});
+      await page.locator('#coop-back').click();
       await page.locator('#start-single').click();
       assert(await page.locator('#single-settings').isVisible());
-      assert.equal(await page.locator('.fixed-difficulty strong').first().textContent(), '正常标准经营与攻防节奏');
+      assert.deepEqual(await page.locator('input[name="single-difficulty"]').evaluateAll(inputs=>inputs.map(input=>[input.value,input.checked])),[['beginner',true],['hard',false],['extreme',false],['hell',false]]);
+      assert.deepEqual(await page.locator('.difficulty-segments label').evaluateAll(labels=>labels.map(label=>label.innerText.trim())),['入门','困难','极难','地狱']);
       const settingsLayout = await page.locator('#single-settings').evaluate(el => ({ width:el.clientWidth, scroll:el.scrollWidth, height:el.clientHeight, scrollHeight:el.scrollHeight }));
       assert.equal(settingsLayout.width, settingsLayout.scroll);
       try { assert.equal(settingsLayout.height, settingsLayout.scrollHeight, 'Settings fit the portrait viewport'); }
@@ -60,11 +70,13 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       await page.locator('input[name="single-enemies"][value="3"]').check();
       assert(await page.locator('input[name="single-enemies"][value="3"]').isChecked());
       await page.locator('input[name="single-enemies"][value="1"]').check();
+      await page.locator('input[name="single-difficulty"][value="hell"]').check();
       await page.screenshot({ path:path.join(shots, `single-settings-${viewport.width}.png`) });
       await page.locator('#single-start').click();
       assert(await page.locator('#start-menu').isHidden());
       assert(await page.locator('#single-settings').isHidden());
       assert.equal(await page.evaluate(() => GF.playerView(Gufang.state).selectedSkill), null);
+      assert.equal(await page.evaluate(() => Gufang.state.difficulty), 'hell');
       assert.equal(await page.evaluate(() => Gufang.paused), true);
       assert.equal(await page.locator('[data-modal="choose-skill"]:visible').count(), 3);
       assert(await page.locator('#close-modal').isHidden());
@@ -113,6 +125,7 @@ async function sourceContext(context) { await context.route('**/js/runtime.js', 
       await page.locator('#start-load').click();
       await page.locator('#menu-pause').click();
       assert.equal(await page.evaluate(() => Gufang.state.mapSeed), JSON.parse(save).mapSeed);
+      assert.equal(await page.locator('#modal-content p', {hasText:'难度 地狱'}).count(),1);
       await page.locator('[data-modal="title"]').click();
       await page.locator('#start-single').click();
       await page.locator('#single-start').click();

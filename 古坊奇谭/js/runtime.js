@@ -475,6 +475,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") }
   ];
   const VERSION = 9, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
+  const DIFFICULTIES = Object.freeze({
+    beginner: Object.freeze({ id: "beginner", name: "入门", economy: 1, soldier: 1 }),
+    hard: Object.freeze({ id: "hard", name: "困难", economy: 1.2, soldier: 1.1 }),
+    extreme: Object.freeze({ id: "extreme", name: "极难", economy: 1.5, soldier: 1.25 }),
+    hell: Object.freeze({ id: "hell", name: "地狱", economy: 2, soldier: 1.5 })
+  });
   const world = (s) => s._world || s;
   const inside = (x, y, s) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < worldWidth(s) && y < worldHeight(s);
   const dist8 = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -560,8 +566,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const cells = map(s).terrain, base = cells[y * worldWidth(s) + x];
     return base === "plain" && NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy, s) && cells[(y + dy) * worldWidth(s) + x + dx] === "water") ? "shore" : base;
   }
-  function createMatch({ mode = "single", enemyCount = mode === "coop" ? 2 : 1, mapSeed = Math.floor(Math.random() * 4294967296), rotation } = {}) {
+  function createMatch({ mode = "single", enemyCount = mode === "coop" ? 2 : 1, difficulty = "beginner", mapSeed = Math.floor(Math.random() * 4294967296), rotation } = {}) {
     if (!["single", "coop"].includes(mode) || !(mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(enemyCount)) throw new Error("Invalid match configuration");
+    if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, difficulty)) throw new Error("Invalid difficulty");
     if (!Number.isInteger(mapSeed) || mapSeed < 0 || mapSeed > 4294967295) throw new Error("Invalid map seed");
     rotation != null ? rotation : rotation = mapSeed % 4;
     if (![0, 1, 2, 3].includes(rotation)) throw new Error("Invalid rotation");
@@ -570,6 +577,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       version: VERSION,
       mode,
       enemyCount,
+      difficulty,
       mapSeed,
       rotation,
       mapGeneration: 3,
@@ -646,6 +654,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
   const soldierRate = (b) => 1 / 5 + (b.level - 1) / 24;
+  function difficultyModifiers(s) {
+    const p = economicView(s), d = DIFFICULTIES[world(s).difficulty] || DIFFICULTIES.beginner;
+    return p.team === 1 && p.controller === "computer" ? d : DIFFICULTIES.beginner;
+  }
+  const difficultyEconomy = (s) => difficultyModifiers(s).economy;
+  const difficultySoldier = (s) => difficultyModifiers(s).soldier;
   function soldierBoost(s) {
     return 1 + 0.1 * Math.max(0, shrineLevel(s) - 1);
   }
@@ -654,9 +668,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       b = s;
       return Math.round(44 * hpFactor(b));
     }
-    return Math.round(44 * hpFactor(b) * soldierBoost(s));
+    return Math.round(44 * hpFactor(b) * soldierBoost(s) * difficultySoldier(s));
   }
-  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s) * soldierBoost(s);
+  const soldierDamage = (s, b) => 18 * factor(b) * defenseBoost(s) * soldierBoost(s) * difficultySoldier(s);
   const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(s, b) * soldierDamage(s, b)));
   function syncSoldierHealth(s) {
     for (const u of s.soldiers) {
@@ -930,7 +944,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (n.type === "well" && b.type === "farm") bonus += DEFS.well.farmAura * auraFactor(n);
       if (d.radius && dist <= d.radius && isPrereq(d, nd)) bonus += 0.1 * auraFactor(n);
     }
-    return d.income * incomeFactor(b) * (1 + Math.min(2, bonus));
+    return d.income * incomeFactor(b) * (1 + Math.min(2, bonus)) * difficultyEconomy(s);
   }
   const rates = (s) => economicView(s).buildings.reduce((r, b) => {
     const d = DEFS[b.type];
@@ -941,7 +955,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function settleIncome(s, dt, emitEffects = true) {
     var _a;
     const w = world(s), buildings = w.buildings;
-    const signature = JSON.stringify([w.mode, buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
+    const signature = JSON.stringify([w.mode, w.difficulty, w.players.map((p) => [p.team, p.controller]), buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let cached = incomeCache.get(w);
     const sameBuildings = ((_a = cached == null ? void 0 : cached.buildings) == null ? void 0 : _a.length) === buildings.length && buildings.every((b, i) => cached.buildings[i] === b);
     if (!sameBuildings || cached.signature !== signature) {
@@ -1217,7 +1231,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function combat(s, dt) {
     var _a, _b;
-    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id))), armyBoost = s.players.map((p, i) => boost[i] * soldierBoost(playerView(s, p.id)));
+    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id))), armyBoost = s.players.map((p, i) => boost[i] * soldierBoost(playerView(s, p.id)) * difficultySoldier(playerView(s, p.id)));
     for (const p of s.projectiles) {
       p.life -= dt;
       const target = grid.byId.get(p.targetId);
@@ -1413,6 +1427,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     try {
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
       if (!s || s.version !== VERSION || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
+      if (!Object.prototype.hasOwnProperty.call(s, "difficulty")) s.difficulty = "beginner";
+      if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, s.difficulty)) return null;
       if (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295 || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;
       const [width, height] = Maps.dimensions(s.mode, s.enemyCount), blue = s.mode === "coop" ? 2 : 1;
       if (s.worldSize !== (s.rotation % 2 ? height : width) || s.worldHeight !== (s.rotation % 2 ? width : height) || !finite(s.elapsed) || !Number.isInteger(s.nextId) || s.nextId < 1 || !Number.isInteger(s.revision) || s.revision < 0 || typeof s.over !== "boolean" || ![null, "victory", "defeat", "draw"].includes(s.result) || !finite(s.kills)) return null;
@@ -1466,6 +1482,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     VERSION,
     UNIT_CAP,
     SOLDIER_SPEED,
+    DIFFICULTIES,
     createMatch,
     createState,
     createCoopState,
@@ -1516,6 +1533,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     unlockedBuildingLevel,
     maxHP,
     soldierRate,
+    difficultyModifiers,
+    difficultyEconomy,
+    difficultySoldier,
     soldierBoost,
     soldierHP,
     soldierDamage,
@@ -3115,6 +3135,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const playerOwner = () => (online == null ? void 0 : online.role) === "guest" ? 1 : 0;
   const playerState = () => GF.playerView(state, playerOwner());
+  const difficultyName = (value) => {
+    var _a;
+    return ((_a = GF.DIFFICULTIES[value]) == null ? void 0 : _a.name) || GF.DIFFICULTIES.beginner.name;
+  };
   const onlineSend = (message) => {
     var _a;
     if (((_a = online == null ? void 0 : online.socket) == null ? void 0 : _a.readyState) === WebSocket.OPEN) online.socket.send(JSON.stringify(message));
@@ -3233,7 +3257,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
     online = { kind: "server", socket, role: kind === "create" ? "host" : "guest", code, peerConnected: false, started: false, serverPaused: true };
     socket.onopen = () => {
-      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code, enemyCount: Number($("coop-enemies").value) });
+      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code, enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value });
     };
     socket.onmessage = (event) => {
       if ((online == null ? void 0 : online.socket) !== socket) return;
@@ -3245,11 +3269,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       if (message.type === "settings") {
         $("coop-enemies").value = String(message.enemyCount);
+        $("coop-difficulty").value = message.difficulty;
         updateCoopSeat();
         return;
       }
       if (message.type === "created" || message.type === "joined") {
         $("coop-enemies").value = String(message.enemyCount);
+        $("coop-difficulty").value = message.difficulty;
         online.code = message.code;
         online.peerConnected = message.type === "created" ? false : true;
         $("coop-code").value = message.code;
@@ -3730,7 +3756,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function updateStartMenu() {
     const loaded = readSave();
     $("start-load").disabled = !loaded;
-    $("start-save-detail").textContent = loaded ? duration(loaded.elapsed) + " · " + loaded.enemyCount + "个敌庄" + (loaded.over ? " · 已结束" : " · 继续对局") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
+    $("start-save-detail").textContent = loaded ? duration(loaded.elapsed) + " · " + loaded.enemyCount + "个敌庄 · " + difficultyName(loaded.difficulty) + (loaded.over ? " · 已结束" : " · 继续对局") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
     updateSound();
   }
   function showStartMenu() {
@@ -3810,6 +3836,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("coop-seat").setAttribute("aria-pressed", String(computerSeat));
     $("coop-seat").disabled = !!online;
     $("coop-enemies").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
+    $("coop-difficulty").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
     $("coop-seat").classList.toggle("is-ready", computerSeat || linked || joining);
     $("coop-avatar").textContent = computerSeat ? "智" : linked || joining ? "友" : "候";
     $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : linked || joining ? "联机队友<small>已加入房间</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
@@ -3842,9 +3869,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     computerSeat = false;
     connectOnline("join", code);
   };
-  $("coop-enemies").onchange = () => {
-    if ((online == null ? void 0 : online.role) === "host") onlineSend({ type: "settings", enemyCount: Number($("coop-enemies").value) });
-  };
+  function sendCoopSettings() {
+    if ((online == null ? void 0 : online.role) === "host") onlineSend({ type: "settings", enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value });
+  }
+  $("coop-enemies").onchange = sendCoopSettings;
+  $("coop-difficulty").onchange = sendCoopSettings;
   $("coop-back").onclick = showStartMenu;
   $("coop-start").onclick = () => {
     if (!computerSeat && !((online == null ? void 0 : online.role) === "host" && online.peerConnected)) return;
@@ -3891,10 +3920,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function showMenu() {
     if (!started) return;
     if ((online == null ? void 0 : online.role) === "guest") {
-      modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
+      modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + " · 难度 " + difficultyName(state.difficulty) + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
       return;
     }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + " · 难度 " + difficultyName(state.difficulty) + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
   }
   function autoplaySettings() {
     const r = pilot == null ? void 0 : pilot.report(), seconds = Math.floor((r == null ? void 0 : r.activeSeconds) || 0);
@@ -3930,8 +3959,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     const selectedEnemies = document.querySelector('input[name="single-enemies"]:checked');
+    const selectedDifficulty = document.querySelector('input[name="single-difficulty"]:checked');
     const enemyCount = started && state.mode === (coop ? "coop" : "single") ? state.enemyCount : Number(coop ? $("coop-enemies").value : (selectedEnemies == null ? void 0 : selectedEnemies.value) || 1);
-    enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount }));
+    const difficulty = started && state.mode === (coop ? "coop" : "single") ? state.difficulty : coop ? $("coop-difficulty").value : (selectedDifficulty == null ? void 0 : selectedDifficulty.value) || "beginner";
+    enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount, difficulty }));
     save();
   }
   function downloadSave(raw) {

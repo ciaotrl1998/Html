@@ -75,7 +75,7 @@ function createServer() {
       snapshot: Network.snapshot(room.state, ownerOf(socket)), paused: isPaused(room) });
   }
   function start(room) {
-    room.state=G.createMatch({mode:'coop',enemyCount:room.enemyCount});room.state.players[1].controller='human';room.state.players[1].selectedSkill=null;room.started=true;
+    room.state=G.createMatch({mode:'coop',enemyCount:room.enemyCount,difficulty:room.difficulty});room.state.players[1].controller='human';room.state.players[1].selectedSkill=null;room.started=true;
     room.session++; room.seq = 0; room.previous = Network.delta(room.state).next;
     room.effects = []; room.projectiles = []; room.events = [];
     room.seenEffects = new WeakSet(); room.seenProjectiles = new WeakSet(); room.visualId = 0;
@@ -128,13 +128,15 @@ function createServer() {
       catch { send(socket, { type: 'error', message: '消息格式无效' }); return; }
       if (!message || typeof message !== 'object' || typeof message.type !== 'string') return;
       if (message.type === 'create') {
+        const difficulty=message.difficulty===undefined?'beginner':message.difficulty;
+        if(!Object.prototype.hasOwnProperty.call(G.DIFFICULTIES,difficulty)){send(socket,{type:'error',message:'难度设置无效'});return;}
         leave(socket);
         let code;
         do { code = String(randomInt(100000, 1000000)); } while (rooms.has(code));
-        const room = { code, host: socket, guest: null, started: false, session: 0, enemyCount:[2,4,6].includes(message.enemyCount)?message.enemyCount:2 };
+        const room = { code, host: socket, guest: null, started: false, session: 0, enemyCount:[2,4,6].includes(message.enemyCount)?message.enemyCount:2, difficulty };
         rooms.set(code, room); socket.room = room; socket.role = 'host';
         socket.lastAction = 0; socket.paused = false; socket.hidden = false;
-        send(socket, { type: 'created', code, enemyCount:room.enemyCount });
+        send(socket, { type: 'created', code, enemyCount:room.enemyCount, difficulty:room.difficulty });
       } else if (message.type === 'join') {
         leave(socket);
         const code = String(message.code || '').trim(), room = rooms.get(code);
@@ -143,10 +145,13 @@ function createServer() {
         }
         room.guest = socket; socket.room = room; socket.role = 'guest';
         socket.lastAction = 0; socket.paused = false; socket.hidden = false;
-        send(socket, { type: 'joined', code, enemyCount:room.enemyCount }); send(room.host, { type: 'peer_joined' });
+        send(socket, { type: 'joined', code, enemyCount:room.enemyCount, difficulty:room.difficulty }); send(room.host, { type: 'peer_joined' });
         if (room.started) { checkpoint(socket); publish(room, true); }
-      } else if(message.type==='settings'&&socket.role==='host'&&!socket.room?.started&&[2,4,6].includes(message.enemyCount)){
-        socket.room.enemyCount=message.enemyCount;for(const peer of participants(socket.room))send(peer,{type:'settings',enemyCount:message.enemyCount});
+      } else if(message.type==='settings'&&socket.role==='host'&&!socket.room?.started){
+        const room=socket.room,difficulty=message.difficulty===undefined?room.difficulty:message.difficulty;
+        if(![2,4,6].includes(message.enemyCount)||!Object.prototype.hasOwnProperty.call(G.DIFFICULTIES,difficulty)){send(socket,{type:'error',message:'房间设置无效'});return;}
+        room.enemyCount=message.enemyCount;room.difficulty=difficulty;
+        for(const peer of participants(room))send(peer,{type:'settings',enemyCount:room.enemyCount,difficulty:room.difficulty});
       } else if (message.type === 'start' && socket.role === 'host' && socket.room?.guest) {
         start(socket.room);
       } else if (message.type === 'action') action(socket, message);

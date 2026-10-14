@@ -29,6 +29,7 @@
   }
   const playerOwner = () => online?.role === 'guest' ? 1 : 0;
   const playerState = () => GF.playerView(state, playerOwner());
+  const difficultyName = value => GF.DIFFICULTIES[value]?.name || GF.DIFFICULTIES.beginner.name;
   const onlineSend = message => { if (online?.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); };
   function sendPresence() {
     if (!online || !replica || online.awaitingState || !started) return;
@@ -95,13 +96,14 @@
     leaveOnline();
     const socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     online = { kind:'server', socket, role: kind === 'create' ? 'host' : 'guest', code, peerConnected: false, started: false, serverPaused: true };
-    socket.onopen = () => { if (online?.socket === socket) onlineSend({ type: kind, code, enemyCount:Number($('coop-enemies').value) }); };
+    socket.onopen = () => { if (online?.socket === socket) onlineSend({ type: kind, code, enemyCount:Number($('coop-enemies').value), difficulty:$('coop-difficulty').value }); };
     socket.onmessage = event => {
       if (online?.socket !== socket) return;
       let message; try { message = JSON.parse(event.data); } catch { return; }
-      if(message.type==='settings'){$('coop-enemies').value=String(message.enemyCount);updateCoopSeat();return;}
+      if(message.type==='settings'){$('coop-enemies').value=String(message.enemyCount);$('coop-difficulty').value=message.difficulty;updateCoopSeat();return;}
       if (message.type === 'created' || message.type === 'joined') {
         $('coop-enemies').value=String(message.enemyCount);
+        $('coop-difficulty').value=message.difficulty;
         online.code = message.code; online.peerConnected = message.type === 'created' ? false : true;
         $('coop-code').value = message.code; $('coop-code').readOnly = true; updateCoopSeat();
         toast(message.type === 'created' ? '主机已创建，配对码 ' + message.code : '已加入房间，等待主机开始');
@@ -400,7 +402,7 @@
   function updateStartMenu() {
     const loaded = readSave();
     $('start-load').disabled = !loaded;
-    $('start-save-detail').textContent = loaded ? duration(loaded.elapsed)+' · '+loaded.enemyCount+'个敌庄'+(loaded.over?' · 已结束':' · 继续对局') : storageWarning ? '本地存档不可用' : saved ? '存档损坏或版本不兼容' : '暂无本地存档';
+    $('start-save-detail').textContent = loaded ? duration(loaded.elapsed)+' · '+loaded.enemyCount+'个敌庄 · '+difficultyName(loaded.difficulty)+(loaded.over?' · 已结束':' · 继续对局') : storageWarning ? '本地存档不可用' : saved ? '存档损坏或版本不兼容' : '暂无本地存档';
     updateSound();
   }
   function showStartMenu() {
@@ -451,6 +453,7 @@
     $('coop-seat').setAttribute('aria-pressed', String(computerSeat));
     $('coop-seat').disabled = !!online;
     $('coop-enemies').disabled=online?.role==='guest'||!!online?.started;
+    $('coop-difficulty').disabled=online?.role==='guest'||!!online?.started;
     $('coop-seat').classList.toggle('is-ready', computerSeat || linked || joining);
     $('coop-avatar').textContent = computerSeat ? '智' : linked || joining ? '友' : '候';
     $('coop-seat-title').innerHTML = computerSeat ? '电脑队友<small>已就绪 · 点击切换为等待玩家</small>' : linked || joining ? '联机队友<small>已加入房间</small>' : '等待其它玩家<small>点击席位，切换为电脑</small>';
@@ -464,7 +467,9 @@
   $('coop-seat').onclick = () => { if (online) return; computerSeat = !computerSeat; updateCoopSeat(); };
   $('coop-host').onclick = () => { computerSeat = false; connectOnline('create'); };
   $('coop-join').onclick = () => { const code = $('coop-code').value.trim(); if (!/^\d{6}$/.test(code)) return toast('请输入六位房号', 'warning'); computerSeat = false; connectOnline('join', code); };
-  $('coop-enemies').onchange=()=>{if(online?.role==='host')onlineSend({type:'settings',enemyCount:Number($('coop-enemies').value)});};
+  function sendCoopSettings(){if(online?.role==='host')onlineSend({type:'settings',enemyCount:Number($('coop-enemies').value),difficulty:$('coop-difficulty').value});}
+  $('coop-enemies').onchange=sendCoopSettings;
+  $('coop-difficulty').onchange=sendCoopSettings;
   $('coop-back').onclick = showStartMenu;
   $('coop-start').onclick = () => {
     if (!computerSeat && !(online?.role === 'host' && online.peerConnected)) return;
@@ -493,8 +498,8 @@
   $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
   function showMenu() {
     if (!started) return;
-    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
+    if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 难度 ' + difficultyName(state.difficulty) + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
+    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + ' · 难度 ' + difficultyName(state.difficulty) + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
   }
   function autoplaySettings() {
     const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
@@ -514,8 +519,10 @@
   function newGame(coop = started && state.mode === 'coop'){
     if(online){if(online.role==='host'){online.awaitingState=true;onlineSend({type:'start'});}return;}
     const selectedEnemies=document.querySelector('input[name="single-enemies"]:checked');
+    const selectedDifficulty=document.querySelector('input[name="single-difficulty"]:checked');
     const enemyCount=started&&state.mode===(coop?'coop':'single')?state.enemyCount:Number(coop?$('coop-enemies').value:selectedEnemies?.value||1);
-    enterGame(GF.createMatch({mode:coop?'coop':'single',enemyCount}));save();
+    const difficulty=started&&state.mode===(coop?'coop':'single')?state.difficulty:(coop?$('coop-difficulty').value:selectedDifficulty?.value||'beginner');
+    enterGame(GF.createMatch({mode:coop?'coop':'single',enemyCount,difficulty}));save();
   }
   function downloadSave(raw) {
     const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');

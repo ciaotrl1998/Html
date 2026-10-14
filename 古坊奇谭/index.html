@@ -46,7 +46,12 @@
           <label><input type="radio" name="single-enemies" value="3"><span><strong>3</strong><small>座</small></span></label>
           <label><input type="radio" name="single-enemies" value="4"><span><strong>4</strong><small>座</small></span></label>
         </div></fieldset>
-        <fieldset class="setting-group"><legend>对局难度</legend><p>当前版本使用统一的标准规则。</p><div class="fixed-difficulty"><span aria-hidden="true">衡</span><strong>正常<small>标准经营与攻防节奏</small></strong></div></fieldset>
+        <fieldset class="setting-group"><legend>对局难度</legend><p>选择本局挑战强度。</p><div class="setting-segments difficulty-segments">
+          <label><input type="radio" name="single-difficulty" value="beginner" checked><span><strong>入门</strong></span></label>
+          <label><input type="radio" name="single-difficulty" value="hard"><span><strong>困难</strong></span></label>
+          <label><input type="radio" name="single-difficulty" value="extreme"><span><strong>极难</strong></span></label>
+          <label><input type="radio" name="single-difficulty" value="hell"><span><strong>地狱</strong></span></label>
+        </div></fieldset>
       </div>
       <div class="settings-actions"><button id="single-start" class="modal-primary">开始游戏</button><button id="single-back" class="modal-secondary">返回开始菜单</button><p>开始新局将替换本地进度</p></div>
     </section>
@@ -58,7 +63,7 @@
         <div class="coop-divider" aria-hidden="true"><span>◇</span> 同守一方烟火 <span>◇</span></div>
         <button id="coop-seat" class="coop-seat" aria-pressed="false"><span id="coop-avatar" class="coop-avatar">候</span><strong id="coop-seat-title">等待其它玩家<small>点击席位，切换为电脑</small></strong><span class="coop-seat-switch" aria-hidden="true">⇄</span></button>
       </div>
-      <div class="lobby-settings"><label class="enemy-setting" for="coop-enemies">敌方庄园<select id="coop-enemies"><option value="2">2 座</option><option value="4">4 座</option><option value="6">6 座</option></select></label><div class="enemy-setting fixed-setting"><span>对局难度</span><strong>正常</strong></div></div><div class="coop-connect">
+      <div class="lobby-settings"><label class="enemy-setting" for="coop-enemies">敌方庄园<select id="coop-enemies"><option value="2">2 座</option><option value="4">4 座</option><option value="6">6 座</option></select></label><label class="enemy-setting difficulty-setting" for="coop-difficulty">对局难度<select id="coop-difficulty"><option value="beginner">入门</option><option value="hard">困难</option><option value="extreme">极难</option><option value="hell">地狱</option></select></label></div><div class="coop-connect">
         <div class="coop-connect-actions"><button id="coop-host" class="modal-secondary">创建主机</button><button id="coop-join" class="modal-secondary">加入主机</button></div>
         <input id="coop-code" class="coop-code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" aria-label="六位房间号" placeholder="输入 6 位房号" autocomplete="off" spellcheck="false">
       </div>

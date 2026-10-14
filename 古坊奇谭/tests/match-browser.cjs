@@ -15,10 +15,10 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
    await c.addInitScript(()=>{localStorage.setItem('gufang-qitan-save-v1','old');localStorage.setItem('gufang-qitan-save-v1-backup','backup');});
    const p=await c.newPage();await p.goto(address);
    assert.deepEqual(await p.evaluate(()=>[localStorage.getItem('gufang-qitan-save-v1'),localStorage.getItem('gufang-qitan-save-v1-backup')]),[null,null]);
-   await p.locator('#start-single').click();await p.locator('input[name="single-enemies"][value="4"]').check();await p.locator('#single-start').click();await p.locator('[data-choice="thunder"]').click();
-   assert.equal(await p.evaluate(()=>Gufang.state.enemyCount),4);
+   await p.locator('#start-single').click();await p.locator('input[name="single-enemies"][value="4"]').check();await p.locator('input[name="single-difficulty"][value="hard"]').check();await p.locator('#single-start').click();await p.locator('[data-choice="thunder"]').click();
+   assert.deepEqual(await p.evaluate(()=>[Gufang.state.enemyCount,Gufang.state.difficulty]),[4,'hard']);
    const skill=p.locator('[data-skill="thunder"]'),before=await skill.boundingBox();assert(before);
-   const plot=await p.evaluate(()=>{const s=Gufang.state,v=GF.playerView(s),h=GF.estate(v).center;const k=[...GF.estate(v).cells].map(k=>({x:k%s.worldSize,y:Math.floor(k/s.worldSize)})).filter(p=>!GF.buildReason(v,'tea',p.x,p.y)).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];Gufang.select(k.x,k.y);return k;});
+   const plot=await p.evaluate(()=>{const s=Gufang.state,v=GF.playerView(s),h=GF.estate(v).center;v.coins=v.materials=1000;const k=[...GF.estate(v).cells].map(k=>({x:k%s.worldSize,y:Math.floor(k/s.worldSize)})).filter(p=>!GF.buildReason(v,'tea',p.x,p.y)).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];Gufang.select(k.x,k.y);return k;});
    await p.locator('#panel').waitFor({state:'visible'});const after=await skill.boundingBox();assert(Math.abs(before.x-after.x)<.1&&Math.abs(before.y-after.y)<.1,'panel never pushes the skill');
    await p.screenshot({path:path.join(shots,'panel-'+viewport.width+'.png')});
    await p.locator('[data-build="tea"]').click();await p.waitForFunction(({x,y})=>GF.at(Gufang.state,x,y)?.type==='tea',plot);
@@ -26,14 +26,14 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
    await p.evaluate(()=>{const b=Gufang.state.buildings.find(b=>b.owner===1&&b.type==='shrine');Gufang.select(b.x,b.y);});
    assert(await p.locator('#upgrade-building').isHidden());assert(await p.locator('#demolish-building').isHidden());
    await p.locator('#close-panel').click();await p.locator('#menu-pause').click();const pausedAt=await p.evaluate(()=>Gufang.state.elapsed);await p.waitForTimeout(150);assert.equal(await p.evaluate(()=>Gufang.state.elapsed),pausedAt);
-   await p.locator('[data-modal="save"]').click();const stored=await p.evaluate(()=>localStorage.getItem('gufang-qitan-match-v8'));assert(G.restore(stored));
+   await p.locator('[data-modal="save"]').click();const stored=await p.evaluate(()=>localStorage.getItem('gufang-qitan-match-v9'));assert(G.restore(stored));
    await p.reload();await p.locator('#start-load').click();assert.equal(await p.evaluate(()=>Gufang.state.enemyCount),4);
    await c.close();console.log('PASS responsive play / fixed skill / read-only enemy / save '+viewport.width);
   }
   // Maximum map: actual offline file, all units rendered, bounded terrain canvases.
   {
    const c=await context({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}),p=await c.newPage();
-   await p.goto(pathToFileURL(path.join(__dirname,'../dist/古坊奇谭.html')).href);await p.locator('#start-coop').click();await p.locator('#coop-seat').click();await p.locator('#coop-enemies').selectOption('6');await p.locator('#coop-start').click();await p.locator('[data-choice="repair"]').click();
+   await p.goto(pathToFileURL(path.join(__dirname,'../dist/古坊奇谭.html')).href);await p.locator('#start-coop').click();await p.locator('#coop-seat').click();await p.locator('#coop-enemies').selectOption('6');await p.locator('#coop-difficulty').selectOption('extreme');await p.locator('#coop-start').click();await p.locator('[data-choice="repair"]').click();
    assert.equal(await p.evaluate(()=>Gufang.state.players.length),8);
    const stats=await p.evaluate(async()=>{
     Gufang.setPaused(true);document.getElementById('modal').hidden=true;await new Promise(requestAnimationFrame);
@@ -50,10 +50,10 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
   {
    const hc=await context({viewport:{width:390,height:844}}),gc=await context({viewport:{width:390,height:844}}),host=await hc.newPage(),guest=await gc.newPage();
    await Promise.all([host.goto(address),guest.goto(address)]);
-   await host.locator('#start-coop').click();await host.locator('#coop-enemies').selectOption('4');await host.locator('#coop-host').click();await host.waitForFunction(()=>Gufang.online?.code);
+   await host.locator('#start-coop').click();await host.locator('#coop-enemies').selectOption('4');await host.locator('#coop-difficulty').selectOption('hard');await host.locator('#coop-host').click();await host.waitForFunction(()=>Gufang.online?.code);
    const code=await host.evaluate(()=>Gufang.online.code);await guest.locator('#start-coop').click();await guest.locator('#coop-code').fill(code);await guest.locator('#coop-join').click();await guest.waitForFunction(()=>Gufang.online?.peerConnected);
-   assert.equal(await guest.locator('#coop-enemies').inputValue(),'4');assert(await guest.locator('#coop-enemies').isDisabled());
-   await host.locator('#coop-enemies').selectOption('6');await guest.waitForFunction(()=>document.getElementById('coop-enemies').value==='6');
+   assert.equal(await guest.locator('#coop-enemies').inputValue(),'4');assert(await guest.locator('#coop-enemies').isDisabled());assert.equal(await guest.locator('#coop-difficulty').inputValue(),'hard');assert(await guest.locator('#coop-difficulty').isDisabled());
+   await host.locator('#coop-enemies').selectOption('6');await host.locator('#coop-difficulty').selectOption('hell');await guest.waitForFunction(()=>document.getElementById('coop-enemies').value==='6'&&document.getElementById('coop-difficulty').value==='hell');
    await host.locator('#coop-start').click();await host.locator('[data-choice="repair"]').click();await guest.locator('[data-choice="repel"]').click();
    await host.waitForFunction(()=>Gufang.state.elapsed>.2);const room=service.rooms.get(code);assert.equal(room.state.players.length,8);
    const saved=G.serialize(room.state);assert(G.restore(saved));
