@@ -68,8 +68,8 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 /* Building cards (see reference layout): count, art, name, two-line effect box, cost, build button. */
 .build-card{display:flex;flex-direction:column;align-items:stretch;height:210px;padding:5px;overflow:hidden}
 .build-card .card-count{position:static;align-self:center;order:0;min-height:12px;margin:0 0 2px;color:#77836f;font-size:10px;white-space:nowrap}
-.build-card .card-image{position:relative;order:1;flex:0 0 auto;margin:0 auto}
-.build-card .card-image img{display:block;width:100%;height:66px;margin:0 auto;object-fit:contain}
+.build-card .card-image{position:relative;order:1;width:100%;height:66px;flex:0 0 66px;margin:0 auto;overflow:hidden}
+.build-card .card-image img{display:block;width:100%;height:100%;margin:0 auto;object-fit:contain;transform:scale(1.65);transform-origin:50% 72%}
 .build-card strong{order:2;margin-top:2px;font-size:16px;line-height:20px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .build-card .card-badge{display:none}
 .build-card .card-effect{display:flex;flex-direction:column;justify-content:center;gap:4px;order:3;min-height:66px;max-height:none;margin:3px 0;padding:6px;overflow:visible;background:#dde4cd;border-radius:5px;color:#5c6f50;font-size:11px!important;line-height:1.2!important;white-space:normal}
@@ -86,4 +86,5 @@ body.night .topbar{background:#22393cf5;border-color:#506264;color:#e8e6cd}body.
 .build-card .card-price{order:4;min-height:0;margin:auto 0;text-align:center}
 .build-card .card-price .cost-parts{justify-content:center;width:100%}
 .build-card.locked .card-image img{opacity:.4;filter:grayscale(.45)}
+.detail-art img{transform:scale(1.55);transform-origin:50% 72%}
 .build-card .card-reason{display:none}

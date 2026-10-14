@@ -4,6 +4,15 @@
   const T = 64, palette = { plain: '#ced5af', shore: '#d9cda7', water: '#a9c9bd', forest: '#b4c49a', mountain: '#c3c5af' };
   const hintCaches = new WeakMap();
   const sprites = new Map();
+  const assetUrl=path=>window.GF_ASSET_URLS?.[path]||path;
+  let artAssetVersion=0;
+  const artImages=new Map();
+  function artImage(path){
+    if(artImages.has(path))return artImages.get(path);
+    const image=new Image();image.onload=image.onerror=()=>{artAssetVersion++;groundSeed=null;};image.src=assetUrl(path);artImages.set(path,image);return image;
+  }
+  const buildingPath=(type,level)=>`assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}.png`;
+  const maskName=mask=>mask.toString(16).padStart(2,'0');
   const soldierAtlasSources={
     player:'assets/sprites/soldiers/player-red.png',
     ally:'assets/sprites/soldiers/ally-green.png',
@@ -15,7 +24,7 @@
   for(const [faction,source] of Object.entries(soldierAtlasSources)){
     const image=new Image();
     image.onload=image.onerror=()=>soldierSpriteVersion++;
-    image.src=source;soldierAtlases[faction]=image;
+    image.src=assetUrl(source);soldierAtlases[faction]=image;
   }
   let glowSprite = null;
   // Bake the night lantern glow once; drawing a cached image beats creating a radial gradient per
@@ -139,64 +148,15 @@
     if(type==='kiln')for(let i=0;i<3;i++)ellipse(c,19+Math.sin(time+i)*3,-38-i*7,3+i,3+i,'#e7e7cf66');
   }
   function houseTiny(c,x,y){rect(c,x-5,y,10,7,'#d6d0a6');roof(c,x,y-5,16,7,'#887a52');}
-  const thumbs = new Map();
   function thumbnail(type, level=1){
-    const key=type+GF.visualLevel(level);
-    if(thumbs.has(key))return thumbs.get(key);
-    const source=document.createElement('canvas');source.width=240;source.height=260;
-    const ctx=source.getContext('2d');ctx.translate(120,190);ctx.scale(2,2);building(ctx,type,level);
-    // Include every nontransparent pixel, including roof strokes and soft shadows.
-    const pixels=ctx.getImageData(0,0,source.width,source.height).data;
-    let left=source.width,top=source.height,right=-1,bottom=-1;
-    for(let y=0;y<source.height;y++)for(let x=0;x<source.width;x++){
-      if(!pixels[(y*source.width+x)*4+3])continue;
-      left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);
-    }
-    const c=document.createElement('canvas');c.width=180;c.height=210;
-    if(right>=left){
-      left=Math.max(0,left-1);top=Math.max(0,top-1);right=Math.min(source.width-1,right+1);bottom=Math.min(source.height-1,bottom+1);
-      const width=right-left+1,height=bottom-top+1,padding=6,scale=Math.min((c.width-padding*2)/width,(c.height-padding*2)/height);
-      c.getContext('2d').drawImage(source,left,top,width,height,(c.width-width*scale)/2,(c.height-height*scale)/2,width*scale,height*scale);
-    }
-    const url=c.toDataURL();thumbs.set(key,url);return url;
+    return assetUrl(buildingPath(type,level));
   }
   function makeGround(s,occupied,left,top,right,bottom,scale){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
     const canvas=document.createElement('canvas');canvas.width=Math.ceil(((right-left+1)*T+96)*scale);canvas.height=Math.ceil(((bottom-top+1)*T+96)*scale);const c=canvas.getContext('2d');c.scale(scale,scale);c.translate(48-left*T,48-top*T);
     for(let y=Math.max(0,top-1);y<=Math.min(height-1,bottom+1);y++)for(let x=Math.max(0,left-1);x<=Math.min(size-1,right+1);x++){
-      const type=GF.terrain(x,y,s),px=x*T,py=y*T;
-      rect(c,px,py,T,T,palette[type]);
-      if(type==='water'){
-        rect(c,px,py,T,T,palette.shore);
-        const north=GF.terrain(x,y-1,s)==='water',east=GF.terrain(x+1,y,s)==='water',south=GF.terrain(x,y+1,s)==='water',west=GF.terrain(x-1,y,s)==='water';
-        const tl=!north&&!west?18:0,tr=!north&&!east?18:0,br=!south&&!east?18:0,bl=!south&&!west?18:0;
-        c.beginPath();c.moveTo(px+tl,py);c.lineTo(px+T-tr,py);c.quadraticCurveTo(px+T,py,px+T,py+tr);
-        c.lineTo(px+T,py+T-br);c.quadraticCurveTo(px+T,py+T,px+T-br,py+T);c.lineTo(px+bl,py+T);
-        c.quadraticCurveTo(px,py+T,px,py+T-bl);c.lineTo(px,py+tl);c.quadraticCurveTo(px,py,px+tl,py);c.closePath();
-        c.fillStyle=palette.water;c.fill();
-        c.save();c.clip();c.beginPath();
-        if(!north){c.moveTo(px+tl,py);c.lineTo(px+T-tr,py);}
-        if(!east){c.moveTo(px+T,py+tr);c.lineTo(px+T,py+T-br);}
-        if(!south){c.moveTo(px+T-br,py+T);c.lineTo(px+bl,py+T);}
-        if(!west){c.moveTo(px,py+T-bl);c.lineTo(px,py+tl);}
-        if(tl){c.moveTo(px,py+tl);c.quadraticCurveTo(px,py,px+tl,py);}
-        if(tr){c.moveTo(px+T-tr,py);c.quadraticCurveTo(px+T,py,px+T,py+tr);}
-        if(br){c.moveTo(px+T,py+T-br);c.quadraticCurveTo(px+T,py+T,px+T-br,py+T);}
-        if(bl){c.moveTo(px+bl,py+T);c.quadraticCurveTo(px,py+T,px,py+T-bl);}
-        c.strokeStyle='#c6d1a6';c.lineWidth=6;c.stroke();c.restore();
-      }else rect(c,px,py,T,T,`rgba(248,245,213,${noise(x,y)*.1})`);
-      for(let j=0;j<9;j++){let gx=px+noise(x,y,j+2)*60+2,gy=py+noise(y,x,j+31)*60+2;if(type==='water'){line(c,[[gx-3,gy],[gx+4,gy]],'#d1e1c65c',.8);}else if(type==='shore'){ellipse(c,gx,gy,1.2,.7,'#9eaa873f');}else{line(c,[[gx-2,gy-2],[gx,gy+1],[gx+2,gy-3]],'#81986238',.8);}}
-      if(type==='shore'){
-        for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) if(GF.terrain(x+dx,y+dy,s)==='water'){
-          const edge=dx===1?[[px+T-3,py+4],[px+T-3,py+T-4]]:dx===-1?[[px+3,py+4],[px+3,py+T-4]]:dy===1?[[px+4,py+T-3],[px+T-4,py+T-3]]:[[px+4,py+3],[px+T-4,py+3]];
-          line(c,edge,'#f4e6bf9c',2);
-        }
-        for(let j=0;j<3;j++){const gx=px+10+noise(x,y,j+65)*44,gy=py+10+noise(y,x,j+81)*44;line(c,[[gx-2,gy+4],[gx,gy-2],[gx+2,gy+4]],'#a9ad765c',.9);}
-      }
-      if(type==='water'){
-        if(noise(x,y)>.3){ellipse(c,px+17,py+38,4,2,'#9fb993');ellipse(c,px+24,py+41,3,1.8,'#9db88e');}
-      }
-      if(type==='mountain'&&!GF.isWall(s,x,y)&&!estate?.roads.has(y*size+x)&&noise(x,y)>.7){stone(c,px+44,py+19,.4);}
+      const type=GF.terrain(x,y,s),px=x*T,py=y*T,image=artImage(`assets/tiles/terrain/${type}.png`);
+      if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
       if(estate&&!GF.owns(s,x,y))rect(c,px,py,T,T,'#34473e18');
     }
     if(!estate){
@@ -207,14 +167,8 @@
       for(const index of estate.roads){
         const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T,water=GF.terrain(x,y,s)==='water';
         const north=has(estate.roads,x,y-1),south=has(estate.roads,x,y+1),east=has(estate.roads,x+1,y),west=has(estate.roads,x-1,y);
-        c.save();c.beginPath();c.rect(px+21,py+21,22,22);
-        if(north)c.rect(px+21,py,22,32);if(south)c.rect(px+21,py+32,22,32);
-        if(west)c.rect(px,py+21,32,22);if(east)c.rect(px+32,py+21,32,22);
-        c.clip();rect(c,px,py,T,T,water?'#ad9063':'#dfd5b494');
-        if(water){
-          for(let i=0;i<T;i+=7){if(north||south||!east&&!west)line(c,[[px+19,py+i],[px+45,py+i]],'#655c43',1.5);if(east||west)line(c,[[px+i,py+19],[px+i,py+45]],'#655c43',1.5);}
-        }
-        c.restore();
+        const mask=Number(north)|Number(east)*2|Number(south)*4|Number(west)*8,image=artImage(`assets/tiles/roads/${water?'bridge':'ground'}-${maskName(mask)}.png`);
+        if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
       }
       // Follow the irregular interior one cell edge at a time.
       for(const index of estate.cells){
@@ -227,17 +181,8 @@
       const connects=(x,y)=>GF.isWall(s,x,y)||estate.gates.some(g=>g.x===x&&g.y===y);
       for(const index of estate.walls){
         const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T;
-        c.save();c.beginPath();c.rect(px+19,py+19,26,26);
-        if(connects(x,y-1))c.rect(px+19,py,26,32);if(connects(x,y+1))c.rect(px+19,py+32,26,32);
-        if(connects(x-1,y))c.rect(px,py+19,32,26);if(connects(x+1,y))c.rect(px+32,py+19,32,26);
-        c.fillStyle='#667367';c.shadowColor='#34463866';c.shadowBlur=4;c.shadowOffsetY=3;c.fill();c.shadowColor='transparent';
-        c.strokeStyle='#4b5c51';c.lineWidth=3;c.stroke();c.clip();
-        rect(c,px,py,T,T,'#b7bba7');
-        for(let row=0;row<8;row++){
-          const yy=py+row*8;line(c,[[px,yy],[px+T,yy]],'#788775',1);
-          for(let col=0;col<5;col++){const xx=px+col*16+(row%2)*8;line(c,[[xx,yy],[xx,yy+8]],'#87927e',1);}
-        }
-        c.restore();
+        const mask=Number(connects(x,y-1))|Number(connects(x+1,y))*2|Number(connects(x,y+1))*4|Number(connects(x-1,y))*8,image=artImage(`assets/tiles/walls/${maskName(mask)}.png`);
+        if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
       }
     }
     drawGroundDecorations(c,s,occupied,Math.max(0,left-2),Math.max(0,top-2),Math.min(size-1,right+2),Math.min(height-1,bottom+2));
@@ -254,13 +199,13 @@
       if(occupied.has(x+','+y)||GF.isWall(s,x,y)||estate?.roads.has(y*size+x))continue;
       const type=GF.terrain(x,y,s);ctx.save();ctx.translate(x*T+32,y*T+32);
       const outside=!!estate&&!GF.owns(s,x,y);if(outside)ctx.globalAlpha=.78;
-      if(type==='forest')drawBaked(ctx,'forest',c=>{tree(c,-14,7,.95);tree(c,10,-8,1.1);bamboo(c,15,19,.66);});
-      if(type==='mountain')drawBaked(ctx,'mountain',c=>{stone(c,-9,9,1.1);stone(c,15,-4,1.2);stone(c,-13,-13,.6);});
+      if(type==='forest'){const image=artImage('assets/tiles/resources/forest.png');if(image.complete&&image.naturalWidth)ctx.drawImage(image,-64,-64,128,128);}
+      if(type==='mountain'){const image=artImage('assets/tiles/resources/mountain.png');if(image.complete&&image.naturalWidth)ctx.drawImage(image,-64,-64,128,128);}
       if(type==='plain'&&(x===0||y===0||x===size-1||y===height-1)&&noise(x,y)>.35){
-        ctx.translate(0,8);const scale=.8+noise(x,y)*.5;ctx.scale(scale,scale);drawBaked(ctx,'border-tree',c=>tree(c,0,0,1,true));
+        ctx.translate(0,8);const scale=.8+noise(x,y)*.5;ctx.scale(scale,scale);const image=artImage('assets/tiles/resources/border-tree.png');if(image.complete&&image.naturalWidth)ctx.drawImage(image,-64,-72,128,128);
       }
       if(type==='water'){
-        if(noise(x,y)>.65)for(let i=0;i<4;i++)line(ctx,[[-23+i*3,22],[-25+i*3,9+noise(x,y,i)*7]],'#739575',1.3);
+        if(noise(x,y)>.65){const image=artImage('assets/tiles/resources/reeds.png');if(image.complete&&image.naturalWidth)ctx.drawImage(image,-32,-32,64,64);}
       }
       ctx.restore();
     }
@@ -383,8 +328,8 @@
     if(selected){const px=selected.x*T,py=selected.y*T;rect(c,px+2,py+2,T-4,T-4,'#fbebaf30');c.strokeStyle='#b59451';c.lineWidth=1.5;c.strokeRect(px+2,py+2,T-4,T-4);if(!GF.at(s,selected.x,selected.y)){c.font='23px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#9c8448';c.fillText('+',px+32,py+40);}}
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
-      drawBaked(c,'building:'+b.type+':'+GF.visualLevel(b.level),ctx=>building(ctx,b.type,b.level,0,true));
-      buildingAnimation(c,b.type,animationTime);
+      const buildingImage=artImage(buildingPath(b.type,b.level));
+      if(buildingImage.complete&&buildingImage.naturalWidth)c.drawImage(buildingImage,-64,-96,128,128);
       if(b.type==='shrine'){rect(c,-38,-57,76,19,s.players[b.owner].team===1?'#a74e3ceb':b.owner===options.player?'#3d685deb':'#597f96eb');c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
       if(b.type==='gate'){
         if(b.hp<=0){poly(c,[[-16,-6],[-5,1],[-10,20],[12,20],[5,4],[17,-6]],'#34443bee');line(c,[[-14,17],[-3,9],[10,21]],'#b19872',3);c.font='bold 11px "Microsoft YaHei",sans-serif';c.textAlign='center';rect(c,-19,-19,38,15,'#714a3be8');c.fillStyle='#ffe0b0';c.fillText('毁损',0,-8);}
@@ -516,7 +461,7 @@
   }
   function exportPngAssets(){
     const assets={};
-    for(const type of Object.keys(GF.DEFS))for(let level=1;level<=3;level++)assets[`assets/sprites/buildings/${type}/level-${level}.png`]=assetCanvas(128,128,c=>{c.translate(64,96);building(c,type,level,0,true);});
+    for(const type of Object.keys(GF.DEFS))for(let level=1;level<=3;level++)assets[`assets/sprites/buildings/${type}/level-${level}.png`]=assetCanvas(128,128,c=>{c.translate(64,96);building(c,type,(level-1)*3+1,0,true);});
     for(const type of Object.keys(palette))assets[`assets/tiles/terrain/${type}.png`]=assetCanvas(T,T,c=>paintTerrainTile(c,type));
     assets['assets/tiles/resources/forest.png']=assetCanvas(128,128,c=>{c.translate(64,64);tree(c,-14,7,.95);tree(c,10,-8,1.1);bamboo(c,15,19,.66);});
     assets['assets/tiles/resources/mountain.png']=assetCanvas(128,128,c=>{c.translate(64,64);stone(c,-9,9,1.1);stone(c,15,-4,1.2);stone(c,-13,-13,.6);});
@@ -530,5 +475,5 @@
     }
     return assets;
   }
-  window.GFArt={T,thumbnail,render,exportPngAssets,spriteVersion:()=>soldierSpriteVersion,cacheStats:()=>({chunks:ground?.chunks.size||0,pixels:[...(ground?.chunks.values()||[])].reduce((n,t)=>n+t.canvas.width*t.canvas.height,0),largestSide:Math.max(0,...[...(ground?.chunks.values()||[])].map(t=>Math.max(t.canvas.width,t.canvas.height)))})};
+  window.GFArt={T,thumbnail,render,exportPngAssets,spriteVersion:()=>soldierSpriteVersion+artAssetVersion,cacheStats:()=>({chunks:ground?.chunks.size||0,pixels:[...(ground?.chunks.values()||[])].reduce((n,t)=>n+t.canvas.width*t.canvas.height,0),largestSide:Math.max(0,...[...(ground?.chunks.values()||[])].map(t=>Math.max(t.canvas.width,t.canvas.height)))})};
 })();
