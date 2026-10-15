@@ -16,9 +16,9 @@
   layout(); window.addEventListener('resize', layout);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   window.addEventListener('error', function (e) {
-    if (!window.Gufang) report('加载失败：' + (e.message || '游戏脚本未能读取') + '。请用浏览器打开完整的“古坊奇谭.html”文件。');
+    if (!window.Gufang) report('加载失败：' + (e.message || '游戏脚本未能读取') + '。请用浏览器打开完整的“庄园攻防.html”文件。');
   });
   window.addEventListener('load', function () {
-    if (!window.Gufang) report('游戏脚本未加载。请用浏览器打开“古坊奇谭.html”单文件版本，或保留 index.html 同目录的 runtime.js 和 boot.js。');
+    if (!window.Gufang) report('游戏脚本未加载。请用浏览器打开“庄园攻防.html”单文件版本，或保留 index.html 同目录的 runtime.js 和 boot.js。');
   });
 })();

@@ -100,10 +100,10 @@
     if (fancy) { lantern(c, -18, 5); lantern(c, 18, 5); rect(c, -8, -9, 16, 6, '#3c5750', '#b29d69'); c.fillStyle = '#e4d6ad'; c.font = '4px "SimHei","Microsoft YaHei",sans-serif'; c.textAlign = 'center'; c.fillText(GF.DEFS[kind].name, 0, -4.5); }
     rect(c, -9, 15, 18, 2, '#d6d6bc'); rect(c, -11, 17, 22, 2, '#b6bca1');
   }
-  function building(c, type, level = 1, time = 0, baked = false) {
+  function building(c, type, level = 1, time = 0, baked = false, entityOnly = false) {
     level = GF.visualLevel(level);
-    c.save(); c.lineJoin = 'round'; ellipse(c, 2, 18, 26, 8, '#3b503728');
-    if(level>=2){poly(c,[[-29,-20],[27,-20],[30,23],[-28,23]],'#bfc4a582','#929f7f',.7);for(let i=0;i<4;i++)line(c,[[-26+i*17,19],[-26+i*17,23]],'#8b987b',.7);}
+    c.save(); c.lineJoin = 'round'; if(!entityOnly)ellipse(c, 2, 18, 26, 8, '#3b503728');
+    if(level>=2&&!entityOnly){poly(c,[[-29,-20],[27,-20],[30,23],[-28,23]],'#bfc4a582','#929f7f',.7);for(let i=0;i<4;i++)line(c,[[-26+i*17,19],[-26+i*17,23]],'#8b987b',.7);}
     if(level===3){for(const x of [-28,28]){line(c,[[x,-17],[x,19]],'#aa985b',1.2);ellipse(c,x,-17,2,2,'#c5ab66');}line(c,[[-26,22],[27,22]],'#c5ab66',2);}
     if (type === 'gate') {
       rect(c,-29,-12,58,34,'#999c8a','#58675e');
@@ -294,6 +294,8 @@
   function render(canvas,s,cam,selected,options={}){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount]);
     const animationTime=options.animationTime??s.elapsed,playerOwner=options.player??0,player=GF.playerView(s,playerOwner);
+    // One shared phase per render: all upgrade markers float together, with no per-building timers.
+    const upgradeBob=reducedMotion||options.reducedMotion===true?0:Math.sin(animationTime*Math.PI)*3;
     // Enemy occupancy changes every frame; economic recommendations only change with the town.
     const hintKey=JSON.stringify([cacheKey,player.actorId,s.over,s.day,player.buildings.map(b=>[b.type,b.x,b.y,b.level,b.owner])]);
     let hints=hintCaches.get(s);
@@ -309,6 +311,7 @@
     const night=false,dusk=false;
     const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
     const visible=(x,y,rx,ry=rx)=>x+rx>=-cam.x/cam.zoom&&x-rx<=(w-cam.x)/cam.zoom&&y+ry>=-cam.y/cam.zoom&&y-ry<=(h-cam.y)/cam.zoom;
+    const showBuildingLabels=cam.zoom>=.9;
     c.setTransform(dpr,0,0,dpr,0,0);
     c.imageSmoothingEnabled=false;
     png(c,'scenery/world-background',0,0,w,h);
@@ -344,24 +347,27 @@
       c.save();c.translate(b.x*T+32,b.y*T+32);
       const buildingImage=artImage(buildingPath(b.type,b.level));
       if(buildingImage.complete&&buildingImage.naturalWidth){c.imageSmoothingEnabled=false;c.drawImage(buildingImage,-64,-96,128,128);}
-      if(b.type==='shrine'){panel(c,s.players[b.owner].team===1?'enemy':b.owner===options.player?'primary':'ally',-38,-57,76,19);c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
-      if(b.type==='gate'){
-        if(b.hp<=0){png(c,'overlays/gate-broken',-32,-17,64,48);c.font='bold 11px "Microsoft YaHei",sans-serif';c.textAlign='center';panel(c,'danger',-19,-19,38,15);c.fillStyle='#ffe0b0';c.fillText('毁损',0,-8);}
-        else{c.font='bold 10px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#f1dfae';c.fillText(['北','东','南','西'][b.direction]||'门',0,-13);}
-      }
+      if(b.type==='shrine'&&!showBuildingLabels){panel(c,s.players[b.owner].team===1?'map-enemy':b.owner===options.player?'map-primary':'map-ally',-38,-57,76,19);c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
+      if(b.type==='gate'&&b.hp<=0)png(c,'overlays/gate-broken',-32,-17,64,48);
       if(b.type==='shrine'&&s.buildings.length===1){const r=32+Math.sin(s.elapsed)*2;png(c,'overlays/aura',-r,7,r*2,24);}
       if(b.hp<GF.maxHP(b)){const y=healthBarY(b);health(c,-21,y,42,4,b.hp/GF.maxHP(b),b.hp/GF.maxHP(b)>.35?'building':'critical');}
       const canUpgrade=b.type==='barracks'&&b.level===1
         ? ['infantry','archer'].some(troopType=>!GF.upgradeReason(player,b,false,{troopType}))
         : !GF.upgradeReason(player,b);
       if(canUpgrade){
-        const bob=(reducedMotion||options.reducedMotion===true)?0:Math.sin(animationTime*3+(b.id||0)*2.399963229728653)*2.5;
-        png(c,'ui/icons/upgrade',10,-13+bob,16,16);
+        png(c,'ui/icons/upgrade',6,-23+upgradeBob,24,24);
       }
       const levelLabel=String(b.level),badgeWidth=16,badgeX=25-badgeWidth;
       png(c,'overlays/level-badge',badgeX,5,16,16);
       c.fillStyle='#f4ebd2';c.font='900 11px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(levelLabel,badgeX+badgeWidth/2,13);c.textBaseline='alphabetic';
-      if(cam.zoom>=.9){const label=b.type==='gate'?(['北','东','南','西'][b.direction]||'')+'城门':b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name;c.font='9px "SimHei","Microsoft YaHei",sans-serif';const labelWidth=c.measureText(label).width+14;panel(c,'paper',-labelWidth/2,27,labelWidth,14);c.fillStyle='#52694e';c.fillText(label,0,37);}
+      if(showBuildingLabels&&b.type!=='gate'){
+        const label=b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name;
+        c.font='9px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';
+        const text=c.measureText(label),labelWidth=text.width+14,labelTop=18,labelHeight=20;
+        panel(c,'map-paper',-labelWidth/2,labelTop,labelWidth,labelHeight);
+        c.fillStyle='#4a2e20';
+        c.fillText(label,0,labelTop+(labelHeight+text.actualBoundingBoxAscent-text.actualBoundingBoxDescent)/2);
+      }
       if(GF.DEFS[b.type].end)png(c,'ui/icons/diamond',-29,8,12,12);
       c.restore();
     }
@@ -561,9 +567,10 @@
     rect(c,0,0,T,T,kind==='bridge'?'#ad9063':'#dfd5b494');
     if(kind==='bridge')for(let i=0;i<T;i+=7){if(north||south||!east&&!west)line(c,[[19,i],[45,i]],'#655c43',1.5);if(east||west)line(c,[[i,19],[i,45]],'#655c43',1.5);}
   }
-  function exportPngAssets(){
+  function exportPngAssets(options={}){
     const assets={};
-    for(const type of Object.keys(GF.DEFS))for(let level=1;level<=3;level++)assets[`assets/sprites/buildings/${type}/level-${level}.png`]=assetCanvas(128,128,c=>{c.translate(64,96);building(c,type,(level-1)*3+1,0,true);});
+    for(const type of options.buildingType?[options.buildingType]:Object.keys(GF.DEFS))for(let level=1;level<=3;level++)assets[`assets/sprites/buildings/${type}/level-${level}.png`]=assetCanvas(128,128,c=>{c.translate(64,96);building(c,type,(level-1)*3+1,0,true,options.entityOnly===true);});
+    if(options.buildingType)return assets;
     for(const type of Object.keys(palette))assets[`assets/tiles/terrain/${type}.png`]=assetCanvas(T,T,c=>paintTerrainTile(c,type));
     assets['assets/tiles/resources/forest.png']=assetCanvas(128,128,c=>{c.translate(64,64);tree(c,-14,7,.95);tree(c,10,-8,1.1);bamboo(c,15,19,.66);});
     assets['assets/tiles/resources/mountain.png']=assetCanvas(128,128,c=>{c.translate(64,64);stone(c,-9,9,1.1);stone(c,15,-4,1.2);stone(c,-13,-13,.6);});

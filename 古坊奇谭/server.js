@@ -16,6 +16,7 @@ const files = new Map([
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
   ['/css/png-interface.css', ['css/png-interface.css', 'text/css; charset=utf-8']],
   ...['boot', 'runtime', 'maps', 'game', 'network', 'ui', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
+  ['/dist/庄园攻防.html', ['dist/庄园攻防.html', 'text/html; charset=utf-8']],
   ['/dist/古坊奇谭.html', ['dist/古坊奇谭.html', 'text/html; charset=utf-8']]
 ]);
 // Only known workspace PNG assets are exposed; never resolve arbitrary request paths.
@@ -210,7 +211,7 @@ function createServer() {
 if (require.main === module) {
   const port = Number(process.env.PORT || 8787), instance = createServer();
   instance.server.listen(port, '0.0.0.0', () => {
-    console.log('古坊奇谭联机服务已启动');
+    console.log('庄园攻防联机服务已启动');
     console.log(`本机： http://127.0.0.1:${port}`);
     for (const addresses of Object.values(os.networkInterfaces())) for (const address of addresses || []) {
       if (address.family === 'IPv4' && !address.internal) console.log(`局域网： http://${address.address}:${port}`);

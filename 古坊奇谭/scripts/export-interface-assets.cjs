@@ -1,5 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
+const {PNG}=require('pngjs');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
 (async()=>{
@@ -21,6 +22,19 @@ const root=path.resolve(__dirname,'..');
       const pixels=c.getImageData(0,0,cv.width,cv.height);for(let i=3;i<pixels.data.length;i+=4)pixels.data[i]=pixels.data[i]<128?0:255;c.putImageData(pixels,0,0);
       return {width:256,height:128,slice:0,data:cv.toDataURL('image/png')};
     },references);
+    // Map labels retain the current panel artwork, with the four corner studs
+    // replaced by continuous border/fill sampled from the same PNG.
+    for(const name of ['primary','ally','enemy','paper']){
+      const base=`assets/ui/panels/${name}.png`,target=path.join(root,base);
+      const original=PNG.sync.read(fs.existsSync(target)?fs.readFileSync(target):Buffer.from(assets[base].data.split(',')[1],'base64'));
+      const clean=new PNG({width:original.width,height:original.height});original.data.copy(clean.data);
+      for(const x0 of [2,original.width-6])for(const y0 of [2,original.height-6])for(let y=y0;y<y0+4;y++)for(let x=x0;x<x0+4;x++){
+        const dx=Math.min(x,original.width-1-x),dy=Math.min(y,original.height-1-y);
+        const sx=dx<dy?x:Math.floor(original.width/2),sy=dx<dy?Math.floor(original.height/2):y;
+        original.data.copy(clean.data,(y*clean.width+x)*4,(sy*original.width+sx)*4,(sy*original.width+sx)*4+4);
+      }
+      assets[`assets/ui/panels/map-${name}.png`]={width:clean.width,height:clean.height,slice:6,data:'data:image/png;base64,'+PNG.sync.write(clean).toString('base64')};
+    }
     const overwrite=process.argv.includes('--overwrite');
     const only=process.argv.find(arg=>arg.startsWith('--only='))?.slice(7);
     if(only&&!assets[only])throw Error('Unknown asset: '+only);

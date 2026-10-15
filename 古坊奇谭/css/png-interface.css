@@ -20,6 +20,7 @@
 .build-card .card-effect,.modal-stats div{background:transparent;border:4px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0;padding:4px}
 .build-card .card-effect{min-height:66px}.build-card .card-image{flex-shrink:1;min-height:54px}
 .level-badge,.chain-tag,.card-reason,.start-badge{background:transparent;border:3px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0}
+.detail-title .level-badge{border-width:5px}
 .detail-art{background:transparent}
 .coin-icon,.material-icon{border:0!important;outline:0;box-shadow:none;border-radius:0;background:var(--art-icon-coin) center/contain no-repeat;transform:none;image-rendering:pixelated}
 .material-icon{background-image:var(--art-icon-materials)}
@@ -42,7 +43,8 @@
 #skills i,.skill-option i{font-size:0!important;border:0;border-radius:0;background:var(--art-icon-repel) center/contain no-repeat;image-rendering:pixelated}
 #skills [data-skill="repair"] i,.skill-option[data-choice="repair"] i{background-image:var(--art-icon-repair)}
 #skills [data-skill="thunder"] i,.skill-option[data-choice="thunder"] i{background-image:var(--art-icon-thunder)}
-.health-track{background:var(--art-health-track) center/100% 100%;height:6px;image-rendering:pixelated}.health-track i{background:var(--art-health-building) center/100% 100%}
+/* Keep the one-pixel end caps fixed; stretch only the PNG's inner fill. */
+.health-track{background:none;border:1px solid transparent;border-image:var(--art-health-track) 1 fill stretch;height:6px;image-rendering:pixelated}.health-track i{background:none;border:0 solid transparent;border-image:var(--art-health-building) 1 fill stretch}
 #toast{background:transparent;border:6px solid transparent;border-image:var(--art-panel-dark) 6 fill stretch;border-radius:0;box-shadow:none}#toast.warning{background:transparent;border-image-source:var(--art-panel-danger)}#toast.reward{background:transparent;border-image-source:var(--art-panel-primary)}
 .modal-overlay{background:none}.modal-overlay:before{content:"";position:absolute;inset:0;opacity:.6;background:var(--art-dimmer) center/100% 100%;pointer-events:none}
 body.night .topbar{background:transparent;border-image-source:var(--art-panel-night)}

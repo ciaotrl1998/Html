@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {PNG}=require('pngjs');
+const {applyEntityContour}=require('./outline-quarry.cjs');
 const root=path.resolve(__dirname,'..'),work=path.join(root,'assets/generated/world-style');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/asset-manifest.json'),'utf8'));
 const contour=[74,46,32],report=[];
@@ -53,6 +54,10 @@ for(const entry of manifest.assets){
   const [r,g,b]=original.subarray(i,i+3);
   const groundPlate=category==='building'&&y>=png.height*.55&&r>135&&r<210&&g>=r&&g-r<14&&g>150&&g-b>12;
   if(edge&&mass>=2&&!groundPlate){for(let c=0;c<3;c++)png.data[i+c]=contour[c];contours++;}
+ }
+ if(file.startsWith('assets/sprites/buildings/quarry/')){
+  const mask=PNG.sync.read(fs.readFileSync(path.join(work,'entity-masks/quarry',path.basename(file))));
+  contours+=applyEntityContour(png,mask,contour);
  }
  if(file==='assets/ui/backgrounds/title-town.png'){
   const source=PNG.sync.read(fs.readFileSync(path.join(work,'title-town-source-v1.png')));

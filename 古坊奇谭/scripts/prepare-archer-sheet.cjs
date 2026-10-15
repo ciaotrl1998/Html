@@ -5,6 +5,25 @@ const { PNG } = require('pngjs');
 const root = path.resolve(__dirname, '..');
 const workDirectory = path.join(root, 'assets/generated/archers');
 
+function detectRowCuts(png, rows) {
+  const counts = new Uint32Array(png.height);
+  for (let y=0;y<png.height;y++)for(let x=0;x<png.width;x++)if(png.data[(y*png.width+x)*4+3]>=128)counts[y]++;
+  const step=png.height/rows,cuts=[0];
+  for(let row=1;row<rows;row++){
+    const expected=row*step,start=Math.max(cuts.at(-1)+1,Math.floor(expected-step*.4)),end=Math.min(png.height-1,Math.ceil(expected+step*.4));
+    let minimum=Infinity;
+    for(let y=start;y<=end;y++)minimum=Math.min(minimum,counts[y]);
+    const runs=[];let run=-1;
+    for(let y=start;y<=end+1;y++){
+      if(y<=end&&counts[y]===minimum){if(run<0)run=y;}
+      else if(run>=0){runs.push({start:run,end:y-1});run=-1;}
+    }
+    runs.sort((a,b)=>(b.end-b.start)-(a.end-a.start)||Math.abs((a.start+a.end)/2-expected)-Math.abs((b.start+b.end)/2-expected));
+    const gap=runs[0];cuts.push(Math.round((gap.start+gap.end)/2));
+  }
+  cuts.push(png.height);return cuts;
+}
+
 function enlarge(png, scale) {
   const result = new PNG({ width: png.width * scale, height: png.height * scale });
   for (let y = 0; y < result.height; y++) {
@@ -156,6 +175,7 @@ function pack(input, type = 'archer', sideInput = null) {
   const outputDirectory=type==='archer'?workDirectory:path.join(root,'assets/generated/infantry');
   const source = PNG.sync.read(fs.readFileSync(input));
   const sideSource=sideInput?PNG.sync.read(fs.readFileSync(sideInput)):null;
+  const sourceRowCuts=detectRowCuts(source,6),sideRowCuts=sideSource?detectRowCuts(sideSource,2):null;
   const atlas = new PNG({ width: 240, height: 90 });
   atlas.data.fill(0);
   const frameWidth = 20;
@@ -168,20 +188,26 @@ function pack(input, type = 'archer', sideInput = null) {
     const extracted = directions.slice(0, 3).map((direction, index) => {
       if(index===2&&sideSource&&level>=4){
         const sideColumn=(level-4)%3,sideRow=Math.floor((level-4)/3);
-        const rect={x0:Math.floor(sideColumn*sideSource.width/3),x1:Math.floor((sideColumn+1)*sideSource.width/3),y0:Math.floor(sideRow*sideSource.height/2),y1:Math.floor((sideRow+1)*sideSource.height/2)};
-        return {sprite:normalizeSourceSize(extractSprite(sideSource,rect),(source.width/6)/(sideSource.width/3)),rect,sourceImage:sideInput};
+        const rect={x0:Math.floor(sideColumn*sideSource.width/3),x1:Math.floor((sideColumn+1)*sideSource.width/3),y0:sideRowCuts[sideRow],y1:sideRowCuts[sideRow+1]};
+        return {sprite:extractSprite(sideSource,rect),rect,sourceImage:sideInput};
       }
       const sourceColumn = groupX * 2 + index % 2;
       const sourceRow = groupY * 2 + Math.floor(index / 2);
       const rect = {
         x0: Math.floor(sourceColumn * source.width / 6),
         x1: Math.floor((sourceColumn + 1) * source.width / 6),
-        y0: Math.floor(sourceRow * source.height / 6),
-        y1: Math.floor((sourceRow + 1) * source.height / 6),
+        y0: sourceRowCuts[sourceRow],
+        y1: sourceRowCuts[sourceRow+1],
       };
       const sprite = extractSprite(source, rect);
       return { sprite, rect };
     });
+    // Separate sheets have different margins and character occupancy. Match the
+    // actual pose height, rather than inferring character scale from cell width.
+    if (extracted[2].sourceImage) {
+      const referenceHeight = (extracted[0].sprite.height + extracted[1].sprite.height) / 2;
+      extracted[2].sprite = normalizeSourceSize(extracted[2].sprite, referenceHeight / extracted[2].sprite.height);
+    }
     const targetHeight = level >= 8 ? 26 : level >= 6 ? 25 : 23;
     const scale = Math.min(...extracted.map(({ sprite }) => Math.min((frameWidth - 2) / sprite.width, targetHeight / sprite.height)));
     let leftFrame;
@@ -224,12 +250,17 @@ function pack(input, type = 'archer', sideInput = null) {
     directionOrder: directions,
     levels: 9,
     pivot: { x: 10, y: 28 },
+    sourceRowCuts,
+    ...(sideRowCuts?{sideRowCuts}:{}),
     frames,
   }, null, 2) + '\n');
   console.log(JSON.stringify({ output, preview, metadata, frameCount: frames.length }, null, 2));
 }
 
-if (process.argv[2] === 'reference') {
+module.exports={detectRowCuts,extractSprite,fitFrame};
+if (require.main !== module) {
+  // Pure helpers are also used by sprite-packing regression checks.
+} else if (process.argv[2] === 'reference') {
   const input = path.join(root, 'assets/sprites/soldiers/infantry_player-red.png');
   const output = path.join(workDirectory, 'player-red-reference-8x.png');
   writePng(output, enlarge(PNG.sync.read(fs.readFileSync(input)), 8));

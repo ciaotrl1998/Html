@@ -19,6 +19,20 @@
     "x": 10,
     "y": 28
   },
+  "sourceRowCuts": [
+    0,
+    236,
+    450,
+    673,
+    881,
+    1086,
+    1254
+  ],
+  "sideRowCuts": [
+    0,
+    476,
+    1024
+  ],
   "frames": [
     {
       "name": "infantry_lv1_front",
@@ -38,7 +52,7 @@
         "x0": 0,
         "x1": 209,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -60,7 +74,7 @@
         "x0": 209,
         "x1": 418,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -81,8 +95,8 @@
       "source": {
         "x0": 0,
         "x1": 209,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": false
     },
@@ -103,8 +117,8 @@
       "source": {
         "x0": 0,
         "x1": 209,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": true
     },
@@ -126,7 +140,7 @@
         "x0": 418,
         "x1": 627,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -148,7 +162,7 @@
         "x0": 627,
         "x1": 836,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -169,8 +183,8 @@
       "source": {
         "x0": 418,
         "x1": 627,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": false
     },
@@ -191,8 +205,8 @@
       "source": {
         "x0": 418,
         "x1": 627,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": true
     },
@@ -214,7 +228,7 @@
         "x0": 836,
         "x1": 1045,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -236,7 +250,7 @@
         "x0": 1045,
         "x1": 1254,
         "y0": 0,
-        "y1": 209
+        "y1": 236
       },
       "mirrored": false
     },
@@ -257,8 +271,8 @@
       "source": {
         "x0": 836,
         "x1": 1045,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": false
     },
@@ -279,8 +293,8 @@
       "source": {
         "x0": 836,
         "x1": 1045,
-        "y0": 209,
-        "y1": 418
+        "y0": 236,
+        "y1": 450
       },
       "mirrored": true
     },
@@ -301,8 +315,8 @@
       "source": {
         "x0": 0,
         "x1": 209,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -323,8 +337,8 @@
       "source": {
         "x0": 209,
         "x1": 418,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -346,7 +360,7 @@
         "x0": 0,
         "x1": 512,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": false
@@ -369,7 +383,7 @@
         "x0": 0,
         "x1": 512,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": true
@@ -391,8 +405,8 @@
       "source": {
         "x0": 418,
         "x1": 627,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -413,8 +427,8 @@
       "source": {
         "x0": 627,
         "x1": 836,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -436,7 +450,7 @@
         "x0": 512,
         "x1": 1024,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": false
@@ -459,7 +473,7 @@
         "x0": 512,
         "x1": 1024,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": true
@@ -481,8 +495,8 @@
       "source": {
         "x0": 836,
         "x1": 1045,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -503,8 +517,8 @@
       "source": {
         "x0": 1045,
         "x1": 1254,
-        "y0": 418,
-        "y1": 627
+        "y0": 450,
+        "y1": 673
       },
       "mirrored": false
     },
@@ -526,7 +540,7 @@
         "x0": 1024,
         "x1": 1536,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": false
@@ -549,7 +563,7 @@
         "x0": 1024,
         "x1": 1536,
         "y0": 0,
-        "y1": 512
+        "y1": 476
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
       "mirrored": true
@@ -571,8 +585,8 @@
       "source": {
         "x0": 0,
         "x1": 209,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -593,8 +607,8 @@
       "source": {
         "x0": 209,
         "x1": 418,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -615,7 +629,7 @@
       "source": {
         "x0": 0,
         "x1": 512,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
@@ -638,7 +652,7 @@
       "source": {
         "x0": 0,
         "x1": 512,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
@@ -661,8 +675,8 @@
       "source": {
         "x0": 418,
         "x1": 627,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -683,8 +697,8 @@
       "source": {
         "x0": 627,
         "x1": 836,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -705,7 +719,7 @@
       "source": {
         "x0": 512,
         "x1": 1024,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
@@ -728,7 +742,7 @@
       "source": {
         "x0": 512,
         "x1": 1024,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
@@ -751,8 +765,8 @@
       "source": {
         "x0": 836,
         "x1": 1045,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -773,8 +787,8 @@
       "source": {
         "x0": 1045,
         "x1": 1254,
-        "y0": 836,
-        "y1": 1045
+        "y0": 881,
+        "y1": 1086
       },
       "mirrored": false
     },
@@ -795,7 +809,7 @@
       "source": {
         "x0": 1024,
         "x1": 1536,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",
@@ -818,7 +832,7 @@
       "source": {
         "x0": 1024,
         "x1": 1536,
-        "y0": 512,
+        "y0": 476,
         "y1": 1024
       },
       "sourceImage": "assets/generated/infantry/player-red-sides-v1.png",

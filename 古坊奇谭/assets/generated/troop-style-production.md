@@ -10,6 +10,10 @@
 
 侧面补图为 3 列×2 行，4／5／6 级在上排，7／8／9 级在下排。打包时统一不同源图的像素尺度，去除相邻格残点，再使用统一脚底锚点。右侧由左侧镜像生成，保证两侧大小一致。
 
+步兵下半身裁切修复：主源图与侧面补图改按实际行间空隙分排，不再按图片高度等分，保留 4–9 级完整的腿部和靴子。三个阵营已同步，旧图集在 `infantry/before-row-crop-fix/`，对照图在 `qa/infantry-crop/before-after.png`；运行 `npm run test:art-packing` 验证。
+
+步兵侧面尺寸修复：侧面补图改按同级正背面实际人物高度等比缩放，避免源图留白不同造成左右朝向偏小；三个阵营的 4–9 级四向高度误差最多一个像素，脚底锚点不变。修复前图集在 `infantry/before-side-scale-fix/`。
+
 对照预览：`qa/archer-style/equipment-progression.png`；实际游戏三阵营渲染：`qa/archer-style/in-game-factions.png`。原始旧兵种图集在对应目录的备份子目录中。
 
 最终使用的提示词：[步兵装备成长](infantry/generation-prompt-v2.txt)、[弓兵装备成长](archers/generation-prompt-v3.txt)、[步兵侧面](infantry/generation-prompt-sides.txt)、[弓兵侧面](archers/generation-prompt-sides.txt)、[棕色描边](brown-outline-prompt.txt)。

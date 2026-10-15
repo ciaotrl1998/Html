@@ -488,7 +488,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("zhong", "钟馗像", "temple", { coins: 360, materials: 260 }, 430, { slow: 0.4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: "每 12 秒全场减速 4 秒 · 仅可由造化匣获得" });
   def("tao", "道观", "temple", { coins: 600, materials: 440 }, 380, { powerAura: 0.15, fortuneOnly: true, desc: "全镇防御建筑攻击 +15% · 仅可由造化匣获得" });
   def("fortune", "造化匣", "mystery", { coins: 90, materials: 60 }, 1, { limit: 10, desc: "变化为随机建筑" });
-  def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: "庄园出入口 · 可升级与修复" });
+  def("gate", "庄园城门", "defense", { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: "庄园出入口 · 升级提高全庄建筑自动修复速度" });
   const SKILLS = { repel: { name: "驱鬼符", cooldown: 18 }, repair: { name: "回春诀", cooldown: 24 }, thunder: { name: "九霄天雷", cooldown: 120 } };
   const MISSIONS = [
     { title: "一盏茶，起一座坊", desc: "在平地建造一间茶肆", reward: 60, test: (s) => s.buildings.some((b) => b.type === "tea") },
@@ -1280,56 +1280,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       u.y += (goal.y - u.y) / distance * stride;
     }
   }
-  function combat(s, dt) {
+  function stepSoldierMovement(s, dt, grid = spatial(s), onAttack = () => {
+  }) {
     var _a, _b;
-    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id))), armyBoost = s.players.map((p, i) => boost[i] * difficultySoldier(playerView(s, p.id)));
-    const projectileTarget = (p) => p.targetType === "building" ? buildingIndex(s).ids.get(p.targetId) : grid.byId.get(p.targetId);
-    for (const p of s.projectiles) {
-      p.life -= dt;
-      const target = projectileTarget(p);
-      if ((target == null ? void 0 : target.hp) > 0 && !s.players[p.owner].eliminated) {
-        p.tx = target.x;
-        p.ty = target.y;
-        if (p.life <= 1e-8 && hostile(s, p.owner, target.owner)) {
-          if (p.targetType === "building") buildingHits.push([target, p.damage]);
-          else unitHits.push([target, p.damage, p.owner]);
-        }
-      }
-    }
-    s.projectiles = s.projectiles.filter((p) => {
-      var _a2;
-      return p.life > 1e-8 && ((_a2 = projectileTarget(p)) == null ? void 0 : _a2.hp) > 0 && !s.players[p.owner].eliminated;
-    });
+    if (!Number.isFinite(dt) || dt <= 0 || s.over) return;
     function fire(u, target, targetType) {
       if (u.attack > 0) return;
       u.attack = troopDef(u).interval;
       u.attackAt = s.elapsed;
-      s.projectiles.push({ id: s.nextId++, owner: u.owner, sourceId: u.id, type: "archer", targetType, x: u.x, y: u.y, tx: target.x, ty: target.y, targetId: target.id, damage: u.baseDamage * armyBoost[u.owner], life: 0.3, total: 0.3 });
-    }
-    for (const b of s.buildings) {
-      if (b.hp <= 0) continue;
-      const d = DEFS[b.type];
-      b.cooldown = Math.max(0, b.cooldown - dt);
-      if (b.type === "zhong" && b.cooldown === 0) {
-        const enemies = s.soldiers.filter((u) => u.hp > 0 && hostile(s, b.owner, u.owner));
-        if (enemies.length) {
-          for (const u of enemies) {
-            u.slowed = Math.max(u.slowed, 4);
-            u.slowFactor = Math.min(u.slowFactor, 1 - zhongSlow(b));
-          }
-          b.cooldown = 12;
-          s.effects.push({ type: "zhong-pulse", x: b.x, y: b.y, life: 0.8, total: 0.8 });
-        }
-      }
-      if (!d.damage || b.type === "barracks" || b.cooldown > 0) continue;
-      const targets = grid.near(b.x, b.y, d.range + (b.level - 1) * 0.35).filter((u) => hostile(s, b.owner, u.owner)).sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y) || a.id - c.id);
-      const target = targets[0];
-      if (!target) continue;
-      b.cooldown = d.interval;
-      const damage = d.damage * factor(b) * boost[b.owner];
-      if (d.splash) {
-        for (const u of grid.near(target.x, target.y, d.splash)) if (hostile(s, b.owner, u.owner)) unitHits.push([u, damage, b.owner]);
-      } else s.projectiles.push({ id: s.nextId++, owner: b.owner, type: b.type, x: b.x, y: b.y, tx: target.x, ty: target.y, targetId: target.id, damage, life: 0.3, total: 0.3 });
+      onAttack(u, target, targetType);
     }
     for (const u of s.soldiers) {
       if (u.hp <= 0) continue;
@@ -1365,14 +1324,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       u.targetId = (_a = target == null ? void 0 : target.id) != null ? _a : null;
       if (target) {
         u.waypoint = null;
-        if (Math.hypot(target.x - u.x, target.y - u.y) <= range + 1e-8 && clearSegment(s, u, target.x, target.y)) {
-          if (archer) fire(u, target, "unit");
-          else if (u.attack === 0) {
-            unitHits.push([target, u.baseDamage * armyBoost[u.owner], u.owner]);
-            u.attack = 1;
-            u.attackAt = s.elapsed;
-          }
-        } else move(s, u, chase, dt);
+        if (Math.hypot(target.x - u.x, target.y - u.y) <= range + 1e-8 && clearSegment(s, u, target.x, target.y)) fire(u, target, "unit");
+        else move(s, u, chase, dt);
         continue;
       }
       let shrine = u.targetOwner !== null && !((_b = s.players[u.targetOwner]) == null ? void 0 : _b.eliminated) ? buildingIndex(s).owners[u.targetOwner].find((b2) => b2.type === "shrine") : null;
@@ -1414,20 +1367,64 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if ((b == null ? void 0 : b.hp) > 0 && hostile(s, u.owner, b.owner)) {
         if (Math.hypot(b.x - u.x, b.y - u.y) <= 1.05) {
           u.targetBuildingId = b.id;
-          if (u.attack === 0) {
-            if (archer) fire(u, b, "building");
-            else {
-              buildingHits.push([b, u.baseDamage * armyBoost[u.owner]]);
-              u.attack = 1;
-              u.attackAt = s.elapsed;
-            }
-          }
+          fire(u, b, "building");
         } else {
           const dist = Math.hypot(goal.x - u.x, goal.y - u.y), step2 = Math.min(SOLDIER_SPEED * dt, Math.max(0, dist - 1));
           if (step2 > 0) move(s, u, { x: u.x + (goal.x - u.x) / dist * step2, y: u.y + (goal.y - u.y) / dist * step2 }, dt);
         }
       } else move(s, u, goal, dt);
     }
+  }
+  function combat(s, dt) {
+    const grid = spatial(s), unitHits = [], buildingHits = [], boost = s.players.map((p) => defenseBoost(playerView(s, p.id))), armyBoost = s.players.map((p, i) => boost[i] * difficultySoldier(playerView(s, p.id)));
+    const projectileTarget = (p) => p.targetType === "building" ? buildingIndex(s).ids.get(p.targetId) : grid.byId.get(p.targetId);
+    for (const p of s.projectiles) {
+      p.life -= dt;
+      const target = projectileTarget(p);
+      if ((target == null ? void 0 : target.hp) > 0 && !s.players[p.owner].eliminated) {
+        p.tx = target.x;
+        p.ty = target.y;
+        if (p.life <= 1e-8 && hostile(s, p.owner, target.owner)) {
+          if (p.targetType === "building") buildingHits.push([target, p.damage]);
+          else unitHits.push([target, p.damage, p.owner]);
+        }
+      }
+    }
+    s.projectiles = s.projectiles.filter((p) => {
+      var _a;
+      return p.life > 1e-8 && ((_a = projectileTarget(p)) == null ? void 0 : _a.hp) > 0 && !s.players[p.owner].eliminated;
+    });
+    for (const b of s.buildings) {
+      if (b.hp <= 0) continue;
+      const d = DEFS[b.type];
+      b.cooldown = Math.max(0, b.cooldown - dt);
+      if (b.type === "zhong" && b.cooldown === 0) {
+        const enemies = s.soldiers.filter((u) => u.hp > 0 && hostile(s, b.owner, u.owner));
+        if (enemies.length) {
+          for (const u of enemies) {
+            u.slowed = Math.max(u.slowed, 4);
+            u.slowFactor = Math.min(u.slowFactor, 1 - zhongSlow(b));
+          }
+          b.cooldown = 12;
+          s.effects.push({ type: "zhong-pulse", x: b.x, y: b.y, life: 0.8, total: 0.8 });
+        }
+      }
+      if (!d.damage || b.type === "barracks" || b.cooldown > 0) continue;
+      const targets = grid.near(b.x, b.y, d.range + (b.level - 1) * 0.35).filter((u) => hostile(s, b.owner, u.owner)).sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y) || a.id - c.id);
+      const target = targets[0];
+      if (!target) continue;
+      b.cooldown = d.interval;
+      const damage = d.damage * factor(b) * boost[b.owner];
+      if (d.splash) {
+        for (const u of grid.near(target.x, target.y, d.splash)) if (hostile(s, b.owner, u.owner)) unitHits.push([u, damage, b.owner]);
+      } else s.projectiles.push({ id: s.nextId++, owner: b.owner, type: b.type, x: b.x, y: b.y, tx: target.x, ty: target.y, targetId: target.id, damage, life: 0.3, total: 0.3 });
+    }
+    stepSoldierMovement(s, dt, grid, (u, target, targetType) => {
+      const damage = u.baseDamage * armyBoost[u.owner];
+      if (troopType(u) === "archer") s.projectiles.push({ id: s.nextId++, owner: u.owner, sourceId: u.id, type: "archer", targetType, x: u.x, y: u.y, tx: target.x, ty: target.y, targetId: target.id, damage, life: 0.3, total: 0.3 });
+      else if (targetType === "building") buildingHits.push([target, damage]);
+      else unitHits.push([target, damage, u.owner]);
+    });
     for (const [u, damage, owner] of unitHits) damageUnit(u, damage, owner);
     for (const [b, damage] of buildingHits) hurtBuilding(s, b, damage);
     collectDead(s);
@@ -1490,6 +1487,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     settleIncome(s, dt, emitEffects);
     for (const id in s.cooldowns) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
   }
+  const gateRepairRate = (level = 1) => 0.02 + 2e-3 * (Math.max(1, Math.min(GATE_MAX_LEVEL, level)) - 1);
   function step(s, dt) {
     s = world(s);
     if (s.over || !Number.isFinite(dt) || dt <= 0) return;
@@ -1501,6 +1499,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const p of s.players) if (!p.eliminated) for (const id in p.cooldowns) p.cooldowns[id] = Math.max(0, p.cooldowns[id] - dt);
     for (const e of s.effects) e.life -= dt;
     s.effects = s.effects.filter((e) => e.life > 0);
+    const repairRates = s.players.map((p) => gateRepairRate(p.gateLevel));
     for (const b of [...s.buildings]) {
       if (dryFarm(playerView(s, b.owner), b)) {
         hurtBuilding(s, b, maxHP(b) * 0.05 * dt, true);
@@ -1508,7 +1507,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       if (s.elapsed - b.lastHit < 10 - 1e-8) continue;
       if (b.type === "gate" && b.hp === 0 && s.soldiers.some((u) => u.hp > 0 && hostile(s, b.owner, u.owner) && Math.hypot(u.x - b.x, u.y - b.y) <= 3)) continue;
-      healBuilding(s, b, maxHP(b) * 0.02 * dt);
+      healBuilding(s, b, maxHP(b) * repairRates[b.owner] * dt);
     }
     syncSoldierHealth(s);
     recruit(s, dt);
@@ -1644,6 +1643,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     inSkillZone,
     ready,
     setControllerFactory,
+    gateRepairRate,
+    stepSoldierMovement,
     SIZE,
     CENTER,
     worldSize,
@@ -1749,7 +1750,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function packed(entity, group, initial = false) {
     const row = {};
-    const unitKeys = ["id", "x", "y", "hp", "maxHp", "level", "troopType", "baseDamage", "targetId", "targetBuildingId", "attackAt"];
+    const unitKeys = [
+      "id",
+      "x",
+      "y",
+      "hp",
+      "maxHp",
+      "level",
+      "troopType",
+      "baseDamage",
+      "targetId",
+      "targetBuildingId",
+      "attackAt",
+      "attack",
+      "targetOwner",
+      "waypoint",
+      "repelled",
+      "slowed",
+      "slowFactor"
+    ];
     const keys = group === "buildings" ? Object.keys(entity) : initial ? [...unitKeys, "owner", "barracksId"] : unitKeys;
     for (const key of keys) {
       if (["path", "pathRevision", "targetTile", "chaseTile"].includes(key) || group === "buildings" && (progressKeys.includes(key) || key === "cooldown")) continue;
@@ -1879,7 +1898,53 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     };
     return replica;
   }
-  return { economy, snapshot, delta, createReplica };
+  function createMotionPredictor() {
+    const horizon = 0.5, correctionTime = 0.18, teleportDistance = 2;
+    let shadow = null, units = /* @__PURE__ */ new Map(), offsets = /* @__PURE__ */ new Map();
+    let clockOffset = null, confirmedAt = 0, receivedAt = 0, displayAt = 0, running = false;
+    function simulateTo(time) {
+      while (shadow.elapsed + 1e-8 < time) {
+        const dt = Math.min(1 / 30, time - shadow.elapsed);
+        shadow.elapsed += dt;
+        G.stepSoldierMovement(shadow, dt);
+      }
+    }
+    function position(unit) {
+      const predicted = units.get(unit.id);
+      if (!predicted || unit.hp <= 0) return unit;
+      const offset = offsets.get(unit.id);
+      const blend = offset ? Math.pow(Math.max(0, 1 - (displayAt - receivedAt) / correctionTime), 2) : 0;
+      return { x: predicted.x + ((offset == null ? void 0 : offset.x) || 0) * blend, y: predicted.y + ((offset == null ? void 0 : offset.y) || 0) * blend };
+    }
+    function advance(now, enabled = true) {
+      if (!shadow || !running || !enabled) return;
+      displayAt = Math.max(displayAt, now);
+      simulateTo(Math.min(confirmedAt + horizon, Math.max(shadow.elapsed, now - clockOffset)));
+    }
+    function sync(state, now, paused = false, reset = false) {
+      advance(now);
+      const previous = /* @__PURE__ */ new Map();
+      if (!reset && !paused) for (const unit of (shadow == null ? void 0 : shadow.soldiers) || []) previous.set(unit.id, position(unit));
+      if (reset || paused || !running || clockOffset === null) clockOffset = now - state.elapsed;
+      else clockOffset = Math.min(clockOffset, now - state.elapsed);
+      if (!shadow || reset) shadow = {};
+      Object.assign(shadow, state, { soldiers: state.soldiers.map((unit) => clone(unit)) });
+      units = new Map(shadow.soldiers.map((unit) => [unit.id, unit]));
+      confirmedAt = state.elapsed;
+      receivedAt = displayAt = now;
+      running = !paused && !state.over;
+      if (running) simulateTo(Math.min(confirmedAt + horizon, Math.max(confirmedAt, now - clockOffset)));
+      offsets = /* @__PURE__ */ new Map();
+      for (const unit of shadow.soldiers) {
+        const before = previous.get(unit.id);
+        if (!before) continue;
+        const dx = before.x - unit.x, dy = before.y - unit.y;
+        if (Math.hypot(dx, dy) < teleportDistance) offsets.set(unit.id, { x: dx, y: dy });
+      }
+    }
+    return { sync, advance, position };
+  }
+  return { economy, snapshot, delta, createReplica, createMotionPredictor };
 });
 
 var __defProp = Object.defineProperty;
@@ -2112,12 +2177,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     rect(c, -9, 15, 18, 2, "#d6d6bc");
     rect(c, -11, 17, 22, 2, "#b6bca1");
   }
-  function building(c, type, level = 1, time = 0, baked = false) {
+  function building(c, type, level = 1, time = 0, baked = false, entityOnly = false) {
     level = GF.visualLevel(level);
     c.save();
     c.lineJoin = "round";
-    ellipse(c, 2, 18, 26, 8, "#3b503728");
-    if (level >= 2) {
+    if (!entityOnly) ellipse(c, 2, 18, 26, 8, "#3b503728");
+    if (level >= 2 && !entityOnly) {
       poly(c, [[-29, -20], [27, -20], [30, 23], [-28, 23]], "#bfc4a582", "#929f7f", 0.7);
       for (let i = 0; i < 4; i++) line(c, [[-26 + i * 17, 19], [-26 + i * 17, 23]], "#8b987b", 0.7);
     }
@@ -2484,6 +2549,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a, _b;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
+    const upgradeBob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(animationTime * Math.PI) * 3;
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let hints = hintCaches.get(s);
     if (!hints || hints.key !== hintKey) {
@@ -2503,6 +2569,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const night = false, dusk = false;
     const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
     const visible = (x, y, rx, ry = rx) => x + rx >= -cam.x / cam.zoom && x - rx <= (w - cam.x) / cam.zoom && y + ry >= -cam.y / cam.zoom && y - ry <= (h - cam.y) / cam.zoom;
+    const showBuildingLabels = cam.zoom >= 0.9;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.imageSmoothingEnabled = false;
     png(c, "scenery/world-background", 0, 0, w, h);
@@ -2565,28 +2632,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         c.imageSmoothingEnabled = false;
         c.drawImage(buildingImage, -64, -96, 128, 128);
       }
-      if (b.type === "shrine") {
-        panel(c, s.players[b.owner].team === 1 ? "enemy" : b.owner === options.player ? "primary" : "ally", -38, -57, 76, 19);
+      if (b.type === "shrine" && !showBuildingLabels) {
+        panel(c, s.players[b.owner].team === 1 ? "map-enemy" : b.owner === options.player ? "map-primary" : "map-ally", -38, -57, 76, 19);
         c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#fff4d9";
         c.fillText(b.owner === options.player ? "你的庄园" : s.players[b.owner].team === 0 ? "队友庄园" : "敌方庄园 " + (b.owner + 1), 0, -43);
       }
-      if (b.type === "gate") {
-        if (b.hp <= 0) {
-          png(c, "overlays/gate-broken", -32, -17, 64, 48);
-          c.font = 'bold 11px "Microsoft YaHei",sans-serif';
-          c.textAlign = "center";
-          panel(c, "danger", -19, -19, 38, 15);
-          c.fillStyle = "#ffe0b0";
-          c.fillText("毁损", 0, -8);
-        } else {
-          c.font = 'bold 10px "SimHei","Microsoft YaHei",sans-serif';
-          c.textAlign = "center";
-          c.fillStyle = "#f1dfae";
-          c.fillText(["北", "东", "南", "西"][b.direction] || "门", 0, -13);
-        }
-      }
+      if (b.type === "gate" && b.hp <= 0) png(c, "overlays/gate-broken", -32, -17, 64, 48);
       if (b.type === "shrine" && s.buildings.length === 1) {
         const r = 32 + Math.sin(s.elapsed) * 2;
         png(c, "overlays/aura", -r, 7, r * 2, 24);
@@ -2597,8 +2650,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       const canUpgrade = b.type === "barracks" && b.level === 1 ? ["infantry", "archer"].some((troopType) => !GF.upgradeReason(player, b, false, { troopType })) : !GF.upgradeReason(player, b);
       if (canUpgrade) {
-        const bob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(animationTime * 3 + (b.id || 0) * 2.399963229728653) * 2.5;
-        png(c, "ui/icons/upgrade", 10, -13 + bob, 16, 16);
+        png(c, "ui/icons/upgrade", 6, -23 + upgradeBob, 24, 24);
       }
       const levelLabel = String(b.level), badgeWidth = 16, badgeX = 25 - badgeWidth;
       png(c, "overlays/level-badge", badgeX, 5, 16, 16);
@@ -2608,13 +2660,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.textBaseline = "middle";
       c.fillText(levelLabel, badgeX + badgeWidth / 2, 13);
       c.textBaseline = "alphabetic";
-      if (cam.zoom >= 0.9) {
-        const label = b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : b.type === "barracks" ? GF.name(b) : GF.DEFS[b.type].name;
+      if (showBuildingLabels && b.type !== "gate") {
+        const label = b.type === "barracks" ? GF.name(b) : GF.DEFS[b.type].name;
         c.font = '9px "SimHei","Microsoft YaHei",sans-serif';
-        const labelWidth = c.measureText(label).width + 14;
-        panel(c, "paper", -labelWidth / 2, 27, labelWidth, 14);
-        c.fillStyle = "#52694e";
-        c.fillText(label, 0, 37);
+        c.textAlign = "center";
+        const text = c.measureText(label), labelWidth = text.width + 14, labelTop = 18, labelHeight = 20;
+        panel(c, "map-paper", -labelWidth / 2, labelTop, labelWidth, labelHeight);
+        c.fillStyle = "#4a2e20";
+        c.fillText(label, 0, labelTop + (labelHeight + text.actualBoundingBoxAscent - text.actualBoundingBoxDescent) / 2);
       }
       if (GF.DEFS[b.type].end) png(c, "ui/icons/diamond", -29, 8, 12, 12);
       c.restore();
@@ -2978,12 +3031,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (east || west) line(c, [[i, 19], [i, 45]], "#655c43", 1.5);
     }
   }
-  function exportPngAssets() {
+  function exportPngAssets(options = {}) {
     const assets = {};
-    for (const type of Object.keys(GF.DEFS)) for (let level = 1; level <= 3; level++) assets[`assets/sprites/buildings/${type}/level-${level}.png`] = assetCanvas(128, 128, (c) => {
+    for (const type of options.buildingType ? [options.buildingType] : Object.keys(GF.DEFS)) for (let level = 1; level <= 3; level++) assets[`assets/sprites/buildings/${type}/level-${level}.png`] = assetCanvas(128, 128, (c) => {
       c.translate(64, 96);
-      building(c, type, (level - 1) * 3 + 1, 0, true);
+      building(c, type, (level - 1) * 3 + 1, 0, true, options.entityOnly === true);
     });
+    if (options.buildingType) return assets;
     for (const type of Object.keys(palette)) assets[`assets/tiles/terrain/${type}.png`] = assetCanvas(T, T, (c) => paintTerrainTile(c, type));
     assets["assets/tiles/resources/forest.png"] = assetCanvas(128, 128, (c) => {
       c.translate(64, 64);
@@ -3529,22 +3583,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   let saveStatus = storageWarning ? "本地存档不可用" : "本地自动存档";
   let autoplay = false, pilot = null, partnerPilot = null, computerSeat = false;
   let online = null, replica = null, actionId = 0;
-  let remoteMotion = /* @__PURE__ */ new Map(), remoteAt = 0, remoteSpan = 100;
+  let remoteMotion = null, remoteAt = 0;
   let guestClockBase = 0, guestTimeBase = 0, guestClockAt = 0;
-  const guestLive = () => online && !online.serverPaused && online.peerConnected ? guestClockBase + Math.min(0.25, (performance.now() - guestClockAt) / 1e3) : guestClockBase;
-  function remotePosition(unit, soldier) {
-    const motion = remoteMotion.get((soldier ? "s" : "e") + unit.id);
-    if (!motion) return unit;
-    const fraction = Math.max(0, Math.min(1, (performance.now() - remoteAt) / remoteSpan));
-    return { x: motion.x + (unit.x - motion.x) * fraction, y: motion.y + (unit.y - motion.y) * fraction };
-  }
-  function beginRemoteFrame(span = 100) {
-    const now = performance.now(), positions = /* @__PURE__ */ new Map();
-    for (const [units, soldier] of [[state.soldiers, true]]) for (const unit of units) positions.set((soldier ? "s" : "e") + unit.id, remotePosition(unit, soldier));
-    remoteMotion = positions;
-    remoteSpan = Math.max(50, Math.min(150, span));
-    remoteAt = now;
-  }
+  const guestLive = () => online && !online.serverPaused && online.peerConnected && !online.awaitingState ? guestClockBase + Math.min(0.5, (performance.now() - guestClockAt) / 1e3) : guestClockBase;
+  const remotePosition = (unit) => (remoteMotion == null ? void 0 : remoteMotion.position(unit)) || unit;
   const playerOwner = () => (online == null ? void 0 : online.role) === "guest" ? 1 : 0;
   const playerState = () => GF.playerView(state, playerOwner());
   const difficultyName = (value) => {
@@ -3564,7 +3606,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const { socket } = online;
     online = null;
     replica = null;
-    remoteMotion = /* @__PURE__ */ new Map();
+    remoteMotion = null;
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
     const input = $("coop-code");
     if (input) {
@@ -3587,11 +3629,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     } else if (result.reason) toast(result.reason, "warning");
     return result;
   }
-  function updateOnlineClock(message) {
+  function updateOnlineClock(message, resetMotion = false) {
     online.serverPaused = !!message.paused;
     guestClockBase = state.elapsed;
     guestTimeBase = state.time;
     guestClockAt = performance.now();
+    remoteMotion || (remoteMotion = GFNetwork.createMotionPredictor());
+    remoteMotion.sync(state, guestClockAt / 1e3, online.serverPaused, resetMotion);
+    remoteAt = guestClockAt;
   }
   function receiveOnline(message) {
     if (!online) return;
@@ -3602,18 +3647,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!first) {
         next.pending = replica.pending.filter((action) => action.id > message.ack);
         next.reconcile();
-        beginRemoteFrame((next.state.elapsed - state.elapsed) * 1e3);
       }
       replica = next;
       state = next.state;
       actionId = first ? message.ack : Math.max(actionId, message.ack);
       online.started = true;
       online.awaitingState = false;
-      if (first) {
-        remoteMotion = /* @__PURE__ */ new Map();
-        remoteAt = performance.now();
-      }
-      updateOnlineClock(message);
+      updateOnlineClock(message, true);
       if (first) enterGame(state);
       else if (playerState().selectedSkill && !$("modal").hidden && $("modal-content").querySelector(".skill-selection")) closeModal();
       sendPresence();
@@ -3627,7 +3667,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         onlineSend({ type: "resync" });
         return;
       }
-      beginRemoteFrame((message.meta.elapsed - state.elapsed) * 1e3);
       const applied = replica.apply(message);
       if (applied === null) {
         online.awaitingState = true;
@@ -3934,6 +3973,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : "0";
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === "materials" ? "material-icon" : "coin-icon"}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === "0" ? "" : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : "";
     let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
+    if (b.type === "gate") stats += `<div>修复速度<strong>${rateText(GF.gateRepairRate(b.level) * 100)}%/秒${max ? "" : " → " + rateText(GF.gateRepairRate(next.level) * 100) + "%/秒"}</strong></div>`;
     if (d.income) {
       stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
       if (b.type === "shrine") stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? "" : " → " + soldierTrainingText(next.level)}</strong></div>`;
@@ -4362,7 +4402,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + " · 难度 " + difficultyName(state.difficulty) + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><button class="modal-secondary" data-modal="title">离开房间</button>');
       return;
     }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + " · 难度 " + difficultyName(state.difficulty) + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
+    modal('<p class="modal-kicker">庄园攻防</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + " · 难度 " + difficultyName(state.difficulty) + (online ? " · 战斗由服务器统一计算" : "") + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? "" : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? "开" : "关") + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? "开" : "关") + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + "</p>");
   }
   function autoplaySettings() {
     const r = pilot == null ? void 0 : pilot.report(), seconds = Math.floor((r == null ? void 0 : r.activeSeconds) || 0);
@@ -4407,7 +4447,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function downloadSave(raw) {
     const blob = new Blob([raw], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
     a.href = url;
-    a.download = "古坊奇谭-攻防-" + Math.floor(state.elapsed) + "秒.json";
+    a.download = "庄园攻防-" + Math.floor(state.elapsed) + "秒.json";
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1e3);
   }
@@ -4451,7 +4491,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (action === "autoplay-report" && pilot) {
       const report = __spreadProps(__spreadValues({}, pilot.report()), { enabled: autoplay, finalSave: JSON.parse(GF.serialize(state)) }), blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
       a.href = url;
-      a.download = "古坊奇谭-攻防托管报告.json";
+      a.download = "庄园攻防-托管报告.json";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1e3);
       toast("托管报告已导出");
@@ -4678,6 +4718,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     } else simulationClock = 0;
     if (online && started && !hiddenPause) {
+      remoteMotion == null ? void 0 : remoteMotion.advance(now / 1e3, online.peerConnected && !online.serverPaused && !online.awaitingState && !state.over);
       const live = online.peerConnected && !online.serverPaused && !online.awaitingState && performance.now() - guestClockAt < 250;
       if (live) GF.stepEconomy(playerState(), Math.min(dt, 0.1));
       if (live) for (const group of [state.effects, state.projectiles]) for (const effect2 of group) effect2.life -= dt;

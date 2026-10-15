@@ -4,6 +4,8 @@
 // Run on freshly packed/faction-colored atlases; never on the old all-brown pass.
 const fs=require('node:fs'),path=require('node:path'),{PNG}=require('pngjs');
 const root=path.resolve(__dirname,'..');
+const requestedType=process.argv.find(arg=>arg.startsWith('--type='))?.slice(7);
+if(requestedType&&!['infantry','archer'].includes(requestedType))throw Error('Unsupported troop type');
 const luminance=(r,g,b)=>.2126*r+.7152*g+.0722*b;
 function family(r,g,b){
  if(Math.max(r,g,b)-Math.min(r,g,b)<35)return 'neutral';
@@ -14,7 +16,7 @@ function family(r,g,b){
  if(r>145&&g>105&&b>60&&r>g*1.05&&r>b*1.2)return 'skin-gold';
  return 'leather-gold';
 }
-for(const type of ['infantry','archer'])for(const faction of ['player-red','ally-green','enemy-purple']){
+for(const type of requestedType?[requestedType]:['infantry','archer'])for(const faction of ['player-red','ally-green','enemy-purple']){
  const file=path.join(root,`assets/sprites/soldiers/${type}_${faction}.png`),png=PNG.sync.read(fs.readFileSync(file)),original=Buffer.from(png.data);let contours=0,interiors=0;
  for(let row=0;row<3;row++)for(let col=0;col<12;col++){
   const offset=(x,y)=>((row*30+y)*png.width+col*20+x)*4;

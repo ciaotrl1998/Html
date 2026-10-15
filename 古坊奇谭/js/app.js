@@ -12,21 +12,11 @@
   let saveStatus = storageWarning ? '本地存档不可用' : '本地自动存档';
   let autoplay = false, pilot = null, partnerPilot = null, computerSeat = false;
   let online = null, replica = null, actionId = 0;
-  let remoteMotion = new Map(), remoteAt = 0, remoteSpan = 100;
+  let remoteMotion = null, remoteAt = 0;
   let guestClockBase = 0, guestTimeBase = 0, guestClockAt = 0;
-  const guestLive = () => online && !online.serverPaused && online.peerConnected ? guestClockBase + Math.min(.25, (performance.now() - guestClockAt) / 1000) : guestClockBase;
-  function remotePosition(unit, soldier) {
-    const motion = remoteMotion.get((soldier ? 's' : 'e') + unit.id);
-    if (!motion) return unit;
-    const fraction = Math.max(0, Math.min(1, (performance.now() - remoteAt) / remoteSpan));
-    return { x: motion.x + (unit.x - motion.x) * fraction, y: motion.y + (unit.y - motion.y) * fraction };
-  }
-  // Capture where every unit is currently drawn so the next packet interpolates from it.
-  function beginRemoteFrame(span = 100) {
-    const now = performance.now(), positions = new Map();
-    for (const [units, soldier] of [[state.soldiers,true]]) for (const unit of units) positions.set((soldier?'s':'e')+unit.id, remotePosition(unit, soldier));
-    remoteMotion = positions; remoteSpan = Math.max(50, Math.min(150, span)); remoteAt = now;
-  }
+  const guestLive = () => online && !online.serverPaused && online.peerConnected && !online.awaitingState ? guestClockBase + Math.min(.5, (performance.now() - guestClockAt) / 1000) : guestClockBase;
+  // Unit IDs are global; friendly and hostile soldiers share the same predictor.
+  const remotePosition = unit => remoteMotion?.position(unit) || unit;
   const playerOwner = () => online?.role === 'guest' ? 1 : 0;
   const playerState = () => GF.playerView(state, playerOwner());
   const difficultyName = value => GF.DIFFICULTIES[value]?.name || GF.DIFFICULTIES.beginner.name;
@@ -37,7 +27,7 @@
   }
   function leaveOnline() {
     if (!online) return;
-    const { socket } = online; online = null; replica = null; remoteMotion = new Map();
+    const { socket } = online; online = null; replica = null; remoteMotion = null;
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
     const input = $('coop-code');
     if (input) { input.readOnly = false; input.value = ''; }
@@ -50,9 +40,12 @@
     else if (result.reason) toast(result.reason, 'warning');
     return result;
   }
-  function updateOnlineClock(message) {
+  function updateOnlineClock(message, resetMotion = false) {
     online.serverPaused = !!message.paused;
     guestClockBase = state.elapsed; guestTimeBase = state.time; guestClockAt = performance.now();
+    remoteMotion ||= GFNetwork.createMotionPredictor();
+    remoteMotion.sync(state, guestClockAt / 1000, online.serverPaused, resetMotion);
+    remoteAt = guestClockAt;
   }
   function receiveOnline(message) {
     if (!online) return;
@@ -63,11 +56,10 @@
       if (!first) {
         next.pending = replica.pending.filter(action => action.id > message.ack);
         next.reconcile();
-        beginRemoteFrame((next.state.elapsed-state.elapsed)*1000);
       }
       replica = next; state = next.state; actionId = first ? message.ack : Math.max(actionId, message.ack);
       online.started = true; online.awaitingState = false;
-      if(first){remoteMotion = new Map(); remoteAt = performance.now();}updateOnlineClock(message);
+      updateOnlineClock(message, true);
       if (first) enterGame(state);
       else if(playerState().selectedSkill&&!$('modal').hidden&&$('modal-content').querySelector('.skill-selection'))closeModal();
       sendPresence(); refresh();
@@ -76,7 +68,6 @@
       if (message.session !== replica.session || online.awaitingState) return;
       if(message.seq<=replica.seq)return;
       if(message.seq!==replica.seq+1){online.awaitingState=true;onlineSend({type:'resync'});return;}
-      beginRemoteFrame((message.meta.elapsed - state.elapsed) * 1000);
       const applied = replica.apply(message);
       if (applied === null) { online.awaitingState = true; onlineSend({ type: 'resync' }); return; }
       if (!applied) return;
@@ -261,6 +252,7 @@
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : '0';
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
+    if(b.type==='gate')stats+=`<div>修复速度<strong>${rateText(GF.gateRepairRate(b.level)*100)}%/秒${max?'':' → '+rateText(GF.gateRepairRate(next.level)*100)+'%/秒'}</strong></div>`;
     if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? '' : ' → ' + soldierTrainingText(next.level)}</strong></div>`; }
     else if (b.type === 'barracks') stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===1?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
@@ -513,7 +505,7 @@
   function showMenu() {
     if (!started) return;
     if (online?.role === 'guest') { modal('<p class="modal-kicker">双庄共守</p><h2>联机菜单</h2><p>房间 ' + online.code + ' · 难度 ' + difficultyName(state.difficulty) + ' · 战斗由服务器统一计算</p><button class="modal-primary" data-modal="close">继续游戏</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><button class="modal-secondary" data-modal="title">离开房间</button>'); return; }
-    modal('<p class="modal-kicker">古坊奇谭</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + ' · 难度 ' + difficultyName(state.difficulty) + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
+    modal('<p class="modal-kicker">庄园攻防</p><h2>已暂停</h2><p>对局 ' + duration(state.elapsed) + ' · 难度 ' + difficultyName(state.difficulty) + (online ? ' · 战斗由服务器统一计算' : '') + '</p><button class="modal-primary" data-modal="close">继续游戏</button>' + (online ? '' : autoplaySettings()) + '<button class="modal-secondary" data-modal="save">保存进度</button><button class="modal-secondary" data-modal="sound">音效：' + (sound ? '开' : '关') + '</button><button class="modal-secondary" data-modal="grid" aria-pressed="' + grid + '">地图网格：' + (grid ? '开' : '关') + '</button><div class="modal-row"><button class="modal-secondary" data-modal="export">导出存档</button><button class="modal-secondary" data-modal="import">导入存档</button></div><input id="save-file" type="file" accept=".json,application/json" hidden><button class="modal-secondary danger" data-modal="reset">重新开始</button><button class="modal-secondary" data-modal="title">返回开始菜单</button><p id="save-status">' + saveStatus + '</p>');
   }
   function autoplaySettings() {
     const r=pilot?.report(),seconds=Math.floor(r?.activeSeconds||0);
@@ -540,7 +532,7 @@
   }
   function downloadSave(raw) {
     const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='古坊奇谭-攻防-'+Math.floor(state.elapsed)+'秒.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    a.href=url;a.download='庄园攻防-'+Math.floor(state.elapsed)+'秒.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   $('modal-content').addEventListener('click',e=>{
     const action=e.target.closest('[data-modal]')?.dataset.modal;if(!action)return;
@@ -557,7 +549,7 @@
       const button=e.target.closest('[data-modal]');button.textContent='地图网格：'+(grid?'开':'关');button.setAttribute('aria-pressed',String(grid));
     }
     if(action==='autoplay')toggleAutoplay();
-    if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='古坊奇谭-攻防托管报告.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
+    if(action==='autoplay-report'&&pilot){const report={...pilot.report(),enabled:autoplay,finalSave:JSON.parse(GF.serialize(state))},blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='庄园攻防-托管报告.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('托管报告已导出');}
     if(action==='confirm-demolish'){const b=demolishTarget;demolishTarget=null;if(online){closeModal();if(b)onlineAction('demolish',{x:b.x,y:b.y});return;}const r=b?GF.demolish(state,b):{ok:false};closeModal();if(r.ok){toast('已拆除，返还 ' + costText(r.refund));panelKey='';handleEvents();save();}refresh();}
     if(action==='cancel-demolish'){demolishTarget=null;closeModal();}
     if(action==='reset')modal(`<p class="modal-kicker">另起新篇</p><h2>重建古坊</h2><p>重新开始会替换此浏览器中的现有进度。可先返回菜单导出存档。</p><button class="modal-primary" data-modal="new">重新开始</button><button class="modal-secondary" data-modal="menu">返回，保留当前古坊</button>`);
@@ -628,6 +620,7 @@
       if(simulationClock+1e-8>=1/30){let remaining=simulationClock;simulationClock=0;while(remaining>0&&!paused&&!state.over){const tick=Math.min(.1,remaining);GF.step(state,tick);remaining-=tick;}handleEvents();}
     }else simulationClock=0;
     if(online&&started&&!hiddenPause){
+      remoteMotion?.advance(now/1000,online.peerConnected&&!online.serverPaused&&!online.awaitingState&&!state.over);
       const live=online.peerConnected&&!online.serverPaused&&!online.awaitingState&&performance.now()-guestClockAt<250;
       if(live)GF.stepEconomy(playerState(),Math.min(dt,.1));
       if(live)for(const group of [state.effects,state.projectiles])for(const effect of group)effect.life-=dt;

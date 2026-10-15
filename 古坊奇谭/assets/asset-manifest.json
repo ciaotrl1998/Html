@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "count": 217,
+  "count": 221,
   "assets": [
     {
       "path": "assets/effects/arrow.png",
@@ -193,8 +193,8 @@
     },
     {
       "path": "assets/overlays/range.png",
-      "width": 128,
-      "height": 128,
+      "width": 512,
+      "height": 512,
       "slice": 0,
       "usage": "地图叠加标记"
     },
@@ -1329,6 +1329,34 @@
     },
     {
       "path": "assets/ui/panels/inset.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/map-ally.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/map-enemy.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/map-paper.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/map-primary.png",
       "width": 32,
       "height": 32,
       "slice": 6,

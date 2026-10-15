@@ -396,6 +396,26 @@
       "width": 256,
       "height": 128,
       "slice": 0
+    },
+    "assets/ui/panels/map-primary.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/map-ally.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/map-enemy.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/map-paper.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
     }
   }
 }

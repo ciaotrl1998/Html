@@ -1,4 +1,4 @@
-/* 古坊奇谭 · deterministic multi-estate simulation. */
+/* 庄园攻防 · deterministic multi-estate simulation. */
 (function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./maps.js'):root.GFMaps);if(typeof module==='object'&&module.exports)module.exports=api;else root.GF=api;})(typeof globalThis!=='undefined'?globalThis:this,function(Maps){
   'use strict';
   const SIZE = 25, CENTER = 12, MAX_LEVEL = 9, SHRINE_MAX_LEVEL = 15, GATE_MAX_LEVEL = 15;
@@ -52,7 +52,7 @@
   def('zhong', '钟馗像', 'temple', { coins: 360, materials: 260 }, 430, { slow: .4, pulseInterval: 12, slowDuration: 4, fortuneOnly: true, desc: '每 12 秒全场减速 4 秒 · 仅可由造化匣获得' });
   def('tao', '道观', 'temple', { coins: 600, materials: 440 }, 380, { powerAura: .15, fortuneOnly: true, desc: '全镇防御建筑攻击 +15% · 仅可由造化匣获得' });
   def('fortune', '造化匣', 'mystery', { coins: 90, materials: 60 }, 1, { limit: 10, desc: '变化为随机建筑' });
-  def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: '庄园出入口 · 可升级与修复' });
+  def('gate', '庄园城门', 'defense', { coins: 95, materials: 120 }, 700, { fixed: true, upgradeBase: { coins: 150, materials: 120 }, upgradeGrowth: 5, desc: '庄园出入口 · 升级提高全庄建筑自动修复速度' });
   const SKILLS = { repel: { name: '驱鬼符', cooldown: 18 }, repair: { name: '回春诀', cooldown: 24 }, thunder: { name: '九霄天雷', cooldown: 120 } };
   const MISSIONS = [
     { title: '一盏茶，起一座坊', desc: '在平地建造一间茶肆', reward: 60, test: s => s.buildings.some(b => b.type === 'tea') },
@@ -548,27 +548,14 @@
     const distance=Math.hypot(goal.x-u.x,goal.y-u.y),stride=Math.min(distance,SOLDIER_SPEED*(u.slowed>0?u.slowFactor:1)*dt);
     if(distance>.0001){u.x+=(goal.x-u.x)/distance*stride;u.y+=(goal.y-u.y)/distance*stride;}
   }
-  function combat(s,dt){
-    const grid=spatial(s),unitHits=[],buildingHits=[],boost=s.players.map(p=>defenseBoost(playerView(s,p.id))),armyBoost=s.players.map((p,i)=>boost[i]*difficultySoldier(playerView(s,p.id)));
-    const projectileTarget=p=>p.targetType==='building'?buildingIndex(s).ids.get(p.targetId):grid.byId.get(p.targetId);
-    for(const p of s.projectiles){p.life-=dt;const target=projectileTarget(p);if(target?.hp>0&&!s.players[p.owner].eliminated){p.tx=target.x;p.ty=target.y;if(p.life<=1e-8&&hostile(s,p.owner,target.owner)){if(p.targetType==='building')buildingHits.push([target,p.damage]);else unitHits.push([target,p.damage,p.owner]);}}}
-    s.projectiles=s.projectiles.filter(p=>p.life>1e-8&&projectileTarget(p)?.hp>0&&!s.players[p.owner].eliminated);
+  // Shared movement/target decisions. Prediction supplies no attack callback, so it
+  // cannot damage entities, recruit units, award kills or create projectiles.
+  function stepSoldierMovement(s,dt,grid=spatial(s),onAttack=()=>{}){
+    if(!Number.isFinite(dt)||dt<=0||s.over)return;
     function fire(u,target,targetType){
       if(u.attack>0)return;
       u.attack=troopDef(u).interval;u.attackAt=s.elapsed;
-      s.projectiles.push({id:s.nextId++,owner:u.owner,sourceId:u.id,type:'archer',targetType,x:u.x,y:u.y,tx:target.x,ty:target.y,targetId:target.id,damage:u.baseDamage*armyBoost[u.owner],life:.3,total:.3});
-    }
-    for(const b of s.buildings){
-      if(b.hp<=0)continue;const d=DEFS[b.type];b.cooldown=Math.max(0,b.cooldown-dt);
-      if(b.type==='zhong'&&b.cooldown===0){
-        const enemies=s.soldiers.filter(u=>u.hp>0&&hostile(s,b.owner,u.owner));
-        if(enemies.length){for(const u of enemies){u.slowed=Math.max(u.slowed,4);u.slowFactor=Math.min(u.slowFactor,1-zhongSlow(b));}b.cooldown=12;s.effects.push({type:'zhong-pulse',x:b.x,y:b.y,life:.8,total:.8});}
-      }
-      if(!d.damage||b.type==='barracks'||b.cooldown>0)continue;
-      const targets=grid.near(b.x,b.y,d.range+(b.level-1)*.35).filter(u=>hostile(s,b.owner,u.owner)).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y)||a.id-c.id);
-      const target=targets[0];if(!target)continue;b.cooldown=d.interval;const damage=d.damage*factor(b)*boost[b.owner];
-      if(d.splash){for(const u of grid.near(target.x,target.y,d.splash))if(hostile(s,b.owner,u.owner))unitHits.push([u,damage,b.owner]);}
-      else s.projectiles.push({id:s.nextId++,owner:b.owner,type:b.type,x:b.x,y:b.y,tx:target.x,ty:target.y,targetId:target.id,damage,life:.3,total:.3});
+      onAttack(u,target,targetType);
     }
     for(const u of s.soldiers){
       if(u.hp<=0)continue;u.attack=Math.max(0,u.attack-dt);u.slowed=Math.max(0,u.slowed-dt);if(!u.slowed)u.slowFactor=1;
@@ -590,7 +577,7 @@
       u.targetId=target?.id??null;
       if(target){
         u.waypoint=null;
-        if(Math.hypot(target.x-u.x,target.y-u.y)<=range+1e-8&&clearSegment(s,u,target.x,target.y)){if(archer)fire(u,target,'unit');else if(u.attack===0){unitHits.push([target,u.baseDamage*armyBoost[u.owner],u.owner]);u.attack=1;u.attackAt=s.elapsed;}}
+        if(Math.hypot(target.x-u.x,target.y-u.y)<=range+1e-8&&clearSegment(s,u,target.x,target.y))fire(u,target,'unit');
         else move(s,u,chase,dt);
         continue;
       }
@@ -612,12 +599,36 @@
       if(!goal||Math.hypot(goal.x-u.x,goal.y-u.y)<.001){const next=f.next[tile];goal={x:next%s.worldSize,y:Math.floor(next/s.worldSize)};u.waypoint=goal;}
       const b=at(s,goal.x,goal.y);
       if(b?.hp>0&&hostile(s,u.owner,b.owner)){
-        if(Math.hypot(b.x-u.x,b.y-u.y)<=1.05){u.targetBuildingId=b.id;if(u.attack===0){if(archer)fire(u,b,'building');else{buildingHits.push([b,u.baseDamage*armyBoost[u.owner]]);u.attack=1;u.attackAt=s.elapsed;}}}else{
+        if(Math.hypot(b.x-u.x,b.y-u.y)<=1.05){u.targetBuildingId=b.id;fire(u,b,'building');}else{
           const dist=Math.hypot(goal.x-u.x,goal.y-u.y),step=Math.min(SOLDIER_SPEED*dt,Math.max(0,dist-1));
           if(step>0)move(s,u,{x:u.x+(goal.x-u.x)/dist*step,y:u.y+(goal.y-u.y)/dist*step},dt);
         }
       }else move(s,u,goal,dt);
     }
+  }
+  function combat(s,dt){
+    const grid=spatial(s),unitHits=[],buildingHits=[],boost=s.players.map(p=>defenseBoost(playerView(s,p.id))),armyBoost=s.players.map((p,i)=>boost[i]*difficultySoldier(playerView(s,p.id)));
+    const projectileTarget=p=>p.targetType==='building'?buildingIndex(s).ids.get(p.targetId):grid.byId.get(p.targetId);
+    for(const p of s.projectiles){p.life-=dt;const target=projectileTarget(p);if(target?.hp>0&&!s.players[p.owner].eliminated){p.tx=target.x;p.ty=target.y;if(p.life<=1e-8&&hostile(s,p.owner,target.owner)){if(p.targetType==='building')buildingHits.push([target,p.damage]);else unitHits.push([target,p.damage,p.owner]);}}}
+    s.projectiles=s.projectiles.filter(p=>p.life>1e-8&&projectileTarget(p)?.hp>0&&!s.players[p.owner].eliminated);
+    for(const b of s.buildings){
+      if(b.hp<=0)continue;const d=DEFS[b.type];b.cooldown=Math.max(0,b.cooldown-dt);
+      if(b.type==='zhong'&&b.cooldown===0){
+        const enemies=s.soldiers.filter(u=>u.hp>0&&hostile(s,b.owner,u.owner));
+        if(enemies.length){for(const u of enemies){u.slowed=Math.max(u.slowed,4);u.slowFactor=Math.min(u.slowFactor,1-zhongSlow(b));}b.cooldown=12;s.effects.push({type:'zhong-pulse',x:b.x,y:b.y,life:.8,total:.8});}
+      }
+      if(!d.damage||b.type==='barracks'||b.cooldown>0)continue;
+      const targets=grid.near(b.x,b.y,d.range+(b.level-1)*.35).filter(u=>hostile(s,b.owner,u.owner)).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y)||a.id-c.id);
+      const target=targets[0];if(!target)continue;b.cooldown=d.interval;const damage=d.damage*factor(b)*boost[b.owner];
+      if(d.splash){for(const u of grid.near(target.x,target.y,d.splash))if(hostile(s,b.owner,u.owner))unitHits.push([u,damage,b.owner]);}
+      else s.projectiles.push({id:s.nextId++,owner:b.owner,type:b.type,x:b.x,y:b.y,tx:target.x,ty:target.y,targetId:target.id,damage,life:.3,total:.3});
+    }
+    stepSoldierMovement(s,dt,grid,(u,target,targetType)=>{
+      const damage=u.baseDamage*armyBoost[u.owner];
+      if(troopType(u)==='archer')s.projectiles.push({id:s.nextId++,owner:u.owner,sourceId:u.id,type:'archer',targetType,x:u.x,y:u.y,tx:target.x,ty:target.y,targetId:target.id,damage,life:.3,total:.3});
+      else if(targetType==='building')buildingHits.push([target,damage]);
+      else unitHits.push([target,damage,u.owner]);
+    });
     // Resolve attacks together so destruction order does not decide a simultaneous draw.
     for(const [u,damage,owner] of unitHits)damageUnit(u,damage,owner);
     for(const [b,damage] of buildingHits)hurtBuilding(s,b,damage);
@@ -643,16 +654,18 @@
     const home=estate(s).center;w.effects.push({type:id,x:home.x,y:home.y,life:1,total:1});collectDead(w);return {ok:true};
   }
   function stepEconomy(s,dt,emitEffects=true){s=economicView(s);if(!Number.isFinite(dt)||dt<=0||s.over||s.eliminated)return;dt=Math.min(dt,.25);settleIncome(s,dt,emitEffects);for(const id in s.cooldowns)s.cooldowns[id]=Math.max(0,s.cooldowns[id]-dt);}
+  const gateRepairRate=(level=1)=>.02+.002*(Math.max(1,Math.min(GATE_MAX_LEVEL,level))-1);
   function step(s,dt){
     s=world(s);if(s.over||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);s.elapsed+=dt;s.time=s.elapsed;
     tickControllers(s,dt);settleIncome(s,dt);
     for(const p of s.players)if(!p.eliminated)for(const id in p.cooldowns)p.cooldowns[id]=Math.max(0,p.cooldowns[id]-dt);
     for(const e of s.effects)e.life-=dt;s.effects=s.effects.filter(e=>e.life>0);
+    const repairRates=s.players.map(p=>gateRepairRate(p.gateLevel));
     for(const b of [...s.buildings]){
       if(dryFarm(playerView(s,b.owner),b)){hurtBuilding(s,b,maxHP(b)*.05*dt,true);continue;}
       if(s.elapsed-b.lastHit<10-1e-8)continue;
       if(b.type==='gate'&&b.hp===0&&s.soldiers.some(u=>u.hp>0&&hostile(s,b.owner,u.owner)&&Math.hypot(u.x-b.x,u.y-b.y)<=3))continue;
-      healBuilding(s,b,maxHP(b)*.02*dt);
+      healBuilding(s,b,maxHP(b)*repairRates[b.owner]*dt);
     }
     syncSoldierHealth(s);recruit(s,dt);combat(s,dt);missions(s);
   }
@@ -720,6 +733,6 @@
       s.phase='day';s.day=1;s.time=s.elapsed;s.events=[];s.effects=[];return s;
     }catch{return null;}
   }
-  return {VERSION,UNIT_CAP,SOLDIER_SPEED,TROOPS,troopType,troopDef,DIFFICULTIES,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,
+  return {VERSION,UNIT_CAP,SOLDIER_SPEED,TROOPS,troopType,troopDef,DIFFICULTIES,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,gateRepairRate,stepSoldierMovement,
     SIZE,CENTER,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierTrainingTime,soldierRate,difficultyModifiers,difficultyEconomy,difficultySoldier,soldierBoost,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
 });

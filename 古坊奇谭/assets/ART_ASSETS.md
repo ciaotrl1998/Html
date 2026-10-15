@@ -1,8 +1,8 @@
-# 游戏美术资源
+# 庄园攻防 · 游戏美术资源
 
 游戏的建筑、士兵、地图、界面图形、图标和地图特效均从目录读取 PNG。文字、等级、金额、血量数值继续由程序显示，图片负责外观，程序负责位置、缩放、旋转、淡出和填充比例。
 
-打开 [ART_CATALOG.html](ART_CATALOG.html) 可按分类查看 **217 张图片**（含本次新增 79 张），点击缩略图即可打开原 PNG。[asset-manifest.json](asset-manifest.json) 记录全部路径、实际尺寸和用途；[interface-manifest.json](interface-manifest.json) 记录本次拆出的 UI／特效尺寸及切片参数。
+打开 [ART_CATALOG.html](ART_CATALOG.html) 可按分类查看 **221 张图片**，点击缩略图即可打开原 PNG。[asset-manifest.json](asset-manifest.json) 记录全部路径、实际尺寸和用途；[interface-manifest.json](interface-manifest.json) 记录 UI／特效尺寸及切片参数。
 
 ## 统一修改规则
 
@@ -28,6 +28,10 @@
 - 图片文件一一独立，没有把所有控件合并成一张大图；资源总览不是游戏读取的图集。
 
 ## 界面 UI
+
+地图上的庄园标题、建筑名称使用 `assets/ui/panels/map-primary.png`／`map-ally.png`／`map-enemy.png`／`map-paper.png`，已去除四角深色装饰点。它们是独立 PNG，保持 32×32 尺寸与 6px 九宫格切片，可直接替换。
+
+升级提示使用 `assets/ui/icons/upgrade.png`（原图 32×32，地图显示 24×24），深棕外轮廓已加粗。所有建筑共用每帧一次的浮动偏移，周期 2 秒、上下总范围 6 像素，沿用游戏渲染时钟，不增加独立计时器；减少动态效果设置下保持静止。`npm run test:upgrade-markers` 检查源码与离线版的尺寸、同步浮动及共享计算。
 
 | 路径 | 尺寸 | 用途／修改要求 |
 | --- | --- | --- |
@@ -91,6 +95,10 @@
 
 制作源图及打包元数据保存在 `assets/generated/archers/` 和 `assets/generated/infantry/`，运行时只使用 `assets/sprites/soldiers/` 下的六张图集。打包工具可用 `--type=infantry` 切换为步兵；阵营配色工具同样支持该参数。旧兵种图集保留在各自 generated 目录的备份子目录中。
 
+源图各排位置并非严格等分，打包工具根据实际行间空隙确定裁切边界，避免截断腿部和靴子；边界记录在元数据的 `sourceRowCuts`／`sideRowCuts` 中。只重建步兵时，描边工具也可加 `--type=infantry`。`npm run test:art-packing` 检查完整靴子裁切、三个阵营的透明形状与统一脚底位置。
+
+4–9 级侧面补图按同级正背面人物的实际平均高度等比缩放，再统一打包；不按整格宽度推算人物比例，以免转向时变小。侧面保留自然较窄的体型，各方向成品高度误差最多一个像素。
+
 本版重建顺序：
 
 ```sh
@@ -138,7 +146,7 @@ npm run build
 ## 修改生效
 
 - 使用源码版 `index.html`：替换同名 PNG 后刷新页面即可。
-- 使用 `dist/古坊奇谭.html`：替换 PNG 后执行 `npm run build`，图片会重新嵌入离线单文件。
+- 使用 `dist/庄园攻防.html`：替换 PNG 后执行 `npm run build`，图片会重新嵌入离线单文件；旧文件名入口同步保留。
 - `npm run art:catalog`：修改图片后刷新资源清单和总览，不会修改 PNG。
 - `npm run art:interface`：只补齐缺失的 UI／特效 PNG，**保留已存在图片**；不是每次改图必须执行的步骤。
 - `node scripts/export-interface-assets.cjs --overwrite`：主动重置本次新增的 UI／特效资源，**会覆盖你的手工修改**。

@@ -29,6 +29,9 @@ const scripts = ['js/boot.js', 'js/ui.js', 'js/runtime.js'];
 for (const file of scripts) html = html.replace(`<script defer src="${file}"></script>`, '');
 html = html.replace('</body>', () => scripts.map(file => '<script>\n' + (file === 'js/runtime.js' ? runtime : file === 'js/ui.js' ? embeddedUI : read(file)).replace(/<\/script/gi, '<\\/script') + '\n</script>').join('\n') + '\n</body>');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-const target = path.join(root, 'dist/古坊奇谭.html');
-fs.writeFileSync(target, html.replace(/[\t ]+$/gm, ''), 'utf8');
+const target = path.join(root, 'dist/庄园攻防.html');
+const output = html.replace(/[\t ]+$/gm, '');
+fs.writeFileSync(target, output, 'utf8');
+// Keep the previous entry URL working, including its existing browser save space.
+fs.writeFileSync(path.join(root, 'dist/古坊奇谭.html'), output, 'utf8');
 console.log('已生成离线单文件：' + target);

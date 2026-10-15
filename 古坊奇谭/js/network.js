@@ -21,7 +21,8 @@
   }
   function packed(entity, group, initial = false) {
     const row = {};
-    const unitKeys=['id','x','y','hp','maxHp','level','troopType','baseDamage','targetId','targetBuildingId','attackAt'];
+    const unitKeys=['id','x','y','hp','maxHp','level','troopType','baseDamage','targetId','targetBuildingId','attackAt',
+      'attack','targetOwner','waypoint','repelled','slowed','slowFactor'];
     const keys = group==='buildings'?Object.keys(entity):initial?[...unitKeys,'owner','barracksId']:unitKeys;
     for (const key of keys) {
       if (['path', 'pathRevision', 'targetTile', 'chaseTile'].includes(key) ||
@@ -138,5 +139,54 @@
     };
     return replica;
   }
-  return { economy, snapshot, delta, createReplica };
+  // Predict a separate army, never the replica's authoritative/economic state.
+  // The earliest observed arrival offset maps server simulation time onto the
+  // local monotonic clock; jittered packets are advanced to that same timeline.
+  function createMotionPredictor() {
+    const horizon = .5, correctionTime = .18, teleportDistance = 2;
+    let shadow = null, units = new Map(), offsets = new Map();
+    let clockOffset = null, confirmedAt = 0, receivedAt = 0, displayAt = 0, running = false;
+    function simulateTo(time) {
+      while (shadow.elapsed + 1e-8 < time) {
+        const dt = Math.min(1 / 30, time - shadow.elapsed);
+        shadow.elapsed += dt;
+        G.stepSoldierMovement(shadow, dt);
+      }
+    }
+    function position(unit) {
+      const predicted = units.get(unit.id);
+      if (!predicted || unit.hp <= 0) return unit;
+      const offset = offsets.get(unit.id);
+      const blend = offset ? Math.pow(Math.max(0, 1 - (displayAt - receivedAt) / correctionTime), 2) : 0;
+      return { x: predicted.x + (offset?.x || 0) * blend, y: predicted.y + (offset?.y || 0) * blend };
+    }
+    function advance(now, enabled = true) {
+      if (!shadow || !running || !enabled) return;
+      displayAt = Math.max(displayAt, now);
+      simulateTo(Math.min(confirmedAt + horizon, Math.max(shadow.elapsed, now - clockOffset)));
+    }
+    function sync(state, now, paused = false, reset = false) {
+      advance(now);
+      const previous = new Map();
+      if (!reset && !paused) for (const unit of shadow?.soldiers || []) previous.set(unit.id, position(unit));
+      if (reset || paused || !running || clockOffset === null) clockOffset = now - state.elapsed;
+      else clockOffset = Math.min(clockOffset, now - state.elapsed);
+      // Preserve this world's terrain/flow caches across ordinary updates.
+      if (!shadow || reset) shadow = {};
+      Object.assign(shadow, state, { soldiers: state.soldiers.map(unit => clone(unit)) });
+      units = new Map(shadow.soldiers.map(unit => [unit.id, unit]));
+      confirmedAt = state.elapsed; receivedAt = displayAt = now; running = !paused && !state.over;
+      if (running) simulateTo(Math.min(confirmedAt + horizon, Math.max(confirmedAt, now - clockOffset)));
+      offsets = new Map();
+      for (const unit of shadow.soldiers) {
+        const before = previous.get(unit.id);
+        if (!before) continue;
+        const dx = before.x - unit.x, dy = before.y - unit.y;
+        // Large discontinuities (teleports/resyncs) recover immediately.
+        if (Math.hypot(dx, dy) < teleportDistance) offsets.set(unit.id, { x: dx, y: dy });
+      }
+    }
+    return { sync, advance, position };
+  }
+  return { economy, snapshot, delta, createReplica, createMotionPredictor };
 });

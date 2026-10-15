@@ -29,6 +29,7 @@
   css.textContent=':root{'+Object.entries(paths).map(([key,path])=>`--art-${key}:url("${url(path)}")`).join(';')+'}';document.head.append(css);
   // Preload overlays so opening a panel cannot delay the first map frame.
   for(const path of Object.values(paths))image(path);
+  for(const name of ['primary','ally','enemy','paper'])image(`assets/ui/panels/map-${name}.png`);
   for(const name of ['selection','placement','range','level-badge','gate-broken','pulse','repair','repel','freeze','slow','aura','grid'])image(`assets/overlays/${name}.png`);
   for(const r of ['coins','materials'])for(let t=1;t<=3;t++)image(`assets/overlays/hints/${r}-tier-${t}.png`);
   for(const name of ['rock','arrow','bolt','thunder','soldier-hit','hit','swallow','shadow','water-ripple'])image(`assets/effects/${name}.png`);
