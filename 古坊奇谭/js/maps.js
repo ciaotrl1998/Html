@@ -218,11 +218,15 @@
     return value;
   }
 
-  function dimensions(mode, count) {
+  const EDGE_CROP=3;
+  function layoutDimensions(mode, count) {
     return mode === 'coop' ? [count === 2 ? 50 : 75, count === 6 ? 90 : 40] : [[0,0],[50,25],[75,25],[75,50],[75,75]][count];
   }
+  function dimensions(mode, count) {
+    const [width,height]=layoutDimensions(mode,count);return [width-EDGE_CROP*2,height-EDGE_CROP*2];
+  }
   function create(mapSeed, mode, count, rotation) {
-    const [width,height] = dimensions(mode,count), turned=rotation%2;
+    const [width,height] = layoutDimensions(mode,count), turned=rotation%2;
     const outWidth=turned?height:width, outHeight=turned?width:height;
     const rotate=(x,y)=>rotation===0?[x,y]:rotation===1?[height-1-y,x]:rotation===2?[width-1-x,height-1-y]:[y,width-1-x];
     const index=(x,y)=>{const [rx,ry]=rotate(x,y);return ry*outWidth+rx;};
@@ -287,7 +291,16 @@
     for(const e of estates)for(const k of [...e.cells,...e.gates.map(g=>g.y*outWidth+g.x)])owners[k]=e.owner;
     const walk=new Uint8Array(terrain.length);
     for(let k=0;k<terrain.length;k++)walk[k]=!land.walls.has(k)&&(terrain[k]!=='water'||land.roads.has(k))?1:0;
-    return {terrain,land,owners,walk,width:outWidth,height:outHeight};
+    const croppedWidth=outWidth-EDGE_CROP*2,croppedHeight=outHeight-EDGE_CROP*2;
+    const cropKey=k=>{const x=k%outWidth,y=Math.floor(k/outWidth);return x>=EDGE_CROP&&y>=EDGE_CROP&&x<outWidth-EDGE_CROP&&y<outHeight-EDGE_CROP?(y-EDGE_CROP)*croppedWidth+x-EDGE_CROP:null;};
+    const cropSet=set=>new Set([...set].map(cropKey).filter(k=>k!==null));
+    const croppedEstates=estates.map(e=>({owner:e.owner,cells:cropSet(e.cells),walls:cropSet(e.walls),roads:cropSet(e.roads),gates:e.gates.map(g=>({...g,x:g.x-EDGE_CROP,y:g.y-EDGE_CROP})),center:{x:e.center.x-EDGE_CROP,y:e.center.y-EDGE_CROP}}));
+    const croppedLand={estates:croppedEstates,cells:new Set(),walls:new Set(),roads:new Set(),gates:croppedEstates.flatMap(e=>e.gates),sharedWall:cropSet(land.sharedWall)};
+    for(const e of croppedEstates)for(const prop of ['cells','walls','roads'])for(const k of e[prop])croppedLand[prop].add(k);
+    for(const k of cropSet(land.roads))croppedLand.roads.add(k);
+    const croppedTerrain=Array(croppedWidth*croppedHeight),croppedOwners=new Int16Array(croppedTerrain.length),croppedWalk=new Uint8Array(croppedTerrain.length);croppedOwners.fill(-1);
+    for(let y=0;y<croppedHeight;y++)for(let x=0;x<croppedWidth;x++){const next=y*croppedWidth+x,old=(y+EDGE_CROP)*outWidth+x+EDGE_CROP;croppedTerrain[next]=terrain[old];croppedOwners[next]=owners[old];croppedWalk[next]=walk[old];}
+    return {terrain:croppedTerrain,land:croppedLand,owners:croppedOwners,walk:croppedWalk,width:croppedWidth,height:croppedHeight};
   }
-  return {create,dimensions};
+  return {create,dimensions,layoutDimensions,EDGE_CROP};
 });

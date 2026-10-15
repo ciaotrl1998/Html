@@ -9,7 +9,7 @@
   const MILITARY_INCOME_THRESHOLDS=[0,10,18,36,72,144,288,576,1152];
   const desiredMilitaryLevel=minimum=>MILITARY_INCOME_THRESHOLDS.reduce((level,threshold,index)=>minimum>=threshold?index+1:level,1);
   function nextBarracksTroop(buildings){
-    const specialized=buildings.filter(b=>b.type==='barracks'&&b.level>=4);
+    const specialized=buildings.filter(b=>b.type==='barracks'&&b.level>=2);
     return specialized.filter(b=>G.troopType(b)==='archer').length<Math.floor((specialized.length+1)/3)?'archer':'infantry';
   }
 
@@ -29,7 +29,7 @@
       telemetry.actions.push({second:s.elapsed,kind,type,reason});if(telemetry.actions.length>240)telemetry.actions.shift();return true;
     }
     function build(type,p,reason){const result=p&&G.build(s,type,p.x,p.y);return !!result?.ok&&record('build',type,reason);}
-    const upgradeChoice=b=>b?.type==='barracks'&&b.level===3?{troopType:nextBarracksTroop(s.buildings)}:{};
+    const upgradeChoice=b=>b?.type==='barracks'&&b.level===1?{troopType:nextBarracksTroop(s.buildings)}:{};
     function upgrade(b,reason){const result=b&&G.upgrade(s,b,upgradeChoice(b));return !!result?.ok&&record('upgrade',b.type,reason);}
     const count=type=>s.buildings.filter(b=>b.type===type).length;
     const canAfford=cost=>s.coins>=cost.coins&&s.materials>=cost.materials;

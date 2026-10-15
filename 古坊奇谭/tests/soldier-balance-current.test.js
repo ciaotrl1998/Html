@@ -25,8 +25,10 @@ test('barracks levels retain exponential soldier health and attack while shrine 
   const s=match(),p=G.playerView(s,0),shrine=p.buildings.find(b=>b.type==='shrine');
   for(let level=1;level<=9;level++){
     const b={type:'barracks',level};
-    assert.equal(G.soldierHP(p,b),Math.round(44*1.55**(level-1)));
+    assert.equal(G.soldierHP(p,b),Math.round(44*2**(level-1)));
+    assert.equal(G.soldierHP(b),Math.round(44*2**(level-1)));
     assert.equal(G.soldierDamage(p,b),18*2**(level-1));
+    assert.equal(G.maxHP(b),Math.round(G.DEFS.barracks.hp*1.55**(level-1)));
   }
   assert.equal(G.soldierTrainingTime(1),5);assert.equal(G.soldierTrainingTime(15),1);
   shrine.level=15;shrine.hp=G.maxHP(shrine);

@@ -271,11 +271,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     estateCache.set(s, { seed: s.estateSeed, mapSeed: s.mapSeed, generation: s.mapGeneration, value });
     return value;
   }
-  function dimensions(mode, count) {
+  const EDGE_CROP = 3;
+  function layoutDimensions(mode, count) {
     return mode === "coop" ? [count === 2 ? 50 : 75, count === 6 ? 90 : 40] : [[0, 0], [50, 25], [75, 25], [75, 50], [75, 75]][count];
   }
+  function dimensions(mode, count) {
+    const [width, height] = layoutDimensions(mode, count);
+    return [width - EDGE_CROP * 2, height - EDGE_CROP * 2];
+  }
   function create(mapSeed, mode, count, rotation) {
-    const [width, height] = dimensions(mode, count), turned = rotation % 2;
+    const [width, height] = layoutDimensions(mode, count), turned = rotation % 2;
     const outWidth = turned ? height : width, outHeight = turned ? width : height;
     const rotate = (x, y) => rotation === 0 ? [x, y] : rotation === 1 ? [height - 1 - y, x] : rotation === 2 ? [width - 1 - x, height - 1 - y] : [y, width - 1 - x];
     const index = (x, y) => {
@@ -369,9 +374,27 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const e of estates) for (const k of [...e.cells, ...e.gates.map((g) => g.y * outWidth + g.x)]) owners[k] = e.owner;
     const walk = new Uint8Array(terrain.length);
     for (let k = 0; k < terrain.length; k++) walk[k] = !land.walls.has(k) && (terrain[k] !== "water" || land.roads.has(k)) ? 1 : 0;
-    return { terrain, land, owners, walk, width: outWidth, height: outHeight };
+    const croppedWidth = outWidth - EDGE_CROP * 2, croppedHeight = outHeight - EDGE_CROP * 2;
+    const cropKey = (k) => {
+      const x = k % outWidth, y = Math.floor(k / outWidth);
+      return x >= EDGE_CROP && y >= EDGE_CROP && x < outWidth - EDGE_CROP && y < outHeight - EDGE_CROP ? (y - EDGE_CROP) * croppedWidth + x - EDGE_CROP : null;
+    };
+    const cropSet = (set) => new Set([...set].map(cropKey).filter((k) => k !== null));
+    const croppedEstates = estates.map((e) => ({ owner: e.owner, cells: cropSet(e.cells), walls: cropSet(e.walls), roads: cropSet(e.roads), gates: e.gates.map((g) => __spreadProps(__spreadValues({}, g), { x: g.x - EDGE_CROP, y: g.y - EDGE_CROP })), center: { x: e.center.x - EDGE_CROP, y: e.center.y - EDGE_CROP } }));
+    const croppedLand = { estates: croppedEstates, cells: /* @__PURE__ */ new Set(), walls: /* @__PURE__ */ new Set(), roads: /* @__PURE__ */ new Set(), gates: croppedEstates.flatMap((e) => e.gates), sharedWall: cropSet(land.sharedWall) };
+    for (const e of croppedEstates) for (const prop of ["cells", "walls", "roads"]) for (const k of e[prop]) croppedLand[prop].add(k);
+    for (const k of cropSet(land.roads)) croppedLand.roads.add(k);
+    const croppedTerrain = Array(croppedWidth * croppedHeight), croppedOwners = new Int16Array(croppedTerrain.length), croppedWalk = new Uint8Array(croppedTerrain.length);
+    croppedOwners.fill(-1);
+    for (let y = 0; y < croppedHeight; y++) for (let x = 0; x < croppedWidth; x++) {
+      const next = y * croppedWidth + x, old = (y + EDGE_CROP) * outWidth + x + EDGE_CROP;
+      croppedTerrain[next] = terrain[old];
+      croppedOwners[next] = owners[old];
+      croppedWalk[next] = walk[old];
+    }
+    return { terrain: croppedTerrain, land: croppedLand, owners: croppedOwners, walk: croppedWalk, width: croppedWidth, height: croppedHeight };
   }
-  return { create, dimensions };
+  return { create, dimensions, layoutDimensions, EDGE_CROP };
 });
 
 var __defProp = Object.defineProperty;
@@ -412,6 +435,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const worldCenter = (s) => Math.floor(worldSize(s) / 2);
   const worldCenterY = (s) => Math.floor(worldHeight(s) / 2);
   const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const SOLDIER_HP_GROWTH = 2;
   const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
@@ -456,7 +480,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["wine", "trade"], radius: 1, limit: 1 });
   def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
   def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
-  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, limit: 8, buildCostScale: [0.5, 2], desc: "持续出兵 · 一级 5s/1兵" });
+  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, buildCostScale: [0.5, 2], buildCostSteps: 7, desc: "持续出兵 · 一级 5s/1兵" });
   def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { farmAura: 0.2, fortuneOnly: true, desc: "全庄农田收入 +20% · 仅可由造化匣获得" });
   def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
   def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
@@ -474,10 +498,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     { title: "百业初兴", desc: "建成任意两种经济链终点建筑", reward: 200, test: (s) => new Set(s.buildings.filter((b) => DEFS[b.type].end).map((b) => b.type)).size >= 2 },
     { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") }
   ];
-  const VERSION = 10, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
+  const VERSION = 11, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
   const TROOPS = Object.freeze({
     infantry: Object.freeze({ name: "步兵", hp: 44, damage: 18, range: 0.75, interval: 1 }),
-    archer: Object.freeze({ name: "弓兵", hp: 44 * 0.7, damage: 18 * 0.75, range: 3, interval: 1.5 })
+    archer: Object.freeze({ name: "弓兵", hp: 44 * 0.7, damage: 10, range: 3, interval: 1.5 })
   });
   const troopType = (entity) => (entity == null ? void 0 : entity.troopType) || "infantry";
   const troopDef = (entity) => TROOPS[troopType(entity)] || TROOPS.infantry;
@@ -672,9 +696,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function soldierHP(s, b) {
     if (b === void 0) {
       b = s;
-      return Math.round(troopDef(b).hp * hpFactor(b));
+      return Math.round(troopDef(b).hp * Math.pow(SOLDIER_HP_GROWTH, b.level - 1));
     }
-    return Math.round(troopDef(b).hp * hpFactor(b) * difficultySoldier(s));
+    return Math.round(troopDef(b).hp * Math.pow(SOLDIER_HP_GROWTH, b.level - 1) * difficultySoldier(s));
   }
   const soldierDamage = (s, b) => soldierBaseDamage(b) * defenseBoost(s) * difficultySoldier(s);
   const soldierPower = (s, b) => Math.round(Math.sqrt(soldierHP(s, b) * soldierDamage(s, b)));
@@ -698,7 +722,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const visualLevel = (level) => Math.min(3, Math.floor((level - 1) / 3) + 1);
   const name = (b) => {
     var _a;
-    return b.type === "barracks" ? b.level < 4 ? "兵营" : troopDef(b).name + "营" : ((_a = DEFS[b.type].names) == null ? void 0 : _a[visualLevel(b.level) - 1]) || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? "兴盛" : "鼎盛") + DEFS[b.type].name);
+    return b.type === "barracks" ? b.level < 2 ? "兵营" : troopDef(b).name + "营" : ((_a = DEFS[b.type].names) == null ? void 0 : _a[visualLevel(b.level) - 1]) || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? "兴盛" : "鼎盛") + DEFS[b.type].name);
   };
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
     var _a, _b;
@@ -730,14 +754,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     s.materials -= cost.materials;
   }
   function buildCost(s, type) {
+    var _a;
     s = economicView(s);
     if (type !== "fortune") {
       const d = DEFS[type];
       if (!d) return { coins: 0, materials: 0 };
       let factor2 = 1;
       if (d.buildCostScale) {
-        const count = Math.min(d.limit - 1, s.buildings.filter((b) => b.type === type).length), [start, end] = d.buildCostScale;
-        factor2 = start + (end - start) * count / (d.limit - 1);
+        const steps = (_a = d.buildCostSteps) != null ? _a : d.limit - 1, built = s.buildings.filter((b) => b.type === type).length, count = d.buildCostSteps === void 0 ? Math.min(steps, built) : built, [start, end] = d.buildCostScale;
+        factor2 = start + (end - start) * count / steps;
       }
       const scaled = (value) => value ? Math.ceil(value * factor2 - 1e-9) : 0;
       return { coins: scaled(d.cost.coins), materials: scaled(d.cost.materials) };
@@ -854,7 +879,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return "仅可升级庄园内建筑";
     if (s.over || s.eliminated) return "该庄园已出局";
     const branch = options == null ? void 0 : options.troopType;
-    if (branch !== void 0 && (!(b.type === "barracks" && b.level === 3) || typeof branch !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, branch))) return "无效的兵营分支选择";
+    if (branch !== void 0 && (!(b.type === "barracks" && b.level === 1) || typeof branch !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, branch))) return "无效的兵营分支选择";
     const d = DEFS[b.type];
     if (b.level >= maxLevel(b)) return "已达最高等级";
     if (estate(s) && (b.type === "shrine" || b.type === "gate")) {
@@ -870,7 +895,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) {
       for (const id of d.required) if (!adjacent(s, b.x, b.y).some((n) => n.type === id && n.level >= b.level + 1)) return "需邻" + DEFS[id].name + " Lv" + (b.level + 1);
     }
-    if (b.type === "barracks" && b.level === 3 && branch === void 0) return "请选择步兵营或弓兵营";
+    if (b.type === "barracks" && b.level === 1 && branch === void 0) return "请选择步兵营或弓兵营";
     return ignoreFunds ? "" : shortage(s, upgradeCost(b));
   }
   function upgradeOptions(s, b) {
@@ -928,7 +953,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       target.hp = maxHP(target) * ratio;
     }
     if (b.type === "barracks") {
-      if (level === 4) b.troopType = options.troopType;
+      if (level === 2) b.troopType = options.troopType;
       syncSoldierHealth(world(s));
     }
     if (b.type === "gate") s.gateLevel = level;
@@ -1321,6 +1346,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let target = grid.byId.get(u.targetId);
       if (!target || target.hp <= 0 || !hostile(s, u.owner, target.owner) || Math.hypot(target.x - u.x, target.y - u.y) > 6) target = null;
       const canShoot = (target2) => archer && Math.hypot(target2.x - u.x, target2.y - u.y) <= range + 1e-8 && clearSegment(s, u, target2.x, target2.y);
+      if (target && archer && !canShoot(target)) {
+        const shootable = grid.near(u.x, u.y, range).filter((e) => hostile(s, u.owner, e.owner) && canShoot(e)).sort((a, b2) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b2.x - u.x, b2.y - u.y) || a.id - b2.id);
+        if (shootable.length) target = shootable[0];
+      }
       let chase = target && (canShoot(target) ? target : localChase(s, u, target));
       if (!chase) {
         target = null;
@@ -1493,14 +1522,36 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function restore(raw) {
     try {
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
-      if (!s || ![9, VERSION].includes(s.version) || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
-      const legacy = s.version === 9;
+      if (!s || ![9, 10, VERSION].includes(s.version) || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
+      const legacy = s.version === 9, oldVersion = s.version < VERSION;
       s.version = VERSION;
       if (!Object.prototype.hasOwnProperty.call(s, "difficulty")) s.difficulty = "beginner";
       if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, s.difficulty)) return null;
       if (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295 || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;
-      const [width, height] = Maps.dimensions(s.mode, s.enemyCount), blue = s.mode === "coop" ? 2 : 1;
-      if (s.worldSize !== (s.rotation % 2 ? height : width) || s.worldHeight !== (s.rotation % 2 ? width : height) || !finite(s.elapsed) || !Number.isInteger(s.nextId) || s.nextId < 1 || !Number.isInteger(s.revision) || s.revision < 0 || typeof s.over !== "boolean" || ![null, "victory", "defeat", "draw"].includes(s.result) || !finite(s.kills)) return null;
+      const [width, height] = Maps.dimensions(s.mode, s.enemyCount), [oldWidth, oldHeight] = Maps.layoutDimensions(s.mode, s.enemyCount), blue = s.mode === "coop" ? 2 : 1;
+      const expectedWidth = s.rotation % 2 ? height : width, expectedHeight = s.rotation % 2 ? width : height, legacyWidth = s.rotation % 2 ? oldHeight : oldWidth, legacyHeight = s.rotation % 2 ? oldWidth : oldHeight;
+      const cropped = oldVersion && s.worldSize === legacyWidth && s.worldHeight === legacyHeight;
+      if (cropped) {
+        s.worldSize = expectedWidth;
+        s.worldHeight = expectedHeight;
+        const shift = (point) => {
+          if (point) {
+            point.x -= Maps.EDGE_CROP;
+            point.y -= Maps.EDGE_CROP;
+          }
+        };
+        for (const b of s.buildings || []) shift(b);
+        for (const u of s.soldiers || []) {
+          shift(u);
+          shift(u.waypoint);
+        }
+        for (const p of s.projectiles || []) {
+          shift(p);
+          p.tx -= Maps.EDGE_CROP;
+          p.ty -= Maps.EDGE_CROP;
+        }
+      }
+      if (s.worldSize !== expectedWidth || s.worldHeight !== expectedHeight || !finite(s.elapsed) || !Number.isInteger(s.nextId) || s.nextId < 1 || !Number.isInteger(s.revision) || s.revision < 0 || typeof s.over !== "boolean" || ![null, "victory", "defeat", "draw"].includes(s.result) || !finite(s.kills)) return null;
       if (!Array.isArray(s.players) || s.players.length !== blue + s.enemyCount || !Array.isArray(s.buildings) || !Array.isArray(s.soldiers) || !Array.isArray(s.projectiles)) return null;
       for (const [i, p] of s.players.entries()) {
         if (!p || p.id !== i || p.team !== (i < blue ? 0 : 1) || !["human", "computer", "autoplay"].includes(p.controller) || typeof p.eliminated !== "boolean" || !finite(p.coins) || !finite(p.materials) || !Number.isInteger(p.fortuneBuilt) || p.fortuneBuilt < 0 || p.fortuneBuilt > 10 || !Number.isInteger(p.gateLevel) || p.gateLevel < 1 || p.gateLevel > 15 || !Number.isInteger(p.mission) || p.mission < 0 || p.mission > MISSIONS.length || !finite(p.kills) || !Number.isInteger(p.recruitCursor) || p.recruitCursor < 0) return null;
@@ -1516,7 +1567,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       for (const b of s.buildings) {
         if ((b == null ? void 0 : b.type) === "barracks") {
           if (legacy) b.troopType = "infantry";
-          if (typeof b.troopType !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, b.troopType) || b.level < 4 && b.troopType !== "infantry") return null;
+          if (typeof b.troopType !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, b.troopType) || b.level < 2 && b.troopType !== "infantry") return null;
         }
         if (!identity(b) || s.players[b.owner].eliminated || !Object.prototype.hasOwnProperty.call(DEFS, b.type) || !Number.isInteger(b.level) || b.level < 1 || b.level > maxLevel(b) || !inside(b.x, b.y, s) || ownerAt(s, b.x, b.y) !== b.owner || isWall(s, b.x, b.y) || !finite(b.hp) || b.hp > maxHP(b) + 1e-6 || !b.hp && b.type !== "gate") return null;
         const key = b.y * s.worldSize + b.x;
@@ -1533,7 +1584,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           u.attackAt = 0;
           u.targetBuildingId = null;
         }
-        if (typeof (u == null ? void 0 : u.troopType) !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, u.troopType) || u.troopType === "archer" && u.level < 4) return null;
+        if (cropped) {
+          u.x = Math.max(0, Math.min(s.worldSize - 1, u.x));
+          u.y = Math.max(0, Math.min(s.worldHeight - 1, u.y));
+          if (!walkable(s, Math.round(u.x), Math.round(u.y))) {
+            const cells = [];
+            for (let y = 0; y < s.worldHeight; y++) for (let x = 0; x < s.worldSize; x++) if (walkable(s, x, y)) cells.push({ x, y, d: Math.hypot(x - u.x, y - u.y) });
+            cells.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+            if (!cells.length) return null;
+            u.x = cells[0].x;
+            u.y = cells[0].y;
+          }
+          if (u.waypoint && !inside(u.waypoint.x, u.waypoint.y, s)) u.waypoint = null;
+        }
+        if (typeof (u == null ? void 0 : u.troopType) !== "string" || !Object.prototype.hasOwnProperty.call(TROOPS, u.troopType) || u.troopType === "archer" && u.level < 2) return null;
         if (!identity(u) || s.players[u.owner].eliminated || ++count[u.owner] > UNIT_CAP || !finite(u.x) || !finite(u.y) || !walkable(s, Math.round(u.x), Math.round(u.y)) || !Number.isInteger(u.level) || u.level < 1 || u.level > 9 || !finite(u.hp) || u.hp <= 0 || !finite(u.maxHp) || u.hp > u.maxHp || !finite(u.baseDamage) || !["attack", "repelled", "slowed", "slowFactor"].every((k) => finite(u[k])) || !Number.isInteger(u.barracksId)) return null;
         const nextMax = soldierHP(playerView(s, u.owner), u);
         if (u.maxHp !== nextMax) {
@@ -2535,7 +2599,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         rect(c, -21, y, 42, 3, "#61775c66");
         rect(c, -21, y, 42 * Math.max(0, b.hp / GF.maxHP(b)), 3, b.hp / GF.maxHP(b) > 0.35 ? "#819d64" : "#b06a4e");
       }
-      if (!GF.upgradeReason(player, b)) {
+      const canUpgrade = b.type === "barracks" && b.level === 1 ? ["infantry", "archer"].some((troopType) => !GF.upgradeReason(player, b, false, { troopType })) : !GF.upgradeReason(player, b);
+      if (canUpgrade) {
         const bob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(animationTime * 3 + (b.id || 0) * 2.399963229728653) * 2.5;
         c.save();
         c.translate(0, bob);
@@ -3038,7 +3103,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const MILITARY_INCOME_THRESHOLDS = [0, 10, 18, 36, 72, 144, 288, 576, 1152];
   const desiredMilitaryLevel = (minimum) => MILITARY_INCOME_THRESHOLDS.reduce((level, threshold, index) => minimum >= threshold ? index + 1 : level, 1);
   function nextBarracksTroop(buildings) {
-    const specialized = buildings.filter((b) => b.type === "barracks" && b.level >= 4);
+    const specialized = buildings.filter((b) => b.type === "barracks" && b.level >= 2);
     return specialized.filter((b) => G.troopType(b) === "archer").length < Math.floor((specialized.length + 1) / 3) ? "archer" : "infantry";
   }
   function create(state) {
@@ -3072,7 +3137,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const result = p && G.build(s, type, p.x, p.y);
       return !!(result == null ? void 0 : result.ok) && record("build", type, reason);
     }
-    const upgradeChoice = (b) => (b == null ? void 0 : b.type) === "barracks" && b.level === 3 ? { troopType: nextBarracksTroop(s.buildings) } : {};
+    const upgradeChoice = (b) => (b == null ? void 0 : b.type) === "barracks" && b.level === 1 ? { troopType: nextBarracksTroop(s.buildings) } : {};
     function upgrade(b, reason) {
       const result = b && G.upgrade(s, b, upgradeChoice(b));
       return !!(result == null ? void 0 : result.ok) && record("upgrade", b.type, reason);
@@ -3923,7 +3988,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.income) {
       stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
       if (b.type === "shrine") stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? "" : " → " + soldierTrainingText(next.level)}</strong></div>`;
-    } else if (b.type === "barracks") stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level === 3 ? " · 下级可分支" : ""}</strong></div><div>士兵等级<strong>${b.level}${max ? "" : " → " + next.level}</strong></div>`;
+    } else if (b.type === "barracks") stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level === 1 ? " · 下级可分支" : ""}</strong></div><div>士兵等级<strong>${b.level}${max ? "" : " → " + next.level}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (["well", "stage"].includes(b.type)) {
       const v = { well: 20, stage: 3 }[b.type];
@@ -3932,7 +3997,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     else if (b.type === "tao") stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? "" : " → " + Math.min(150, 15 * nextF) + "%"}</strong></div>`;
     else if (b.type === "zhong") stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? "" : " → " + Math.round(GF.zhongSlow(next) * 100) + "%"}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === "materials" ? "工材" : "铜钱"}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? "" : " → " + rateText(d.aura * GF.auraFactor(next) * 100) + "%"}</strong></div>`;
-    const branches = b.type === "barracks" && b.level === 3;
+    const branches = b.type === "barracks" && b.level === 1;
     const actions = branches ? ["infantry", "archer"].map((type) => `<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join("") : `<button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
     return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches ? " branches" : ""}">${actions}</div></div>`;
   }
@@ -3964,7 +4029,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (readonly) $("plot-label").textContent = (state.players[b.owner].team === 0 ? "友方" : "敌方") + "庄园 " + (b.owner + 1) + " · 仅查看";
       $("detail-hp").textContent = Math.ceil(Math.max(0, b.hp)) + " / " + GF.maxHP(b);
       $("detail-hp-fill").style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + "%";
-      if (b.type === "barracks" && b.level === 3) {
+      if (b.type === "barracks" && b.level === 1) {
         for (const button of $("detail-view").querySelectorAll("[data-barracks-branch]")) {
           const reason3 = GF.upgradeReason(playerState(), b, false, { troopType: button.dataset.barracksBranch });
           button.classList.toggle("blocked", !!reason3);

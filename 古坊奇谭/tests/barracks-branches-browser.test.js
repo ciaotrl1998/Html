@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'..');
 function prepareBarracks(s,owner){
   const p=G.playerView(s,owner);p.coins=p.materials=1e12;p.gateLevel=15;
   for(const b of p.buildings)if(b.type==='shrine'||b.type==='gate'){b.level=15;b.hp=G.maxHP(b);}
-  for(const k of G.estate(p).cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!G.at(s,x,y)&&G.terrain(x,y,s)!=='water'){const b=G.grantBuilding(p,'barracks',x,y,3);if(b)return b;}}
+  for(const k of G.estate(p).cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!G.at(s,x,y)&&G.terrain(x,y,s)!=='water'){const b=G.grantBuilding(p,'barracks',x,y,1);if(b)return b;}}
   throw Error('No plot');
 }
 
@@ -28,14 +28,23 @@ function prepareBarracks(s,owner){
       const building=await page.evaluate(()=>{
         const s=Gufang.state,p=GF.playerView(s,0);for(const player of s.players)player.controller='human';p.coins=p.materials=1e12;p.gateLevel=15;
         for(const b of p.buildings)if(b.type==='shrine'||b.type==='gate'){b.level=15;b.hp=GF.maxHP(b);}
-        for(const k of GF.estate(p).cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!GF.at(s,x,y)&&GF.terrain(x,y,s)!=='water'){const b=GF.grantBuilding(p,'barracks',x,y,3);if(b){b.production=.75;Gufang.select(x,y);return {id:b.id,x,y};}}}
+        for(const k of GF.estate(p).cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!GF.at(s,x,y)&&GF.terrain(x,y,s)!=='water'){const b=GF.grantBuilding(p,'barracks',x,y,1);if(b){b.production=.75;Gufang.select(x,y);return {id:b.id,x,y};}}}
       });
       const branches=page.locator('[data-barracks-branch]');assert.equal(await branches.count(),2);
       assert.equal(await page.locator('#upgrade-building').count(),0);assert.equal(await page.locator('#bulk-upgrade-building').count(),0);
       assert.match(await branches.nth(0).innerText(),/升级为步兵营/);assert.match(await branches.nth(1).innerText(),/升级为弓兵营/);
       const layout=await branches.evaluateAll(buttons=>buttons.map(button=>{const a=button.getBoundingClientRect(),b=button.parentElement.getBoundingClientRect();return {inside:a.left>=b.left-.1&&a.right<=b.right+.1,overflow:button.scrollWidth>button.clientWidth};}));
       assert(layout.every(item=>item.inside&&!item.overflow),`Buttons fit at ${width}px: ${JSON.stringify(layout)}`);
+      const branchMarker=()=>page.evaluate(({x,y})=>{
+        const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
+        const context=canvas.getContext('2d'),fill=context.fill;let marker=false;
+        context.fill=function(){if(this.fillStyle==='#b4df63')marker=true;return fill.apply(this,arguments);};
+        GFArt.render(canvas,Gufang.state,{x:195-(x*64+32),y:400-(y*64+32),zoom:1},null,{player:0});
+        canvas.remove();return marker;
+      },building);
+      assert.equal(await branchMarker(),true,'Level-one barracks shows an upgrade marker when a branch is affordable');
       await page.evaluate(()=>{const p=GF.playerView(Gufang.state,0);p.coins=p.materials=0;Gufang.refresh();});
+      assert.equal(await branchMarker(),false,'Level-one barracks hides the upgrade marker when neither branch is affordable');
       for(const button of await branches.all())assert.equal(await button.getAttribute('aria-disabled'),'true');
       await page.evaluate(()=>{const p=GF.playerView(Gufang.state,0);p.coins=p.materials=1e12;Gufang.refresh();});
       if(width===390&&file==='/index.html'){
@@ -49,12 +58,12 @@ function prepareBarracks(s,owner){
       }
       await page.locator('[data-barracks-branch="archer"]').click();
       const changed=await page.evaluate(id=>{const b=Gufang.state.buildings.find(n=>n.id===id);return {level:b.level,troop:b.troopType,progress:b.production,name:GF.name(b)};},building.id);
-      assert.deepEqual(changed,{level:4,troop:'archer',progress:.75,name:'弓兵营'});
+      assert.deepEqual(changed,{level:2,troop:'archer',progress:.75,name:'弓兵营'});
       assert.equal(await branches.count(),0);assert.equal(await page.locator('#upgrade-building').count(),1);
       assert.match(await page.locator('.detail-title h3').innerText(),/弓兵营/);
       assert.equal(await page.locator('#bulk-upgrade-building').isVisible(),true);
       await page.evaluate(id=>{const b=Gufang.state.buildings.find(n=>n.id===id);b.production=.99;GF.step(Gufang.state,.05);Gufang.refresh();},building.id);
-      assert.equal(await page.evaluate(()=>Gufang.state.soldiers.find(n=>n.troopType==='archer').level),4);
+      assert.equal(await page.evaluate(()=>Gufang.state.soldiers.find(n=>n.troopType==='archer').level),2);
       // Render a controlled coop scene to inspect all six sprite sources in both packaging modes.
       const rendered=await page.evaluate(async()=>{
         await new Promise(resolve=>{const check=()=>GFArt.spriteVersion()>=6?resolve():setTimeout(check,10);check();});
@@ -73,7 +82,7 @@ function prepareBarracks(s,owner){
       });
       assert(rendered.matches.every(Boolean),`All six atlases rendered: ${rendered.matches}`);
       assert(rendered.infantryAngles.every(angle=>Math.abs(angle)>.1));assert(rendered.archerAngles.every(angle=>Math.abs(angle)<.0001));assert.deepEqual(errors,[]);
-      console.log(`PASS ${file} ${width}px: branches, costs, level-four archers and six sprite atlases`);
+      console.log(`PASS ${file} ${width}px: branches, costs, level-two archers and six sprite atlases`);
       await context.close();
     }
 
@@ -90,24 +99,24 @@ function prepareBarracks(s,owner){
     await Promise.all([host.locator('#modal').waitFor({state:'hidden'}),guest.locator('#modal').waitFor({state:'hidden'})]);
     const room=service.rooms.get(code);room.host.paused=room.guest.paused=true;for(const player of room.state.players)player.controller='human';
     const camp=prepareBarracks(room.state,0);service.publish(room,true);
-    await host.waitForFunction(id=>Gufang.state.buildings.some(b=>b.id===id&&b.level===3),camp.id);
+    await host.waitForFunction(id=>Gufang.state.buildings.some(b=>b.id===id&&b.level===1),camp.id);
     await host.evaluate(({x,y})=>Gufang.select(x,y),camp);await host.locator('[data-barracks-branch="archer"]').click();
-    await guest.waitForFunction(id=>Gufang.state.buildings.some(b=>b.id===id&&b.level===4&&b.troopType==='archer'),camp.id);
-    assert.equal(camp.troopType,'archer');assert.equal(camp.level,4);
+    await guest.waitForFunction(id=>Gufang.state.buildings.some(b=>b.id===id&&b.level===2&&b.troopType==='archer'),camp.id);
+    assert.equal(camp.troopType,'archer');assert.equal(camp.level,2);
     camp.production=.99;G.step(room.state,.05);service.publish(room,true);
-    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===4))));
+    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===2))));
     await guest.evaluate(({x,y})=>Gufang.select(x,y),camp);assert.equal(await guest.locator('[data-barracks-branch]:visible').count(),0);assert.equal(await guest.locator('#upgrade-building').isVisible(),false);
     room.guest.needsSnapshot=true;service.publish(room,true);
-    await guest.waitForFunction(()=>Gufang.state.version===10&&Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===4));
+    await guest.waitForFunction(()=>Gufang.state.version===11&&Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===2));
     const stock=[room.state.players[0].coins,room.state.players[0].materials];
     const rejected=await host.evaluate(camp=>new Promise(resolve=>{
       const socket=window.__testSocket,listener=event=>{const message=JSON.parse(event.data);if(message.type==='result'&&message.id===1000){socket.removeEventListener('message',listener);resolve(message);}};
       socket.addEventListener('message',listener);socket.send(JSON.stringify({type:'action',id:1000,session:camp.roomSession,kind:'upgrade',x:camp.x,y:camp.y,troopType:'infantry'}));
     }),{...camp,roomSession:room.session});
-    assert.equal(rejected.ok,false);assert.deepEqual([room.state.players[0].coins,room.state.players[0].materials],stock);assert.equal(camp.level,4);
+    assert.equal(rejected.ok,false);assert.deepEqual([room.state.players[0].coins,room.state.players[0].materials],stock);assert.equal(camp.level,2);
     const disconnected=room.guest;disconnected.terminate();
     await host.waitForFunction(()=>!Gufang.online?.peerConnected);
-    await guest.waitForFunction(()=>Gufang.online?.peerConnected&&!Gufang.online?.awaitingState&&Gufang.state.version===10&&Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===4));
+    await guest.waitForFunction(()=>Gufang.online?.peerConnected&&!Gufang.online?.awaitingState&&Gufang.state.version===11&&Gufang.state.soldiers.some(u=>u.troopType==='archer'&&u.level===2));
     await host.waitForFunction(()=>Gufang.online?.peerConnected);assert.notEqual(room.guest,disconnected);
     assert.deepEqual(errors,[]);console.log('PASS LAN: authoritative branch upgrade, atomic rejection, archer sync, read-only ally detail, checkpoint and disconnect/reconnect recovery');
     await Promise.all(contexts.map(context=>context.close()));

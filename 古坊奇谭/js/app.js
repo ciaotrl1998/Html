@@ -262,14 +262,14 @@
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
     if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? '' : ' → ' + soldierTrainingText(next.level)}</strong></div>`; }
-    else if (b.type === 'barracks') stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===3?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div>`;
+    else if (b.type === 'barracks') stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===1?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'tao') stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? '' : ' → ' + Math.min(150, 15 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'zhong') stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? '' : ' → ' + Math.round(GF.zhongSlow(next) * 100) + '%'}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === 'materials' ? '工材' : '铜钱'}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? '' : ' → ' + rateText(d.aura * GF.auraFactor(next) * 100) + '%'}</strong></div>`;
-    const branches=b.type==='barracks'&&b.level===3;
+    const branches=b.type==='barracks'&&b.level===1;
     const actions=branches?['infantry','archer'].map(type=>`<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join(''):`<button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级'}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
     return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches?' branches':''}">${actions}</div></div>`;
   }
@@ -297,7 +297,7 @@
       $('detail-view').classList.toggle('readonly',readonly);
       if(readonly)$('plot-label').textContent=(state.players[b.owner].team===0?'友方':'敌方')+'庄园 '+(b.owner+1)+' · 仅查看';
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
-      if(b.type==='barracks'&&b.level===3){
+      if(b.type==='barracks'&&b.level===1){
         for(const button of $('detail-view').querySelectorAll('[data-barracks-branch]')){
           const reason=GF.upgradeReason(playerState(),b,false,{troopType:button.dataset.barracksBranch});
           button.classList.toggle('blocked',!!reason);button.setAttribute('aria-disabled',String(!!reason));button.title=reason||'';

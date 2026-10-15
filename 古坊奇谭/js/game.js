@@ -9,6 +9,7 @@
   const worldCenter = s => Math.floor(worldSize(s) / 2);
   const worldCenterY = s => Math.floor(worldHeight(s) / 2);
   const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const SOLDIER_HP_GROWTH = 2;
   const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: '平地', shore: '水岸', water: '水域', forest: '林地', mountain: '山地' };
@@ -43,7 +44,7 @@
   def('port', '百工院', 'economy', { coins: 24000, materials: 15000 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['wine', 'trade'], radius: 1, limit: 1 });
   def('tower', '箭塔', 'defense', { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
   def('rock', '擂石台', 'defense', { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: '范围轰击 · 仅可由造化匣获得' });
-  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, limit: 8, buildCostScale: [.5, 2], desc: '持续出兵 · 一级 5s/1兵' });
+  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, buildCostScale: [.5, 2], buildCostSteps: 7, desc: '持续出兵 · 一级 5s/1兵' });
   def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { farmAura: .2, fortuneOnly: true, desc: '全庄农田收入 +20% · 仅可由造化匣获得' });
   def('stage', '戏台', 'support', { coins: 300, materials: 220 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
   def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
@@ -62,10 +63,10 @@
     { title: '四方会聚', desc: '建成一座汇财会馆', reward: 300, test: s => s.buildings.some(b => b.type === 'guild') },
   ];
 
-  const VERSION=10, UNIT_CAP=120, SOLDIER_SPEED=.8;
+  const VERSION=11, UNIT_CAP=120, SOLDIER_SPEED=.8;
   const TROOPS=Object.freeze({
     infantry:Object.freeze({name:'步兵',hp:44,damage:18,range:.75,interval:1}),
-    archer:Object.freeze({name:'弓兵',hp:44*.7,damage:18*.75,range:3,interval:1.5})
+    archer:Object.freeze({name:'弓兵',hp:44*.7,damage:10,range:3,interval:1.5})
   });
   const troopType=entity=>entity?.troopType||'infantry';
   const troopDef=entity=>TROOPS[troopType(entity)]||TROOPS.infantry;
@@ -158,12 +159,12 @@
   const difficultyEconomy=s=>difficultyModifiers(s).economy;
   const difficultySoldier=s=>difficultyModifiers(s).soldier;
   const soldierBoost = () => 1;
-  function soldierHP(s,b){if(b===undefined){b=s;return Math.round(troopDef(b).hp*hpFactor(b));}return Math.round(troopDef(b).hp*hpFactor(b)*difficultySoldier(s));}
+  function soldierHP(s,b){if(b===undefined){b=s;return Math.round(troopDef(b).hp*Math.pow(SOLDIER_HP_GROWTH,b.level-1));}return Math.round(troopDef(b).hp*Math.pow(SOLDIER_HP_GROWTH,b.level-1)*difficultySoldier(s));}
   const soldierDamage = (s,b) => soldierBaseDamage(b) * defenseBoost(s) * difficultySoldier(s);
   const soldierPower = (s,b) => Math.round(Math.sqrt(soldierHP(s,b)*soldierDamage(s,b)));
   function syncSoldierHealth(s){const index=buildingIndex(s);for(const u of s.soldiers){u.troopType=troopType(u);u.attackAt??=0;u.targetBuildingId??=null;const barracks=index.ids.get(u.barracksId);if(barracks?.type==='barracks'&&troopType(barracks)===u.troopType)u.level=barracks.level;const nextMax=soldierHP(playerView(s,u.owner),u);if(u.maxHp!==nextMax){u.hp=Math.min(nextMax,nextMax*u.hp/u.maxHp);u.maxHp=nextMax;}u.baseDamage=soldierBaseDamage(u);}}
   const visualLevel = level => Math.min(3, Math.floor((level - 1) / 3) + 1);
-  const name = b => b.type==='barracks'?(b.level<4?'兵营':troopDef(b).name+'营'):(DEFS[b.type].names?.[visualLevel(b.level) - 1] || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? '兴盛' : '鼎盛') + DEFS[b.type].name));
+  const name = b => b.type==='barracks'?(b.level<2?'兵营':troopDef(b).name+'营'):(DEFS[b.type].names?.[visualLevel(b.level) - 1] || (visualLevel(b.level) === 1 ? DEFS[b.type].name : (visualLevel(b.level) === 2 ? '兴盛' : '鼎盛') + DEFS[b.type].name));
   function addBuilding(s, type, x, y, level = 1, extra = {}) {
     const b = { id: s.nextId++, type, x, y, level, hp: Math.round(DEFS[type].hp * Math.pow(HP_GROWTH, level - 1)), cooldown: 0, incomeTime: 0, coinPending: 0, materialPending: 0, production: 0, lastHit: -10, ...extra };
     b.owner = extra.owner ?? s.actorId ?? 0;
@@ -187,7 +188,7 @@
     s = economicView(s);
     if (type !== 'fortune') {
       const d=DEFS[type];if(!d)return {coins:0,materials:0};let factor=1;
-      if(d.buildCostScale){const count=Math.min(d.limit-1,s.buildings.filter(b=>b.type===type).length),[start,end]=d.buildCostScale;factor=start+(end-start)*count/(d.limit-1);}
+      if(d.buildCostScale){const steps=d.buildCostSteps??d.limit-1,built=s.buildings.filter(b=>b.type===type).length,count=d.buildCostSteps===undefined?Math.min(steps,built):built,[start,end]=d.buildCostScale;factor=start+(end-start)*count/steps;}
       const scaled=value=>value?Math.ceil(value*factor-1e-9):0;
       return {coins:scaled(d.cost.coins),materials:scaled(d.cost.materials)};
     }
@@ -283,7 +284,7 @@
     if (!owns(s, b.x, b.y) || isWall(s, b.x, b.y)) return '仅可升级庄园内建筑';
     if (s.over || s.eliminated) return '该庄园已出局';
     const branch=options?.troopType;
-    if(branch!==undefined&&(!(b.type==='barracks'&&b.level===3)||typeof branch!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,branch)))return '无效的兵营分支选择';
+    if(branch!==undefined&&(!(b.type==='barracks'&&b.level===1)||typeof branch!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,branch)))return '无效的兵营分支选择';
     const d = DEFS[b.type]; if (b.level >= maxLevel(b)) return '已达最高等级';
     if (estate(s) && (b.type === 'shrine' || b.type === 'gate')) {
       const otherType = b.type === 'shrine' ? 'gate' : 'shrine';
@@ -296,7 +297,7 @@
     }
     if (d.prev && !adjacent(s, b.x, b.y).some(n => n.type === d.prev && n.level >= b.level + 1)) return '需邻' + DEFS[d.prev].name + ' Lv' + (b.level + 1);
     if (d.required) for (const id of d.required) if (!adjacent(s, b.x, b.y).some(n => n.type === id && n.level >= b.level + 1)) return '需邻' + DEFS[id].name + ' Lv' + (b.level + 1);
-    if(b.type==='barracks'&&b.level===3&&branch===undefined)return '请选择步兵营或弓兵营';
+    if(b.type==='barracks'&&b.level===1&&branch===undefined)return '请选择步兵营或弓兵营';
     return ignoreFunds ? '' : shortage(s, upgradeCost(b));
   }
   function upgradeOptions(s, b) {
@@ -342,7 +343,7 @@
       const ratio = target.hp / maxHP(target); target.level = level; target.hp = maxHP(target) * ratio;
     }
     if(b.type==='barracks'){
-      if(level===4)b.troopType=options.troopType;
+       if(level===2)b.troopType=options.troopType;
       syncSoldierHealth(world(s));
     }
     if (b.type === 'gate') s.gateLevel = level;
@@ -578,6 +579,10 @@
       let target=grid.byId.get(u.targetId);
       if(!target||target.hp<=0||!hostile(s,u.owner,target.owner)||Math.hypot(target.x-u.x,target.y-u.y)>6)target=null;
       const canShoot=target=>archer&&Math.hypot(target.x-u.x,target.y-u.y)<=range+1e-8&&clearSegment(s,u,target.x,target.y);
+      if(target&&archer&&!canShoot(target)){
+        const shootable=grid.near(u.x,u.y,range).filter(e=>hostile(s,u.owner,e.owner)&&canShoot(e)).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y)||a.id-b.id);
+        if(shootable.length)target=shootable[0];
+      }
       let chase=target&&(canShoot(target)?target:localChase(s,u,target));
       if(!chase){target=null;const nearby=grid.near(u.x,u.y,3).filter(e=>hostile(s,u.owner,e.owner)).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y)||a.id-b.id);
         for(const e of nearby){chase=canShoot(e)?e:localChase(s,u,e);if(chase){target=e;break;}}
@@ -655,13 +660,22 @@
   function restore(raw){
     try{
       const s=JSON.parse(raw),finite=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
-      if(!s||![9,VERSION].includes(s.version)||!['single','coop'].includes(s.mode)||!(s.mode==='coop'?[2,4,6]:[1,2,3,4]).includes(s.enemyCount)||![0,1,2,3].includes(s.rotation))return null;
-      const legacy=s.version===9;s.version=VERSION;
+      if(!s||![9,10,VERSION].includes(s.version)||!['single','coop'].includes(s.mode)||!(s.mode==='coop'?[2,4,6]:[1,2,3,4]).includes(s.enemyCount)||![0,1,2,3].includes(s.rotation))return null;
+      const legacy=s.version===9,oldVersion=s.version<VERSION;s.version=VERSION;
       if(!Object.prototype.hasOwnProperty.call(s,'difficulty'))s.difficulty='beginner';
       if(!Object.prototype.hasOwnProperty.call(DIFFICULTIES,s.difficulty))return null;
       if(!Number.isInteger(s.mapSeed)||s.mapSeed<0||s.mapSeed>4294967295||!Number.isInteger(s.seed)||s.seed<0||s.seed>4294967295)return null;
-      const [width,height]=Maps.dimensions(s.mode,s.enemyCount),blue=s.mode==='coop'?2:1;
-      if(s.worldSize!==(s.rotation%2?height:width)||s.worldHeight!==(s.rotation%2?width:height)||!finite(s.elapsed)||!Number.isInteger(s.nextId)||s.nextId<1||!Number.isInteger(s.revision)||s.revision<0||typeof s.over!=='boolean'||![null,'victory','defeat','draw'].includes(s.result)||!finite(s.kills))return null;
+      const [width,height]=Maps.dimensions(s.mode,s.enemyCount),[oldWidth,oldHeight]=Maps.layoutDimensions(s.mode,s.enemyCount),blue=s.mode==='coop'?2:1;
+      const expectedWidth=s.rotation%2?height:width,expectedHeight=s.rotation%2?width:height,legacyWidth=s.rotation%2?oldHeight:oldWidth,legacyHeight=s.rotation%2?oldWidth:oldHeight;
+      const cropped=oldVersion&&s.worldSize===legacyWidth&&s.worldHeight===legacyHeight;
+      if(cropped){
+        s.worldSize=expectedWidth;s.worldHeight=expectedHeight;
+        const shift=point=>{if(point){point.x-=Maps.EDGE_CROP;point.y-=Maps.EDGE_CROP;}};
+        for(const b of s.buildings||[])shift(b);
+        for(const u of s.soldiers||[]){shift(u);shift(u.waypoint);}
+        for(const p of s.projectiles||[]){shift(p);p.tx-=Maps.EDGE_CROP;p.ty-=Maps.EDGE_CROP;}
+      }
+      if(s.worldSize!==expectedWidth||s.worldHeight!==expectedHeight||!finite(s.elapsed)||!Number.isInteger(s.nextId)||s.nextId<1||!Number.isInteger(s.revision)||s.revision<0||typeof s.over!=='boolean'||![null,'victory','defeat','draw'].includes(s.result)||!finite(s.kills))return null;
       if(!Array.isArray(s.players)||s.players.length!==blue+s.enemyCount||!Array.isArray(s.buildings)||!Array.isArray(s.soldiers)||!Array.isArray(s.projectiles))return null;
       for(const [i,p] of s.players.entries()){
         if(!p||p.id!==i||p.team!==(i<blue?0:1)||!['human','computer','autoplay'].includes(p.controller)||typeof p.eliminated!=='boolean'||!finite(p.coins)||!finite(p.materials)||!Number.isInteger(p.fortuneBuilt)||p.fortuneBuilt<0||p.fortuneBuilt>10||!Number.isInteger(p.gateLevel)||p.gateLevel<1||p.gateLevel>15||!Number.isInteger(p.mission)||p.mission<0||p.mission>MISSIONS.length||!finite(p.kills)||!Number.isInteger(p.recruitCursor)||p.recruitCursor<0)return null;
@@ -673,7 +687,7 @@
       for(const b of s.buildings){
         if(b?.type==='barracks'){
           if(legacy)b.troopType='infantry';
-          if(typeof b.troopType!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,b.troopType)||b.level<4&&b.troopType!=='infantry')return null;
+           if(typeof b.troopType!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,b.troopType)||b.level<2&&b.troopType!=='infantry')return null;
         }
         if(!identity(b)||s.players[b.owner].eliminated||!Object.prototype.hasOwnProperty.call(DEFS,b.type)||!Number.isInteger(b.level)||b.level<1||b.level>maxLevel(b)||!inside(b.x,b.y,s)||ownerAt(s,b.x,b.y)!==b.owner||isWall(s,b.x,b.y)||!finite(b.hp)||b.hp>maxHP(b)+1e-6||(!b.hp&&b.type!=='gate'))return null;
         const key=b.y*s.worldSize+b.x;if(tiles.has(key))return null;tiles.add(key);
@@ -684,7 +698,12 @@
       if(s.players.some(p=>shrine[p.id]!==Number(!p.eliminated)))return null;
       for(const u of s.soldiers){
         if(legacy){u.troopType='infantry';u.attackAt=0;u.targetBuildingId=null;}
-        if(typeof u?.troopType!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,u.troopType)||u.troopType==='archer'&&u.level<4)return null;
+         if(cropped){
+           u.x=Math.max(0,Math.min(s.worldSize-1,u.x));u.y=Math.max(0,Math.min(s.worldHeight-1,u.y));
+           if(!walkable(s,Math.round(u.x),Math.round(u.y))){const cells=[];for(let y=0;y<s.worldHeight;y++)for(let x=0;x<s.worldSize;x++)if(walkable(s,x,y))cells.push({x,y,d:Math.hypot(x-u.x,y-u.y)});cells.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);if(!cells.length)return null;u.x=cells[0].x;u.y=cells[0].y;}
+           if(u.waypoint&&!inside(u.waypoint.x,u.waypoint.y,s))u.waypoint=null;
+         }
+         if(typeof u?.troopType!=='string'||!Object.prototype.hasOwnProperty.call(TROOPS,u.troopType)||u.troopType==='archer'&&u.level<2)return null;
         if(!identity(u)||s.players[u.owner].eliminated||++count[u.owner]>UNIT_CAP||!finite(u.x)||!finite(u.y)||!walkable(s,Math.round(u.x),Math.round(u.y))||!Number.isInteger(u.level)||u.level<1||u.level>9||!finite(u.hp)||u.hp<=0||!finite(u.maxHp)||u.hp>u.maxHp||!finite(u.baseDamage)||!['attack','repelled','slowed','slowFactor'].every(k=>finite(u[k]))||!Number.isInteger(u.barracksId))return null;
         const nextMax=soldierHP(playerView(s,u.owner),u);if(u.maxHp!==nextMax){u.hp=Math.min(nextMax,nextMax*u.hp/u.maxHp);u.maxHp=nextMax;}u.baseDamage=soldierBaseDamage(u);
         if(!finite(u.attackAt)||u.attackAt>s.elapsed||u.targetBuildingId!==null&&(!Number.isInteger(u.targetBuildingId)||u.targetBuildingId<1))return null;

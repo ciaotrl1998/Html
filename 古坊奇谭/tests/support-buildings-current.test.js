@@ -89,5 +89,5 @@ test('farm and mulberry production chains fully swap resources and ultimate prer
 
 test('version-eight saves are discarded',()=>{
   const s=match(),raw=JSON.parse(G.serialize(s));raw.version=8;
-  assert.equal(G.VERSION,10);assert.equal(G.restore(JSON.stringify(raw)),null);
+  assert.equal(G.VERSION,11);assert.equal(G.restore(JSON.stringify(raw)),null);
 });

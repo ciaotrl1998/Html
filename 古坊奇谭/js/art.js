@@ -347,7 +347,10 @@
       }
       if(b.type==='shrine'&&s.buildings.length===1){c.strokeStyle='#ead59a80';c.lineWidth=1;ellipse(c,0,19,32+Math.sin(s.elapsed)*2,12,null,'#b99e6770');}
       if(b.hp<GF.maxHP(b)){const y=healthBarY(b);rect(c,-21,y,42,3,'#61775c66');rect(c,-21,y,42*Math.max(0,b.hp/GF.maxHP(b)),3,b.hp/GF.maxHP(b)>.35?'#819d64':'#b06a4e');}
-      if(!GF.upgradeReason(player,b)){
+      const canUpgrade=b.type==='barracks'&&b.level===1
+        ? ['infantry','archer'].some(troopType=>!GF.upgradeReason(player,b,false,{troopType}))
+        : !GF.upgradeReason(player,b);
+      if(canUpgrade){
         const bob=(reducedMotion||options.reducedMotion===true)?0:Math.sin(animationTime*3+(b.id||0)*2.399963229728653)*2.5;
         c.save();c.translate(0,bob);poly(c,[[11,-5],[17,-11],[23,-5],[20,-5],[20,0],[14,0],[14,-5]],'#b4df63','#496a38',1.2);c.restore();
       }

@@ -11,11 +11,13 @@ const shrine=(s,owner)=>s.buildings.find(b=>b.owner===owner&&b.type==='shrine');
 test('all layouts, rotations and seeded terrain are connected and have the specified doors',()=>{
  for(const seed of [1,42,73193,99991])for(const mode of ['single','coop'])for(const count of mode==='single'?[1,2,3,4]:[2,4,6])for(let rotation=0;rotation<4;rotation++){
   const s=match({mode,enemyCount:count,mapSeed:seed,rotation}),blue=mode==='coop'?2:1;
-  const expected=mode==='single'?[[50,25],[75,25],[75,50],[75,75]][count-1]:{2:[50,40],4:[75,40],6:[75,90]}[count];
+   const expected=mode==='single'?[[44,19],[69,19],[69,44],[69,69]][count-1]:{2:[44,34],4:[69,34],6:[69,84]}[count];
   assert.deepEqual([s.worldSize,s.worldHeight],rotation%2?[...expected].reverse():expected);
   assert.equal(s.players.length,blue+count);const land=G.estate(s),own=new Set();
-  for(const p of s.players){
-   const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[0,0]);assert.deepEqual(G.rates(view),{coins:1,materials:0});
+   for(const p of s.players){
+    const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[0,0]);assert.deepEqual(G.rates(view),{coins:1,materials:0});
+    for(const k of [...e.cells,...e.walls]){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);assert(x>=2&&y>=2&&x<=s.worldSize-3&&y<=s.worldHeight-3,'estate keeps a two-tile edge margin');}
+    for(const g of e.gates)assert(g.x>=2&&g.y>=2&&g.x<=s.worldSize-3&&g.y<=s.worldHeight-3,'gate keeps a two-tile edge margin');
    for(const k of e.cells){assert(!own.has(k),'interiors do not overlap');own.add(k);}
    for(const type of ['forest','mountain','plain'])assert([...e.cells].some(k=>G.terrain(k%s.worldSize,Math.floor(k/s.worldSize),s)===type),type);
    for(const g of e.gates){assert(!G.isWall(s,g.x,g.y));assert(G.findPath(s,e.center,g));}
@@ -29,7 +31,7 @@ test('all layouts, rotations and seeded terrain are connected and have the speci
 test('barracks rate, fractional production and matching troop levels survive upgrade, removal and saves',()=>{
  const s=match(),b=add(s,0),p=G.playerView(s,0);advance(s,5);assert.equal(s.soldiers.length,1);assert.equal(G.soldierRate(p),1/5);
  const old=s.soldiers[0],hp=old.maxHp,damage=old.baseDamage;
- shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b).ok);advance(s,2);assert.equal(s.soldiers.length,3);
+  shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b,{troopType:'infantry'}).ok);advance(s,2);assert.equal(s.soldiers.length,3);
  assert(old.maxHp>hp);assert.equal(old.baseDamage,damage*2);assert(s.soldiers.every(u=>u.level===2));
  assert(G.demolish(p,b).ok);assert.equal(s.soldiers.length,3);advance(s,.1);assert.equal(s.soldiers.length,3);
  assert(G.restore(G.serialize(s)));
@@ -83,6 +85,12 @@ test('skills are always available only to their owner and only hit hostile troop
 test('new saves preserve future simulation and reject obsolete, corrupt or foreign-owned data',()=>{
  const s=match();add(s,0);advance(s,2.3);const next=G.restore(G.serialize(s));assert(next);advance(s,8);advance(next,8);assert.deepEqual(JSON.parse(G.serialize(s)),JSON.parse(G.serialize(next)));
  for(const mutate of [v=>v.version=7,v=>v.worldSize=25,v=>v.players[0].coins=-1,v=>v.players[0].selectedSkill='toString',v=>v.buildings[0].owner=1,v=>v.buildings.push({...v.buildings[0]}),v=>v.soldiers[0].x=-1]){const raw=JSON.parse(G.serialize(s));mutate(raw);assert.equal(G.restore(JSON.stringify(raw)),null);}
+});
+test('version-ten saves migrate from the old five-tile map margin',()=>{
+ const s=match(),original=JSON.parse(G.serialize(s));original.version=10;original.worldSize+=6;original.worldHeight+=6;
+ for(const b of original.buildings){b.x+=3;b.y+=3;}
+ const restored=G.restore(JSON.stringify(original));assert(restored);assert.equal(restored.version,11);assert.equal(restored.worldSize,s.worldSize);assert.equal(restored.worldHeight,s.worldHeight);
+ assert.deepEqual(restored.buildings.map(b=>[b.type,b.owner,b.x,b.y]),s.buildings.map(b=>[b.type,b.owner,b.x,b.y]));
 });
 test('replicas predict only own economy, reconcile rejection and receive every estate elimination',()=>{
  const s=match({mode:'coop',enemyCount:6});s.players[1].controller='human';s.players[0].coins=s.players[0].materials=1000;const replica=N.createReplica(N.snapshot(s,0),0,1,0);assert(replica);assert.equal(replica.state.players[1].coins,0);
