@@ -2503,7 +2503,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     c.restore();
   }
   function render(canvas, s, cam, selected, options = {}) {
-    var _a, _b, _c;
+    var _a, _b;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
@@ -2685,7 +2685,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const units = s.soldiers.filter((unit) => unit.hp > 0).map((unit) => ({ unit, soldier: s.players[unit.owner].team === 0 })).map((item) => options.unitPosition ? __spreadProps(__spreadValues({}, item), { unit: __spreadValues(__spreadValues({}, item.unit), options.unitPosition(item.unit, item.soldier)) }) : item).filter(({ unit }) => visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 38 : 24, unit.boss ? 76 : 52)).sort((a, b) => a.unit.y - b.unit.y);
+    const units = [];
+    for (const source of s.soldiers) {
+      if (source.hp <= 0) continue;
+      let unit = source;
+      if (options.unitPosition) {
+        const position = options.unitPosition(source, s.players[source.owner].team === 0);
+        unit = __spreadValues(__spreadValues({}, source), position);
+      }
+      if (visible(unit.x * T + 32, unit.y * T + 32, unit.boss ? 38 : 24, unit.boss ? 76 : 52)) units.push({ unit, soldier: s.players[source.owner].team === 0 });
+    }
+    units.sort((a, b) => a.unit.y - b.unit.y);
     let soldierMotion = soldierMotionCaches.get(s);
     if (!soldierMotion) {
       soldierMotion = { facing: /* @__PURE__ */ new Map(), positions: /* @__PURE__ */ new Map(), walking: /* @__PURE__ */ new Map(), health: /* @__PURE__ */ new Map(), hitUntil: /* @__PURE__ */ new Map(), attacks: /* @__PURE__ */ new Map() };
@@ -2697,7 +2707,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (previousHp !== void 0 && unit.hp < previousHp) {
         soldierMotion.hitUntil.set(unit.id, animationTime + 0.2);
         if (options.online) {
-          const attacker = (_c = units.filter((item) => s.players[item.unit.owner].team !== s.players[unit.owner].team && Math.hypot(item.unit.x - unit.x, item.unit.y - unit.y) <= 0.8).sort((a, b) => Math.hypot(a.unit.x - unit.x, a.unit.y - unit.y) - Math.hypot(b.unit.x - unit.x, b.unit.y - unit.y) || a.unit.id - b.unit.id)[0]) == null ? void 0 : _c.unit;
+          let attacker = null, best = 0.8;
+          for (const item of units) {
+            if (s.players[item.unit.owner].team === s.players[unit.owner].team) continue;
+            const distance = Math.hypot(item.unit.x - unit.x, item.unit.y - unit.y);
+            if (distance < best || distance === best && (!attacker || item.unit.id < attacker.id)) {
+              attacker = item.unit;
+              best = distance;
+            }
+          }
           if (attacker) soldierMotion.attacks.set(attacker.id, animationTime);
         }
       }
@@ -3587,7 +3605,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const view = { width: 390, height: 844 };
   const mobileRendering = window.matchMedia("(pointer: coarse)").matches;
   let simulationClock = 0, lastRenderKey = "", lastRenderAt = 0;
-  const renderInterval = mobileRendering ? 1e3 / 60 : 0;
+  const renderInterval = 1e3 / 60;
   function center(owner = 0) {
     cam.zoom = Math.max(0.55, Math.min(0.86, view.width / 550));
     const home = GF.estate(GF.playerView(state, owner)).center;
@@ -3597,7 +3615,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function resize() {
     GufangBoot.layout();
-    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1.25 : 2), oldW = view.width, oldH = view.height;
+    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1 : 1.5), oldW = view.width, oldH = view.height;
     view.width = $("game").clientWidth;
     view.height = $("game").clientHeight;
     canvas.width = Math.round(view.width * ratio);

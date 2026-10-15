@@ -350,7 +350,14 @@
       c.restore();
     }
     // Units use their own positions, even when their barracks is offscreen.
-    const units=s.soldiers.filter(unit=>unit.hp>0).map(unit=>({unit,soldier:s.players[unit.owner].team===0})).map(item=>options.unitPosition?{...item,unit:{...item.unit,...options.unitPosition(item.unit,item.soldier)}}:item).filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52)).sort((a,b)=>a.unit.y-b.unit.y);
+    const units=[];
+    for(const source of s.soldiers){
+      if(source.hp<=0)continue;
+      let unit=source;
+      if(options.unitPosition){const position=options.unitPosition(source,s.players[source.owner].team===0);unit={...source,...position};}
+      if(visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52))units.push({unit,soldier:s.players[source.owner].team===0});
+    }
+    units.sort((a,b)=>a.unit.y-b.unit.y);
     let soldierMotion=soldierMotionCaches.get(s);
     if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map(),health:new Map(),hitUntil:new Map(),attacks:new Map()};soldierMotionCaches.set(s,soldierMotion);}
     const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
@@ -359,7 +366,12 @@
       if(previousHp!==undefined&&unit.hp<previousHp){
         soldierMotion.hitUntil.set(unit.id,animationTime+.2);
         if(options.online){
-          const attacker=units.filter(item=>s.players[item.unit.owner].team!==s.players[unit.owner].team&&Math.hypot(item.unit.x-unit.x,item.unit.y-unit.y)<=.8).sort((a,b)=>Math.hypot(a.unit.x-unit.x,a.unit.y-unit.y)-Math.hypot(b.unit.x-unit.x,b.unit.y-unit.y)||a.unit.id-b.unit.id)[0]?.unit;
+          let attacker=null,best=.8;
+          for(const item of units){
+            if(s.players[item.unit.owner].team===s.players[unit.owner].team)continue;
+            const distance=Math.hypot(item.unit.x-unit.x,item.unit.y-unit.y);
+            if(distance<best||distance===best&&(!attacker||item.unit.id<attacker.id)){attacker=item.unit;best=distance;}
+          }
           if(attacker)soldierMotion.attacks.set(attacker.id,animationTime);
         }
       }

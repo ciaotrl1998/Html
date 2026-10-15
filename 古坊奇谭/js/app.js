@@ -133,9 +133,9 @@
   const view = { width: 390, height: 844 };
   const mobileRendering = window.matchMedia('(pointer: coarse)').matches;
   let simulationClock = 0, lastRenderKey = '', lastRenderAt = 0;
-  // Phones struggle to repaint the whole map at 90/120 Hz; cap touch devices to ~60 fps while the
-  // animation clock keeps advancing every frame.
-  const renderInterval = mobileRendering ? 1000 / 60 : 0;
+  // Keep drawing at 60 fps on both touch and desktop displays. Simulation remains independently
+  // batched at 30 Hz, while animation time follows the real clock between simulation updates.
+  const renderInterval = 1000 / 60;
   function center(owner = 0) {
     cam.zoom = Math.max(.55, Math.min(.86, view.width / 550));
     const home = GF.estate(GF.playerView(state,owner)).center;
@@ -145,7 +145,7 @@
   }
   function resize() {
     GufangBoot.layout();
-    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1.25 : 2), oldW = view.width, oldH = view.height;
+    const ratio = Math.min(devicePixelRatio || 1, mobileRendering ? 1 : 1.5), oldW = view.width, oldH = view.height;
     view.width = $('game').clientWidth; view.height = $('game').clientHeight;
     canvas.width = Math.round(view.width * ratio); canvas.height = Math.round(view.height * ratio);
     lastRenderKey = '';
