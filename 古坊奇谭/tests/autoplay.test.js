@@ -18,7 +18,7 @@ test('autoplay uses public actions and pays normal costs',()=>{
     originals[name]=G[name];
     G[name]=(...args)=>{
       const [state,target,x,y]=args;
-      assert.equal(name==='build'?G.buildReason(state,target,x,y):G.upgradeReason(state,target),'');
+      assert.equal(name==='build'?G.buildReason(state,target,x,y):G.upgradeReason(state,target,false,x||{}),'');
       const result=originals[name](...args);assert(result.ok);calls[name]++;return result;
     };
   }
@@ -79,7 +79,8 @@ test('game controller runs the same balanced route for computer players',()=>{
 test('strategic production planning clusters suppliers and completes ultimate buildings',()=>{
   for(const seed of [1,42,99991]){
     const s=G.createState(seed),view=G.playerView(s,0);view.coins=view.materials=1e7;G.chooseSkill(view,'thunder');
-    const bot=A.create(view);for(let i=0;i<80;i++)bot.tick(1);
+    // Nine military tiers now share the decision budget with economic construction.
+    const bot=A.create(view);for(let i=0;i<100;i++)bot.tick(1);
     const ultimates=view.buildings.filter(b=>G.DEFS[b.type].required);
     assert(ultimates.length>=1,`ultimate seed ${seed}`);
     for(const building of ultimates)for(const required of G.DEFS[building.type].required){

@@ -12,13 +12,26 @@ function add(s,owner,type='barracks',level=1){
 
 test('level-one barracks produces one soldier every five seconds and movement is capped at 0.8 tiles per second',()=>{
   const s=match(),b=add(s,0);
-  assert.equal(G.soldierRate(b),1/5);assert.equal(G.soldierRate({level:9}),8/15);
+  assert.equal(G.soldierRate(G.playerView(s,0)),1/5);
   advance(s,4.9);assert.equal(s.soldiers.length,0);
   advance(s,.1);assert.equal(s.soldiers.length,1);
   const u=s.soldiers[0],start={x:u.x,y:u.y};advance(s,1);
   const distance=Math.hypot(u.x-start.x,u.y-start.y);
   assert(distance>.5&&distance<=G.SOLDIER_SPEED+1e-8,`moved ${distance} tiles`);
   advance(s,9);assert.equal(s.soldiers.filter(unit=>unit.barracksId===b.id).length,3);
+});
+
+test('barracks levels retain exponential soldier health and attack while shrine level controls training time',()=>{
+  const s=match(),p=G.playerView(s,0),shrine=p.buildings.find(b=>b.type==='shrine');
+  for(let level=1;level<=9;level++){
+    const b={type:'barracks',level};
+    assert.equal(G.soldierHP(p,b),Math.round(44*1.55**(level-1)));
+    assert.equal(G.soldierDamage(p,b),18*2**(level-1));
+  }
+  assert.equal(G.soldierTrainingTime(1),5);assert.equal(G.soldierTrainingTime(15),1);
+  shrine.level=15;shrine.hp=G.maxHP(shrine);
+  assert.equal(G.soldierRate(p),1);
+  assert.equal(G.soldierHP(p,{level:1}),44);assert.equal(G.soldierDamage(p,{level:1}),18);
 });
 
 test('a level-one soldier survives one level-one tower arrow and dies to the second',()=>{

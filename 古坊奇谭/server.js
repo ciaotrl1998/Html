@@ -17,6 +17,15 @@ const files = new Map([
   ...['boot', 'runtime', 'maps', 'game', 'network', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
   ['/dist/古坊奇谭.html', ['dist/古坊奇谭.html', 'text/html; charset=utf-8']]
 ]);
+// Only known workspace PNG assets are exposed; never resolve arbitrary request paths.
+function registerPngAssets(directory='assets'){
+  for(const entry of fs.readdirSync(path.join(root,directory),{withFileTypes:true})){
+    const relative=path.posix.join(directory,entry.name);
+    if(entry.isDirectory()&&entry.name!=='generated')registerPngAssets(relative);
+    else if(entry.isFile()&&entry.name.endsWith('.png'))files.set('/'+relative,[relative,'image/png']);
+  }
+}
+registerPngAssets();
 
 function createServer() {
   const rooms = new Map();
@@ -83,7 +92,7 @@ function createServer() {
     for (const socket of participants(room)) { socket.lastAction = 0; socket.paused = false; checkpoint(socket); }
   }
   function action(socket, message) {
-    const room = socket.room, { id, kind, building, skill, x, y } = message;
+    const room = socket.room, { id, kind, building, skill, x, y, troopType } = message;
     if (!room?.state || message.session !== room.session || !Number.isSafeInteger(id) || id <= socket.lastAction || id < 1 ||
         !['build', 'upgrade', 'bulk', 'demolish', 'skill', 'choose-skill'].includes(kind) ||
         !Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= G.worldWidth(room.state) || y >= G.worldHeight(room.state) ||
@@ -96,7 +105,7 @@ function createServer() {
     else if (kind === 'skill') result = G.skill(player, skill);
     else if (kind === 'build') result = G.build(player, building, x, y);
     else if (b?.owner === ownerOf(socket)) {
-      if (kind === 'upgrade') result = G.upgrade(player, b);
+      if (kind === 'upgrade') result = G.upgrade(player, b, {troopType});
       else if (kind === 'bulk') result = G.bulkUpgrade(player, b);
       else if (kind === 'demolish') result = G.demolish(player, b);
     }

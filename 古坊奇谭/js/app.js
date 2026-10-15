@@ -189,7 +189,7 @@
   }
   function closePanel() { selected = null; panelKey = ''; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
   const rateText = value => String(Math.round((value + Number.EPSILON) * 10) / 10);
-  const soldierTrainingText = b => { const seconds=1/GF.soldierRate(b),rounded=Math.round(seconds);return `${Math.abs(seconds-rounded)<1e-8?rounded:rateText(seconds)}s`; };
+  const soldierTrainingText = level => { const seconds=GF.soldierTrainingTime(level),rounded=Math.round(seconds);return `${Math.abs(seconds-rounded)<1e-8?rounded:rateText(seconds)}s`; };
   const costText = cost => [cost.coins ? cost.coins + ' 铜钱' : '', cost.materials ? cost.materials + ' 工材' : ''].filter(Boolean).join(' · ') || '免费';
   const costHTML = (cost, markMissing = false) => `<span class="cost-parts">${cost.coins ? `<span class="cost-part"><i class="coin-icon"></i><b class="cost-number${markMissing && playerState().coins < cost.coins ? ' insufficient' : ''}">${cost.coins}</b></span>` : ''}${cost.materials ? `<span class="cost-part"><i class="material-icon"></i><b class="cost-number${markMissing && playerState().materials < cost.materials ? ' insufficient' : ''}">${cost.materials}</b></span>` : ''}</span>`;
   function productionLine(resource, base, total) {
@@ -197,7 +197,7 @@
     return `${resource} +${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
   }
   function effect(d, b) {
-    if (d.id === 'barracks') return `训练时间 ${soldierTrainingText(b || { type: d.id, level: 1 })} · 本庄上限120人`;
+    if (d.id === 'barracks') return '训练士兵';
     if (!d.income) return d.desc || '';
     const building = b || { type: d.id, x: selected?.x ?? GF.worldCenter(state), y: selected?.y ?? GF.worldCenter(state), level: 1 };
     const economic = playerState(), preview = b ? economic : { ...economic, buildings: [...economic.buildings, building] };
@@ -219,7 +219,7 @@
       return center([label('生产'), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
-    if (d.id === 'barracks') return center([label('训练时间'), figure(`<span class="effect-value">${soldierTrainingText({ type: 'barracks', level: 1 })}</span>`)]);
+    if (d.id === 'barracks') return center([figure('<span class="effect-value">训练士兵</span>')]);
     if (d.id === 'rock') return rows([['攻击范围', d.range], ['溅射', d.splash]]);
     if (d.id === 'well') return center([label('全庄农田'), figure(`${icon('coins')}<span class="effect-value">+20%</span>`)]);
     if (d.id === 'stage') return center([label('全镇'), figure(`${icon('coins')}<span class="effect-value">+3%</span> ${icon('materials')}<span class="effect-value">+3%</span>`)]);
@@ -261,23 +261,25 @@
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : '0';
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
-    if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>士兵战力<strong>${(b.level-1)*10}%${max ? '' : ' → ' + b.level*10 + '%'}</strong></div>`; }
-    else if (b.type === 'barracks') stats += `<div>训练时间<strong>${soldierTrainingText(b)}${max ? '' : ' → ' + soldierTrainingText(next)}</strong></div>`;
+    if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? '' : ' → ' + soldierTrainingText(next.level)}</strong></div>`; }
+    else if (b.type === 'barracks') stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===3?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div>`;
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
     else if (b.type === 'earth') stats += `<div>范围减伤<strong>${Math.min(65, 20 * f)}%${max ? '' : ' → ' + Math.min(65, 20 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'tao') stats += `<div>防御攻击加成<strong>${Math.min(150, 15 * f)}%${max ? '' : ' → ' + Math.min(150, 15 * nextF) + '%'}</strong></div>`;
     else if (b.type === 'zhong') stats += `<div>全体减速<strong>${Math.round(GF.zhongSlow(b) * 100)}%${max ? '' : ' → ' + Math.round(GF.zhongSlow(next) * 100) + '%'}</strong></div><div>镇煞周期<strong>每 ${d.pulseInterval} 秒 · 持续 ${d.slowDuration} 秒</strong></div>`;
     if (d.required) stats += `<div>全镇${d.auraResource === 'materials' ? '工材' : '铜钱'}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? '' : ' → ' + rateText(d.aura * GF.auraFactor(next) * 100) + '%'}</strong></div>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions"><button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级'}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button></div></div>`;
+    const branches=b.type==='barracks'&&b.level===3;
+    const actions=branches?['infantry','archer'].map(type=>`<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join(''):`<button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级'}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches?' branches':''}">${actions}</div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
     if (GF.isWall(state,x,y)||(!b&&!GF.owns(playerState(),x,y))) {closePanel();return;}
     const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${b?.id || ''},${b?.level || ''},${b?.type === 'barracks' ? GF.soldierPower(playerState(), b) : ''}`;
-    $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
+    const key = `${x},${y},${b?.id || ''},${b?.level || ''},${b?.troopType||''},${b?.type === 'barracks' ? GF.soldierPower(playerState(), b) : ''}`;
+    $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
     $('build-view').hidden = !!b; $('detail-view').hidden = !b;
     if (key !== panelKey) {
       panelKey = key;
@@ -295,6 +297,17 @@
       $('detail-view').classList.toggle('readonly',readonly);
       if(readonly)$('plot-label').textContent=(state.players[b.owner].team===0?'友方':'敌方')+'庄园 '+(b.owner+1)+' · 仅查看';
       $('detail-hp').textContent = Math.ceil(Math.max(0, b.hp)) + ' / ' + GF.maxHP(b); $('detail-hp-fill').style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + '%';
+      if(b.type==='barracks'&&b.level===3){
+        for(const button of $('detail-view').querySelectorAll('[data-barracks-branch]')){
+          const reason=GF.upgradeReason(playerState(),b,false,{troopType:button.dataset.barracksBranch});
+          button.classList.toggle('blocked',!!reason);button.setAttribute('aria-disabled',String(!!reason));button.title=reason||'';
+          const label=button.querySelector('small'),html=costHTML(GF.upgradeCost(b),true);
+          if(label._costHTML!==html){label.innerHTML=html;label._costHTML=html;}
+        }
+        const reason=GF.demolishReason(playerState(),b);
+        $('demolish-building').disabled=!!reason;$('demolish-building').title=reason||'';
+        return;
+      }
       const options = GF.upgradeOptions(playerState(), b), reason = GF.upgradeReason(playerState(), b), max = b.level >= GF.maxLevel(b);
       $('upgrade-building').classList.toggle('blocked', !!reason); $('upgrade-building').setAttribute('aria-disabled', String(!!reason));
       $('upgrade-building').title = reason || '';
@@ -359,7 +372,14 @@
   });
   $('detail-view').addEventListener('click', e => {
     if (!selected) return; const b = GF.at(state, selected.x, selected.y); if (!b) return;
-    if (e.target.closest('#upgrade-building')) {
+    const branchButton=e.target.closest('[data-barracks-branch]');
+    if(branchButton){
+      const options={troopType:branchButton.dataset.barracksBranch},reason=GF.upgradeReason(playerState(),b,false,options);
+      if(reason)return blocked(branchButton,reason);
+      if(online){onlineAction('upgrade',options);return;}
+      const result=GF.upgrade(playerState(),b,options);if(!result.ok)return blocked(branchButton,result.reason);
+      tone();toast(GF.name(b)+' · 升至 Lv.'+b.level);panelKey='';handleEvents();save();refresh();
+    } else if (e.target.closest('#upgrade-building')) {
       const reason = GF.upgradeReason(playerState(), b); if (reason) return blocked($('upgrade-building'), reason);
       if (online) { onlineAction('upgrade'); return; }
       const r = GF.upgrade(state, b); if (!r.ok) return blocked($('upgrade-building'), r.reason);
@@ -611,8 +631,10 @@
       const live=online.peerConnected&&!online.serverPaused&&!online.awaitingState&&performance.now()-guestClockAt<250;
       if(live)GF.stepEconomy(playerState(),Math.min(dt,.1));
       if(live)for(const group of [state.effects,state.projectiles])for(const effect of group)effect.life-=dt;
-      state.effects=state.effects.filter(e=>e.life>0);state.projectiles=state.projectiles.filter(e=>e.life>0);
-      for(const projectile of state.projectiles){const target=state.soldiers.find(e=>e.id===projectile.targetId);if(target){const p=remotePosition(target,true);projectile.tx=p.x;projectile.ty=p.y;}}
+      state.effects=state.effects.filter(e=>e.life>0);
+      const projectileTargets=new Map([...state.soldiers,...state.buildings].map(e=>[e.id,e]));
+      state.projectiles=state.projectiles.filter(e=>e.life>0&&projectileTargets.get(e.targetId)?.hp>0);
+      for(const projectile of state.projectiles){const target=projectileTargets.get(projectile.targetId),p=projectile.targetType==='building'?target:remotePosition(target,true);projectile.tx=p.x;projectile.ty=p.y;}
     }
     uiClock+=dt;saveClock+=dt;if(uiClock>.2){refresh();uiClock=0;}if(saveClock>8){if(!state.over)save();saveClock=0;}
     if(started&&!hiddenPause){const remote=!!online;

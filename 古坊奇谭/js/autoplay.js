@@ -6,6 +6,12 @@
   const PARTNER={bank:'tailor',tailor:'bank',wine:'trade',trade:'wine'};
   const ULTIMATES=Object.values(G.DEFS).filter(d=>d.required);
   const REPORTS=new WeakMap();
+  const MILITARY_INCOME_THRESHOLDS=[0,10,18,36,72,144,288,576,1152];
+  const desiredMilitaryLevel=minimum=>MILITARY_INCOME_THRESHOLDS.reduce((level,threshold,index)=>minimum>=threshold?index+1:level,1);
+  function nextBarracksTroop(buildings){
+    const specialized=buildings.filter(b=>b.type==='barracks'&&b.level>=4);
+    return specialized.filter(b=>G.troopType(b)==='archer').length<Math.floor((specialized.length+1)/3)?'archer':'infantry';
+  }
 
   function create(state){
     const s=state.actorId===undefined&&state.players?G.playerView(state,0):state;
@@ -23,7 +29,8 @@
       telemetry.actions.push({second:s.elapsed,kind,type,reason});if(telemetry.actions.length>240)telemetry.actions.shift();return true;
     }
     function build(type,p,reason){const result=p&&G.build(s,type,p.x,p.y);return !!result?.ok&&record('build',type,reason);}
-    function upgrade(b,reason){const result=b&&G.upgrade(s,b);return !!result?.ok&&record('upgrade',b.type,reason);}
+    const upgradeChoice=b=>b?.type==='barracks'&&b.level===3?{troopType:nextBarracksTroop(s.buildings)}:{};
+    function upgrade(b,reason){const result=b&&G.upgrade(s,b,upgradeChoice(b));return !!result?.ok&&record('upgrade',b.type,reason);}
     const count=type=>s.buildings.filter(b=>b.type===type).length;
     const canAfford=cost=>s.coins>=cost.coins&&s.materials>=cost.materials;
     function waitSeconds(cost,rates=G.rates(s)){
@@ -311,12 +318,14 @@
         const gate=primaryGate(),p=bestPlot('barracks',n=>Math.hypot(n.x-gate.x,n.y-gate.y)<=7)||bestPlot('barracks');
         if(p)return buildPlan('barracks',p,'扩大常备军规模');
       }
-      const shrine=s.buildings.find(b=>b.type==='shrine'),desiredShrine=Math.min(5,1+Math.floor(minimum/7));
+      const desiredBarracksLevel=desiredMilitaryLevel(minimum);
+      // Train the army up to the already unlocked tier before saving for expensive foundations.
+      const training=barracks.find(b=>b.level<Math.min(desiredBarracksLevel,G.unlockedBuildingLevel(s))&&!G.upgradeReason(s,b,true,upgradeChoice(b)));
+      if(training)return upgradePlan(training,'提升士兵训练质量');
+      const shrine=s.buildings.find(b=>b.type==='shrine'),desiredShrine=Math.max(Math.min(5,1+Math.floor(minimum/7)),G.requiredShrineLevel(desiredBarracksLevel));
       if(shrine&&shrine.level<desiredShrine){
         const target=foundationTarget(shrine);if(target)return upgradePlan(target,target.type==='shrine'?'升级主城，强化全军':'同步强化城门');
       }
-      const desiredBarracksLevel=1+(minimum>=10?1:0)+(minimum>=18?1:0),training=barracks.find(b=>b.level<desiredBarracksLevel&&!G.upgradeReason(s,b,true));
-      if(training)return upgradePlan(training,'提升士兵训练质量');
       const desiredTowerLevel=1+(minimum>=12?1:0),tower=s.buildings.filter(b=>b.type==='tower').sort((a,b)=>a.level-b.level)[0];
       if(tower&&tower.level<desiredTowerLevel&&!G.upgradeReason(s,tower,true))return upgradePlan(tower,'巩固常备防线');
       return null;
@@ -349,5 +358,5 @@
     return {tick,report,get lastAction(){return stats.lastAction;}};
   }
   G.setControllerFactory(create);
-  return {create,coversGate};
+  return {create,coversGate,desiredMilitaryLevel,nextBarracksTroop};
 });

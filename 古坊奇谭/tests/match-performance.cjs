@@ -3,7 +3,11 @@ const assert=require('node:assert/strict'),G=require('../js/game');require('../j
 const {performance}=require('node:perf_hooks');
 const s=G.createMatch({mode:'coop',enemyCount:6,mapSeed:42,rotation:0});
 for(const p of s.players){p.controller='human';p.selectedSkill='thunder';const home=G.estate(G.playerView(s,p.id)).center;
- for(let i=0;i<120;i++)s.soldiers.push({id:s.nextId++,owner:p.id,barracksId:99999,x:home.x,y:home.y,level:1,hp:1e9,maxHp:1e9,baseDamage:0,attack:0,targetOwner:null,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null});
+ // Keep attacks on cooldown so this population benchmark measures a stable mixed army.
+ // Arbitrary invulnerability is no longer valid: the game synchronizes real troop stats.
+ for(let i=0;i<120;i++){const troopType=i%3===2?'archer':'infantry',level=troopType==='archer'?4:1,stats={troopType,level},hp=G.soldierHP(G.playerView(s,p.id),stats);
+  s.soldiers.push({id:s.nextId++,owner:p.id,barracksId:99999,troopType,x:home.x,y:home.y,level,hp,maxHp:hp,baseDamage:G.soldierDamage(G.playerView(s,p.id),stats),attack:1e6,attackAt:0,targetBuildingId:null,targetOwner:null,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null});
+ }
 }
 const times=[];for(let i=0;i<1800;i++){const t=performance.now();G.step(s,.1);times.push(performance.now()-t);}
 times.sort((a,b)=>a-b);assert.equal(s.soldiers.length,960);assert(times[Math.floor(times.length*.95)]<50,'960-unit simulation keeps up with 20Hz scheduling');

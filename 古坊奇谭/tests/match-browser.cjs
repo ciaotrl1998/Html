@@ -12,7 +12,8 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
  try{
   for(const viewport of [{width:390,height:844},{width:320,height:568},{width:1366,height:768}]){
    const c=await context({viewport,deviceScaleFactor:1,isMobile:viewport.width<500,hasTouch:viewport.width<500});
-   await c.addInitScript(()=>{localStorage.setItem('gufang-qitan-save-v1','old');localStorage.setItem('gufang-qitan-save-v1-backup','backup');});
+   // Init scripts also run on opaque about:blank documents, which have no storage access.
+   await c.addInitScript(()=>{if(!/^https?:$/.test(location.protocol))return;localStorage.setItem('gufang-qitan-save-v1','old');localStorage.setItem('gufang-qitan-save-v1-backup','backup');});
    const p=await c.newPage();await p.goto(address);
    assert.deepEqual(await p.evaluate(()=>[localStorage.getItem('gufang-qitan-save-v1'),localStorage.getItem('gufang-qitan-save-v1-backup')]),[null,null]);
    await p.locator('#start-single').click();await p.locator('input[name="single-enemies"][value="4"]').check();await p.locator('input[name="single-difficulty"][value="hard"]').check();await p.locator('#single-start').click();await p.locator('[data-choice="thunder"]').click();
@@ -37,7 +38,7 @@ const shots=path.join(os.tmpdir(),'gufang-attack-shots');fs.mkdirSync(shots,{rec
    assert.equal(await p.evaluate(()=>Gufang.state.players.length),8);
    const stats=await p.evaluate(async()=>{
     Gufang.setPaused(true);document.getElementById('modal').hidden=true;await new Promise(requestAnimationFrame);
-    const s=Gufang.state;for(const estate of GF.estate(s).estates)for(let i=0;i<120;i++)s.soldiers.push({id:s.nextId++,owner:estate.owner,x:estate.center.x+(i%5)*.12,y:estate.center.y+Math.floor(i/5)*.04,hp:120,maxHp:120,repelled:0,slowed:0});
+    const s=Gufang.state;for(const estate of GF.estate(s).estates)for(let i=0;i<120;i++){const troopType=i%3===2?'archer':'infantry',level=4,hp=GF.soldierHP(GF.playerView(s,estate.owner),{troopType,level});s.soldiers.push({id:s.nextId++,owner:estate.owner,troopType,level,x:estate.center.x+(i%5)*.12,y:estate.center.y+Math.floor(i/5)*.04,hp,maxHp:hp,repelled:0,slowed:0});}
     const canvas=document.getElementById('map'),zoom=Math.min(350/(s.worldSize*64),620/(s.worldHeight*64));
     const camera={x:(390-s.worldSize*64*zoom)/2,y:155,zoom};
     const times=[];for(let i=0;i<40;i++){const start=performance.now();GFArt.render(canvas,s,camera,null,{player:0,animationTime:i/30});times.push(performance.now()-start);}

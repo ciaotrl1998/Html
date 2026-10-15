@@ -14,9 +14,12 @@
   const buildingPath=(type,level)=>`assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}.png`;
   const maskName=mask=>mask.toString(16).padStart(2,'0');
   const soldierAtlasSources={
-    player:'assets/sprites/soldiers/player-red.png',
-    ally:'assets/sprites/soldiers/ally-green.png',
-    enemy:'assets/sprites/soldiers/enemy-purple.png'
+    infantry_player:'assets/sprites/soldiers/infantry_player-red.png',
+    infantry_ally:'assets/sprites/soldiers/infantry_ally-green.png',
+    infantry_enemy:'assets/sprites/soldiers/infantry_enemy-purple.png',
+    archer_player:'assets/sprites/soldiers/archer_player-red.png',
+    archer_ally:'assets/sprites/soldiers/archer_ally-green.png',
+    archer_enemy:'assets/sprites/soldiers/archer_enemy-purple.png'
   };
   const soldierAtlases={};
   const soldierMotionCaches=new WeakMap();
@@ -351,7 +354,7 @@
       const levelLabel=String(b.level),badgeWidth=16,badgeX=25-badgeWidth;
       c.beginPath();c.moveTo(badgeX+2,5);c.lineTo(23,5);c.quadraticCurveTo(25,5,25,7);c.lineTo(25,19);c.quadraticCurveTo(25,21,23,21);c.lineTo(badgeX+2,21);c.quadraticCurveTo(badgeX,21,badgeX,19);c.lineTo(badgeX,7);c.quadraticCurveTo(badgeX,5,badgeX+2,5);c.closePath();c.fillStyle='#52685a';c.fill();
       c.fillStyle='#f4ebd2';c.font='900 11px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(levelLabel,badgeX+badgeWidth/2,13);c.textBaseline='alphabetic';
-      if(cam.zoom>=.9){const label=b.type==='gate'?(['北','东','南','西'][b.direction]||'')+'城门':GF.DEFS[b.type].name;c.font='9px "SimHei","Microsoft YaHei",sans-serif';const labelWidth=c.measureText(label).width+14;rect(c,-labelWidth/2,27,labelWidth,14,'#f3f0daf0');c.fillStyle='#52694e';c.fillText(label,0,37);}
+      if(cam.zoom>=.9){const label=b.type==='gate'?(['北','东','南','西'][b.direction]||'')+'城门':b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name;c.font='9px "SimHei","Microsoft YaHei",sans-serif';const labelWidth=c.measureText(label).width+14;rect(c,-labelWidth/2,27,labelWidth,14,'#f3f0daf0');c.fillStyle='#52694e';c.fillText(label,0,37);}
       if(GF.DEFS[b.type].end){poly(c,[[-23,10],[-19,14],[-23,18],[-27,14]],'#c5a25d');}
       c.restore();
     }
@@ -405,7 +408,7 @@
     }
     const units=allUnits.filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52));
     units.sort((a,b)=>a.unit.y-b.unit.y);
-    const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
+    const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit])),buildingById=new Map(s.buildings.map(building=>[building.id,building]));
     for(const {unit} of units){
       const previousHp=soldierMotion.health.get(unit.id);
       if(previousHp!==undefined&&unit.hp<previousHp){
@@ -423,13 +426,19 @@
       soldierMotion.health.set(unit.id,unit.hp);
     }
     for(const {unit:e,base,soldier} of units){
+      const archer=GF.troopType(e)==='archer',interval=GF.troopDef(e).interval;
       // Cooldown values tick at 30 Hz; the reset timestamp drives the short swing on the render clock.
       const previousAttack=soldierMotion.attackCooldowns.get(e.id);
-      if(!options.online&&e.attack>0&&(previousAttack===undefined||e.attack>previousAttack+.0001))soldierMotion.attacks.set(e.id,s.elapsed-(1-e.attack));
-      soldierMotion.attackCooldowns.set(e.id,e.attack);
-      const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||e.waypoint;
+      if(options.online){
+        if(e.attackAt>0&&e.attackAt!==previousAttack)soldierMotion.attacks.set(e.id,animationTime-Math.max(0,s.elapsed-e.attackAt));
+        soldierMotion.attackCooldowns.set(e.id,e.attackAt);
+      }else{
+        if(e.attack>0&&(previousAttack===undefined||e.attack>previousAttack+.0001))soldierMotion.attacks.set(e.id,s.elapsed-(interval-e.attack));
+        soldierMotion.attackCooldowns.set(e.id,e.attack);
+      }
+      const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||buildingById.get(e.targetBuildingId)||e.waypoint;
       let dx=previous?base.x-previous.x:0,dy=previous?base.y-previous.y:0;
-      if(Math.abs(dx)+Math.abs(dy)<=.001&&goal){dx=goal.x-base.x;dy=goal.y-base.y;}
+      if((Math.abs(dx)+Math.abs(dy)<=.001||archer)&&goal){dx=goal.x-base.x;dy=goal.y-base.y;}
       if(Math.abs(dx)+Math.abs(dy)>.001){const current=soldierMotion.facing.get(e.id)||'front';soldierMotion.facing.set(e.id,soldierFacing(dx,dy,current));}
       const moved=!!previous&&Math.hypot(base.x-previous.x,base.y-previous.y)>.0001;
       let walk=soldierMotion.walking.get(e.id);
@@ -441,10 +450,15 @@
       soldierMotion.positions.set(e.id,{x:base.x,y:base.y});
       const bounce=walk&&animationTime<walk.until&&!e.repelled&&!reducedMotion?soldierWalkBounce(animationTime-walk.started):{stretch:0,lift:0};
       const faction=s.players[e.owner].team!==s.players[playerOwner].team?'enemy':e.owner===playerOwner?'player':'ally';
-      const direction=soldierMotion.facing.get(e.id)||'front',localAttack=soldierMotion.attacks.get(e.id),attackCooldown=localAttack!==undefined?1-(animationTime-localAttack):e.attack;
-      const attackAngle=!reducedMotion&&!e.repelled?soldierAttackAngle(attackCooldown,direction):0,hit=animationTime<(soldierMotion.hitUntil.get(e.id)||0);
+      const direction=soldierMotion.facing.get(e.id)||'front',localAttack=soldierMotion.attacks.get(e.id),attackCooldown=localAttack!==undefined?1-(animationTime-localAttack):archer?0:e.attack;
+      const attackAngle=!archer&&!reducedMotion&&!e.repelled?soldierAttackAngle(attackCooldown,direction):0,hit=animationTime<(soldierMotion.hitUntil.get(e.id)||0);
       c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);
-      c.save();c.rotate(attackAngle);soldierSprite(c,soldierAtlases[faction],e.level,direction,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce,hit);c.restore();
+      c.save();c.rotate(attackAngle);
+      if(archer&&!reducedMotion&&!e.repelled&&localAttack!==undefined){
+        const elapsed=animationTime-localAttack,recoil=elapsed>=0&&elapsed<.15?2*Math.sin(elapsed/.15*Math.PI):0;
+        c.translate(direction==='left'?recoil:direction==='right'?-recoil:0,direction==='back'?recoil:direction==='front'?-recoil:0);
+      }
+      soldierSprite(c,soldierAtlases[GF.troopType(e)+'_'+faction],e.level,direction,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce,hit);c.restore();
       if(e.slowed>0)ellipse(c,0,2,13,5,'#8bb7a029','#76a08f');c.restore();
     }
     // Keep health bars above all unit bodies during close combat.
@@ -483,7 +497,7 @@
       c.stroke();c.restore();
     }
     drawSelection(c,s,selected);
-    for(const p of options.projectiles||s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(!visible(x,y,Math.abs((p.tx-p.x)*5)+5,Math.abs((p.ty-p.y)*5)+40))continue;if(p.type==='rock'){ellipse(c,x,y-Math.sin(f*Math.PI)*35,4,4,'#c6c4a2');}else{line(c,[[x,y],[x-(p.tx-p.x)*5,y-(p.ty-p.y)*5]],p.type==='barracks'?'#f5e5a1':'#f6e8bf',2);}}
+    for(const p of options.projectiles||s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(!visible(x,y,Math.abs((p.tx-p.x)*5)+5,Math.abs((p.ty-p.y)*5)+40))continue;if(p.type==='rock'){ellipse(c,x,y-Math.sin(f*Math.PI)*35,4,4,'#c6c4a2');}else{line(c,[[x,y],[x-(p.tx-p.x)*5,y-(p.ty-p.y)*5]],p.type==='archer'?'#f5e5a1':'#f6e8bf',2);}}
     for(const e of options.effects||s.effects){const x=e.x*T+32,y=e.y*T+32,f=1-e.life/e.total;
       const radius=['income','coin'].includes(e.type)?Math.max(64,('+'+e.amount).length*14/cam.zoom):['hit','soldier-hit'].includes(e.type)?24:e.type==='thunder'?120:24+f*480;
       if(!visible(x,y,radius))continue;c.save();c.globalAlpha=1-f;

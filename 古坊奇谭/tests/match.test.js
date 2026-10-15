@@ -5,7 +5,7 @@ const N=require('../js/network');
 const advance=(s,time,dt=.1)=>{for(let t=0;t<time-1e-8&&!s.over;t+=dt)G.step(s,Math.min(dt,time-t));};
 function match(options={}){const s=G.createMatch({mapSeed:42,rotation:0,...options});for(const p of s.players){p.controller='human';p.selectedSkill='thunder';}return s;}
 function add(s,owner,type='barracks',level=1){const p=G.playerView(s,owner),e=G.estate(p);for(const k of e.cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!G.at(s,x,y)&&!G.isWall(s,x,y)&&G.terrain(x,y,s)!=='water')return G.grantBuilding(p,type,x,y,level);}throw Error('No plot');}
-function unit(s,owner,x,y,damage=18){const u={id:s.nextId++,owner,barracksId:99999,x,y,level:1,hp:120,maxHp:120,baseDamage:damage,attack:0,targetOwner:null,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null};s.soldiers.push(u);return u;}
+function unit(s,owner,x,y,damage=18){const u={id:s.nextId++,owner,barracksId:99999,troopType:'infantry',x,y,level:1,hp:44,maxHp:44,baseDamage:damage,attack:0,attackAt:0,targetBuildingId:null,targetOwner:null,targetId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null};s.soldiers.push(u);return u;}
 const shrine=(s,owner)=>s.buildings.find(b=>b.owner===owner&&b.type==='shrine');
 
 test('all layouts, rotations and seeded terrain are connected and have the specified doors',()=>{
@@ -26,11 +26,11 @@ test('all layouts, rotations and seeded terrain are connected and have the speci
   assert(G.restore(G.serialize(s)));
  }
 });
-test('barracks rate, fractional production and birth stats survive upgrade, removal and saves',()=>{
- const s=match(),b=add(s,0),p=G.playerView(s,0);advance(s,5);assert.equal(s.soldiers.length,1);assert.equal(G.soldierRate({level:9}),8/15);
+test('barracks rate, fractional production and matching troop levels survive upgrade, removal and saves',()=>{
+ const s=match(),b=add(s,0),p=G.playerView(s,0);advance(s,5);assert.equal(s.soldiers.length,1);assert.equal(G.soldierRate(p),1/5);
  const old=s.soldiers[0],hp=old.maxHp,damage=old.baseDamage;
- shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b).ok);advance(s,9);assert.equal(s.soldiers.length,3);
- assert.equal(old.maxHp,hp);assert.equal(old.baseDamage,damage);assert(s.soldiers.some(u=>u.level===2));
+ shrine(s,0).level=15;p.coins=p.materials=1e9;assert(G.upgrade(p,b).ok);advance(s,2);assert.equal(s.soldiers.length,3);
+ assert(old.maxHp>hp);assert.equal(old.baseDamage,damage*2);assert(s.soldiers.every(u=>u.level===2));
  assert(G.demolish(p,b).ok);assert.equal(s.soldiers.length,3);advance(s,.1);assert.equal(s.soldiers.length,3);
  assert(G.restore(G.serialize(s)));
 });
@@ -51,7 +51,7 @@ test('soldiers leave by doors, destroy hostile gates and eventually attack the m
 test('nearby hostile soldiers take priority; allies and distant hostile troops do not',()=>{
  const s=match({mode:'coop',enemyCount:2}),home=G.estate(G.playerView(s,0)).center;
  const a=unit(s,0,home.x,home.y),ally=unit(s,1,home.x+.2,home.y),enemy=unit(s,2,home.x+.6,home.y);
- advance(s,.1);assert.equal(a.targetId,enemy.id);assert.equal(ally.hp,120);assert(enemy.hp<120);
+ advance(s,.1);assert.equal(a.targetId,enemy.id);assert.equal(ally.hp,44);assert(enemy.hp<44);
  enemy.hp=0;advance(s,.1);assert.equal(a.targetId,null);assert.notEqual(a.targetOwner,null);
 });
 test('nearest reachable enemy is selected and eliminated targets are skipped',()=>{
@@ -77,7 +77,7 @@ test('ten-second out-of-combat repair; occupied or threatened broken gates do no
 test('skills are always available only to their owner and only hit hostile troops in the defence zone',()=>{
  const s=match({mode:'coop',enemyCount:4}),p=G.playerView(s,0),h=G.estate(p).center,out=G.estate(G.playerView(s,2)).center;
  const enemy=unit(s,2,h.x,h.y),ally=unit(s,1,h.x,h.y),far=unit(s,2,out.x,out.y);
- const money=p.coins;assert(G.skill(p,'thunder').ok);assert(!s.soldiers.includes(enemy));assert.equal(ally.hp,120);assert.equal(far.hp,120);assert.equal(p.coins,money);assert.equal(p.kills,1);assert(!G.skill(p,'thunder').ok);
+ const money=p.coins;assert(G.skill(p,'thunder').ok);assert(!s.soldiers.includes(enemy));assert.equal(ally.hp,44);assert.equal(far.hp,44);assert.equal(p.coins,money);assert.equal(p.kills,1);assert(!G.skill(p,'thunder').ok);
  p.selectedSkill='repair';const a=shrine(s,0),b=shrine(s,1);a.hp=b.hp=100;assert(G.skill(p,'repair').ok);assert.equal(a.hp,730);assert.equal(b.hp,100);
 });
 test('new saves preserve future simulation and reject obsolete, corrupt or foreign-owned data',()=>{
@@ -85,7 +85,7 @@ test('new saves preserve future simulation and reject obsolete, corrupt or forei
  for(const mutate of [v=>v.version=7,v=>v.worldSize=25,v=>v.players[0].coins=-1,v=>v.players[0].selectedSkill='toString',v=>v.buildings[0].owner=1,v=>v.buildings.push({...v.buildings[0]}),v=>v.soldiers[0].x=-1]){const raw=JSON.parse(G.serialize(s));mutate(raw);assert.equal(G.restore(JSON.stringify(raw)),null);}
 });
 test('replicas predict only own economy, reconcile rejection and receive every estate elimination',()=>{
- const s=match({mode:'coop',enemyCount:6});s.players[1].controller='human';const replica=N.createReplica(N.snapshot(s,0),0,1,0);assert(replica);assert.equal(replica.state.players[1].coins,0);
+ const s=match({mode:'coop',enemyCount:6});s.players[1].controller='human';s.players[0].coins=s.players[0].materials=1000;const replica=N.createReplica(N.snapshot(s,0),0,1,0);assert(replica);assert.equal(replica.state.players[1].coins,0);
  let frame=N.delta(s),previous=frame.next;const before=JSON.stringify(s.soldiers);const p=G.playerView(replica.state,0),plot=[...G.estate(p).cells].map(k=>({x:k%s.worldSize,y:Math.floor(k/s.worldSize)})).find(p=>!G.buildReason(G.playerView(s,0),'tea',p.x,p.y));
  assert(replica.act({id:1,kind:'build',building:'tea',...plot}).ok);assert(replica.state.buildings.some(b=>b.id<0));assert.equal(JSON.stringify(s.soldiers),before);
  frame=N.delta(s,previous);assert(replica.apply({...frame.message,session:1,seq:1,ack:1,economy:N.economy(s,0)}));assert(!replica.state.buildings.some(b=>b.id<0));

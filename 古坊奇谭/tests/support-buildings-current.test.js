@@ -40,14 +40,14 @@ test('rock platform is fortune-only and uses its original splash attack',()=>{
   assert.equal(target.hp,unitHp-64);assert.equal(nearby.hp,unitHp-64);assert.equal(rock.cooldown,2);
 });
 
-test('main-city upgrades raise soldier power by ten percent per level from zero',()=>{
+test('main-city upgrades improve training time without changing soldier power',()=>{
   const s=match(),p=G.playerView(s,0),shrine=p.buildings.find(b=>b.type==='shrine');
   const barracksPlot=emptyPlot(p),barracks=G.grantBuilding(p,'barracks',barracksPlot.x,barracksPlot.y,1);
-  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1/5);
   shrine.level=2;shrine.hp=G.maxHP(shrine);
-  assert.equal(G.soldierBoost(p),1.1);assert.equal(G.soldierHP(p,barracks),48);assert(Math.abs(G.soldierDamage(p,barracks)-19.8)<1e-9);
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1/G.soldierTrainingTime(2));
   shrine.level=15;shrine.hp=G.maxHP(shrine);
-  assert(Math.abs(G.soldierBoost(p)-2.4)<1e-9);
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1);
 });
 
 test('well boosts every farm in its estate regardless of distance',()=>{
@@ -89,5 +89,5 @@ test('farm and mulberry production chains fully swap resources and ultimate prer
 
 test('version-eight saves are discarded',()=>{
   const s=match(),raw=JSON.parse(G.serialize(s));raw.version=8;
-  assert.equal(G.VERSION,9);assert.equal(G.restore(JSON.stringify(raw)),null);
+  assert.equal(G.VERSION,10);assert.equal(G.restore(JSON.stringify(raw)),null);
 });

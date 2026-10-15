@@ -21,7 +21,8 @@
   }
   function packed(entity, group, initial = false) {
     const row = {};
-    const keys = group==='buildings'?Object.keys(entity):initial?['id','owner','barracksId','x','y','hp','maxHp','level','baseDamage']:['id','x','y','hp'];
+    const unitKeys=['id','x','y','hp','maxHp','level','troopType','baseDamage','targetId','targetBuildingId','attackAt'];
+    const keys = group==='buildings'?Object.keys(entity):initial?[...unitKeys,'owner','barracksId']:unitKeys;
     for (const key of keys) {
       if (['path', 'pathRevision', 'targetTile', 'chaseTile'].includes(key) ||
           (group === 'buildings' && (progressKeys.includes(key) || key === 'cooldown'))) continue;
@@ -90,7 +91,7 @@
       }
       if (kind === 'build') return G.build(player, action.building, x, y);
       if (!b || b.owner !== owner) return { ok: false, reason: '无法操作该地块' };
-      if (kind === 'upgrade') return G.upgrade(player, b);
+      if (kind === 'upgrade') return G.upgrade(player, b, {troopType:action.troopType});
       if (kind === 'bulk') return G.bulkUpgrade(player, b);
       if (kind === 'demolish') return G.demolish(player, b);
       return { ok: false, reason: '未知操作' };

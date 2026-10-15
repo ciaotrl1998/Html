@@ -1,0 +1,26 @@
+Method: built-in image_gen with player-red-reference-8x.png as style reference.
+Output source: player-red-source-v1.png
+Final atlas: ../../sprites/soldiers/archer_player-red.png
+Packing: node scripts/prepare-archer-sheet.cjs pack
+
+Use case: stylized-concept
+Asset type: 2D pixel game ARCHER character sprite sheet for 古坊奇谭.
+Input image 1 is a STYLE, COSTUME, FACTION COLOR, and VIEW DIRECTION reference. It contains the game's existing red allied spear infantry; create the matching archer troop, replacing spear and shield with an easily recognizable curved wooden bow and a back quiver. Keep the same Chinese village-guard identity, compact proportions, indigo clothing, red headband/sash/plume, muted brown leather, dark iron armor and small bronze details. Do not copy the infantry weapons.
+
+Primary request: exactly 36 complete ARCHER sprites representing NINE equipment levels and FOUR strict orthographic directions per level. Idle standing pose, bow held relaxed vertically at the side, quiver strapped diagonally across the back, a small cluster of white arrow fletchings visible over the shoulder. No shields, no spears, no sword, no drawn shooting pose. The bow MUST visibly have a curved wooden limb plus a taut straight string, clearly different from a staff. Show the quiver from back and side views.
+
+Important layout: a SQUARE sheet with exactly SIX columns and SIX rows, 36 equal invisible square cells, all sprites isolated with generous transparent margins. Nine levels form a 3-by-3 matrix of 2-by-2 blocks. Each 2-by-2 level block is [FRONT, BACK] on its upper row and [LEFT, RIGHT] on its lower row.
+Exact rows:
+row 1: level1 front, level1 back, level2 front, level2 back, level3 front, level3 back
+row 2: level1 left, level1 right, level2 left, level2 right, level3 left, level3 right
+row 3: level4 front, level4 back, level5 front, level5 back, level6 front, level6 back
+row 4: level4 left, level4 right, level5 left, level5 right, level6 left, level6 right
+row 5: level7 front, level7 back, level8 front, level8 back, level9 front, level9 back
+row 6: level7 left, level7 right, level8 left, level8 right, level9 left, level9 right.
+
+Camera: FRONT exactly faces viewer, shoulders level and both eyes visible. BACK exactly faces away, only back of head/cap, shoulders and quiver visible, absolutely no face or eyes. LEFT is exact 90-degree profile looking to the left, one eye visible. RIGHT is exact 90-degree profile looking to the right. No 3/4 angles, diagonal views, overhead or perspective tilt. Same posture, body size and foot baseline in every cell; both feet together on a level baseline.
+
+Level designs: 1 plain blue tunic, simple red headband, sandals, simple short wooden bow and brown quiver. 2 adds cloth cap, wrist wrap and reinforced quiver. 3 adds quilted vest, better boots and red shoulder sash. 4 brown leather lamellar chest and leather archer wrist guard. 5 leather shoulder guards and a slightly longer recurve bow. 6 small low iron helmet, short lamellar skirt and red cloth helmet tail. 7 dark iron lamellar vest, small round bronze chest fitting, sturdier blackwood recurve bow. 8 dark armor, small red helmet plume, bronze bow tips and red quiver binding. 9 elite but light practical archer armor, larger red plume, bronze fittings and masterwork recurve bow. Each four-view set must show the SAME gear; progression modest, readable and gradually more armored.
+
+Style: minimalist true pixel art designed to remain recognizable at 20 by 30 pixels per frame. Same tiny character scale and simplicity as reference. Slightly big head about one third of body height, compact short limbs, bold bow silhouette, one dark pixel outline, flat limited palette, chunky pixel clusters, at most one shade per material. No tiny decoration, no cloth grain, no textured painting, no smooth gradients, no anti-aliased edges, no anime illustration, no 3D render, no glow, no flying particles, no ground shadow. Crisp nearest-neighbor enlarged pixel appearance. Use the reference's muted indigo / brick red / beige / antique bronze.
+Constraints: truly transparent alpha background, exactly 36 separate whole characters, all hair/helmets/bows/strings/quivers/feet fully within their own cell, visible transparent gaps between all cells, no overlapping characters, no cropping. Absolutely NO text, NO labels, NO numbers, NO borders, NO drawn grid, NO background scene, NO gray matte.
