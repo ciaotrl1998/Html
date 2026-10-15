@@ -76,6 +76,30 @@ test('game controller runs the same balanced route for computer players',()=>{
   }
 });
 
+test('strategic production planning clusters suppliers and completes ultimate buildings',()=>{
+  for(const seed of [1,42,99991]){
+    const s=G.createState(seed),view=G.playerView(s,0);view.coins=view.materials=1e7;G.chooseSkill(view,'thunder');
+    const bot=A.create(view);for(let i=0;i<80;i++)bot.tick(1);
+    const ultimates=view.buildings.filter(b=>G.DEFS[b.type].required);
+    assert(ultimates.length>=1,`ultimate seed ${seed}`);
+    for(const building of ultimates)for(const required of G.DEFS[building.type].required){
+      assert(view.buildings.some(b=>b.type===required&&G.dist8(b.x,b.y,building.x,building.y)<=1),`${building.type} keeps ${required} adjacent`);
+    }
+    const middles=view.buildings.filter(b=>G.DEFS[b.type].tier===1);
+    const supplierCounts=middles.map(b=>view.buildings.filter(n=>n.type===G.DEFS[b.type].prev&&G.dist8(n.x,n.y,b.x,b.y)<=1).length);
+    assert(supplierCounts.reduce((sum,n)=>sum+n,0)/supplierCounts.length>=2,`supplier density seed ${seed}: ${supplierCounts}`);
+    assert(bot.report().actions.some(action=>action.reason.startsWith('筹建')));
+  }
+});
+
+test('normal economy reaches an ultimate without neglecting its army',()=>{
+  for(const seed of [1,42,99991]){
+    const s=G.createState(seed),view=G.playerView(s,0),bot=A.create(view);advanceEconomy(s,bot,720);
+    assert(view.buildings.some(b=>G.DEFS[b.type].required),`ultimate seed ${seed}`);
+    assert(count(view,'barracks')>=2&&count(view,'tower')>=1,`army seed ${seed}`);
+  }
+});
+
 test('invalid ticking and exported report copies cannot mutate controller state',()=>{
   const s=G.createState(7),view=G.playerView(s,0),bot=A.create(view),before=G.serialize(s);
   for(const dt of [0,-1,NaN,Infinity])bot.tick(dt);

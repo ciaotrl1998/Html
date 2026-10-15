@@ -4,6 +4,7 @@
   const coversGate=(p,g)=>Math.hypot(p.x-g.x,p.y-g.y)<=3.5;
   const NEXT={tea:'inn',inn:'bank',farm:'mill',mill:'wine',mulberry:'weaver',weaver:'tailor',quarry:'kiln',kiln:'trade'};
   const PARTNER={bank:'tailor',tailor:'bank',wine:'trade',trade:'wine'};
+  const ULTIMATES=Object.values(G.DEFS).filter(d=>d.required);
   const REPORTS=new WeakMap();
 
   function create(state){
@@ -14,6 +15,7 @@
     const plots=[...land.cells].map(k=>({x:k%width,y:Math.floor(k/width)})).filter(p=>G.terrain(p.x,p.y,s)!=='water');
     const plotKeys=new Set(plots.map(p=>p.y*width+p.x));
     let telemetry=REPORTS.get(stats);if(!telemetry){telemetry={actions:[],skills:{repel:0,repair:0,thunder:0}};REPORTS.set(stats,telemetry);}
+    let strategicLayout=null;
 
     function record(kind,type,reason){
       const text=(kind==='build'?'建造':kind==='upgrade'?'升级':'施放')+(G.DEFS[type]?.name||G.SKILLS[type].name);
@@ -53,13 +55,16 @@
       }
       return best;
     }
+    const supports=(type,target)=>G.DEFS[target].prev===type||G.DEFS[target].required?.includes(type);
     function placementScore(type,p){
       const d=G.DEFS[type],key=p.y*width+p.x;
       let score=-Math.hypot(p.x-land.center.x,p.y-land.center.y)*.08+(land.roads.has(key)?-8:0);
       score+=neighbors(p).filter(n=>futureEconomyCell(n,[p])).length*.35;
       if(d.cat==='economy'){
         if(count(type)===0||d.tier>0)score+=chainPotential(type,p)*1.5;
-        if(d.prev)score+=s.buildings.filter(b=>b.type===d.prev&&Math.max(Math.abs(b.x-p.x),Math.abs(b.y-p.y))<=1).reduce((n,b)=>n+b.level*2,0);
+        if(d.prev)score+=s.buildings.filter(b=>b.type===d.prev&&Math.max(Math.abs(b.x-p.x),Math.abs(b.y-p.y))<=1).reduce((n,b)=>n+b.level*3,0);
+        score+=s.buildings.filter(b=>supports(type,b.type)&&Math.max(Math.abs(b.x-p.x),Math.abs(b.y-p.y))<=1)
+          .reduce((total,b)=>total+3+b.level*2+Math.log2(1+G.income(s,b)),0);
       }
       return score;
     }
@@ -67,8 +72,8 @@
       const choices=available(type).filter(filter||(()=>true));
       return choices.sort((a,b)=>placementScore(type,b)-placementScore(type,a)||a.y-b.y||a.x-b.x)[0];
     }
-    function buildPlan(type,p,reason){return p&&{cost:G.buildCost(s,type),reason,run:()=>build(type,p,reason)};}
-    function upgradePlan(b,reason){return b&&{cost:G.upgradeCost(b),reason,run:()=>upgrade(b,reason)};}
+    function buildPlan(type,p,reason){return p&&{type,cost:G.buildCost(s,type),reason,run:()=>build(type,p,reason)};}
+    function upgradePlan(b,reason){return b&&{type:b.type,cost:G.upgradeCost(b),reason,run:()=>upgrade(b,reason)};}
     function perform(plan,saveLimit=0,forceSave=false){
       if(!plan)return null;
       if(canAfford(plan.cost))return plan.run()?'acted':null;
@@ -81,6 +86,104 @@
       if(reason.startsWith('需祠堂'))return foundationTarget(s.buildings.find(n=>n.type==='shrine'));
       if(reason.startsWith('需城门'))return foundationTarget(s.buildings.find(n=>n.type==='gate'));
       return reason?null:b;
+    }
+    function resourceIncome(buildings,resource){
+      return buildings.reduce((total,b)=>G.DEFS[b.type].resource===resource?total+G.income(s,b,buildings):total,0);
+    }
+    function buildIncomeGain(d,p){
+      const next={...p,id:-1,type:d.id,level:1,owner:s.actorId};
+      return resourceIncome([...s.buildings,next],d.resource)-resourceIncome(s.buildings,d.resource);
+    }
+    function upgradeIncomeGain(b){
+      const d=G.DEFS[b.type],buildings=s.buildings.map(n=>n===b?{...n,level:n.level+1}:n);
+      return resourceIncome(buildings,d.resource)-resourceIncome(s.buildings,d.resource);
+    }
+    function chainTypes(type,result=new Set()){
+      if(result.has(type))return result;result.add(type);
+      const d=G.DEFS[type];if(d.prev)chainTypes(d.prev,result);for(const required of d.required||[])chainTypes(required,result);
+      return result;
+    }
+    const cellKey=p=>p.y*width+p.x;
+    function terrainFits(type,p){
+      const terrain=G.terrain(p.x,p.y,s),d=G.DEFS[type];
+      if(terrain==='water')return false;
+      if(terrain==='forest')return type==='mulberry';
+      if(terrain==='mountain')return type==='quarry';
+      if(type==='farm')return terrain==='shore';
+      return !d.terrain||terrain===d.terrain;
+    }
+    function layoutCell(type,p,used=new Set()){
+      const key=cellKey(p);if(used.has(key)||!plotKeys.has(key))return false;
+      const existing=G.at(s,p.x,p.y);if(existing)return existing.type===type;
+      const d=G.DEFS[type];
+      return !land.roads.has(key)&&!land.gates.some(g=>g.x===p.x&&g.y===p.y)&&terrainFits(type,p)&&(!d.limit||count(type)<d.limit);
+    }
+    function pathOptions(endType,site,reserved){
+      const middleType=G.DEFS[endType].prev,startType=G.DEFS[middleType].prev,result=[];
+      for(const end of neighbors(site).filter(p=>layoutCell(endType,p,reserved))){
+        const endUsed=new Set([...reserved,cellKey(end)]);
+        for(const middle of neighbors(end).filter(p=>layoutCell(middleType,p,endUsed))){
+          const middleUsed=new Set([...endUsed,cellKey(middle)]);
+          for(const start of neighbors(middle).filter(p=>layoutCell(startType,p,middleUsed))){
+            const steps=[{type:startType,...start},{type:middleType,...middle},{type:endType,...end}];
+            const reuse=steps.reduce((total,step)=>total+(G.at(s,step.x,step.y)?.type===step.type?24:0),0);
+            const supply=neighbors(middle).filter(p=>layoutCell(startType,p,new Set([cellKey(middle),cellKey(end),cellKey(site)]))).length;
+            result.push({steps,score:reuse+supply*2-Math.hypot(start.x-site.x,start.y-site.y)});
+          }
+        }
+      }
+      return result.sort((a,b)=>b.score-a.score);
+    }
+    function findUltimateLayout(goal){
+      let best=null;
+      for(const site of plots.filter(p=>layoutCell(goal.id,p))){
+        const siteKey=cellKey(site),first=pathOptions(goal.required[0],site,new Set([siteKey])).slice(0,16);
+        for(const a of first){
+          const used=new Set([siteKey,...a.steps.map(cellKey)]);
+          for(const b of pathOptions(goal.required[1],site,used).slice(0,16)){
+            const score=a.score+b.score-Math.hypot(site.x-land.center.x,site.y-land.center.y)*.1;
+            if(!best||score>best.score)best={goal:goal.id,site,paths:[a.steps,b.steps],score};
+          }
+        }
+      }
+      return best;
+    }
+    function validLayout(layout){
+      if(!layout)return false;const used=new Set();
+      for(const step of [{type:layout.goal,...layout.site},...layout.paths.flat()]){
+        if(!layoutCell(step.type,step,used))return false;used.add(cellKey(step));
+      }
+      return true;
+    }
+    function selectUltimate(){
+      const remaining=ULTIMATES.filter(d=>!count(d.id));if(!remaining.length)return null;
+      const rates=G.rates(s),progress=d=>[...chainTypes(d.id)].filter(type=>count(type)).length;
+      remaining.sort((a,b)=>progress(b)-progress(a)||
+        (a.resource==='coins'?rates.coins-rates.materials:rates.materials-rates.coins)-
+        (b.resource==='coins'?rates.coins-rates.materials:rates.materials-rates.coins)||a.id.localeCompare(b.id));
+      return remaining[0];
+    }
+    function ultimatePlan(){
+      let goal=ULTIMATES.find(d=>d.id===stats.ultimateGoal&&!count(d.id));
+      if(!goal){goal=selectUltimate();stats.ultimateGoal=goal?.id||null;strategicLayout=null;}
+      if(!goal)return null;
+      let reason=`筹建${goal.name}`;
+      const finalPlot=bestPlot(goal.id);if(finalPlot)return buildPlan(goal.id,finalPlot,reason);
+      if(strategicLayout?.goal!==goal.id||!validLayout(strategicLayout))strategicLayout=findUltimateLayout(goal);
+      if(!strategicLayout){
+        for(const alternative of ULTIMATES.filter(d=>d.id!==goal.id&&!count(d.id))){
+          const layout=findUltimateLayout(alternative);if(!layout)continue;
+          goal=alternative;stats.ultimateGoal=goal.id;strategicLayout=layout;break;
+        }
+      }
+      if(!strategicLayout)return null;
+      reason=`筹建${goal.name}`;
+      for(const path of strategicLayout.paths)for(const step of path){
+        const existing=G.at(s,step.x,step.y);if(existing?.type===step.type)continue;
+        if(!G.buildReason(s,step.type,step.x,step.y,true))return buildPlan(step.type,step,reason);
+      }
+      if(!G.buildReason(s,goal.id,strategicLayout.site.x,strategicLayout.site.y,true))return buildPlan(goal.id,strategicLayout.site,reason);
+      return null;
     }
 
     function opening(){
@@ -165,23 +268,40 @@
         const productionSeconds=cost.coins/Math.max(1,rates.coins)+cost.materials/Math.max(1,rates.materials);
         return gain*resourceWeight(d.resource)*multiplier/Math.max(1,productionSeconds);
       }
+      const reserved=strategicLayout&&stats.ultimateGoal===strategicLayout.goal?chainTypes(strategicLayout.goal):new Set();
       for(const d of Object.values(G.DEFS).filter(d=>d.cat==='economy')){
+        if(reserved.has(d.id)&&d.tier!==0)continue;
         const p=bestPlot(d.id);if(!p)continue;
-        const hypothetical={...p,type:d.id,level:1,owner:s.actorId},gain=G.income(s,hypothetical),cost=G.buildCost(s,d.id),first=count(d.id)===0;
-        let multiplier=first?1.25:1;
+        const gain=buildIncomeGain(d,p),cost=G.buildCost(s,d.id),first=count(d.id)===0;
+        let multiplier=first?1.8:1;
         if(d.tier===0&&((d.id==='farm'||d.id==='mulberry')?count(d.id)<6:count(d.id)<2))multiplier*=1.25;
-        if(d.tier===1)multiplier*=1.15;if(d.end)multiplier*=1.35;if(d.required)multiplier*=1.5;
+        if(d.tier===1)multiplier*=1.3;if(d.end)multiplier*=1.5;if(d.required)multiplier*=2;
         options.push({score:score(gain,cost,d,multiplier),cost,reason:`发展${d.name}产业`,run:()=>build(d.id,p,`发展${d.name}产业`)});
       }
       for(const b of s.buildings.filter(b=>G.DEFS[b.type].income&&b.type!=='shrine')){
         if(b.level>=G.maxLevel(b)||G.upgradeReason(s,b,true))continue;
-        const d=G.DEFS[b.type],next={...b,level:b.level+1},gain=G.income(s,next)-G.income(s,b),cost=G.upgradeCost(b);
+        const d=G.DEFS[b.type],gain=upgradeIncomeGain(b),cost=G.upgradeCost(b);
         options.push({score:score(gain,cost,d,b.level===1?1.18:1),cost,reason:`提升${d.name}产能`,run:()=>upgrade(b,`提升${d.name}产能`)});
       }
       if(!options.length)return null;
       options.sort((a,b)=>b.score-a.score);
       const best=options[0],affordable=options.find(option=>canAfford(option.cost));
       return waitSeconds(best.cost,rates)<=9?best:(affordable||best);
+    }
+    function diversificationPlan(){
+      const rates=G.rates(s),plans=Object.values(G.DEFS).filter(d=>d.cat==='economy'&&d.tier===1&&!count(d.id))
+        .map(d=>({definition:d,plot:bestPlot(d.id)})).filter(option=>option.plot)
+        .map(option=>buildPlan(option.definition.id,option.plot,`完善${option.definition.chain}产业链`));
+      return plans.sort((a,b)=>waitSeconds(a.cost,rates)-waitSeconds(b.cost,rates))[0]||null;
+    }
+    function basicSupplyPlan(){
+      const rates=G.rates(s),plans=['farm','mulberry','tea','quarry'].filter(type=>count(type)<(type==='farm'||type==='mulberry'?G.DEFS[type].limit:2))
+        .map(type=>({type,plot:bestPlot(type)})).filter(option=>option.plot)
+        .map(option=>buildPlan(option.type,option.plot,G.DEFS[option.type].resource==='materials'?'扩充前置工材建筑':'扩充前置铜钱建筑'));
+      return plans.sort((a,b)=>{
+        const ar=G.DEFS[a.type].resource==='materials'?rates.materials:rates.coins,br=G.DEFS[b.type].resource==='materials'?rates.materials:rates.coins;
+        return ar-br||waitSeconds(a.cost,rates)-waitSeconds(b.cost,rates);
+      })[0]||null;
     }
 
     function militaryPlan(){
@@ -208,9 +328,17 @@
       const cast=skills(),danger=defense();if(danger)return danger==='acted'||cast;
       const start=opening();if(start)return start==='acted'||cast;
       const armyStart=firstArmy();if(armyStart)return armyStart==='acted'||cast;
+      const supply=basicSupplyPlan(),supplyResult=perform(supply,9);
+      if(supplyResult){if(supplyResult==='acted')stats.armyTurn=true;return supplyResult==='acted'||cast;}
+      const strategic=ultimatePlan(),strategicDef=G.DEFS[strategic?.type],strategicRates=G.rates(s),strategicBase=Math.min(strategicRates.coins,strategicRates.materials);
+      const strategicWait=strategicDef?.required?(strategicBase>=100?45:12):strategicDef?.end?(strategicBase>=85?70:12):strategicDef?.tier===1?(strategicBase>=15?12:4):strategicBase>=10?9:4;
       if(stats.armyTurn){
         const plan=militaryPlan(),result=perform(plan,7);if(result){if(result==='acted')stats.armyTurn=false;return result==='acted'||cast;}
       }
+      const strategicResult=perform(strategic,strategicWait);
+      if(strategicResult){if(strategicResult==='acted')stats.armyTurn=true;return strategicResult==='acted'||cast;}
+      const diversification=diversificationPlan(),diversificationResult=perform(diversification,12);
+      if(diversificationResult){if(diversificationResult==='acted')stats.armyTurn=true;return diversificationResult==='acted'||cast;}
       const economy=economyPlan(),economicResult=perform(economy,9);
       if(economicResult){if(economicResult==='acted')stats.armyTurn=true;return economicResult==='acted'||cast;}
       const military=militaryPlan(),militaryResult=perform(military,0,true);

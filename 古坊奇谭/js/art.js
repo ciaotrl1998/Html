@@ -20,6 +20,12 @@
   };
   const soldierAtlases={};
   const soldierMotionCaches=new WeakMap();
+  function soldierFacing(dx,dy,current='front'){
+    const ax=Math.abs(dx),ay=Math.abs(dy),horizontal=current==='left'||current==='right';
+    // Keep the current sprite axis around diagonals; switch only after the new axis clearly wins.
+    const useHorizontal=horizontal?ay<=ax*1.35:ax>ay*1.35;
+    return useHorizontal?(dx<0?'left':'right'):(dy<0?'back':'front');
+  }
   let soldierSpriteVersion=0;
   for(const [faction,source] of Object.entries(soldierAtlasSources)){
     const image=new Image();
@@ -350,16 +356,55 @@
       c.restore();
     }
     // Units use their own positions, even when their barracks is offscreen.
-    const units=[];
+    let soldierMotion=soldierMotionCaches.get(s);
+    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map(),health:new Map(),hitUntil:new Map(),attacks:new Map(),attackCooldowns:new Map(),samples:new Map(),spacing:new Map()};soldierMotionCaches.set(s,soldierMotion);}
+    soldierMotion.spacing||=new Map();
+    const allUnits=[];
     for(const source of s.soldiers){
       if(source.hp<=0)continue;
       let unit=source;
       if(options.unitPosition){const position=options.unitPosition(source,s.players[source.owner].team===0);unit={...source,...position};}
-      if(visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52))units.push({unit,soldier:s.players[source.owner].team===0});
+      else if(options.animationTime!==undefined){
+        // Render one simulation interval behind so fixed 30 Hz positions blend across every display frame.
+        let sample=soldierMotion.samples.get(source.id);
+        if(!sample)sample={fromX:source.x,fromY:source.y,x:source.x,y:source.y,time:s.elapsed,duration:0};
+        else if(source.x!==sample.x||source.y!==sample.y){
+          const duration=Math.max(1/120,s.elapsed-sample.time);
+          sample={fromX:sample.x,fromY:sample.y,x:source.x,y:source.y,time:s.elapsed,duration};
+        }
+        else if(s.elapsed!==sample.time)sample={fromX:source.x,fromY:source.y,x:source.x,y:source.y,time:s.elapsed,duration:0};
+        soldierMotion.samples.set(source.id,sample);
+        const progress=sample.duration?Math.max(0,Math.min(1,(animationTime-sample.time)/sample.duration)):1;
+        unit={...source,x:sample.fromX+(sample.x-sample.fromX)*progress,y:sample.fromY+(sample.y-sample.fromY)*progress};
+      }
+      allUnits.push({unit,base:{x:unit.x,y:unit.y},soldier:s.players[source.owner].team===0});
     }
+    const pushes=allUnits.map(()=>({x:0,y:0}));
+    for(let pass=0;pass<3;pass++)for(let i=0;i<allUnits.length;i++)for(let j=i+1;j<allUnits.length;j++){
+      let dx=(allUnits[i].unit.x-allUnits[j].unit.x)*T+pushes[i].x-pushes[j].x;
+      let dy=(allUnits[i].unit.y-allUnits[j].unit.y)*T+pushes[i].y-pushes[j].y;
+      let distance=Math.hypot(dx,dy);
+      const minimum=allUnits[i].unit.boss||allUnits[j].unit.boss?22:18;
+      if(distance>=minimum)continue;
+      if(distance<.001){
+        const hash=(Math.imul((allUnits[i].unit.id||i)+1,1103515245)^Math.imul((allUnits[j].unit.id||j)+1,12345))>>>0;
+        const angle=hash/4294967296*Math.PI*2;dx=Math.cos(angle);dy=Math.sin(angle);distance=1;
+      }
+      const force=(minimum-distance)*.5/distance;
+      pushes[i].x+=dx*force;pushes[i].y+=dy*force;
+      pushes[j].x-=dx*force;pushes[j].y-=dy*force;
+    }
+    for(let i=0;i<allUnits.length;i++){
+      const item=allUnits[i],limit=item.unit.boss?14:10,length=Math.hypot(pushes[i].x,pushes[i].y);
+      if(length>limit){pushes[i].x*=limit/length;pushes[i].y*=limit/length;}
+      const target={x:pushes[i].x/T,y:pushes[i].y/T},previous=soldierMotion.spacing.get(item.unit.id);
+      let spacing=target;
+      if(previous){const dt=Math.max(0,Math.min(.1,animationTime-previous.time)),blend=1-Math.exp(-dt*18);spacing={x:previous.x+(target.x-previous.x)*blend,y:previous.y+(target.y-previous.y)*blend};}
+      soldierMotion.spacing.set(item.unit.id,{...spacing,time:animationTime});
+      item.unit={...item.unit,x:item.unit.x+spacing.x,y:item.unit.y+spacing.y};
+    }
+    const units=allUnits.filter(({unit})=>visible(unit.x*T+32,unit.y*T+32,unit.boss?38:24,unit.boss?76:52));
     units.sort((a,b)=>a.unit.y-b.unit.y);
-    let soldierMotion=soldierMotionCaches.get(s);
-    if(!soldierMotion){soldierMotion={facing:new Map(),positions:new Map(),walking:new Map(),health:new Map(),hitUntil:new Map(),attacks:new Map()};soldierMotionCaches.set(s,soldierMotion);}
     const unitById=new Map(s.soldiers.map(unit=>[unit.id,unit]));
     for(const {unit} of units){
       const previousHp=soldierMotion.health.get(unit.id);
@@ -377,22 +422,26 @@
       }
       soldierMotion.health.set(unit.id,unit.hp);
     }
-    for(const {unit:e,soldier} of units){
+    for(const {unit:e,base,soldier} of units){
+      // Cooldown values tick at 30 Hz; the reset timestamp drives the short swing on the render clock.
+      const previousAttack=soldierMotion.attackCooldowns.get(e.id);
+      if(!options.online&&e.attack>0&&(previousAttack===undefined||e.attack>previousAttack+.0001))soldierMotion.attacks.set(e.id,s.elapsed-(1-e.attack));
+      soldierMotion.attackCooldowns.set(e.id,e.attack);
       const previous=soldierMotion.positions.get(e.id),goal=unitById.get(e.targetId)||e.waypoint;
-      let dx=previous?e.x-previous.x:0,dy=previous?e.y-previous.y:0;
-      if(Math.abs(dx)+Math.abs(dy)<=.001&&goal){dx=goal.x-e.x;dy=goal.y-e.y;}
-      if(Math.abs(dx)+Math.abs(dy)>.001)soldierMotion.facing.set(e.id,Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'back':'front'));
-      const moved=!!previous&&Math.hypot(e.x-previous.x,e.y-previous.y)>.0001;
+      let dx=previous?base.x-previous.x:0,dy=previous?base.y-previous.y:0;
+      if(Math.abs(dx)+Math.abs(dy)<=.001&&goal){dx=goal.x-base.x;dy=goal.y-base.y;}
+      if(Math.abs(dx)+Math.abs(dy)>.001){const current=soldierMotion.facing.get(e.id)||'front';soldierMotion.facing.set(e.id,soldierFacing(dx,dy,current));}
+      const moved=!!previous&&Math.hypot(base.x-previous.x,base.y-previous.y)>.0001;
       let walk=soldierMotion.walking.get(e.id);
       if(moved&&!e.repelled){
         if(!walk||animationTime>=walk.until)walk={started:animationTime,until:animationTime+.3};
         else walk.until=walk.started+(Math.floor((animationTime-walk.started)/.3)+1)*.3;
         soldierMotion.walking.set(e.id,walk);
       }
-      soldierMotion.positions.set(e.id,{x:e.x,y:e.y});
+      soldierMotion.positions.set(e.id,{x:base.x,y:base.y});
       const bounce=walk&&animationTime<walk.until&&!e.repelled&&!reducedMotion?soldierWalkBounce(animationTime-walk.started):{stretch:0,lift:0};
       const faction=s.players[e.owner].team!==s.players[playerOwner].team?'enemy':e.owner===playerOwner?'player':'ally';
-      const direction=soldierMotion.facing.get(e.id)||'front',localAttack=soldierMotion.attacks.get(e.id),attackCooldown=options.online&&localAttack!==undefined?1-(animationTime-localAttack):e.attack;
+      const direction=soldierMotion.facing.get(e.id)||'front',localAttack=soldierMotion.attacks.get(e.id),attackCooldown=localAttack!==undefined?1-(animationTime-localAttack):e.attack;
       const attackAngle=!reducedMotion&&!e.repelled?soldierAttackAngle(attackCooldown,direction):0,hit=animationTime<(soldierMotion.hitUntil.get(e.id)||0);
       c.save();c.translate(e.x*T+32,e.y*T+32);if(e.boss)c.scale(1.6,1.6);
       c.save();c.rotate(attackAngle);soldierSprite(c,soldierAtlases[faction],e.level,direction,soldier?'soldier':'enemy-soldier',animationTime,e.repelled>0,bounce,hit);c.restore();

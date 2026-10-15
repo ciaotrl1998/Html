@@ -63,16 +63,19 @@
       if (!first) {
         next.pending = replica.pending.filter(action => action.id > message.ack);
         next.reconcile();
+        beginRemoteFrame((next.state.elapsed-state.elapsed)*1000);
       }
       replica = next; state = next.state; actionId = first ? message.ack : Math.max(actionId, message.ack);
       online.started = true; online.awaitingState = false;
-      remoteMotion = new Map(); remoteAt = performance.now(); updateOnlineClock(message);
+      if(first){remoteMotion = new Map(); remoteAt = performance.now();}updateOnlineClock(message);
       if (first) enterGame(state);
       else if(playerState().selectedSkill&&!$('modal').hidden&&$('modal-content').querySelector('.skill-selection'))closeModal();
       sendPresence(); refresh();
       if (state.over) showEnd();
     } else if (message.type === 'delta' && replica) {
       if (message.session !== replica.session || online.awaitingState) return;
+      if(message.seq<=replica.seq)return;
+      if(message.seq!==replica.seq+1){online.awaitingState=true;onlineSend({type:'resync'});return;}
       beginRemoteFrame((message.meta.elapsed - state.elapsed) * 1000);
       const applied = replica.apply(message);
       if (applied === null) { online.awaitingState = true; onlineSend({ type: 'resync' }); return; }
