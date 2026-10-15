@@ -61,7 +61,11 @@ function extractSprite(png, rectangle) {
   }
   components.sort((a, b) => b.length - a.length);
   if (!components.length) throw new Error('An expected archer cell is empty.');
-  const retained = components.filter((component, index) => index === 0 || component.length >= 20);
+  // Generated sheets can have a previous row's boots straying into the cell's margin.
+  // Keep detached bow/feather pieces beside the main body, but reject row-edge fragments.
+  const mainTop=components[0].reduce((n,pixel)=>Math.min(n,Math.floor(pixel/width)),height);
+  const mainBottom=components[0].reduce((n,pixel)=>Math.max(n,Math.floor(pixel/width)),0),margin=Math.max(2,Math.floor(height*.02));
+  const retained = components.filter((component, index) => index === 0 || component.length >= 20 && component.some(pixel=>{const y=Math.floor(pixel/width);return y>=mainTop-margin&&y<=mainBottom+margin;}));
   let minX = width;
   let minY = height;
   let maxX = -1;
@@ -138,8 +142,20 @@ function copyFrame(source, target, left, top, mirror = false) {
   }
 }
 
-function pack(input) {
+function normalizeSourceSize(sprite, scale){
+  const result=new PNG({width:Math.max(1,Math.round(sprite.width*scale)),height:Math.max(1,Math.round(sprite.height*scale))});
+  for(let y=0;y<result.height;y++)for(let x=0;x<result.width;x++){
+    const sx=Math.min(sprite.width-1,Math.floor((x+.5)*sprite.width/result.width)),sy=Math.min(sprite.height-1,Math.floor((y+.5)*sprite.height/result.height));
+    sprite.data.copy(result.data,(y*result.width+x)*4,(sy*sprite.width+sx)*4,(sy*sprite.width+sx)*4+4);
+  }
+  return result;
+}
+
+function pack(input, type = 'archer', sideInput = null) {
+  if(!['archer','infantry'].includes(type))throw Error('Unsupported troop type');
+  const outputDirectory=type==='archer'?workDirectory:path.join(root,'assets/generated/infantry');
   const source = PNG.sync.read(fs.readFileSync(input));
+  const sideSource=sideInput?PNG.sync.read(fs.readFileSync(sideInput)):null;
   const atlas = new PNG({ width: 240, height: 90 });
   atlas.data.fill(0);
   const frameWidth = 20;
@@ -150,6 +166,11 @@ function pack(input) {
     const groupX = (level - 1) % 3;
     const groupY = Math.floor((level - 1) / 3);
     const extracted = directions.slice(0, 3).map((direction, index) => {
+      if(index===2&&sideSource&&level>=4){
+        const sideColumn=(level-4)%3,sideRow=Math.floor((level-4)/3);
+        const rect={x0:Math.floor(sideColumn*sideSource.width/3),x1:Math.floor((sideColumn+1)*sideSource.width/3),y0:Math.floor(sideRow*sideSource.height/2),y1:Math.floor((sideRow+1)*sideSource.height/2)};
+        return {sprite:normalizeSourceSize(extractSprite(sideSource,rect),(source.width/6)/(sideSource.width/3)),rect,sourceImage:sideInput};
+      }
       const sourceColumn = groupX * 2 + index % 2;
       const sourceRow = groupY * 2 + Math.floor(index / 2);
       const rect = {
@@ -165,7 +186,7 @@ function pack(input) {
     const scale = Math.min(...extracted.map(({ sprite }) => Math.min((frameWidth - 2) / sprite.width, targetHeight / sprite.height)));
     let leftFrame;
     for (const [index, direction] of directions.entries()) {
-      const { sprite, rect } = extracted[Math.min(index, 2)];
+      const { sprite, rect,sourceImage } = extracted[Math.min(index, 2)];
       const frame = fitFrame(sprite, frameWidth, frameHeight, scale);
       if (direction === 'left') leftFrame = frame;
       const column = groupX * 4 + index;
@@ -174,24 +195,25 @@ function pack(input) {
       // Keep both side directions pixel-exact counterparts at a single pivot.
       copyFrame(direction === 'right' ? leftFrame : frame, atlas, x, y, direction === 'right');
       frames.push({
-        name: `archer_lv${level}_${direction}`,
+        name: `${type}_lv${level}_${direction}`,
         level,
         direction,
         frame: { x, y, width: frameWidth, height: frameHeight },
         pivot: { x: 10, y: 28 },
         source: rect,
+        ...(sourceImage?{sourceImage:path.relative(root,sourceImage).replaceAll('\\','/')} : {}),
         mirrored: direction === 'right',
       });
     }
   }
-  const output = path.join(root, 'assets/sprites/soldiers/archer_player-red.png');
-  const preview = path.join(workDirectory, 'archer-player-red-preview-8x.png');
-  const metadata = path.join(workDirectory, 'archer-player-red.json');
+  const output = path.join(root, `assets/sprites/soldiers/${type}_player-red.png`);
+  const preview = path.join(outputDirectory, `${type}-player-red-preview-8x.png`);
+  const metadata = path.join(outputDirectory, `${type}-player-red.json`);
   writePng(output, atlas);
   writePng(preview, enlarge(atlas, 8));
   fs.writeFileSync(metadata, JSON.stringify({
-    image: 'assets/sprites/soldiers/archer_player-red.png',
-    type: 'archer',
+    image: `assets/sprites/soldiers/${type}_player-red.png`,
+    type,
     faction: 'player',
     width: atlas.width,
     height: atlas.height,
@@ -213,7 +235,8 @@ if (process.argv[2] === 'reference') {
   writePng(output, enlarge(PNG.sync.read(fs.readFileSync(input)), 8));
   console.log(output);
 } else if (process.argv[2] === 'pack') {
-  pack(path.resolve(process.argv[3] || path.join(workDirectory, 'player-red-source-v1.png')));
+  const sides=process.argv.find(arg=>arg.startsWith('--sides='))?.slice(8);
+  pack(path.resolve(process.argv[3] || path.join(workDirectory, 'player-red-source-v1.png')),process.argv.find(arg=>arg.startsWith('--type='))?.slice(7)||'archer',sides?path.resolve(sides):null);
 } else {
   throw new Error('Use: node scripts/prepare-archer-sheet.cjs reference | pack [source.png]');
 }

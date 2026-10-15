@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#263f38">
   <title>古坊奇谭</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23a74e3c'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='40' fill='%23fff4d7'%3E坊%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="assets/ui/icons/single.png">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/png-interface.css">
   <script defer src="js/boot.js"></script>
+  <script defer src="js/ui.js"></script>
   <script defer src="js/runtime.js"></script>
 </head>
 <body>
@@ -15,19 +17,7 @@
     <section id="start-menu" class="start-menu" aria-labelledby="start-title">
       <div class="start-border" aria-hidden="true"></div>
       <header class="start-heading"><p class="start-eyebrow">一方烟火 · 四方争鸣</p><h1 id="start-title">古坊<span>奇谭</span></h1><p class="start-subtitle">经营百业，出征守坊。</p><span class="start-seal" aria-hidden="true">青溪<br>坊志</span></header>
-      <svg class="start-landscape" viewBox="0 0 420 210" fill="none" aria-hidden="true">
-        <circle cx="314" cy="47" r="24" fill="#c99e63" opacity=".3"/>
-        <path d="M0 127 47 67 72 87 129 29 194 105 245 59 295 110 348 76 420 133V210H0Z" fill="#b4c1ad" opacity=".48"/>
-        <path d="M0 154 63 111 113 142 174 90 236 148 299 99 365 136 420 114V210H0Z" fill="#91a48e" opacity=".38"/>
-        <path d="M0 174Q86 144 176 177T420 168V210H0Z" fill="#dce1ce"/>
-        <path d="M133 210Q254 180 287 205M49 196Q135 175 179 190M265 180H370" stroke="#9cac96" stroke-width="2" opacity=".5"/>
-        <g stroke="#536b59" stroke-linejoin="round"><path d="M154 132H225V177H154Z" fill="#e7dcc0"/><path d="M141 134Q169 126 187 103Q206 125 239 134Z" fill="#526c5a"/><path d="M147 128Q170 117 187 99Q208 121 234 128" stroke-width="3"/><path d="M177 149H200V177H177Z" fill="#788773"/><path d="M160 145H170V155H160ZM208 145H218V155H208Z" fill="#b39c65"/>
-        <path d="M88 158H139V186H88Z" fill="#e9ddbf"/><path d="M78 159 104 140H128L150 159Z" fill="#6b7f68"/><path d="M96 168H107V177H96ZM118 168H128V186H118Z" fill="#9a9e7b"/>
-        <path d="M252 146H300V179H252Z" fill="#e4d8b8"/><path d="M241 146Q259 139 274 124Q288 140 311 146Z" fill="#637961"/><path d="M268 159H282V179H268Z" fill="#969c78"/>
-        <path d="M57 183V129M53 152 39 139M58 143 71 130M340 181V113M340 139 324 123M341 131 357 113" stroke-width="4"/><path d="M25 140Q20 121 42 121Q30 101 54 102Q76 95 79 116Q96 133 75 144Z" fill="#7e9477" stroke="none"/><path d="M313 128Q303 111 323 107Q310 83 338 83Q361 72 367 98Q390 116 367 130Z" fill="#7b9174" stroke="none"/>
-        <path d="M230 161V186M226 162H237" stroke-width="2"/><rect x="229" y="166" width="9" height="12" rx="3" fill="#ae6247" stroke="none"/></g>
-        <path d="M0 204Q89 190 164 199T420 195" stroke="#879b7f" opacity=".4"/>
-      </svg>
+      <img class="start-landscape" src="assets/ui/backgrounds/title-town.png" alt="" aria-hidden="true">
       <nav class="start-actions" aria-label="开始菜单">
         <button id="start-single" class="start-button start-primary"><span class="start-button-icon" aria-hidden="true">启</span><span>单人模式<small>新建古坊 · 开启一段故事</small></span><span class="start-arrow" aria-hidden="true">→</span></button>
         <button id="start-coop" class="start-button"><span class="start-button-icon" aria-hidden="true">伴</span><span>合作模式<small>双庄相依 · 共守长明</small></span><span class="start-arrow" aria-hidden="true">→</span></button>

@@ -16,16 +16,19 @@ function pngAssets(directory = 'assets') {
 }
 let html = read('index.html');
 html = html.replace('<link rel="stylesheet" href="css/style.css">', () => '<style>\n' + read('css/style.css') + '\n</style>');
+html = html.replace('<link rel="stylesheet" href="css/png-interface.css">', () => '<style>\n' + read('css/png-interface.css') + '\n</style>');
+html = html.replace('href="assets/ui/icons/single.png"', () => 'href="' + dataUrl('assets/ui/icons/single.png') + '"');
+html = html.replace('src="assets/ui/backgrounds/title-town.png"', () => 'src="' + dataUrl('assets/ui/backgrounds/title-town.png') + '"');
 const sources = ['js/maps.js', 'js/game.js', 'js/network.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
 const runtime = sources.map(file => esbuild.transformSync(read(file), { target: 'es2017', charset: 'utf8', sourcefile: path.basename(file) }).code).join('\n');
 fs.writeFileSync(path.join(root, 'js/runtime.js'), runtime, 'utf8');
-const packagedAssets = ['assets/sprites/soldiers', 'assets/sprites/buildings', 'assets/tiles'].flatMap(directory => pngAssets(directory));
+const packagedAssets = ['assets/sprites/soldiers', 'assets/sprites/buildings', 'assets/tiles', 'assets/ui', 'assets/overlays', 'assets/effects', 'assets/scenery'].flatMap(directory => pngAssets(directory));
 const assetMap = Object.fromEntries(packagedAssets.map(asset => [asset, dataUrl(asset)]));
-const embeddedRuntime = 'window.GF_ASSET_URLS=' + JSON.stringify(assetMap) + ';\n' + runtime;
-const scripts = ['js/boot.js', 'js/runtime.js'];
+const embeddedUI = 'window.GF_ASSET_URLS=' + JSON.stringify(assetMap) + ';\n' + read('js/ui.js');
+const scripts = ['js/boot.js', 'js/ui.js', 'js/runtime.js'];
 for (const file of scripts) html = html.replace(`<script defer src="${file}"></script>`, '');
-html = html.replace('</body>', () => scripts.map(file => '<script>\n' + (file === 'js/runtime.js' ? embeddedRuntime : read(file)).replace(/<\/script/gi, '<\\/script') + '\n</script>').join('\n') + '\n</body>');
+html = html.replace('</body>', () => scripts.map(file => '<script>\n' + (file === 'js/runtime.js' ? runtime : file === 'js/ui.js' ? embeddedUI : read(file)).replace(/<\/script/gi, '<\\/script') + '\n</script>').join('\n') + '\n</body>');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 const target = path.join(root, 'dist/古坊奇谭.html');
-fs.writeFileSync(target, html, 'utf8');
+fs.writeFileSync(target, html.replace(/[\t ]+$/gm, ''), 'utf8');
 console.log('已生成离线单文件：' + target);

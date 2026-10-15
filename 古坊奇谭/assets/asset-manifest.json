@@ -1,0 +1,1387 @@
+{
+  "version": 1,
+  "count": 217,
+  "assets": [
+    {
+      "path": "assets/effects/arrow.png",
+      "width": 32,
+      "height": 8,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/bolt.png",
+      "width": 32,
+      "height": 6,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/hit.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/rock.png",
+      "width": 16,
+      "height": 16,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/shadow.png",
+      "width": 32,
+      "height": 16,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/soldier-hit.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/swallow.png",
+      "width": 16,
+      "height": 8,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/thunder.png",
+      "width": 48,
+      "height": 64,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/effects/water-ripple.png",
+      "width": 32,
+      "height": 12,
+      "slice": 0,
+      "usage": "特效，由程序控制位置、旋转和淡出"
+    },
+    {
+      "path": "assets/overlays/aura.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/freeze.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/gate-broken.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/grid.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/hints/coins-tier-1.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/coins-tier-2.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/coins-tier-3.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/materials-tier-1.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/materials-tier-2.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/materials-tier-3.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/level-badge.png",
+      "width": 24,
+      "height": 24,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/links/commerce.png",
+      "width": 9,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/links/default.png",
+      "width": 9,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/links/farm.png",
+      "width": 9,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/links/industry.png",
+      "width": 9,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/links/silk.png",
+      "width": 9,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/placement.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/pulse.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/range.png",
+      "width": 128,
+      "height": 128,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/repair.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/repel.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/selection.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/slow.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/territory-edge.png",
+      "width": 64,
+      "height": 4,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/overlays/territory-shade.png",
+      "width": 2,
+      "height": 2,
+      "slice": 0,
+      "usage": "地图叠加标记"
+    },
+    {
+      "path": "assets/scenery/mountain-1.png",
+      "width": 128,
+      "height": 128,
+      "slice": 0,
+      "usage": "地图背景"
+    },
+    {
+      "path": "assets/scenery/mountain-2.png",
+      "width": 128,
+      "height": 128,
+      "slice": 0,
+      "usage": "地图背景"
+    },
+    {
+      "path": "assets/scenery/mountain-3.png",
+      "width": 128,
+      "height": 128,
+      "slice": 0,
+      "usage": "地图背景"
+    },
+    {
+      "path": "assets/scenery/mountain-4.png",
+      "width": 128,
+      "height": 128,
+      "slice": 0,
+      "usage": "地图背景"
+    },
+    {
+      "path": "assets/scenery/world-background.png",
+      "width": 2,
+      "height": 2,
+      "slice": 0,
+      "usage": "地图背景"
+    },
+    {
+      "path": "assets/sprites/buildings/bank/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/bank/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/bank/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/barracks/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/barracks/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/barracks/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/earth/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/earth/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/earth/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/farm/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/farm/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/farm/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/fortune/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/fortune/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/fortune/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/guild/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/guild/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/guild/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/inn/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/inn/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/inn/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/kiln/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/kiln/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/kiln/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mill/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mill/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mill/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mulberry/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mulberry/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/mulberry/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/port/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/port/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/port/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/quarry/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/quarry/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/quarry/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/rock/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/rock/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/rock/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/shrine/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/shrine/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/shrine/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/stage/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/stage/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/stage/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tailor/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tailor/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tailor/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tao/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tao/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tao/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tea/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tea/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tea/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tower/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tower/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/tower/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/trade/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/trade/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/trade/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/weaver/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/weaver/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/weaver/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/well/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/well/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/well/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/wine/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/wine/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/wine/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/zhong/level-1.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/zhong/level-2.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/buildings/zhong/level-3.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑精灵；锚点 (32,48)"
+    },
+    {
+      "path": "assets/sprites/soldiers/archer_ally-green.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/archer_enemy-purple.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/archer_player-red.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/infantry_ally-green.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/infantry_enemy-purple.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/infantry_player-red.png",
+      "width": 240,
+      "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/tiles/resources/border-tree.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/resources/forest.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/resources/mountain.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/resources/reeds.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-00.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-01.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-02.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-03.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-04.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-05.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-06.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-07.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-08.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-09.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0a.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0b.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0c.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0d.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0e.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/bridge-0f.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-00.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-01.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-02.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-03.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-04.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-05.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-06.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-07.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-08.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-09.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0a.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0b.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0c.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0d.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0e.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/roads/ground-0f.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/terrain/forest.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/terrain/mountain.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/terrain/plain.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/terrain/shore.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/terrain/water.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/00.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/01.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/02.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/03.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/04.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/05.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/06.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/07.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/08.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/09.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0a.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0b.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0c.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0d.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0e.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/tiles/walls/0f.png",
+      "width": 64,
+      "height": 64,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/ui/backgrounds/dimmer.png",
+      "width": 2,
+      "height": 2,
+      "slice": 0,
+      "usage": "界面底纹／首页场景"
+    },
+    {
+      "path": "assets/ui/backgrounds/paper.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "界面底纹／首页场景"
+    },
+    {
+      "path": "assets/ui/backgrounds/title-town.png",
+      "width": 256,
+      "height": 128,
+      "slice": 0,
+      "usage": "界面底纹／首页场景"
+    },
+    {
+      "path": "assets/ui/bars/health-building.png",
+      "width": 16,
+      "height": 6,
+      "slice": 2,
+      "usage": "血条，可水平拉伸"
+    },
+    {
+      "path": "assets/ui/bars/health-critical.png",
+      "width": 16,
+      "height": 6,
+      "slice": 2,
+      "usage": "血条，可水平拉伸"
+    },
+    {
+      "path": "assets/ui/bars/health-enemy.png",
+      "width": 16,
+      "height": 6,
+      "slice": 2,
+      "usage": "血条，可水平拉伸"
+    },
+    {
+      "path": "assets/ui/bars/health-player.png",
+      "width": 16,
+      "height": 6,
+      "slice": 2,
+      "usage": "血条，可水平拉伸"
+    },
+    {
+      "path": "assets/ui/bars/health-track.png",
+      "width": 16,
+      "height": 6,
+      "slice": 2,
+      "usage": "血条，可水平拉伸"
+    },
+    {
+      "path": "assets/ui/controls/switch-off.png",
+      "width": 40,
+      "height": 22,
+      "slice": 0,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/ui/controls/switch-on.png",
+      "width": 40,
+      "height": 22,
+      "slice": 0,
+      "usage": "地图瓦片"
+    },
+    {
+      "path": "assets/ui/icons/arrow-right.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/close.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/coin.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/coop.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/diamond.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/grip.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/invasion.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/load.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/materials.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/repair.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/repel.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/single.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/sound-off.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/sound-on.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/thunder.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/icons/upgrade.png",
+      "width": 32,
+      "height": 32,
+      "slice": 0,
+      "usage": "界面图标"
+    },
+    {
+      "path": "assets/ui/panels/ally.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/card.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/danger.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/dark.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/disabled.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/enemy.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/inset.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/night.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/ornament-border.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/paper.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/primary.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/seal.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/secondary.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    },
+    {
+      "path": "assets/ui/panels/warning.png",
+      "width": 32,
+      "height": 32,
+      "slice": 6,
+      "usage": "界面九宫格边框；四边切片 6px"
+    }
+  ]
+}

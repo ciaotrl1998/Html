@@ -1,0 +1,401 @@
+{
+  "version": 1,
+  "style": "古镇像素 / 二值透明 / 最近邻",
+  "assets": {
+    "assets/ui/panels/paper.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/card.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/inset.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/dark.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/primary.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/secondary.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/disabled.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/danger.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/warning.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/ally.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/enemy.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/night.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/seal.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/panels/ornament-border.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 6
+    },
+    "assets/ui/backgrounds/paper.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/ui/backgrounds/dimmer.png": {
+      "width": 2,
+      "height": 2,
+      "slice": 0
+    },
+    "assets/ui/icons/coin.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/materials.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/close.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/arrow-right.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/upgrade.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/invasion.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/grip.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/diamond.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/repel.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/repair.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/thunder.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/single.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/coop.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/load.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/sound-off.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/icons/sound-on.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/ui/controls/switch-off.png": {
+      "width": 40,
+      "height": 22,
+      "slice": 0
+    },
+    "assets/ui/controls/switch-on.png": {
+      "width": 40,
+      "height": 22,
+      "slice": 0
+    },
+    "assets/overlays/territory-shade.png": {
+      "width": 2,
+      "height": 2,
+      "slice": 0
+    },
+    "assets/overlays/territory-edge.png": {
+      "width": 64,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/scenery/world-background.png": {
+      "width": 2,
+      "height": 2,
+      "slice": 0
+    },
+    "assets/overlays/selection.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/placement.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/coins-tier-1.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/coins-tier-2.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/coins-tier-3.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/materials-tier-1.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/materials-tier-2.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/hints/materials-tier-3.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/range.png": {
+      "width": 128,
+      "height": 128,
+      "slice": 0
+    },
+    "assets/overlays/pulse.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/repair.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/repel.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/freeze.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/slow.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/aura.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/overlays/level-badge.png": {
+      "width": 24,
+      "height": 24,
+      "slice": 0
+    },
+    "assets/overlays/gate-broken.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/ui/bars/health-track.png": {
+      "width": 16,
+      "height": 6,
+      "slice": 2
+    },
+    "assets/ui/bars/health-player.png": {
+      "width": 16,
+      "height": 6,
+      "slice": 2
+    },
+    "assets/ui/bars/health-enemy.png": {
+      "width": 16,
+      "height": 6,
+      "slice": 2
+    },
+    "assets/ui/bars/health-building.png": {
+      "width": 16,
+      "height": 6,
+      "slice": 2
+    },
+    "assets/ui/bars/health-critical.png": {
+      "width": 16,
+      "height": 6,
+      "slice": 2
+    },
+    "assets/overlays/links/commerce.png": {
+      "width": 9,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/overlays/links/farm.png": {
+      "width": 9,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/overlays/links/silk.png": {
+      "width": 9,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/overlays/links/industry.png": {
+      "width": 9,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/overlays/links/default.png": {
+      "width": 9,
+      "height": 4,
+      "slice": 0
+    },
+    "assets/overlays/grid.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/effects/rock.png": {
+      "width": 16,
+      "height": 16,
+      "slice": 0
+    },
+    "assets/effects/arrow.png": {
+      "width": 32,
+      "height": 8,
+      "slice": 0
+    },
+    "assets/effects/bolt.png": {
+      "width": 32,
+      "height": 6,
+      "slice": 0
+    },
+    "assets/effects/thunder.png": {
+      "width": 48,
+      "height": 64,
+      "slice": 0
+    },
+    "assets/effects/soldier-hit.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/effects/hit.png": {
+      "width": 32,
+      "height": 32,
+      "slice": 0
+    },
+    "assets/effects/swallow.png": {
+      "width": 16,
+      "height": 8,
+      "slice": 0
+    },
+    "assets/effects/shadow.png": {
+      "width": 32,
+      "height": 16,
+      "slice": 0
+    },
+    "assets/effects/water-ripple.png": {
+      "width": 32,
+      "height": 12,
+      "slice": 0
+    },
+    "assets/scenery/mountain-1.png": {
+      "width": 128,
+      "height": 128,
+      "slice": 0
+    },
+    "assets/scenery/mountain-2.png": {
+      "width": 128,
+      "height": 128,
+      "slice": 0
+    },
+    "assets/scenery/mountain-3.png": {
+      "width": 128,
+      "height": 128,
+      "slice": 0
+    },
+    "assets/scenery/mountain-4.png": {
+      "width": 128,
+      "height": 128,
+      "slice": 0
+    },
+    "assets/ui/backgrounds/title-town.png": {
+      "width": 256,
+      "height": 128,
+      "slice": 0
+    }
+  }
+}

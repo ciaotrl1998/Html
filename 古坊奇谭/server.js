@@ -14,7 +14,8 @@ const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
-  ...['boot', 'runtime', 'maps', 'game', 'network', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
+  ['/css/png-interface.css', ['css/png-interface.css', 'text/css; charset=utf-8']],
+  ...['boot', 'runtime', 'maps', 'game', 'network', 'ui', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),
   ['/dist/古坊奇谭.html', ['dist/古坊奇谭.html', 'text/html; charset=utf-8']]
 ]);
 // Only known workspace PNG assets are exposed; never resolve arbitrary request paths.

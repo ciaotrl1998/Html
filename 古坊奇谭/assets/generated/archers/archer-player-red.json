@@ -344,10 +344,11 @@
       },
       "source": {
         "x0": 0,
-        "x1": 209,
-        "y0": 627,
-        "y1": 836
+        "x1": 512,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -366,10 +367,11 @@
       },
       "source": {
         "x0": 0,
-        "x1": 209,
-        "y0": 627,
-        "y1": 836
+        "x1": 512,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     },
     {
@@ -431,11 +433,12 @@
         "y": 28
       },
       "source": {
-        "x0": 418,
-        "x1": 627,
-        "y0": 627,
-        "y1": 836
+        "x0": 512,
+        "x1": 1024,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -453,11 +456,12 @@
         "y": 28
       },
       "source": {
-        "x0": 418,
-        "x1": 627,
-        "y0": 627,
-        "y1": 836
+        "x0": 512,
+        "x1": 1024,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     },
     {
@@ -519,11 +523,12 @@
         "y": 28
       },
       "source": {
-        "x0": 836,
-        "x1": 1045,
-        "y0": 627,
-        "y1": 836
+        "x0": 1024,
+        "x1": 1536,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -541,11 +546,12 @@
         "y": 28
       },
       "source": {
-        "x0": 836,
-        "x1": 1045,
-        "y0": 627,
-        "y1": 836
+        "x0": 1024,
+        "x1": 1536,
+        "y0": 0,
+        "y1": 512
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     },
     {
@@ -608,10 +614,11 @@
       },
       "source": {
         "x0": 0,
-        "x1": 209,
-        "y0": 1045,
-        "y1": 1254
+        "x1": 512,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -630,10 +637,11 @@
       },
       "source": {
         "x0": 0,
-        "x1": 209,
-        "y0": 1045,
-        "y1": 1254
+        "x1": 512,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     },
     {
@@ -695,11 +703,12 @@
         "y": 28
       },
       "source": {
-        "x0": 418,
-        "x1": 627,
-        "y0": 1045,
-        "y1": 1254
+        "x0": 512,
+        "x1": 1024,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -717,11 +726,12 @@
         "y": 28
       },
       "source": {
-        "x0": 418,
-        "x1": 627,
-        "y0": 1045,
-        "y1": 1254
+        "x0": 512,
+        "x1": 1024,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     },
     {
@@ -783,11 +793,12 @@
         "y": 28
       },
       "source": {
-        "x0": 836,
-        "x1": 1045,
-        "y0": 1045,
-        "y1": 1254
+        "x0": 1024,
+        "x1": 1536,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": false
     },
     {
@@ -805,11 +816,12 @@
         "y": 28
       },
       "source": {
-        "x0": 836,
-        "x1": 1045,
-        "y0": 1045,
-        "y1": 1254
+        "x0": 1024,
+        "x1": 1536,
+        "y0": 512,
+        "y1": 1024
       },
+      "sourceImage": "assets/generated/archers/player-red-sides-v1.png",
       "mirrored": true
     }
   ]

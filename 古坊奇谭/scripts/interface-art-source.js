@@ -41,6 +41,9 @@
   for(const [name,on] of [['switch-off',false],['switch-on',true]])asset(`assets/ui/controls/${name}.png`,40,22,c=>{box(c,1,2,38,18,ink);box(c,3,4,34,14,on?jade:'#929e87');frameThumb(c,on?22:4);});
   function frameThumb(c,x){box(c,x,4,14,14,ink);box(c,x+1,5,12,12,light);box(c,x+3,7,8,2,'#f3e7c4');}
   const overlay=(name,paint,w=64,h=64)=>asset(`assets/overlays/${name}.png`,w,h,paint);
+  overlay('territory-shade',c=>box(c,0,0,2,2,'#34473e'),2,2);
+  overlay('territory-edge',c=>box(c,2,1,60,2,'#f3df9b'),64,4);
+  asset('assets/scenery/world-background.png',2,2,c=>box(c,0,0,2,2,'#d5dcc5'));
   overlay('selection',c=>{box(c,2,2,60,60,'#dcca81');c.clearRect(4,4,56,56);for(const x of [2,55])for(const y of [2,55])box(c,x,y,7,7,gold);});
   overlay('placement',c=>{box(c,30,21,4,22,gold);box(c,21,30,22,4,gold);});
   for(const resource of ['coins','materials'])for(let tier=1;tier<=3;tier++)overlay(`hints/${resource}-tier-${tier}`,c=>{for(let layer=0;layer<(tier>=2?2:1);layer++){const a=6+layer*6,b=58-layer*6,n=layer?8:12;for(const x of [a,b])for(const y of [a,b])stroke(c,[[x+(x===a?n:-n),y],[x,y],[x,y+(y===a?n:-n)]],resource==='coins'?'#e3c575':'#a68fae',3);}if(tier===3){box(c,30,26,4,12,gold);box(c,26,30,12,4,gold);}});

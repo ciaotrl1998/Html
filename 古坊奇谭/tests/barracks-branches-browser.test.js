@@ -35,10 +35,11 @@ function prepareBarracks(s,owner){
       assert.match(await branches.nth(0).innerText(),/升级为步兵营/);assert.match(await branches.nth(1).innerText(),/升级为弓兵营/);
       const layout=await branches.evaluateAll(buttons=>buttons.map(button=>{const a=button.getBoundingClientRect(),b=button.parentElement.getBoundingClientRect();return {inside:a.left>=b.left-.1&&a.right<=b.right+.1,overflow:button.scrollWidth>button.clientWidth};}));
       assert(layout.every(item=>item.inside&&!item.overflow),`Buttons fit at ${width}px: ${JSON.stringify(layout)}`);
-      const branchMarker=()=>page.evaluate(({x,y})=>{
+      const branchMarker=()=>page.evaluate(async ({x,y})=>{
         const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;canvas.style.cssText='position:fixed;left:-10000px;width:390px;height:844px';document.body.append(canvas);
-        const context=canvas.getContext('2d'),fill=context.fill;let marker=false;
-        context.fill=function(){if(this.fillStyle==='#b4df63')marker=true;return fill.apply(this,arguments);};
+        const context=canvas.getContext('2d'),draw=context.drawImage,icon=GFUI.image('assets/ui/icons/upgrade.png');let marker=false;
+        if(!icon.complete)await new Promise(resolve=>icon.addEventListener('load',resolve,{once:true}));
+        context.drawImage=function(image){if(image===icon)marker=true;return draw.apply(this,arguments);};
         GFArt.render(canvas,Gufang.state,{x:195-(x*64+32),y:400-(y*64+32),zoom:1},null,{player:0});
         canvas.remove();return marker;
       },building);

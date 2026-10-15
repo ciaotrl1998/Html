@@ -14,9 +14,10 @@ const near = (actual, expected, label) => assert(Math.abs(actual - expected) < .
     const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
     await page.setContent('<canvas id="map" width="800" height="600" style="width:800px;height:600px"></canvas>');
     await page.evaluate(assets => { window.GF_ASSET_URLS = assets; }, {
+      ...Object.fromEntries(JSON.parse(fs.readFileSync(path.join(root,'assets/asset-manifest.json'))).assets.map(({path:file})=>[file,imageUrl(file)])),
       ...Object.fromEntries(['infantry','archer'].flatMap(type=>['player-red','ally-green','enemy-purple'].map(faction=>{const name=`assets/sprites/soldiers/${type}_${faction}.png`;return [name,imageUrl(name)];})))
     });
-    for (const file of ['maps.js', 'game.js', 'art.js']) await page.addScriptTag({ path: path.join(root, 'js', file) });
+    for (const file of ['maps.js', 'game.js', 'ui.js', 'art.js']) await page.addScriptTag({ path: path.join(root, 'js', file) });
     await page.waitForFunction(() => GFArt.spriteVersion() >= 3);
     const frames = await page.evaluate(() => {
       const s = GF.createState(12345), canvas = document.getElementById('map'), c = canvas.getContext('2d');

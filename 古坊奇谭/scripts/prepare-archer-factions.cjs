@@ -4,7 +4,9 @@ const path=require('node:path');
 const {PNG}=require('pngjs');
 
 const directory=path.join(__dirname,'../assets/sprites/soldiers');
-const source=PNG.sync.read(fs.readFileSync(path.join(directory,'archer_player-red.png')));
+const type=process.argv.find(arg=>arg.startsWith('--type='))?.slice(7)||'archer';
+if(!['archer','infantry'].includes(type))throw Error('Unsupported troop type');
+const source=PNG.sync.read(fs.readFileSync(path.join(directory,`${type}_player-red.png`)));
 function hsl(r,g,b){
   r/=255;g/=255;b/=255;
   const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min,l=(max+min)/2;
@@ -39,6 +41,6 @@ for(const [faction,hue] of [['ally-green',171],['enemy-purple',282]]){
     const color=rgb(hue,Math.min(.7,Math.max(.34,s*.85)),Math.max(.07,Math.min(.68,l*(hue===171?.91:.84))));
     for(let ch=0;ch<3;ch++)result.data[i+ch]=color[ch];
   }
-  const output=path.join(directory,`archer_${faction}.png`);
+  const output=path.join(directory,`${type}_${faction}.png`);
   fs.writeFileSync(output,PNG.sync.write(result));console.log(output);
 }

@@ -1,0 +1,53 @@
+/* All artwork is replaceable PNG. Layout and live text stay in CSS/HTML.
+   32x32 panels: nine-slice inset 6 px. Use nearest-neighbor for all artwork. */
+#game{--paper:#e2cea4;--ink:#4a2e20;--green:#496c51;--gold:#c39145;--red:#a9513d;color:var(--ink);image-rendering:pixelated}
+#game img{image-rendering:pixelated}
+.start-menu{background:#e9dfbe var(--art-paper) repeat;background-size:128px 128px}
+.start-border{border:8px solid transparent;border-image:var(--art-panel-ornament-border) 6 fill stretch;inset:12px}.start-border:after{display:none}
+.start-landscape{object-fit:contain;image-rendering:pixelated;min-width:0}
+.topbar,.bottom-panel,.modal-card,.settings-panel,.setting-group,.coop-connect,.coop-seat,.autoplay-settings,#autoplay-status,#startup-error,.noscript{background:transparent;border:6px solid transparent;border-image:var(--art-panel-paper) 6 fill stretch;border-radius:0;box-shadow:none}
+.topbar{border-width:0 0 6px;border-image:var(--art-panel-paper) 6 fill stretch}
+.bottom-panel{border-width:6px 0 0}.panel-heading{border-bottom-color:#9c9976}
+.settings-panel{border:0}.setting-group,.coop-connect,.coop-seat,.autoplay-settings{border-image-source:var(--art-panel-inset)}
+.coop-seat.is-ready{background:transparent;border:6px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch}
+.start-button,.modal-primary,.modal-secondary,.upgrade-button,.build-card,#skills button,.skill-option,.enemy-setting,.setting-segments span,.coop-code-input{background:transparent;border:6px solid transparent;border-image:var(--art-panel-secondary) 6 fill stretch;border-radius:0;box-shadow:none}
+.start-primary,.modal-primary,.upgrade-button{border-image-source:var(--art-panel-primary);color:#f4ebd2}
+.start-button:not(:disabled):hover,.modal-secondary:hover,.skill-option:hover,.skill-option:focus-visible{background:transparent;border-image-source:var(--art-panel-inset)}
+.start-primary:not(:disabled):hover,.modal-primary:hover,.upgrade-button:hover{background:transparent;border-image-source:var(--art-panel-dark)}
+.start-button:disabled,.modal-primary:disabled,.modal-secondary:disabled,.upgrade-button.blocked,.build-card.locked{background:transparent;border-image-source:var(--art-panel-disabled)}
+.modal-secondary.danger{border-image-source:var(--art-panel-danger);color:#f4ebd2}
+.build-card{border-width:5px;padding:2px;border-image-source:var(--art-panel-card)}
+.build-card .card-effect,.modal-stats div{background:transparent;border:4px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0;padding:4px}
+.build-card .card-effect{min-height:66px}.build-card .card-image{flex-shrink:1;min-height:54px}
+.level-badge,.chain-tag,.card-reason,.start-badge{background:transparent;border:3px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0}
+.detail-art{background:transparent}
+.coin-icon,.material-icon{border:0!important;outline:0;box-shadow:none;border-radius:0;background:var(--art-icon-coin) center/contain no-repeat;transform:none;image-rendering:pixelated}
+.material-icon{background-image:var(--art-icon-materials)}
+.coin-icon:before,.coin-icon:after,.material-icon:before,.material-icon:after{display:none!important}
+.seal{background:var(--art-panel-seal) center/100% 100%;border:0;outline:0;transform:none;padding:3px 8px;image-rendering:pixelated}
+.start-seal{background:var(--art-panel-seal) center/100% 100%;color:#f4ebd2;border:0;padding:7px;transform:none;image-rendering:pixelated}
+.start-button-icon{display:block;flex:0 0 32px;width:32px;height:32px;padding:0;border:0;font-size:0!important;background:var(--art-icon-single) center/contain no-repeat;image-rendering:pixelated}
+#start-coop .start-button-icon{background-image:var(--art-icon-coop)}#start-load .start-button-icon{background-image:var(--art-icon-load)}
+.start-arrow{display:block;width:24px;height:24px;font-size:0;background:var(--art-icon-arrow-right) center/contain no-repeat;image-rendering:pixelated;opacity:1}
+.start-footer span,.coop-divider>span{display:inline-block;width:10px;height:10px;font-size:0;background:var(--art-icon-diamond) center/contain no-repeat;image-rendering:pixelated}
+.start-sound,.start-sound:not(:disabled):hover{border-image:none;background:none;border-color:transparent;box-shadow:none}
+.sound-switch{width:40px;height:22px;background:var(--art-switch-off) center/100% 100%;border-radius:0;image-rendering:pixelated}.sound-switch:after{display:none}.start-sound[aria-checked="true"] .sound-switch{background:var(--art-switch-on) center/100% 100%}
+.setting-segments input:checked+span{background:transparent;border-color:transparent;border-image-source:var(--art-panel-primary);color:#f4ebd2}
+.enemy-setting select{appearance:none;background:var(--art-panel-inset) center/100% 100%;border:0;border-radius:0;color:#3b5148}
+.coop-code-input[readonly]{background:transparent}.coop-avatar{background:var(--art-panel-inset) center/100% 100%;border:0;image-rendering:pixelated}
+.coop-seat-switch{font-size:0;width:24px;height:24px;background:var(--art-icon-coop) center/contain no-repeat;image-rendering:pixelated}
+.panel-grip{width:32px;height:5px;margin-top:1px;background:var(--art-icon-grip) center/32px 24px no-repeat;border-radius:0;image-rendering:pixelated}
+#close-panel,#close-modal{font-size:0;background:var(--art-icon-close) center/22px 22px no-repeat;image-rendering:pixelated}
+#skills button{border-image-source:var(--art-panel-card);padding:4px 0}
+#skills i,.skill-option i{font-size:0!important;border:0;border-radius:0;background:var(--art-icon-repel) center/contain no-repeat;image-rendering:pixelated}
+#skills [data-skill="repair"] i,.skill-option[data-choice="repair"] i{background-image:var(--art-icon-repair)}
+#skills [data-skill="thunder"] i,.skill-option[data-choice="thunder"] i{background-image:var(--art-icon-thunder)}
+.health-track{background:var(--art-health-track) center/100% 100%;height:6px;image-rendering:pixelated}.health-track i{background:var(--art-health-building) center/100% 100%}
+#toast{background:transparent;border:6px solid transparent;border-image:var(--art-panel-dark) 6 fill stretch;border-radius:0;box-shadow:none}#toast.warning{background:transparent;border-image-source:var(--art-panel-danger)}#toast.reward{background:transparent;border-image-source:var(--art-panel-primary)}
+.modal-overlay{background:none}.modal-overlay:before{content:"";position:absolute;inset:0;opacity:.6;background:var(--art-dimmer) center/100% 100%;pointer-events:none}
+body.night .topbar{background:transparent;border-image-source:var(--art-panel-night)}
+.vignette{background:none;box-shadow:none}
+@media(max-width:360px){.start-button{gap:10px}.skill-option{gap:4px 8px}.build-card .card-effect{padding:3px;font-size:10px!important}}
+/* Border images add real border widths; keep the coop lobby within portrait screens. */
+.coop-lobby{padding-top:clamp(20px,4vh,36px)}.coop-lobby .coop-seats{margin:12px 0}.coop-lobby .coop-seat{padding:10px}.coop-lobby .coop-divider{padding:8px}.coop-lobby .coop-connect{padding:6px 8px;margin-bottom:6px}.coop-lobby .enemy-setting{padding:4px 8px}.coop-lobby .coop-lobby-actions button{padding:10px}.coop-lobby .coop-lobby-actions p{margin-top:6px}
+@media(max-height:700px){.coop-lobby{padding-top:8px;padding-bottom:6px}.coop-lobby .coop-seats{margin:4px 0}.coop-lobby .coop-seat{padding:3px 8px}.coop-lobby .coop-divider{padding:3px}.coop-lobby .coop-connect{padding:2px 6px;margin-bottom:3px}.coop-lobby .enemy-setting{padding:1px 6px}.coop-lobby .coop-lobby-actions button{padding:7px}.coop-lobby .coop-lobby-actions p{display:none}}
