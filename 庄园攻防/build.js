@@ -17,7 +17,6 @@ function pngAssets(directory = 'assets') {
 let html = read('index.html');
 html = html.replace('<link rel="stylesheet" href="css/style.css">', () => '<style>\n' + read('css/style.css') + '\n</style>');
 html = html.replace('<link rel="stylesheet" href="css/png-interface.css">', () => '<style>\n' + read('css/png-interface.css') + '\n</style>');
-html = html.replace('href="assets/ui/icons/single.png"', () => 'href="' + dataUrl('assets/ui/icons/single.png') + '"');
 html = html.replace('src="assets/ui/backgrounds/title-town.png"', () => 'src="' + dataUrl('assets/ui/backgrounds/title-town.png') + '"');
 const sources = ['js/maps.js', 'js/game.js', 'js/network.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
 const runtime = sources.map(file => esbuild.transformSync(read(file), { target: 'es2017', charset: 'utf8', sourcefile: path.basename(file) }).code).join('\n');
@@ -29,6 +28,8 @@ const scripts = ['js/boot.js', 'js/ui.js', 'js/runtime.js'];
 for (const file of scripts) html = html.replace(`<script defer src="${file}"></script>`, '');
 html = html.replace('</body>', () => scripts.map(file => '<script>\n' + (file === 'js/runtime.js' ? runtime : file === 'js/ui.js' ? embeddedUI : read(file)).replace(/<\/script/gi, '<\\/script') + '\n</script>').join('\n') + '\n</body>');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
+// 图标保留为本地文件，供 HTML 游戏盒扫描读取。
+fs.copyFileSync(path.join(root, 'icon.png'), path.join(root, 'dist/icon.png'));
 const target = path.join(root, 'dist/庄园攻防.html');
 const output = html.replace(/[\t ]+$/gm, '');
 fs.writeFileSync(target, output, 'utf8');
