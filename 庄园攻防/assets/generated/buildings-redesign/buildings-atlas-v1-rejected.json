@@ -1,0 +1,2821 @@
+{
+  "version": 1,
+  "image": "assets/generated/buildings-redesign/buildings-atlas.png",
+  "width": 576,
+  "height": 576,
+  "columns": 9,
+  "rows": 9,
+  "groupsPerRow": 3,
+  "stagesPerType": 3,
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "pivot": {
+    "x": 32,
+    "y": 48
+  },
+  "sourceImage": "assets/generated/buildings-redesign/source-v1.png",
+  "sourceCuts": {
+    "x": [
+      0,
+      138,
+      274,
+      428,
+      557,
+      691,
+      839,
+      960,
+      1104,
+      1254
+    ],
+    "y": [
+      0,
+      152,
+      296,
+      438,
+      576,
+      710,
+      859,
+      996,
+      1139,
+      1254
+    ]
+  },
+  "style": "中国古镇俯视偏正面像素风；深棕外轮廓#4A2E20；土木、青灰瓦、朱红、靛青及少量金色；同一建筑保持核心造型和标识，逐级扩建而非更换身份",
+  "frames": [
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 1,
+      "description": "朴素三开间小祠堂，单层屋顶，窄石阶",
+      "motif": "青灰瓦红柱中轴祠堂、香炉与牌匾",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/shrine/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 36,
+        "height": 32,
+        "pixels": 728
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 2,
+      "description": "保留中殿，增加两侧小厢房、瓦脊和石阶",
+      "motif": "青灰瓦红柱中轴祠堂、香炉与牌匾",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/shrine/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 11,
+        "bottom": 47,
+        "width": 50,
+        "height": 37,
+        "pixels": 1289
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 3,
+      "description": "同一中轴扩成重檐宗祠，精雕屋脊、石狮与小金饰",
+      "motif": "青灰瓦红柱中轴祠堂、香炉与牌匾",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/shrine/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 3,
+        "bottom": 47,
+        "width": 58,
+        "height": 45,
+        "pixels": 1886
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 1,
+      "description": "木栅门架与木制小门楼",
+      "motif": "中央门洞、木门、两侧短墙",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/gate/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 964
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 2,
+      "description": "同一门洞改为石砌门柱、青瓦小楼",
+      "motif": "中央门洞、木门、两侧短墙",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/gate/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1525
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 3,
+      "description": "加厚石城门及双层瓦楼，强化两侧雉堞",
+      "motif": "中央门洞、木门、两侧短墙",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/gate/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 49,
+        "height": 46,
+        "pixels": 1777
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 1,
+      "description": "小木营房与单杆红旗、长矛架",
+      "motif": "朱红军旗、武器架、军营主屋",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/barracks/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 16,
+        "bottom": 47,
+        "width": 42,
+        "height": 32,
+        "pixels": 800
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 2,
+      "description": "扩成瓦顶营房与低围墙、两杆军旗",
+      "motif": "朱红军旗、武器架、军营主屋",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/barracks/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 14,
+        "bottom": 47,
+        "width": 50,
+        "height": 34,
+        "pixels": 1339
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 3,
+      "description": "同一营房升级为小型守备府，门楼、木栅与整齐兵器架",
+      "motif": "朱红军旗、武器架、军营主屋",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/barracks/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 0,
+        "y1": 152
+      },
+      "subject": {
+        "left": 6,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 52,
+        "height": 46,
+        "pixels": 1852
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 1,
+      "description": "低矮木架箭台，草顶与木梯",
+      "motif": "高挑方形射击台、瞭望围栏和弓架",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tower/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 22,
+        "right": 40,
+        "top": 16,
+        "bottom": 47,
+        "width": 19,
+        "height": 32,
+        "pixels": 412
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 2,
+      "description": "加高加固木石箭塔，青瓦顶、护栏",
+      "motif": "高挑方形射击台、瞭望围栏和弓架",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tower/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 19,
+        "right": 45,
+        "top": 9,
+        "bottom": 47,
+        "width": 27,
+        "height": 39,
+        "pixels": 836
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 3,
+      "description": "石基木楼箭塔，明显更高，层叠射孔和瓦顶瞭望层",
+      "motif": "高挑方形射击台、瞭望围栏和弓架",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/tower/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 2,
+        "bottom": 47,
+        "width": 36,
+        "height": 46,
+        "pixels": 1118
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 1,
+      "description": "矮木石平台与三块圆石",
+      "motif": "开敞石台、滚石堆、护墙",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/rock/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 15,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 33,
+        "height": 32,
+        "pixels": 579
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 2,
+      "description": "加高为石砌平台、石栏及更整齐石堆",
+      "motif": "开敞石台、滚石堆、护墙",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/rock/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 48,
+        "height": 39,
+        "pixels": 1247
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 3,
+      "description": "厚实多层石基擂石台，垛口、升石绞盘与大石堆",
+      "motif": "开敞石台、滚石堆、护墙",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/rock/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 2,
+        "bottom": 47,
+        "width": 43,
+        "height": 46,
+        "pixels": 1242
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 1,
+      "description": "简朴圆石井、两根木柱与水桶",
+      "motif": "圆形井口、木架和吊桶",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/well/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 792
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 2,
+      "description": "精砌井栏、青瓦小亭和绞盘",
+      "motif": "圆形井口、木架和吊桶",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/well/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 41,
+        "height": 39,
+        "pixels": 1154
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 3,
+      "description": "保留圆井，扩成雕花瓦亭、宽石井台与双吊桶",
+      "motif": "圆形井口、木架和吊桶",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/well/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 152,
+        "y1": 296
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 47,
+        "height": 46,
+        "pixels": 1279
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 1,
+      "description": "小木茶棚、绿色布幌、茶桌茶壶",
+      "motif": "绿茶幌、茶壶与临街茶桌",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tea/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 40,
+        "height": 32,
+        "pixels": 1025
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 2,
+      "description": "同一茶棚改瓦顶木店，增加一侧茶桌",
+      "motif": "绿茶幌、茶壶与临街茶桌",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tea/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 47,
+        "height": 39,
+        "pixels": 1535
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 3,
+      "description": "雅致小茶楼，保留绿幌与茶壶，二层窗栏与茶席",
+      "motif": "绿茶幌、茶壶与临街茶桌",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/tea/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 46,
+        "height": 46,
+        "pixels": 1650
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 1,
+      "description": "单层木质客栈、两盏红灯笼",
+      "motif": "暖红灯笼、客房窗与客栈门廊",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/inn/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 15,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 34,
+        "height": 32,
+        "pixels": 898
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 2,
+      "description": "同一主楼增至两层，附门廊与侧房",
+      "motif": "暖红灯笼、客房窗与客栈门廊",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/inn/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 42,
+        "height": 39,
+        "pixels": 1309
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 3,
+      "description": "精致两层客栈加宽翼楼、连廊与更多灯笼",
+      "motif": "暖红灯笼、客房窗与客栈门廊",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/inn/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 2,
+        "bottom": 47,
+        "width": 58,
+        "height": 46,
+        "pixels": 2196
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 1,
+      "description": "小石木钱铺，单枚铜钱门徽",
+      "motif": "铜钱圆徽、柜台、金库门",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/bank/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 38,
+        "height": 32,
+        "pixels": 904
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 2,
+      "description": "更结实瓦顶钱庄、双柜台和石台阶",
+      "motif": "铜钱圆徽、柜台、金库门",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/bank/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 48,
+        "height": 39,
+        "pixels": 1450
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 3,
+      "description": "同一铜钱门徽的大钱庄，小门楼、金库及少量金色瓦饰",
+      "motif": "铜钱圆徽、柜台、金库门",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/bank/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 296,
+        "y1": 438
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 50,
+        "height": 46,
+        "pixels": 1883
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 1,
+      "description": "小片秧苗田、简陋土田埂与水桶",
+      "motif": "整齐稻田行列、灌溉水沟和田埂",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/farm/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 23,
+        "bottom": 47,
+        "width": 42,
+        "height": 25,
+        "pixels": 954
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 2,
+      "description": "同一田块扩为稠密绿稻田、分明水渠",
+      "motif": "整齐稻田行列、灌溉水沟和田埂",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/farm/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 16,
+        "bottom": 47,
+        "width": 50,
+        "height": 32,
+        "pixels": 1414
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 3,
+      "description": "更饱满的金黄熟稻、石砌灌渠和小灌溉轮；仍是农田不是房屋",
+      "motif": "整齐稻田行列、灌溉水沟和田埂",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/farm/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 5,
+        "bottom": 47,
+        "width": 58,
+        "height": 43,
+        "pixels": 1941
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 1,
+      "description": "小木磨坊、简易木水轮与谷袋",
+      "motif": "圆形水轮、磨石与谷袋",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mill/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 18,
+        "bottom": 47,
+        "width": 42,
+        "height": 30,
+        "pixels": 1001
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 2,
+      "description": "瓦顶磨坊、加大水轮及石砌磨台",
+      "motif": "圆形水轮、磨石与谷袋",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mill/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 48,
+        "height": 39,
+        "pixels": 1575
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 3,
+      "description": "保留大水轮，扩成双间石木磨坊、成组粮袋与精整水渠",
+      "motif": "圆形水轮、磨石与谷袋",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/mill/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 5,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 54,
+        "height": 46,
+        "pixels": 2055
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 1,
+      "description": "小木酿酒棚，两只红封陶坛",
+      "motif": "陶酒坛、红色封口和蒸馏器",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/wine/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 19,
+        "bottom": 47,
+        "width": 42,
+        "height": 29,
+        "pixels": 859
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 2,
+      "description": "瓦顶酒坊、成排酒坛、铜色蒸馏锅",
+      "motif": "陶酒坛、红色封口和蒸馏器",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/wine/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 11,
+        "bottom": 47,
+        "width": 50,
+        "height": 37,
+        "pixels": 1380
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 3,
+      "description": "同一酒坊扩成双间酿造坊，更多陶坛、铜锅与小烟囱",
+      "motif": "陶酒坛、红色封口和蒸馏器",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/wine/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 438,
+        "y1": 576
+      },
+      "subject": {
+        "left": 5,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 53,
+        "height": 46,
+        "pixels": 1707
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 1,
+      "description": "两株小桑树与木篱、蚕篮",
+      "motif": "宽叶桑树与蚕篮、低矮树篱",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 1024
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 2,
+      "description": "同一树阵长成三株茂密桑树，增加蚕架",
+      "motif": "宽叶桑树与蚕篮、低矮树篱",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1617
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 3,
+      "description": "更高更茂密桑树园，整齐石木矮栏与桑叶蚕篮；仍是树园不是茶馆",
+      "motif": "宽叶桑树与蚕篮、低矮树篱",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 7,
+        "bottom": 47,
+        "width": 58,
+        "height": 41,
+        "pixels": 1939
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 1,
+      "description": "小木棚中清晰可见织机和蓝布",
+      "motif": "外露木织机与靛蓝布卷",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/weaver/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 40,
+        "height": 32,
+        "pixels": 1037
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 2,
+      "description": "瓦顶织坊，保留织机，加卷轴和晾布杆",
+      "motif": "外露木织机与靛蓝布卷",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/weaver/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1441
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 3,
+      "description": "双间织造坊，成对织机、更长靛蓝织物和有序布卷",
+      "motif": "外露木织机与靛蓝布卷",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/weaver/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 3,
+        "bottom": 47,
+        "width": 58,
+        "height": 45,
+        "pixels": 2247
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 1,
+      "description": "小木衣铺，门外一件红衣和裁衣案",
+      "motif": "挂起的衣服、裁衣案与布匹",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tailor/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 40,
+        "height": 32,
+        "pixels": 1005
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 2,
+      "description": "同一衣铺扩瓦顶，增加衣架、剪裁台与布卷",
+      "motif": "挂起的衣服、裁衣案与布匹",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tailor/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 12,
+        "bottom": 47,
+        "width": 50,
+        "height": 36,
+        "pixels": 1577
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 3,
+      "description": "精致双层成衣楼，保留悬衣，增橱窗、整齐衣架和布匹",
+      "motif": "挂起的衣服、裁衣案与布匹",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/tailor/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 576,
+        "y1": 710
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 46,
+        "height": 46,
+        "pixels": 1774
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 1,
+      "description": "小露天灰石采石点，碎石、简易镐架",
+      "motif": "露天阶梯石坑、方石块和木吊架",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/quarry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 18,
+        "bottom": 47,
+        "width": 42,
+        "height": 30,
+        "pixels": 844
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 2,
+      "description": "同一采石点扩成阶梯坑、木吊架与方石堆",
+      "motif": "露天阶梯石坑、方石块和木吊架",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/quarry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 10,
+        "bottom": 47,
+        "width": 50,
+        "height": 38,
+        "pixels": 1419
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 3,
+      "description": "大阶梯采石场、加固吊石绞盘与整齐巨石；不是瓦顶商铺",
+      "motif": "露天阶梯石坑、方石块和木吊架",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/quarry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 2105
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 1,
+      "description": "单座土色圆窑、短烟囱与两只瓷器",
+      "motif": "圆拱窑炉、高烟囱和青白瓷器",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/kiln/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 667
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 2,
+      "description": "同一窑炉改砖砌、高烟囱与瓷器棚",
+      "motif": "圆拱窑炉、高烟囱和青白瓷器",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/kiln/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 15,
+        "right": 47,
+        "top": 9,
+        "bottom": 47,
+        "width": 33,
+        "height": 39,
+        "pixels": 720
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 3,
+      "description": "双炉砖窑坊、加高烟囱和成排青白瓷器",
+      "motif": "圆拱窑炉、高烟囱和青白瓷器",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/kiln/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 10,
+        "right": 53,
+        "top": 2,
+        "bottom": 47,
+        "width": 44,
+        "height": 46,
+        "pixels": 1175
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 1,
+      "description": "小木货栈、两只箱子与货幌",
+      "motif": "货箱、布包、货架与商旗",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/trade/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 21,
+        "bottom": 47,
+        "width": 42,
+        "height": 27,
+        "pixels": 866
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 2,
+      "description": "瓦顶商铺加侧仓，更多货箱和手推车",
+      "motif": "货箱、布包、货架与商旗",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/trade/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 10,
+        "bottom": 47,
+        "width": 50,
+        "height": 38,
+        "pixels": 1377
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 3,
+      "description": "同一主货栈升级为两层商号、门廊、仓房与整齐货堆",
+      "motif": "货箱、布包、货架与商旗",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/trade/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 710,
+        "y1": 859
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 49,
+        "height": 46,
+        "pixels": 1869
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 1,
+      "description": "有铜钱徽的单层会馆，简朴台阶",
+      "motif": "铜钱徽记、庄重会馆门面与小院",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/guild/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 874
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 2,
+      "description": "保留同一门面，加侧厅、瓦檐和小石狮",
+      "motif": "铜钱徽记、庄重会馆门面与小院",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/guild/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1342
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 3,
+      "description": "气派重檐商会会馆、两侧厅、金色铜钱徽与雕花门廊",
+      "motif": "铜钱徽记、庄重会馆门面与小院",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/guild/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 49,
+        "height": 46,
+        "pixels": 1597
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 1,
+      "description": "小工匠作坊，露出工作台与锤砧",
+      "motif": "锤砧、木工作台、工匠院落；不是港口",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/port/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 36,
+        "height": 32,
+        "pixels": 779
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 2,
+      "description": "同一工坊加瓦顶侧棚、工具架与小炉",
+      "motif": "锤砧、木工作台、工匠院落；不是港口",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/port/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 45,
+        "height": 39,
+        "pixels": 1532
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 3,
+      "description": "完整百工院落，保留锤砧门徽，双间工坊、材料架与小炉；无海船码头",
+      "motif": "锤砧、木工作台、工匠院落；不是港口",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/port/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 2,
+        "bottom": 47,
+        "width": 58,
+        "height": 46,
+        "pixels": 2160
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 1,
+      "description": "小木台、简易红幕和一只鼓",
+      "motif": "面向玩家的开敞舞台、朱红幕布和鼓",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/stage/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 36,
+        "height": 32,
+        "pixels": 937
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 2,
+      "description": "同一戏台增加青瓦顶、双柱与灯笼",
+      "motif": "面向玩家的开敞舞台、朱红幕布和鼓",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/stage/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1390
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 3,
+      "description": "华丽但小巧的重檐戏台、雕花朱柱、宽红幕与成对鼓",
+      "motif": "面向玩家的开敞舞台、朱红幕布和鼓",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/stage/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 859,
+        "y1": 996
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 1942
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 1,
+      "description": "小土墙神龛与橙瓦、单只香炉",
+      "motif": "低矮暖色小庙、土地神龛和香炉",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/earth/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 904
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 2,
+      "description": "同一神龛扩为小砖庙，加双柱和石基",
+      "motif": "低矮暖色小庙、土地神龛和香炉",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/earth/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1328
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 3,
+      "description": "精整暖橙瓦土地庙、石狮、小供台；规模小于祠堂",
+      "motif": "低矮暖色小庙、土地神龛和香炉",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/earth/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 1610
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 1,
+      "description": "矮石台上简朴深色钟馗石像",
+      "motif": "戴冠长须持剑钟馗雕像与台座",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/zhong/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 428,
+        "x1": 557,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 21,
+        "right": 42,
+        "top": 16,
+        "bottom": 47,
+        "width": 22,
+        "height": 32,
+        "pixels": 396
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 2,
+      "description": "同一戴冠长须持剑造型，铜像和加高石座",
+      "motif": "戴冠长须持剑钟馗雕像与台座",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/zhong/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 557,
+        "x1": 691,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 17,
+        "right": 45,
+        "top": 9,
+        "bottom": 47,
+        "width": 29,
+        "height": 39,
+        "pixels": 687
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 3,
+      "description": "同一神像升级鎏金青铜材质、雕纹高台和小香炉；不是住屋",
+      "motif": "戴冠长须持剑钟馗雕像与台座",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/zhong/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 691,
+        "x1": 839,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 10,
+        "right": 53,
+        "top": 2,
+        "bottom": 47,
+        "width": 44,
+        "height": 46,
+        "pixels": 1203
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 1,
+      "description": "小型青瓦道观，门上阴阳圆徽",
+      "motif": "深青屋顶、阴阳圆徽与香炉",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tao/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 960,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 38,
+        "height": 32,
+        "pixels": 919
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 2,
+      "description": "保留同一圆徽，加两侧厢房与石阶",
+      "motif": "深青屋顶、阴阳圆徽与香炉",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tao/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 960,
+        "x1": 1104,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 13,
+        "bottom": 47,
+        "width": 50,
+        "height": 35,
+        "pixels": 1325
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 3,
+      "description": "重檐青瓦道观、红木门廊、宽石阶、香炉和少量铜饰",
+      "motif": "深青屋顶、阴阳圆徽与香炉",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/tao/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1104,
+        "x1": 1254,
+        "y0": 996,
+        "y1": 1139
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 1819
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 1,
+      "description": "木质铜角小宝匣，青玉锁扣",
+      "motif": "可辨识的铰链宝匣、正面锁扣和玉嵌",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/fortune/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 138,
+        "y0": 1139,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 1189
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 2,
+      "description": "同一宝匣增银铜包边、玉石和雕纹",
+      "motif": "可辨识的铰链宝匣、正面锁扣和玉嵌",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/fortune/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 138,
+        "x1": 274,
+        "y0": 1139,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1743
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 3,
+      "description": "同一造型的鎏金青玉宝匣、宝石与精致锁扣；不是房屋",
+      "motif": "可辨识的铰链宝匣、正面锁扣和玉嵌",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/fortune/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 274,
+        "x1": 428,
+        "y0": 1139,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 2,
+        "bottom": 47,
+        "width": 58,
+        "height": 46,
+        "pixels": 2465
+      }
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "version": 8,
+  "rulesChanged": false,
+  "assets": [
+    {
+      "image": "assets/sprites/buildings/gate/level-1-ew.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-1-ew.png",
+      "backup": null,
+      "beforeHash": null,
+      "afterHash": "7c5233a93264c5762759b827f16ba97cb1520d9078813ae53f11ed52092e9d7c"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-1.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-1.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/sprites/buildings/gate/level-1.png",
+      "beforeHash": "3549d41707d1d59d8586cb54b6bc3b6a8077e0c50d3dca08dccbd7257a5f2eed",
+      "afterHash": "c1e6571d59712462d45b4bc56ada06ffcab36ecf43764271d30565243d56e388"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-2-ew.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-2-ew.png",
+      "backup": null,
+      "beforeHash": null,
+      "afterHash": "b36b250e52ac701adebb7f0fe8414ee7664e0cc8d9e7dbdb551f71bdc38b2cb7"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-2.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-2.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/sprites/buildings/gate/level-2.png",
+      "beforeHash": "b54db01385a88fff8465022f32ae5e9d4af9b9d95c127848bb7a4011d1ff819e",
+      "afterHash": "1a454068f30397d54880aa1be349187ae0f4c3030b866b34bc4acf4812882603"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-3-ew.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-3-ew.png",
+      "backup": null,
+      "beforeHash": null,
+      "afterHash": "da71cd1ba928163add7ca1ce9e7131354fe90f56749c15bcf15e5e156b4ec0e2"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-3.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/level-3.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/sprites/buildings/gate/level-3.png",
+      "beforeHash": "b5b2b9668e117cfc6b26244fc69221f0edbb77a8c35d8c75ae781f1d7fbe2b62",
+      "afterHash": "6990d0ab6d073a29261c28ce928c6c44c0a84a9aae85c13311a29b9f37605ced"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/stages-ew.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/stages-ew.png",
+      "backup": null,
+      "beforeHash": null,
+      "afterHash": "f927bd8ed2076397fbf70ab98646b6d21430327179df32483f5aa25b0b8e1157"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/stages.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/sprites/buildings/gate/stages.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/sprites/buildings/gate/stages.png",
+      "beforeHash": "6f9a9b46222e9a3a48bcb836afc0886904bdd2af48fa5278cd16552b812c0d21",
+      "afterHash": "438ca971eb68bf4873601cd49e95104433a19417959269e453b40844928bc3e7"
+    },
+    {
+      "image": "assets/tiles/walls/00.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/00.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/00.png",
+      "beforeHash": "c681c01d6db85067ab9dbc0f9c4c7be1c5c9e2f5eb1e167b91edb9d1ae7aac66",
+      "afterHash": "79fce02840c264cbd653e7a582fee6cea4bf096fbdb620ce64da0c8611149d1d"
+    },
+    {
+      "image": "assets/tiles/walls/01.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/01.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/01.png",
+      "beforeHash": "88ec17a76d5a105df7314a78c067fa18662728b2dd656e2da240ec0c275f8316",
+      "afterHash": "82156e56b421eac30a5fbb92f3ce9542c7296580a378d63695c4b3257432403c"
+    },
+    {
+      "image": "assets/tiles/walls/02.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/02.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/02.png",
+      "beforeHash": "9efee2c5bc4a616c6f4d7745a8a295c28dbb61b7705eae142bdf1492ca814ddc",
+      "afterHash": "6092fc83077bc9f38971f0dcc675e92e01fee9356b71019a1653df0c812e94d2"
+    },
+    {
+      "image": "assets/tiles/walls/03.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/03.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/03.png",
+      "beforeHash": "f4f16bb3cd0b741e9b5ec3dc51a65f0457778dc7c46bfae379ae63e7cda4eb7a",
+      "afterHash": "0bba34b5a9924fbcaf742da61ded7d7b6ba41eb674930710a9f8288da05f0e79"
+    },
+    {
+      "image": "assets/tiles/walls/04.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/04.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/04.png",
+      "beforeHash": "1165b24eeeeb572d5698120677b771ee84594694c91eaaaf38deafe6c88fd177",
+      "afterHash": "514c9ed21a835e2278fd853c0374f59dad2c4a738a8a6ba7d3c78a4592e352c0"
+    },
+    {
+      "image": "assets/tiles/walls/05.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/05.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/05.png",
+      "beforeHash": "ca27c7aa56948164e79d37d26cd9d4605d0f2a29a23663ef29e7268782dea10c",
+      "afterHash": "0755bceb5761507a6f98a1aa7e392ebe3ca4468199fe7b51f5a1b7e55ef9c2eb"
+    },
+    {
+      "image": "assets/tiles/walls/06.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/06.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/06.png",
+      "beforeHash": "4fc8e8e2cbe90b6fd3d17a2f1f01fc2e9d2c0cf6478fd34ef35aa511d78284a6",
+      "afterHash": "6a408835d4d2bc09c713723d05a520183056f9969c6dcf06d8c9c4e9c0757c84"
+    },
+    {
+      "image": "assets/tiles/walls/07.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/07.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/07.png",
+      "beforeHash": "4bab4d980edd4e7a730f4f54af4ee690e17443b116f13eef9feabeae77a3df28",
+      "afterHash": "2b47d04da02b822346fac158bad2218f5824b1fb63d489d14dfe1555798d6807"
+    },
+    {
+      "image": "assets/tiles/walls/08.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/08.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/08.png",
+      "beforeHash": "af96d89090684ef2d6ae0d3da93eb8f3000d3dfb310a857fc1b630b37323ffea",
+      "afterHash": "f053b281eb276862d3d9c730eb49d9a51f0696f22bfac02160238aad87bce8c7"
+    },
+    {
+      "image": "assets/tiles/walls/09.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/09.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/09.png",
+      "beforeHash": "b8db3415d32a22a7504f8c537e73f6b83320dae51d971e9b718e4c37371b7732",
+      "afterHash": "d0bcad3d22b4c1fbebc6e5c074fea9ad40e0a916b051f2982a07b7e174d2babc"
+    },
+    {
+      "image": "assets/tiles/walls/0a.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0a.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0a.png",
+      "beforeHash": "7d478b5aaa28b9f67e46c669c60c33170a2d56e82c7f68b55719d6334688c22b",
+      "afterHash": "cb6f82c48c42526e9d78a4a9400a124ec2b10bc8086b1cdc90bb1f45e453fd5e"
+    },
+    {
+      "image": "assets/tiles/walls/0b.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0b.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0b.png",
+      "beforeHash": "0288a628d058c388a5d7a877a30bb5f88ecad16a5dab0253190c4a45a6492864",
+      "afterHash": "46633e1682c5cfb1a5e3cd177f74c0c4bcbe23a9a99b511c96f48b9efacb76ef"
+    },
+    {
+      "image": "assets/tiles/walls/0c.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0c.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0c.png",
+      "beforeHash": "23cdbf54e9dee3e48a9695ba1cee2ef1d4b46e9ee85a7dbc085b34211db337e6",
+      "afterHash": "d29850b7ab8dc73d6a54501c75e6763bbc06bea2d531cf3c916362d67db618fe"
+    },
+    {
+      "image": "assets/tiles/walls/0d.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0d.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0d.png",
+      "beforeHash": "a17641b6d855e4689242a6eb58eab832ea03f48abe5e873a03c0413e5d39f071",
+      "afterHash": "01ac2ee818887c34302ce9bbaa44114c35bae6a0668dc7572d102b6b05f6ae41"
+    },
+    {
+      "image": "assets/tiles/walls/0e.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0e.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0e.png",
+      "beforeHash": "2889d93c121ac0ed7da2261b9975d65ab94fe072b65ead66b55f4cf40385e2b8",
+      "afterHash": "bd3e58c74d242f785d7b7e750f22a3d4fabdc84596684ad65d347d341db999dd"
+    },
+    {
+      "image": "assets/tiles/walls/0f.png",
+      "ready": "assets/generated/fortifications-v8/ready/assets/tiles/walls/0f.png",
+      "backup": "assets/generated/fortifications-v8/before/assets/tiles/walls/0f.png",
+      "beforeHash": "59207c4308158c91a23ea0f1d8a19bf3845dc201ad11edfa1dd5977bbb9625ac",
+      "afterHash": "63c0ee7947ec57033d13b7aa60cf0f6946e9a5f42d462092c14ba67293230de3"
+    }
+  ]
+}

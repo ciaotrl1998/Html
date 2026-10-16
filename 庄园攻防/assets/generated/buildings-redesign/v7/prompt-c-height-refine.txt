@@ -1,0 +1,12 @@
+Use case: precise-object-edit.
+Create a Chinese strategy game production sprite sheet. Input image 1 is a REFERENCE of SIX LOW-TIER building identities, flat-cartoon style and palette (read left-to-right top row then bottom row). Retain these exact motifs and thin dark brown outline. Gray-blue roofs, ivory walls, brown timber, red/green accents. Simple flat 2D, few plain color tones, orthographic front view, NO isometric sides, realistic material, lighting effects, texture, thick black outline or glow.
+Output EXACTLY 3 columns x 6 equally spaced rows on a portrait canvas. Low, middle, high in columns. Each row has common ground baseline. Separated transparent cells. No floor, background, halo, shadows, text or labels.
+Main change: GENUINE HEIGHT-LED UPGRADES. Low retains reference design, middle adds taller walls/loft, high adds a REAL upper floor or vertical structural segment. Width increases only slightly, about HALF the height increase. Keep roofs, signs, tools naturally proportioned, not stretched/scaled up. Each icon remains identifiable at small pixel-game scale. Single floor -> loft -> two floors for houses.
+Rows:
+1 Chinese mulberry orchard: round muted olive-green trees, small blue-roof Chinese cottage standing BESIDE them. Low 2trees, mid3fulltrees and a taller cottage, high denser same trees and two-floor cottage; no planter border.
+2 Weaver with wooden loom and indigo cloth always visible.
+3 Tailor with red T-shaped garment and blue cloth roll always visible.
+4 Open stone quarry with gray cut blocks and timber lifting frame: taller frame with each level, little width change, no enclosed house.
+5 Rounded Chinese clay pottery kiln with chimney and blue-white pot, higher kiln/chimney with each level.
+6 Trading shop with wood crates always visible; low single floor, middle loft, high two floors.
+Keep 18 buildings, no clipping.

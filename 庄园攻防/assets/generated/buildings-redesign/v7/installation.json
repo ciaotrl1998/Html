@@ -1,0 +1,606 @@
+{
+  "version": 7,
+  "rulesChanged": false,
+  "assets": [
+    {
+      "image": "assets/sprites/buildings/tea/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tea/level-1.png",
+      "beforeHash": "d6babbed3314825e491219317cdea13490f881aa0c6afbdf9327d221fe63ab29",
+      "afterHash": "0594ea14e0e2517b64fbdfc47195b192d416676b76b38398fc8803ea923f6b86"
+    },
+    {
+      "image": "assets/sprites/buildings/tea/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tea/level-2.png",
+      "beforeHash": "add533cd791212432a735368989d8e1bc8ad724a2983f06e0a9b3728a83f96a5",
+      "afterHash": "a7f34c868cf375ac8ea60dc2acb01144709d71df3a03133198b93e392ec277a0"
+    },
+    {
+      "image": "assets/sprites/buildings/tea/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tea/level-3.png",
+      "beforeHash": "43cdc32f28fe2886d6d69942eb5ed222a2e0859d7c897b40856e201d6bc0c4a4",
+      "afterHash": "e8f4a26959743e167a7ce19a3fcc68cb398d3a92557bedd86f41d6ee3530d5d1"
+    },
+    {
+      "image": "assets/sprites/buildings/tea/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tea/stages.png",
+      "beforeHash": "c041d1e53fedb1705543110de0aa30533035ec999719df3bf8da8c497335022a",
+      "afterHash": "7961a29f57cbe5bd1abcfc4757e07df797d3550a57f0a83eafbbf338734f1f15"
+    },
+    {
+      "image": "assets/sprites/buildings/inn/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/inn/level-1.png",
+      "beforeHash": "c4bb2057e0d0be2e3f2a7041608fc9d2c74b67a95d7544b5afb5a2e81002d0f1",
+      "afterHash": "7f038c06ff9bebfa37a8af824e81d3c02d44790f4c5419fe18472577f25e19d2"
+    },
+    {
+      "image": "assets/sprites/buildings/inn/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/inn/level-2.png",
+      "beforeHash": "722495a3200600531d6ccdb83e79090a9647c183f81e21256fab5d748b4edb6f",
+      "afterHash": "497928b3c65fe03b98106fc50781763e7993903273de4f991e7cea1f9e109e5b"
+    },
+    {
+      "image": "assets/sprites/buildings/inn/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/inn/level-3.png",
+      "beforeHash": "2d285cf8daf7bef24308e3112dcd5081307e156ddef42f691801e1f35ac5930f",
+      "afterHash": "860a3c8bd9287667acc33de08d2bd91410a108bde868328a605e80ff264f64b4"
+    },
+    {
+      "image": "assets/sprites/buildings/inn/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/inn/stages.png",
+      "beforeHash": "1087434e60e79940e2315a599ac719853d54e3c515786f4566ba4cbab069ddc4",
+      "afterHash": "ecbbf1a2ef310ac860d9c025840abeaefad6d749f049f3a9edcb35af620bc32f"
+    },
+    {
+      "image": "assets/sprites/buildings/bank/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/bank/level-1.png",
+      "beforeHash": "af81e83ffac89145c6f7f336d2a08add0e3142af6d090b9b9bd967deac98a683",
+      "afterHash": "3b3b872a5f62fb225efd96abbdf63173016b2826b40262df01785394e87c3155"
+    },
+    {
+      "image": "assets/sprites/buildings/bank/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/bank/level-2.png",
+      "beforeHash": "36823091c7c261503aa572fc1653f58e54c427d01134f7da46d062a471dae6e9",
+      "afterHash": "f88271779a45bce607f2b85e25069930bcad583a5ee49d6848f1d26312d9e8c2"
+    },
+    {
+      "image": "assets/sprites/buildings/bank/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/bank/level-3.png",
+      "beforeHash": "282e80d9fec9bcaece33e346017870aac7069497c9b76f7c9c1882bb2eb1c0fa",
+      "afterHash": "ba67c9239c4a7e8787b68c9a022c0c12cd4096378ae7210c9abbe18a8b14384e"
+    },
+    {
+      "image": "assets/sprites/buildings/bank/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/bank/stages.png",
+      "beforeHash": "ed0e669223f63c9bbaca1f431c76924be4e08c59814b61f225c32981332e2031",
+      "afterHash": "3e2f9b4c557b3fdf3f8f9013b5482fe56216b9b78746fe2e20413ea4450b44f6"
+    },
+    {
+      "image": "assets/sprites/buildings/farm/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/farm/level-1.png",
+      "beforeHash": "9afee80b00b6c6e22fb5f71c2472d430907efe0dbe137b636803c1fb75c2a1af",
+      "afterHash": "9101cfa506b9ede0af6e70169f56de017778847ae62f9f3f2d90155d826a5104"
+    },
+    {
+      "image": "assets/sprites/buildings/farm/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/farm/level-2.png",
+      "beforeHash": "f27a8de957f1147ab7139b7c6746949a26defd57cea988cdcc36e632c61a9b05",
+      "afterHash": "7ecb6f866486b4d028565eefab887a6e8b67c461bde5b31d7ae809fda72ad989"
+    },
+    {
+      "image": "assets/sprites/buildings/farm/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/farm/level-3.png",
+      "beforeHash": "433fe8b60b820b0c934fe8271b973efbea7d79586f0e24e1152a8e0bdb354143",
+      "afterHash": "d4b0d1b41fd59942137add3c7bdb875499e8db21fb577faf5786455650ca5d56"
+    },
+    {
+      "image": "assets/sprites/buildings/farm/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/farm/stages.png",
+      "beforeHash": "1dc36034a58fb70195efd76f927d6218bf5762f2d4bbcd67537d8fd1acba6796",
+      "afterHash": "ee3a7a642138ae9b3ed6f652dc74591641e961754db1fa3d11b4b34fba9b7659"
+    },
+    {
+      "image": "assets/sprites/buildings/mill/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mill/level-1.png",
+      "beforeHash": "a79afd5d9f0ee14da71e12b3e027d8340244fe1c39a1d3f2833e061895f10ac7",
+      "afterHash": "8eac5e9c2ea2fb85e7f36f6f6f1ee03c9aad2f709def80d4ab85fb07cb6fd7f0"
+    },
+    {
+      "image": "assets/sprites/buildings/mill/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mill/level-2.png",
+      "beforeHash": "89439a9b3d56ccbd8a12e79a48bff0725292de0cfc8bb01e807009598894ccdc",
+      "afterHash": "73d0ff238acce2f53c0552ca19ccc014cf78cff2c0131d9c45a2e3df8c9258d3"
+    },
+    {
+      "image": "assets/sprites/buildings/mill/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mill/level-3.png",
+      "beforeHash": "18f1238cdc31cc52e1862cb6087c794a2756b5d326581a83c417791f0f2a2553",
+      "afterHash": "5c68de12cf188d1f147175df971dd768f0b6fe9a5ce14c960cd9493df43c7367"
+    },
+    {
+      "image": "assets/sprites/buildings/mill/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mill/stages.png",
+      "beforeHash": "162a9a37f5341b11ee4879d6cadc3ca4891d4ef492d067f0bc25b787fe840ae6",
+      "afterHash": "2ce327a4e530489a54268f0edcf757af4414626a717397e7c89f81cb0b3a3385"
+    },
+    {
+      "image": "assets/sprites/buildings/wine/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/wine/level-1.png",
+      "beforeHash": "0e5a8dea58ebc0f404805be6ea9290dd00e0b55efa3dff7170bfc664f081b6c6",
+      "afterHash": "fd26fdfc37377a3747bdb1a9f9077320d8e17726c157c3e3ddcc2b0512aff3d6"
+    },
+    {
+      "image": "assets/sprites/buildings/wine/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/wine/level-2.png",
+      "beforeHash": "1b758a8df9a4ce42c069e0b3294cac9dcb9a15b82f9ee344eb5849c465425d4e",
+      "afterHash": "fac23b33045a4df3af2697dba614440d03be1f67de46e9670afa5fd4823683f4"
+    },
+    {
+      "image": "assets/sprites/buildings/wine/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/wine/level-3.png",
+      "beforeHash": "2bb294dc2d2069dae0447134f30b9a87f8a1e7f8190602fbd9072852a8fea1ae",
+      "afterHash": "26a0c0f42de9a31b63e6631e0fec20713551488fed73423c7f9df4c00892cf16"
+    },
+    {
+      "image": "assets/sprites/buildings/wine/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/wine/stages.png",
+      "beforeHash": "f8c2f2f131bed2d2aaf833c2afe565239534bf3701be71c6b1c4c07a0f0dc6f2",
+      "afterHash": "93524627821df36e9cd94ec1b3945aa32812ea9d72218c7724b622563d805fb4"
+    },
+    {
+      "image": "assets/sprites/buildings/mulberry/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mulberry/level-1.png",
+      "beforeHash": "9152d36c1fed8614b292fc0b85a356fb0be2b85b1543977a482148f2c065aa70",
+      "afterHash": "a7f670d03c93ea1ccfb3b341b066f6de5bc79ef357851afeba6c4a563d24734e"
+    },
+    {
+      "image": "assets/sprites/buildings/mulberry/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mulberry/level-2.png",
+      "beforeHash": "30685d8b7ec83beebacd07d52f107df480d68cf4ab1d7b4d18494c36af35d5e1",
+      "afterHash": "f26f0094da4602360e4f41dfa1d1dc34e9812b9b5a937be98672ec75b14f059f"
+    },
+    {
+      "image": "assets/sprites/buildings/mulberry/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mulberry/level-3.png",
+      "beforeHash": "3d9b4611ba0f1eb495c6e4f3ef47ae7db60bb5a678a1228e6bc6a34b50e96c15",
+      "afterHash": "3444fd69da9c8008fc372a5357edd9f9f2397a3fa77b02d4d80587469fbfa715"
+    },
+    {
+      "image": "assets/sprites/buildings/mulberry/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/mulberry/stages.png",
+      "beforeHash": "54425edfb8fb4e5dc81c94c7e921a095daddd9452ecd295bd34cf03b72b7660b",
+      "afterHash": "0038b81b94d1144de84f9e723d6d487907256d1192573b8a6db5a842c06d754c"
+    },
+    {
+      "image": "assets/sprites/buildings/weaver/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/weaver/level-1.png",
+      "beforeHash": "5cd4ecbf66054ca1d3f4071d22d2770d84021d2a284fdd55b0f2596de6fd0801",
+      "afterHash": "04c378ac414bda30491ce378ce55d74bd806584f49a923972cd1f08de2d6eae1"
+    },
+    {
+      "image": "assets/sprites/buildings/weaver/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/weaver/level-2.png",
+      "beforeHash": "8db83b18cce647c8e8e7bf1fdbc15ee84d1017b3a587b82b8791d062205045c3",
+      "afterHash": "53d9b42c150465d829b95217aade21371431427c2ebb8d7cbebd2dd3676f6332"
+    },
+    {
+      "image": "assets/sprites/buildings/weaver/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/weaver/level-3.png",
+      "beforeHash": "c3e44c046b4dbe83bfcd4e3080f0eef56c6f53390cc19e7dc80456f666d54b94",
+      "afterHash": "1b9f9e152d07ac2c8edd87565c2e83459e2226e7a9dfb867722fce254c5710ca"
+    },
+    {
+      "image": "assets/sprites/buildings/weaver/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/weaver/stages.png",
+      "beforeHash": "2b6a824741e6bc514abf2fd42e74edbd3d02081926783c5db6ca40271ee01cad",
+      "afterHash": "1b41bf3716e62524a5a31bafe4a04ad66b77adb7739bf059587c239eb8b849f8"
+    },
+    {
+      "image": "assets/sprites/buildings/tailor/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tailor/level-1.png",
+      "beforeHash": "b296205f4a08ea5f12e2464feef8efc4fa181b3832a2def73d64486aa414b7db",
+      "afterHash": "8949c4e7cb577c22c58feadb17733f55f10a3515bb574676d3ca8eecf066dff3"
+    },
+    {
+      "image": "assets/sprites/buildings/tailor/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tailor/level-2.png",
+      "beforeHash": "f9a29cd806c2a181e53cc53c880d790ba61e8659503f9b622fe22d29ab974baa",
+      "afterHash": "c88bc460286d680287981e741b8bd299f1d086be1c9dbf2f3aa3dfb395adf203"
+    },
+    {
+      "image": "assets/sprites/buildings/tailor/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tailor/level-3.png",
+      "beforeHash": "87f19a8157123ca678a17d09536ced4bfc88ddfadd5742941708f5d943f439b9",
+      "afterHash": "19ed47e40b3893b4c7958c5b9ffd24a0a49ad0c314e1d220960e74152e3a4c28"
+    },
+    {
+      "image": "assets/sprites/buildings/tailor/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tailor/stages.png",
+      "beforeHash": "3f432533d8bfcece85cd2b9233aa486e923e0888b258a3ae5f9de973dd7716bc",
+      "afterHash": "9e8246266b248d0b7acd7325eacfb193774bfb430256e0e9e72dc537de5098c2"
+    },
+    {
+      "image": "assets/sprites/buildings/quarry/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/quarry/level-1.png",
+      "beforeHash": "439952f9aa1d9387cbddb5c7cbb9549a9f08e149af066e524c25c2182e3edf30",
+      "afterHash": "9f89a719a67153e20dda4feed11c56836e87b24b29b62b7eb77c57f0d0745577"
+    },
+    {
+      "image": "assets/sprites/buildings/quarry/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/quarry/level-2.png",
+      "beforeHash": "3a56668ab72662e5a8179200e1cbcdca058b84be79ba54c40226a851d0568c94",
+      "afterHash": "ede3ed55fef21c4471cbc4b15fd5a6667103ce80bc84732915f9c09879ec777b"
+    },
+    {
+      "image": "assets/sprites/buildings/quarry/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/quarry/level-3.png",
+      "beforeHash": "4ed7ebd7cdad8c9a8d6369e0c4784b91af7505dcb9c879c2437f1ee18eaa14e1",
+      "afterHash": "338224984168918b76726d4d4f950e7b14f7f1898952c363668d4207f7b952ca"
+    },
+    {
+      "image": "assets/sprites/buildings/quarry/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/quarry/stages.png",
+      "beforeHash": "d8de8dd2ac754eace77622b047d3fd65e5f9a62887fa225162035aa4788c49c3",
+      "afterHash": "517e845fdd3999588cda3bdba8cbcdfd44b0789c8d7726532235efbacc82088f"
+    },
+    {
+      "image": "assets/sprites/buildings/kiln/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/kiln/level-1.png",
+      "beforeHash": "b8b049ed016760074d0d17705acbbc1a254ac616db630390ac6d0f0b7cb98030",
+      "afterHash": "5678048283dec851e5694f96b9d5f5f359db012456c513ffe8ee61d64f7aa813"
+    },
+    {
+      "image": "assets/sprites/buildings/kiln/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/kiln/level-2.png",
+      "beforeHash": "f23c55a202b888ac7fd67cf3b6dbb949fc08fa3393355ccd8d67927242d3c663",
+      "afterHash": "e5220f9253ea70d3eb0188bcaa655f32bd468229342bc6ac80b30ad684bf9b21"
+    },
+    {
+      "image": "assets/sprites/buildings/kiln/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/kiln/level-3.png",
+      "beforeHash": "fdcc58870395cb6a478864ba2d0365aeddfea023709284e2d0d9701d5995ff67",
+      "afterHash": "d483b7fc7c94c32235a0935912fecb89ebc397c0185258aca61bf2c7013f4f7e"
+    },
+    {
+      "image": "assets/sprites/buildings/kiln/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/kiln/stages.png",
+      "beforeHash": "8a26552b8e7fa58d747d9351a0cb2f035cbec9d2b06c591d222fcf04c465dd47",
+      "afterHash": "7890a042d6fc82311c37f7284aa9e04fdcbfbf1180a602146baf38c85ce59c9a"
+    },
+    {
+      "image": "assets/sprites/buildings/trade/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/trade/level-1.png",
+      "beforeHash": "7d6a4543015f3519b314415bac9ab2bc7b7edf6f2d6ec56098aca862838f8113",
+      "afterHash": "70a3af3bf979e8a97e0a4d68a10c047de23c4b7abcb29331dffb2b4958244213"
+    },
+    {
+      "image": "assets/sprites/buildings/trade/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/trade/level-2.png",
+      "beforeHash": "512fc789157c729d1fa3efd05888dde4e7f3552d79f05fe005cdef6de0627bc2",
+      "afterHash": "1990aa161d2def9e4aef12595fc8a300a15c2f64c3cc7a37273f0149f94a7ee9"
+    },
+    {
+      "image": "assets/sprites/buildings/trade/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/trade/level-3.png",
+      "beforeHash": "5860b2274260acc767650d3fac07b7f53565faf989a60000b2b8142b6dd51cec",
+      "afterHash": "6845dc89adfe9c8efd3499083315b3a75c01b20c6cba90395540e73eb039bed9"
+    },
+    {
+      "image": "assets/sprites/buildings/trade/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/trade/stages.png",
+      "beforeHash": "8c91046ac9f4ade65ac56fb9c076e83059f9e41643c6d7da2bf81fdb39344129",
+      "afterHash": "937c0329aff3dce1472b4b3773f69fb94b6092dcba36c96614104c54823853e4"
+    },
+    {
+      "image": "assets/sprites/buildings/guild/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/guild/level-1.png",
+      "beforeHash": "6359a712e2d4151418c54b3e6102da4f6aa982c19b1b23cb9331ef296196250c",
+      "afterHash": "4281fd6bcf9e192660ad89f93cba359bf30187843bae8b53592140ce8c2b4ce3"
+    },
+    {
+      "image": "assets/sprites/buildings/guild/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/guild/level-2.png",
+      "beforeHash": "e8a74a810c57199a4d6a70550be15d8ca6d7ce77d630bbe2d26e16eb05c678d0",
+      "afterHash": "cbca131394f18089fde184ecea082358c17cc1b990c31bd6e3b870c59ae46399"
+    },
+    {
+      "image": "assets/sprites/buildings/guild/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/guild/level-3.png",
+      "beforeHash": "f8a182bce3d5e8ba1942a4bfa4b6e2944ffcc52415b92bff859477dfe8f01e77",
+      "afterHash": "34cc5772d63749df71ebae0d02fb615d29281a7934afcd414ad7be3ed0bea4b5"
+    },
+    {
+      "image": "assets/sprites/buildings/guild/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/guild/stages.png",
+      "beforeHash": "9e9a9b9062686d65581f699db834962dcfb023c22af3a67bfe4ddd1bdafb4eba",
+      "afterHash": "a78509463f29ff1ab8b681613c8384a7b85a12b77e2d5ee88a6d466c0b74f3c5"
+    },
+    {
+      "image": "assets/sprites/buildings/port/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/port/level-1.png",
+      "beforeHash": "9832d21748b8d0291db62421dc0512fead34799d373a89cc16c10689496738a4",
+      "afterHash": "7d29bbae67f889d7db5a08c46e321bc31a15c39cfb95811bdae92a6a32ecab68"
+    },
+    {
+      "image": "assets/sprites/buildings/port/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/port/level-2.png",
+      "beforeHash": "93e7435f1d97364f9fcadda27a43faf46986ad65c4ab414dbd27f7cc79a8a2b0",
+      "afterHash": "c66a047d27490c295808be4b4ecfe28093a1454ca4533d9a2c5c0dcfb2bbe340"
+    },
+    {
+      "image": "assets/sprites/buildings/port/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/port/level-3.png",
+      "beforeHash": "278921463f038d7f366cc11a208a2c9c5e9a24e76092e0db2c3d667bee7e0858",
+      "afterHash": "160b5f05d3d2c2b7b5802fd15fb8301bb3a4b4351e448dd8c2caac7e761e5edc"
+    },
+    {
+      "image": "assets/sprites/buildings/port/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/port/stages.png",
+      "beforeHash": "e8ec9dbf7fc7e4f216fa46462da6241bc08d1a07cd6b07ddd2fb1d5c818932eb",
+      "afterHash": "70baedd48508e590884032703eae151557e2d606f5599501990e5e85fb99a7d4"
+    },
+    {
+      "image": "assets/sprites/buildings/tower/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tower/level-1.png",
+      "beforeHash": "3a6ec3022fa8b2572c8426df7cb8c511ade02af84c72dc6daa6100206245a33a",
+      "afterHash": "fc9369423ab0e60863d980607e22069c967448cb181eaec922413bb4d06579d2"
+    },
+    {
+      "image": "assets/sprites/buildings/tower/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tower/level-2.png",
+      "beforeHash": "073004a9533294e6a91f87eff469f9f47afb223c418366c292f68d6aef3f259d",
+      "afterHash": "625579348f2fab842889cc8eabaf199efefd7b34891cc8cdf918b2b4b5672f5b"
+    },
+    {
+      "image": "assets/sprites/buildings/tower/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tower/level-3.png",
+      "beforeHash": "403357f4f29d6acf437c3c5b6ef31287540be80da49d3e1e1141f9cc8cec0632",
+      "afterHash": "d1fe2963913b5173fd89929d74e7921b7a7e11d7024aeadad485b6cc95e85d6f"
+    },
+    {
+      "image": "assets/sprites/buildings/tower/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tower/stages.png",
+      "beforeHash": "d2258dc58fb28e0ba3653dd20370877c69a3359ac4adc1d97f3e9bb96ed94889",
+      "afterHash": "b0024c0a6b1ed3aac724cb5b2960a996993af71bb21ebcd492725611ef605507"
+    },
+    {
+      "image": "assets/sprites/buildings/rock/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/rock/level-1.png",
+      "beforeHash": "ac95c58ffa649ca418ce10e68163e9450924f6f48e553903a7b58d61f4ca34c1",
+      "afterHash": "16c090a2f59d930eca2b1c3d3d4ea65c9257f6b6ae4f5ed096c2068a7eca7327"
+    },
+    {
+      "image": "assets/sprites/buildings/rock/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/rock/level-2.png",
+      "beforeHash": "3750c07240e192cd9802c678d7cb6ea41ce5773ed4547d148483986afa75a5eb",
+      "afterHash": "e49541c4828b201b85ac975c7df2a4386232e57eba87889284f2ffececd9679e"
+    },
+    {
+      "image": "assets/sprites/buildings/rock/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/rock/level-3.png",
+      "beforeHash": "965e5fd51cee291afe627df4467813587391fce45ed4a236fc11beb6f55292ed",
+      "afterHash": "6b4a8f23321405b1003eedfb2962fffc651b82b959368d74d137efc61e8a2f3f"
+    },
+    {
+      "image": "assets/sprites/buildings/rock/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/rock/stages.png",
+      "beforeHash": "8f01d324ade2e62b629e71aa4b1fcaf40e60a3623c32253e27cab319c86d49fb",
+      "afterHash": "ba0d4ee6dccadb10aeb398a87310227754c02e6ff5647b32e7c256b17a3943ce"
+    },
+    {
+      "image": "assets/sprites/buildings/barracks/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/barracks/level-1.png",
+      "beforeHash": "2ece55cbaa0b1ef31eea67833fa777a10091b706000ca0bbe13582218ab767df",
+      "afterHash": "3647557e56a5ec1fd1f2498a30bd164bbea0d27b5976bb49056238ae1ccb5dd5"
+    },
+    {
+      "image": "assets/sprites/buildings/barracks/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/barracks/level-2.png",
+      "beforeHash": "2652fff487e2538d6e055209ec44ffe899c50530d21832f3008c07d3a24b12f0",
+      "afterHash": "1c7a68b966ae1cf9595ec53bb4899475b853025dbe1cf57a7047925da372cc14"
+    },
+    {
+      "image": "assets/sprites/buildings/barracks/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/barracks/level-3.png",
+      "beforeHash": "a9e40cdc6c5e13ec3c0e255d62b4e59cca837ff7bb7de690e63200541ae8ba39",
+      "afterHash": "85264bd18c3ca44b8bdda2134dd8a390a782a9bf0a4e174eb236ebb95f3777d7"
+    },
+    {
+      "image": "assets/sprites/buildings/barracks/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/barracks/stages.png",
+      "beforeHash": "bb20813a46e7b4e931535086fa7e5f49ccc297739429567e46804c0b87669602",
+      "afterHash": "d03ee23a8ec999011737dea6e4b705105a13599c2dd62e060e1f38fca132a081"
+    },
+    {
+      "image": "assets/sprites/buildings/well/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/well/level-1.png",
+      "beforeHash": "cdbf6da97843ae05f4388c03ecda36ec7aa8dfebc71b5ee5cbcbf034f645f203",
+      "afterHash": "ed0ed6e04648a050e7abd8e8ae8f43ccec35a9e3c04efab3bf639cb89d006561"
+    },
+    {
+      "image": "assets/sprites/buildings/well/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/well/level-2.png",
+      "beforeHash": "e60217c10fb559f4f292da5520a3efd75912752aa19c7f64542dbf3a41bd4fb4",
+      "afterHash": "b5c61047c0100f7ab91cd8b9c34fc6a0c5d37e9286310aef58c0cda310e552be"
+    },
+    {
+      "image": "assets/sprites/buildings/well/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/well/level-3.png",
+      "beforeHash": "551697d621559a34803b7f3e7356333cebe275283a80254761622a7136a8271e",
+      "afterHash": "22ac1329f1dad7d56afc6a2a428037dddfa951ceb9c24aaed69d2ed2e9729c85"
+    },
+    {
+      "image": "assets/sprites/buildings/well/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/well/stages.png",
+      "beforeHash": "9a506a7b825ab44bdfc5dac66e9f7356b011ab6a08924d56dda81549c3718e76",
+      "afterHash": "9bbd19cb0e0a7bc9c341d58eb22eafc06cfaf044291a0f0892a5329f11e3e5b7"
+    },
+    {
+      "image": "assets/sprites/buildings/stage/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/stage/level-1.png",
+      "beforeHash": "561406c46e2020184eb2759425af43332c7d2be990d30853841cf9b14c816873",
+      "afterHash": "08c3118f68c9348ba9ec835b3802b05afab7a5863cb23b7c2bab3efa572a4313"
+    },
+    {
+      "image": "assets/sprites/buildings/stage/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/stage/level-2.png",
+      "beforeHash": "b25a0be46e9b369ee526c35e24844fa75d8866b9a0dfc30909042fa77d4c7899",
+      "afterHash": "1d29f998bc99fc5231d74cd8c95aa8904019749c6ad992492337e801451a9084"
+    },
+    {
+      "image": "assets/sprites/buildings/stage/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/stage/level-3.png",
+      "beforeHash": "4ef06ca84b2f34ad06d05b8c6d72f2d19fe0efca9eb05d518bea55c844e7987d",
+      "afterHash": "bc9967402272d69f09ce26516044c4f987ba5e493cdb22b7fbda31949874fa45"
+    },
+    {
+      "image": "assets/sprites/buildings/stage/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/stage/stages.png",
+      "beforeHash": "e2214f5b4c7f69cd2492729c4707e5b7e25f781da23e7ad9834bfbd39c14f036",
+      "afterHash": "eab5619580c3f6c69dbab198316153621fd681650198827652cf510282031391"
+    },
+    {
+      "image": "assets/sprites/buildings/shrine/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/shrine/level-1.png",
+      "beforeHash": "8f845f0ad4dc8ed84766c65b26726e5f747dfa3e30113b4dd098da4fc410507c",
+      "afterHash": "9afb962b5e80331ab6401e02072e3f8cbb329c68986a2b160038d6ad93fb4e89"
+    },
+    {
+      "image": "assets/sprites/buildings/shrine/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/shrine/level-2.png",
+      "beforeHash": "580f0afed27a29525bd615ef6d99168af0cc1a5440defbc2f2d8c7a5c984f16c",
+      "afterHash": "7a0eaf1f67350e72dbe3b562b601d162d6fc3a9b6f734c065a73d324232e2951"
+    },
+    {
+      "image": "assets/sprites/buildings/shrine/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/shrine/level-3.png",
+      "beforeHash": "be19aea26749e2f745e4f3f21608df81a3f8abf0c97c4c02a3643ca3abe3f9d0",
+      "afterHash": "d0a1572ca6eb8d455fef1b3b79c81d0911b93be9e97f6c3f6bfe7aab7f97f83c"
+    },
+    {
+      "image": "assets/sprites/buildings/shrine/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/shrine/stages.png",
+      "beforeHash": "c73d160a5155c7cdcd76667bad090aac329e58d47b1eaaf0df55fe89ca067fea",
+      "afterHash": "d23e2d8228e4cc6dbcfd61d8a36a69443e9b075af2e4eeabb33f3a666b6ec4dc"
+    },
+    {
+      "image": "assets/sprites/buildings/earth/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/earth/level-1.png",
+      "beforeHash": "1a407dca7885060076481435d6c38d58bedb9f7f337fac7ce657ce0a1cc905a4",
+      "afterHash": "0e0472faa1921942e7fc1488728d5624f0d8c0e23743ad25dd8cd4911ff8eb86"
+    },
+    {
+      "image": "assets/sprites/buildings/earth/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/earth/level-2.png",
+      "beforeHash": "8323d47859eda8ceb9f6df16bd498a486c9a12e9a06cd4c9940b31bb2841b871",
+      "afterHash": "0ee6e5f09ed3e821a2f396f056d1c23d4934179bf6999696d5acacd7d7a6353d"
+    },
+    {
+      "image": "assets/sprites/buildings/earth/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/earth/level-3.png",
+      "beforeHash": "15467814c5df3328b42c8706255b27050cc28e5882fd041cdab217d9e32d9326",
+      "afterHash": "a31c4818c326d95b8325f2b78cbe74d1e5314db0c2cac639427910c16ef1c52a"
+    },
+    {
+      "image": "assets/sprites/buildings/earth/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/earth/stages.png",
+      "beforeHash": "d105ee3db628260cc5d79d5f37a380c46e200734d6ccd4bd23e211f9d2f8ef9a",
+      "afterHash": "bda120057bb68b91bcc593650aff4339e1d9ef1658a1607e210f35d3a3b28c5d"
+    },
+    {
+      "image": "assets/sprites/buildings/zhong/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/zhong/level-1.png",
+      "beforeHash": "3b279830d9dfcd70d3c21feb14e810b34d9e153a105c73691b5f55f6131100a1",
+      "afterHash": "0f24577cd1ef3847dd13ea9b2a75fbf21bb18ff7574ee60410bd3f3d5437efb7"
+    },
+    {
+      "image": "assets/sprites/buildings/zhong/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/zhong/level-2.png",
+      "beforeHash": "b2fd190d3a146664a2859e33e18fdc98e7753e7a04e494e037bb6c668fbbb201",
+      "afterHash": "2334521cf246104534d2c2141da1961d2c3ada77f2135a902e6afee6b286005b"
+    },
+    {
+      "image": "assets/sprites/buildings/zhong/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/zhong/level-3.png",
+      "beforeHash": "c3f52b23bf64008856d93a7030a03d5e0e405fae308d7e2dd3a75acf639828ec",
+      "afterHash": "285a31e5ef2f5258e51cbd6eef5931369e71d76ffd1d2bd68d9ed015004b0ad0"
+    },
+    {
+      "image": "assets/sprites/buildings/zhong/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/zhong/stages.png",
+      "beforeHash": "093cb6e19eecdb617a13234589bcdb88ed3cfafb132ef67a9db07e056f55f6f8",
+      "afterHash": "3617aab36f818660a3112f2a5b5431d03db11978f3074f8a274ba97b8079537e"
+    },
+    {
+      "image": "assets/sprites/buildings/tao/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tao/level-1.png",
+      "beforeHash": "f7abf181ceb68765cbf1784e06048453c19897f47295288ada419efbcce00a29",
+      "afterHash": "dc5fe4e17bef7399dfcce5b35fb72edb06e0f51d40059d0c29593bd30cf395a6"
+    },
+    {
+      "image": "assets/sprites/buildings/tao/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tao/level-2.png",
+      "beforeHash": "38517b3a8ed29565ac205bffef0d1b45018ae89bf8b48d57fea2f548af6e40c5",
+      "afterHash": "133d7b306dc9e5576b62c077a05326e050673b821ad52ed1a31e730894a9245a"
+    },
+    {
+      "image": "assets/sprites/buildings/tao/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tao/level-3.png",
+      "beforeHash": "6a555ef5c5390080a532567f848849d9ecc30b2f39043827b86a4b438017bef3",
+      "afterHash": "62e40693407552a5d22b9b1f8ac8a1dcdfe60002570aec7370e6f37e4a79aa31"
+    },
+    {
+      "image": "assets/sprites/buildings/tao/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/tao/stages.png",
+      "beforeHash": "2259a7798b08e68d5e15dfdbc80f0adf6520e9b51ae42db105ef6fd95134a1c3",
+      "afterHash": "6585f2afc9bcfacaac2a0c522f5ef01799376fab56477d44afaed6afc54fa9c4"
+    },
+    {
+      "image": "assets/sprites/buildings/fortune/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/fortune/level-1.png",
+      "beforeHash": "9a487a446fa3c714c88ee9d348286d297d5e7afda5015b1cf5b7e009f1dd2471",
+      "afterHash": "d99f56f22a629d07048898c5718187c9ebd7c56dc2d0e03d105411c0047edafd"
+    },
+    {
+      "image": "assets/sprites/buildings/fortune/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/fortune/level-2.png",
+      "beforeHash": "e923f00f6b7ceb0d154abdcb30bca2c11e81c86ef9fccd879e4781884329697d",
+      "afterHash": "7c781c5483a418df9cb91f0b8fce7d42bdff99b56a0b9d8ba0c731702d9267f7"
+    },
+    {
+      "image": "assets/sprites/buildings/fortune/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/fortune/level-3.png",
+      "beforeHash": "367abba1ca178fada45e5d68b815c5eedbb6f825effedaa71ebe90a27460c40f",
+      "afterHash": "0794622db74b1db82615db0c74d4433ba3b19851e8eba3b5e0bfbe0a8122a7d9"
+    },
+    {
+      "image": "assets/sprites/buildings/fortune/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/fortune/stages.png",
+      "beforeHash": "614cac5b7fe43421853afbe6f869165eb85c39020a8ef297e171b45a691c561f",
+      "afterHash": "292a6bfd10220bf6f07d2af7cd220129f2e4afb4920d6da452591d1e6e13f4e1"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-1.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/gate/level-1.png",
+      "beforeHash": "88601324d1a255210c243d3964c3e4c23090a07a1587bbb5a85a82e2c222ddb2",
+      "afterHash": "3549d41707d1d59d8586cb54b6bc3b6a8077e0c50d3dca08dccbd7257a5f2eed"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-2.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/gate/level-2.png",
+      "beforeHash": "5ddc8642b2fc9ec864ad120acccbabcc4091d21a425a7259cd4d4fe741704f2a",
+      "afterHash": "b54db01385a88fff8465022f32ae5e9d4af9b9d95c127848bb7a4011d1ff819e"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/level-3.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/gate/level-3.png",
+      "beforeHash": "02a95c08f031fbb90b292f94cdff46aed436f873d865f4b232c935a9e64347d9",
+      "afterHash": "b5b2b9668e117cfc6b26244fc69221f0edbb77a8c35d8c75ae781f1d7fbe2b62"
+    },
+    {
+      "image": "assets/sprites/buildings/gate/stages.png",
+      "backup": "assets/generated/buildings-redesign/v7/before-buildings/gate/stages.png",
+      "beforeHash": "661b643975bb9a21f1b9bf5e9d1fa4af4d833adc8b53fdabd7f34092f5174f04",
+      "afterHash": "6f9a9b46222e9a3a48bcb836afc0886904bdd2af48fa5278cd16552b812c0d21"
+    }
+  ]
+}

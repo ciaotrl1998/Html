@@ -1,0 +1,2193 @@
+{
+  "version": 7,
+  "frameWidth": 96,
+  "frameHeight": 128,
+  "columns": 3,
+  "rows": 1,
+  "stageOrder": [
+    1,
+    2,
+    3
+  ],
+  "pivot": {
+    "x": 48,
+    "y": 120
+  },
+  "buildings": [
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "image": "shrine.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 21,
+            "right": 74,
+            "top": 71,
+            "bottom": 119,
+            "width": 54,
+            "height": 49,
+            "pixels": 1742
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 19,
+            "right": 76,
+            "top": 55,
+            "bottom": 119,
+            "width": 58,
+            "height": 65,
+            "pixels": 2690
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            15
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 17,
+            "right": 78,
+            "top": 47,
+            "bottom": 119,
+            "width": 62,
+            "height": 73,
+            "pixels": 3439
+          }
+        }
+      ]
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "image": "gate.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 16,
+            "right": 79,
+            "top": 86,
+            "bottom": 119,
+            "width": 64,
+            "height": 34,
+            "pixels": 1720
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 16,
+            "right": 79,
+            "top": 70,
+            "bottom": 119,
+            "width": 64,
+            "height": 50,
+            "pixels": 2628
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            15
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 16,
+            "right": 79,
+            "top": 59,
+            "bottom": 119,
+            "width": 64,
+            "height": 61,
+            "pixels": 3209
+          }
+        }
+      ]
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "image": "barracks.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 94,
+            "bottom": 119,
+            "width": 42,
+            "height": 26,
+            "pixels": 716
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 77,
+            "bottom": 119,
+            "width": 46,
+            "height": 43,
+            "pixels": 1346
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 73,
+            "bottom": 119,
+            "width": 50,
+            "height": 47,
+            "pixels": 1774
+          }
+        }
+      ]
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "image": "tower.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 22,
+            "right": 72,
+            "top": 60,
+            "bottom": 119,
+            "width": 51,
+            "height": 60,
+            "pixels": 2000
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 18,
+            "right": 77,
+            "top": 48,
+            "bottom": 119,
+            "width": 60,
+            "height": 72,
+            "pixels": 2774
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 16,
+            "right": 79,
+            "top": 36,
+            "bottom": 119,
+            "width": 64,
+            "height": 84,
+            "pixels": 3338
+          }
+        }
+      ]
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "image": "rock.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 87,
+            "bottom": 119,
+            "width": 42,
+            "height": 33,
+            "pixels": 983
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 79,
+            "bottom": 119,
+            "width": 46,
+            "height": 41,
+            "pixels": 1364
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 70,
+            "bottom": 119,
+            "width": 50,
+            "height": 50,
+            "pixels": 1857
+          }
+        }
+      ]
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "image": "well.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 93,
+            "bottom": 119,
+            "width": 42,
+            "height": 27,
+            "pixels": 846
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 82,
+            "bottom": 119,
+            "width": 46,
+            "height": 38,
+            "pixels": 1207
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 70,
+            "bottom": 119,
+            "width": 50,
+            "height": 50,
+            "pixels": 1722
+          }
+        }
+      ]
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "image": "tea.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 90,
+            "bottom": 119,
+            "width": 42,
+            "height": 30,
+            "pixels": 936
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 77,
+            "bottom": 119,
+            "width": 46,
+            "height": 43,
+            "pixels": 1480
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 71,
+            "bottom": 119,
+            "width": 50,
+            "height": 49,
+            "pixels": 1934
+          }
+        }
+      ]
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "image": "inn.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 95,
+            "bottom": 119,
+            "width": 42,
+            "height": 25,
+            "pixels": 807
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 83,
+            "bottom": 119,
+            "width": 46,
+            "height": 37,
+            "pixels": 1315
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 78,
+            "bottom": 119,
+            "width": 50,
+            "height": 42,
+            "pixels": 1685
+          }
+        }
+      ]
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "image": "bank.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 91,
+            "bottom": 119,
+            "width": 42,
+            "height": 29,
+            "pixels": 930
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 78,
+            "bottom": 119,
+            "width": 46,
+            "height": 42,
+            "pixels": 1505
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 73,
+            "bottom": 119,
+            "width": 50,
+            "height": 47,
+            "pixels": 1885
+          }
+        }
+      ]
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "image": "farm.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 24,
+            "right": 71,
+            "top": 72,
+            "bottom": 119,
+            "width": 48,
+            "height": 48,
+            "pixels": 2143
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 24,
+            "right": 71,
+            "top": 72,
+            "bottom": 119,
+            "width": 48,
+            "height": 48,
+            "pixels": 2134
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 24,
+            "right": 71,
+            "top": 72,
+            "bottom": 119,
+            "width": 48,
+            "height": 48,
+            "pixels": 2142
+          }
+        }
+      ]
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "image": "mill.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 92,
+            "bottom": 119,
+            "width": 42,
+            "height": 28,
+            "pixels": 892
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 79,
+            "bottom": 119,
+            "width": 46,
+            "height": 41,
+            "pixels": 1425
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 74,
+            "bottom": 119,
+            "width": 50,
+            "height": 46,
+            "pixels": 1695
+          }
+        }
+      ]
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "image": "wine.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 89,
+            "bottom": 119,
+            "width": 42,
+            "height": 31,
+            "pixels": 942
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 80,
+            "bottom": 119,
+            "width": 46,
+            "height": 40,
+            "pixels": 1349
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 69,
+            "bottom": 119,
+            "width": 50,
+            "height": 51,
+            "pixels": 1927
+          }
+        }
+      ]
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "image": "mulberry.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 88,
+            "bottom": 119,
+            "width": 42,
+            "height": 32,
+            "pixels": 1006
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 82,
+            "bottom": 119,
+            "width": 46,
+            "height": 38,
+            "pixels": 1247
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 76,
+            "bottom": 119,
+            "width": 50,
+            "height": 44,
+            "pixels": 1659
+          }
+        }
+      ]
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "image": "weaver.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 86,
+            "bottom": 119,
+            "width": 42,
+            "height": 34,
+            "pixels": 1080
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 79,
+            "bottom": 119,
+            "width": 46,
+            "height": 41,
+            "pixels": 1456
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 70,
+            "bottom": 119,
+            "width": 50,
+            "height": 50,
+            "pixels": 1971
+          }
+        }
+      ]
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "image": "tailor.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 91,
+            "bottom": 119,
+            "width": 42,
+            "height": 29,
+            "pixels": 961
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 80,
+            "bottom": 119,
+            "width": 46,
+            "height": 40,
+            "pixels": 1462
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 71,
+            "bottom": 119,
+            "width": 50,
+            "height": 49,
+            "pixels": 1898
+          }
+        }
+      ]
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "image": "quarry.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 91,
+            "bottom": 119,
+            "width": 42,
+            "height": 29,
+            "pixels": 816
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 81,
+            "bottom": 119,
+            "width": 46,
+            "height": 39,
+            "pixels": 1056
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 62,
+            "bottom": 119,
+            "width": 50,
+            "height": 58,
+            "pixels": 1591
+          }
+        }
+      ]
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "image": "kiln.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 94,
+            "bottom": 119,
+            "width": 42,
+            "height": 26,
+            "pixels": 729
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 84,
+            "bottom": 119,
+            "width": 46,
+            "height": 36,
+            "pixels": 1046
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 72,
+            "bottom": 119,
+            "width": 50,
+            "height": 48,
+            "pixels": 1412
+          }
+        }
+      ]
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "image": "trade.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 90,
+            "bottom": 119,
+            "width": 42,
+            "height": 30,
+            "pixels": 966
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 82,
+            "bottom": 119,
+            "width": 46,
+            "height": 38,
+            "pixels": 1398
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 74,
+            "bottom": 119,
+            "width": 50,
+            "height": 46,
+            "pixels": 1831
+          }
+        }
+      ]
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "image": "guild.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 19,
+            "right": 76,
+            "top": 80,
+            "bottom": 119,
+            "width": 58,
+            "height": 40,
+            "pixels": 1587
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 17,
+            "right": 78,
+            "top": 68,
+            "bottom": 119,
+            "width": 62,
+            "height": 52,
+            "pixels": 2226
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 15,
+            "right": 80,
+            "top": 63,
+            "bottom": 119,
+            "width": 66,
+            "height": 57,
+            "pixels": 2821
+          }
+        }
+      ]
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "image": "port.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 19,
+            "right": 76,
+            "top": 82,
+            "bottom": 119,
+            "width": 58,
+            "height": 38,
+            "pixels": 1646
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 17,
+            "right": 78,
+            "top": 64,
+            "bottom": 119,
+            "width": 62,
+            "height": 56,
+            "pixels": 2760
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 15,
+            "right": 80,
+            "top": 57,
+            "bottom": 119,
+            "width": 66,
+            "height": 63,
+            "pixels": 3351
+          }
+        }
+      ]
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "image": "stage.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 84,
+            "bottom": 119,
+            "width": 42,
+            "height": 36,
+            "pixels": 1135
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 81,
+            "bottom": 119,
+            "width": 46,
+            "height": 39,
+            "pixels": 1388
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 70,
+            "bottom": 119,
+            "width": 50,
+            "height": 50,
+            "pixels": 1944
+          }
+        }
+      ]
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "image": "earth.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 85,
+            "bottom": 119,
+            "width": 42,
+            "height": 35,
+            "pixels": 1007
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 83,
+            "bottom": 119,
+            "width": 46,
+            "height": 37,
+            "pixels": 1202
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 76,
+            "bottom": 119,
+            "width": 50,
+            "height": 44,
+            "pixels": 1664
+          }
+        }
+      ]
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "image": "zhong.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 33,
+            "right": 62,
+            "top": 84,
+            "bottom": 119,
+            "width": 30,
+            "height": 36,
+            "pixels": 829
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 28,
+            "right": 67,
+            "top": 74,
+            "bottom": 119,
+            "width": 40,
+            "height": 46,
+            "pixels": 1362
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 22,
+            "right": 72,
+            "top": 64,
+            "bottom": 119,
+            "width": 51,
+            "height": 56,
+            "pixels": 2149
+          }
+        }
+      ]
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "image": "tao.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 89,
+            "bottom": 119,
+            "width": 42,
+            "height": 31,
+            "pixels": 920
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 82,
+            "bottom": 119,
+            "width": 46,
+            "height": 38,
+            "pixels": 1283
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 73,
+            "bottom": 119,
+            "width": 50,
+            "height": 47,
+            "pixels": 1767
+          }
+        }
+      ]
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "image": "fortune.png",
+      "width": 288,
+      "height": 128,
+      "frames": [
+        {
+          "stage": 1,
+          "gameLevels": [
+            1,
+            3
+          ],
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 27,
+            "right": 68,
+            "top": 92,
+            "bottom": 119,
+            "width": 42,
+            "height": 28,
+            "pixels": 1137
+          }
+        },
+        {
+          "stage": 2,
+          "gameLevels": [
+            4,
+            6
+          ],
+          "frame": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 25,
+            "right": 70,
+            "top": 90,
+            "bottom": 119,
+            "width": 46,
+            "height": 30,
+            "pixels": 1362
+          }
+        },
+        {
+          "stage": 3,
+          "gameLevels": [
+            7,
+            9
+          ],
+          "frame": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 128
+          },
+          "pivot": {
+            "x": 48,
+            "y": 120
+          },
+          "subject": {
+            "left": 23,
+            "right": 72,
+            "top": 86,
+            "bottom": 119,
+            "width": 50,
+            "height": 34,
+            "pixels": 1617
+          }
+        }
+      ]
+    }
+  ]
+}

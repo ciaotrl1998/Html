@@ -1,0 +1,404 @@
+{
+  "records": [
+    {
+      "direction": 0,
+      "level": 1,
+      "name": "stages.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 1,
+      "name": "stages-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 1,
+      "name": "stages.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 1,
+      "name": "stages-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 0,
+      "level": 4,
+      "name": "stages.png",
+      "args": [
+        96,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 4,
+      "name": "stages-ew.png",
+      "args": [
+        96,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 4,
+      "name": "stages.png",
+      "args": [
+        96,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 4,
+      "name": "stages-ew.png",
+      "args": [
+        96,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 0,
+      "level": 7,
+      "name": "stages.png",
+      "args": [
+        192,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 7,
+      "name": "stages-ew.png",
+      "args": [
+        192,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 7,
+      "name": "stages.png",
+      "args": [
+        192,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 7,
+      "name": "stages-ew.png",
+      "args": [
+        192,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ],
+      "matrix": [
+        2,
+        0,
+        0,
+        2,
+        160,
+        190
+      ]
+    }
+  ],
+  "health": [
+    {
+      "direction": 0,
+      "level": 1,
+      "y": -49
+    },
+    {
+      "direction": 1,
+      "level": 1,
+      "y": -41
+    },
+    {
+      "direction": 2,
+      "level": 1,
+      "y": -49
+    },
+    {
+      "direction": 3,
+      "level": 1,
+      "y": -41
+    },
+    {
+      "direction": 0,
+      "level": 4,
+      "y": -67
+    },
+    {
+      "direction": 1,
+      "level": 4,
+      "y": -56
+    },
+    {
+      "direction": 2,
+      "level": 4,
+      "y": -67
+    },
+    {
+      "direction": 3,
+      "level": 4,
+      "y": -56
+    },
+    {
+      "direction": 0,
+      "level": 7,
+      "y": -77
+    },
+    {
+      "direction": 1,
+      "level": 7,
+      "y": -69
+    },
+    {
+      "direction": 2,
+      "level": 7,
+      "y": -77
+    },
+    {
+      "direction": 3,
+      "level": 7,
+      "y": -69
+    }
+  ],
+  "joins": [
+    {
+      "direction": 0,
+      "actual": [
+        184,
+        160,
+        136,
+        255
+      ],
+      "expected": [
+        184,
+        160,
+        136,
+        255
+      ]
+    },
+    {
+      "direction": 1,
+      "actual": [
+        136,
+        96,
+        72,
+        255
+      ],
+      "expected": [
+        136,
+        96,
+        72,
+        255
+      ]
+    },
+    {
+      "direction": 2,
+      "actual": [
+        184,
+        160,
+        136,
+        255
+      ],
+      "expected": [
+        184,
+        160,
+        136,
+        255
+      ]
+    },
+    {
+      "direction": 3,
+      "actual": [
+        136,
+        96,
+        72,
+        255
+      ],
+      "expected": [
+        136,
+        96,
+        72,
+        255
+      ]
+    }
+  ]
+}

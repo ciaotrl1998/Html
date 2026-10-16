@@ -1,0 +1,15 @@
+Use case: stylized-concept.
+Generate a production sprite sheet for an existing game. Image1 = APPROVED flat cartoon style and FINE dark-brown line weight. Image2 = USER-APPROVED PALETTE. Image3 = EXISTING DESIGN IDENTITIES / MOTIFS for the requested families. Do NOT copy other families from the style reference; draw ONLY the following row list.
+Keep the original designs and clear functional symbols, especially at lowest tier. Simple FLAT2D CARTOON, compact soft/chunky pixel-ready shapes, Chinese roofs and timber/ivory walls, thin deep BROWN outline (#4A2E20), large plain color areas, at most2–3 tones per material. No realism, no detailed tile/brick/wood textures, volumetric lighting, glossy beveled icons, landscape, courtyard, attached extra wings, dragons or lions.
+Match muted gray-blue roofs (~RGB74,110,141), warm ivory (~237,216,190), brown timber (~135,70,36), red cloth (~253,56,46), subdued gold (~237,168,50). New foliage uses natural muted olive greens, not electric/lime green. Do not brighten, desaturate further or change art direction. No thick black outlines.
+Layout: exactly3 columns (low, middle, high) and ONE row per listed family. Regular aligned cells, consistent centered ground-contact baseline within each row; sufficient transparent margins around all parts, no overlaps or clipping. Entire background genuinely TRANSPARENT; NO brown/gray background, glow, halo, fog, floor shadow, labels, letters, numbers or grid lines.
+Levels are genuinely DIFFERENT DRAWINGS: low short single-floor structure → taller walls/loft → real upper story or upper structural segment. Only modest width growth; height should increase about twice as much as width. Keep doors, roof tiles, coins, tools and jars naturally proportioned; do not simply scale/stretch a previous sprite. Ordinary low-stage houses should be visibly smaller than shrine, gate and ultimate halls. Clear elevated near-front orthographic view, NO isometric/diagonal sides; fields directly overhead.
+
+EXACT ROWS (top to bottom), each has3 sprites:
+1. Barracks: same simple ivory/timber garrison hut, gray-blue tiled roof, RED FLAGS and small spear rack; retain flags every tier; upper story at high tier.
+2. Well: circular gray stone well with visible blue water opening and bucket; low windlass, mid simple roof frame, high Chinese tiled small well pavilion. Do not close/hide water.
+3. Teahouse: gray-blue tiled roof, GREEN AWNING and clearly visible white teapot/cup in all3 stages; retain both symbols as it gains an upper floor.
+4. Bank: compact Chinese money shop, gray-blue roof, LARGE ROUND GOLD CASH-COIN SYMBOL in all3 stages including low tier; taller secure walls / upper floor.
+5. Watermill: simple Chinese gray-blue-roof mill, LARGE ROUND BROWN SIDE WATERWHEEL and grain sack; higher adds a real upper floor, same wheel, no western windmill.
+6. Brewery: Chinese brown/red-roof house with large brown wine jars capped with RED CLOTH. Retain red-lidded jars all3 stages; higher adds real wall/floor height.
+Keep exactly18 sprites in3 columns ×6 rows. Every required emblem must be visible from the first stage.

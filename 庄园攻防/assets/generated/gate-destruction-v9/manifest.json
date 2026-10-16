@@ -1,0 +1,84 @@
+{
+  "version": 9,
+  "mode": "built-in imagegen",
+  "states": [
+    {
+      "orientation": "ns",
+      "image": "assets/sprites/buildings/gate/destroyed.png",
+      "thumbnail": "assets/sprites/buildings/gate/destroyed-preview.png",
+      "frame": {
+        "width": 96,
+        "height": 128
+      },
+      "pivot": {
+        "x": 48,
+        "y": 120
+      },
+      "groundY": 54,
+      "subject": {
+        "left": 16,
+        "right": 79,
+        "top": 95,
+        "bottom": 119,
+        "width": 64,
+        "height": 25,
+        "pixels": 832
+      },
+      "sharedLevels": [
+        1,
+        15
+      ],
+      "source": {
+        "image": "sources/first.png",
+        "rect": {
+          "x0": 0,
+          "y0": 0,
+          "x1": 1028,
+          "y1": 887
+        },
+        "width": 796,
+        "height": 310,
+        "uniformScale": 0.08040201005025126
+      }
+    },
+    {
+      "orientation": "ew",
+      "image": "assets/sprites/buildings/gate/destroyed-ew.png",
+      "thumbnail": "assets/sprites/buildings/gate/destroyed-preview-ew.png",
+      "frame": {
+        "width": 96,
+        "height": 128
+      },
+      "pivot": {
+        "x": 48,
+        "y": 120
+      },
+      "groundY": 64,
+      "subject": {
+        "left": 25,
+        "right": 69,
+        "top": 56,
+        "bottom": 119,
+        "width": 45,
+        "height": 64,
+        "pixels": 1054
+      },
+      "sharedLevels": [
+        1,
+        15
+      ],
+      "source": {
+        "image": "sources/ew.png",
+        "rect": {
+          "x0": 0,
+          "y0": 0,
+          "x1": 992,
+          "y1": 1586
+        },
+        "width": 797,
+        "height": 1136,
+        "uniformScale": 0.056338028169014086
+      }
+    }
+  ]
+}

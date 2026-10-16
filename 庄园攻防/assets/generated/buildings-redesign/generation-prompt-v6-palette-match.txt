@@ -1,0 +1,14 @@
+Use case: precise-object-edit / color-match.
+Image1 is the EDIT TARGET with the CORRECT THINNER OUTLINES.
+Image2 is the USER-APPROVED COLOR REFERENCE. Its palette is the requirement, not an optional mood suggestion.
+
+Change ONLY the material COLORS of image1 to match image2. KEEP image1's exact thin outline thickness, every contour, building design, internal feature, symbol, position, shape, dimension, crop and18-sprite layout. Do not thicken any outline or introduce new strokes.
+Roof tiles must be the MUTED GRAY-BLUE of image2, NOT brighter cyan or saturated medium blue. Representative desired roof midtones are RGB(74,110,141) and RGB(69,104,133). Keep this gray/dusty character.
+Wall ivory: representative RGB(237,216,190), not nearly-white cream.
+Wood midtone: representative RGB(135,70,36), NOT enhanced orange-brown.
+Gold midtone: representative RGB(237,168,50), highlight RGB(255,207,71), NOT lemon-yellow or luminous gold.
+Red cloth: representative RGB(253,56,46), matching image2 without enhancement.
+Contour remains fine DARK BROWN, roughly #4A2E20. Preserve the current thinner line weight from image1 exactly.
+Use image2 for the complete material palette, not just the listed example pixels. The result should have the SAME restrained color balance as image2, with NO exposure increase, no vibrance, no HDR, no grading, no extra bright highlights, no bloom. Flat2D cartoon pixel style only. No texture or design changes.
+Preserve all3 cash-coin signs and all3 hammer/anvil symbols, lanterns, shrine burners, tower flags and ladders, gate doors and every other design feature.
+The background must be GENUINELY TRANSPARENT immediately outside the sprite outlines. No brown background, fog, halo, glow or cast shadow. No text or grid. This is COLOR CORRECTION ONLY while locking the thin lines.

@@ -1,0 +1,12 @@
+Use case: precise-object-edit.
+Asset type: production Chinese strategy game sprites, eighteen subjects in 3 columns x 6 rows, transparent PNG.
+Input image 1 is the APPROVED art style, palette and EXACT LOW-LEVEL design identity of six buildings (top row: shrine, gate, archer tower; bottom row: guildhall, artisans hall, inn).
+Keep these six low-level designs recognizable. Only develop their higher levels with genuinely taller ARCHITECTURE, not stretching. Thin dark BROWN outline, flat 2D cartoon, few plain color tones, muted gray-blue roofs, warm ivory, brown timber and red accents. NOT realistic, not isometric, no textures, no thick black outline, no glow or backdrop. Preserve colors.
+Output 3 columns: LOW, MIDDLE, HIGH. Six rows top-to-bottom:
+1 Shrine with red doorway and small incense burner. Already fairly large at low tier. Middle has a narrow loft; high has a real second story. A little wider each tier but substantially taller.
+2 Gate: exactly SAME WIDTH for all three, with simple brown double doors and ivory piers. Low squat gate, middle taller wall and door, high a REAL UPPER FLOOR under a second blue roof. HIGH is about 1.5 times LOW height, ALL THE SAME WIDTH. No battlements.
+3 Archer tower: thin ladder and upright shaft, open shooting platform, red side flag, tiled canopy. Keep narrow width, add shaft segments to make each tier taller, low already tall.
+4 Merchant guildhall: large gold round cash-coin emblem and small incense burner visible at EVERY tier. Low like reference. Middle adds a loft above coin, high adds a full upper story with roof. DO NOT merely make roof/coin wider or scale them up. Height gain about twice width gain.
+5 Artisans hall: dark hammer/anvil emblem visible at EVERY tier. Small crates. Low like reference. Add loft and real upper story for middle/high, not wider roofs. Height-led growth.
+6 Inn: TWO red lanterns beside brown entry at EVERY tier. Middle has loft, high has a real upper story. Modest width increase.
+Layout each family shares a ground-contact baseline. 18 separated sprites, equal grid, all parts within cells. Genuinely transparent background, no halos, shadows, ground, labels or grid. Clear straight front view with tiny roof-top visibility, no diagonal sides. Keep front signs legible. Architectural height change only, no redesign of motifs.

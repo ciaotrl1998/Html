@@ -1,0 +1,552 @@
+{
+  "records": [
+    {
+      "direction": 0,
+      "level": 1,
+      "hp": 1,
+      "name": "stages.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 1,
+      "hp": 1,
+      "name": "stages-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 1,
+      "hp": 1,
+      "name": "stages.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 1,
+      "hp": 1,
+      "name": "stages-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 0,
+      "level": 1,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 1,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 1,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 1,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 0,
+      "level": 4,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 4,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 4,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 4,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 0,
+      "level": 7,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 1,
+      "level": 7,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 2,
+      "level": 7,
+      "hp": 0,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "direction": 3,
+      "level": 7,
+      "hp": 0,
+      "name": "destroyed-ew.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -88,
+        96,
+        128
+      ]
+    }
+  ],
+  "bars": [
+    {
+      "direction": 0,
+      "level": 1,
+      "y": -10
+    },
+    {
+      "direction": 1,
+      "level": 1,
+      "y": -39
+    },
+    {
+      "direction": 2,
+      "level": 1,
+      "y": -10
+    },
+    {
+      "direction": 3,
+      "level": 1,
+      "y": -39
+    },
+    {
+      "direction": 0,
+      "level": 4,
+      "y": -10
+    },
+    {
+      "direction": 1,
+      "level": 4,
+      "y": -39
+    },
+    {
+      "direction": 2,
+      "level": 4,
+      "y": -10
+    },
+    {
+      "direction": 3,
+      "level": 4,
+      "y": -39
+    },
+    {
+      "direction": 0,
+      "level": 7,
+      "y": -10
+    },
+    {
+      "direction": 1,
+      "level": 7,
+      "y": -39
+    },
+    {
+      "direction": 2,
+      "level": 7,
+      "y": -10
+    },
+    {
+      "direction": 3,
+      "level": 7,
+      "y": -39
+    }
+  ],
+  "allLevels": [
+    {
+      "level": 1,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 2,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 3,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 4,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 5,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 6,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 7,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 8,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 9,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 10,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 11,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 12,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 13,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 14,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    },
+    {
+      "level": 15,
+      "name": "destroyed.png",
+      "args": [
+        0,
+        0,
+        96,
+        128,
+        -48,
+        -98,
+        96,
+        128
+      ]
+    }
+  ],
+  "healed": [
+    {
+      "direction": 0,
+      "name": "stages.png"
+    },
+    {
+      "direction": 1,
+      "name": "stages-ew.png"
+    },
+    {
+      "direction": 2,
+      "name": "stages.png"
+    },
+    {
+      "direction": 3,
+      "name": "stages-ew.png"
+    }
+  ]
+}

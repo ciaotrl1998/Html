@@ -1,0 +1,2821 @@
+{
+  "version": 3,
+  "image": "assets/generated/buildings-redesign/buildings-atlas.png",
+  "width": 576,
+  "height": 576,
+  "columns": 9,
+  "rows": 9,
+  "groupsPerRow": 3,
+  "stagesPerType": 3,
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "pivot": {
+    "x": 32,
+    "y": 48
+  },
+  "sourceImage": "assets/generated/buildings-redesign/source-v3-worldbox.png",
+  "sourceCuts": {
+    "x": [
+      0,
+      139,
+      273,
+      431,
+      552,
+      688,
+      838,
+      967,
+      1098,
+      1254
+    ],
+    "y": [
+      0,
+      148,
+      290,
+      417,
+      557,
+      700,
+      834,
+      974,
+      1121,
+      1254
+    ]
+  },
+  "style": "参考用户提供的WorldBox简约像素城镇尺度，保留中式灰蓝瓦顶、木构白墙及深棕描边#4A2E20；正交偏俯视，建筑有真实竖向高度，低级矮、高级增加墙高或二层楼；农田为1:1无围栏开放式水田，稻苗间可见浅水，地块不加闭合棕框；桑园旁有中式小屋；箭塔为细长塔身、梯子、射击层与瓦顶，不作平台图标",
+  "frames": [
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 1,
+      "description": "low one-story hall",
+      "motif": "Chinese ancestral hall, gray-blue tiled roof, warm red entrance, small incense burner",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/shrine/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 30,
+        "height": 32,
+        "pixels": 589
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 2,
+      "description": "taller hall with raised timber frame",
+      "motif": "Chinese ancestral hall, gray-blue tiled roof, warm red entrance, small incense burner",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/shrine/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 47,
+        "height": 39,
+        "pixels": 1347
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 3,
+      "description": "visibly tall two-story/double-eaved hall, same entrance and roof color",
+      "motif": "Chinese ancestral hall, gray-blue tiled roof, warm red entrance, small incense burner",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/shrine/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 5,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 54,
+        "height": 46,
+        "pixels": 1851
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 1,
+      "description": "low wooden gateway",
+      "motif": "Chinese wooden double-door gateway, gray stone piers and tiled roof",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/gate/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 41,
+        "height": 32,
+        "pixels": 1027
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 2,
+      "description": "taller stone gatehouse",
+      "motif": "Chinese wooden double-door gateway, gray stone piers and tiled roof",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/gate/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 9,
+        "bottom": 47,
+        "width": 50,
+        "height": 39,
+        "pixels": 1681
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 3,
+      "description": "tall two-floor gate tower above same doorway",
+      "motif": "Chinese wooden double-door gateway, gray stone piers and tiled roof",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/gate/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 1844
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 1,
+      "description": "short single-story hut",
+      "motif": "Chinese garrison house with red flags and a small spear rack",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/barracks/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 41,
+        "height": 32,
+        "pixels": 851
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 2,
+      "description": "taller tiled barracks",
+      "motif": "Chinese garrison house with red flags and a small spear rack",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/barracks/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1273
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 3,
+      "description": "tall two-story garrison building with the same red flags",
+      "motif": "Chinese garrison house with red flags and a small spear rack",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/barracks/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 0,
+        "y1": 148
+      },
+      "subject": {
+        "left": 5,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 54,
+        "height": 46,
+        "pixels": 1641
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 1,
+      "description": "short but clearly upright wooden watchtower",
+      "motif": "ACTUAL TALL SLENDER CHINESE ARCHER WATCHTOWER with upright support posts/stone shaft, ladder, raised shooting deck, simple tiled canopy",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tower/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 20,
+        "right": 42,
+        "top": 16,
+        "bottom": 47,
+        "width": 23,
+        "height": 32,
+        "pixels": 510
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 2,
+      "description": "taller wood/stone tower with two vertical sections",
+      "motif": "ACTUAL TALL SLENDER CHINESE ARCHER WATCHTOWER with upright support posts/stone shaft, ladder, raised shooting deck, simple tiled canopy",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tower/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 9,
+        "bottom": 47,
+        "width": 30,
+        "height": 39,
+        "pixels": 795
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 3,
+      "description": "very tall narrow three-section tower and upper shooting balcony; height visibly much greater than width at EVERY tier; NEVER a flat platform or bow-emblem tile",
+      "motif": "ACTUAL TALL SLENDER CHINESE ARCHER WATCHTOWER with upright support posts/stone shaft, ladder, raised shooting deck, simple tiled canopy",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tower/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 15,
+        "right": 48,
+        "top": 2,
+        "bottom": 47,
+        "width": 34,
+        "height": 46,
+        "pixels": 1041
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 1,
+      "description": "low stone platform",
+      "motif": "upright low stone rock-throwing tower/platform with visible stone pile",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/rock/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 798
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 2,
+      "description": "raised stone parapet",
+      "motif": "upright low stone rock-throwing tower/platform with visible stone pile",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/rock/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 9,
+        "bottom": 47,
+        "width": 39,
+        "height": 39,
+        "pixels": 1128
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 3,
+      "description": "taller stone tower with stones and simple lifting beam",
+      "motif": "upright low stone rock-throwing tower/platform with visible stone pile",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/rock/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 2,
+        "bottom": 47,
+        "width": 42,
+        "height": 46,
+        "pixels": 1391
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 1,
+      "description": "low stone well ring",
+      "motif": "Chinese circular stone well, bucket and simple wood windlass",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/well/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 15,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 34,
+        "height": 32,
+        "pixels": 816
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 2,
+      "description": "same well with a small wooden roof frame",
+      "motif": "Chinese circular stone well, bucket and simple wood windlass",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/well/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 42,
+        "height": 39,
+        "pixels": 1326
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 3,
+      "description": "taller little Chinese tiled well pavilion; keep visible circular water opening",
+      "motif": "Chinese circular stone well, bucket and simple wood windlass",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/well/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 148,
+        "y1": 290
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 2,
+        "bottom": 47,
+        "width": 42,
+        "height": 46,
+        "pixels": 1461
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 1,
+      "description": "short tea stall",
+      "motif": "Chinese country teahouse, simple gray-green tiled roof, green tea awning, teapot",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tea/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 863
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 2,
+      "description": "taller one-story tiled tea shop",
+      "motif": "Chinese country teahouse, simple gray-green tiled roof, green tea awning, teapot",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tea/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 48,
+        "height": 39,
+        "pixels": 1445
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 3,
+      "description": "visibly taller two-story tea house with same green awning and teapot",
+      "motif": "Chinese country teahouse, simple gray-green tiled roof, green tea awning, teapot",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tea/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 6,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 52,
+        "height": 46,
+        "pixels": 1911
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 1,
+      "description": "low one-story inn",
+      "motif": "Chinese timber/plaster inn, gray-blue tiled roof and two red lanterns",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/inn/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 1003
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 2,
+      "description": "taller house with attic",
+      "motif": "Chinese timber/plaster inn, gray-blue tiled roof and two red lanterns",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/inn/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1488
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 3,
+      "description": "tall two-story inn with same entrance and red lanterns",
+      "motif": "Chinese timber/plaster inn, gray-blue tiled roof and two red lanterns",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/inn/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 3,
+        "bottom": 47,
+        "width": 58,
+        "height": 45,
+        "pixels": 2080
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 1,
+      "description": "low single-story money shop",
+      "motif": "Chinese money shop with plain stone/timber walls and one cash-coin sign",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/bank/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 41,
+        "height": 32,
+        "pixels": 1044
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 2,
+      "description": "taller sturdy bank",
+      "motif": "Chinese money shop with plain stone/timber walls and one cash-coin sign",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/bank/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1557
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 3,
+      "description": "tall two-story bank with same coin sign; no oversized ornamental gold facade",
+      "motif": "Chinese money shop with plain stone/timber walls and one cash-coin sign",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/bank/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 290,
+        "y1": 417
+      },
+      "subject": {
+        "left": 4,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 55,
+        "height": 46,
+        "pixels": 2111
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 1,
+      "description": "square open shallow paddy with sparse young green rice",
+      "motif": "OPEN CHINESE FLOODED RICE PADDY, TRUE SQUARE1:1 width:height FOOTPRINT, overhead view, visible pale-blue shallow water BETWEEN orderly tufts of rice; open natural muddy/grass edges",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/farm/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 32,
+        "height": 32,
+        "pixels": 926
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 2,
+      "description": "same square shape with denser taller green rice",
+      "motif": "OPEN CHINESE FLOODED RICE PADDY, TRUE SQUARE1:1 width:height FOOTPRINT, overhead view, visible pale-blue shallow water BETWEEN orderly tufts of rice; open natural muddy/grass edges",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/farm/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 9,
+        "bottom": 47,
+        "width": 39,
+        "height": 39,
+        "pixels": 1397
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 3,
+      "description": "same square shape with mature yellow-green Chinese rice panicles. No fences, no railings, no enclosing walls, no timber frame, no brick border, no raised planter box, no blue pool rim, no wheel, no decorative platform. All3 paddies must be true square overhead footprints. Brown line may outline rice tufts/muddy bits but must NOT form a closed heavy box around field. Not maize or wheat, not a swimming pool.",
+      "motif": "OPEN CHINESE FLOODED RICE PADDY, TRUE SQUARE1:1 width:height FOOTPRINT, overhead view, visible pale-blue shallow water BETWEEN orderly tufts of rice; open natural muddy/grass edges",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/farm/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 46,
+        "height": 46,
+        "pixels": 1938
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 1,
+      "description": "low little mill",
+      "motif": "Chinese water mill, tiled roof and obvious round side waterwheel",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mill/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 854
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 2,
+      "description": "taller main mill house",
+      "motif": "Chinese water mill, tiled roof and obvious round side waterwheel",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mill/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 48,
+        "height": 39,
+        "pixels": 1494
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 3,
+      "description": "tall two-story mill with same waterwheel and a grain sack",
+      "motif": "Chinese water mill, tiled roof and obvious round side waterwheel",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/mill/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 49,
+        "height": 46,
+        "pixels": 1869
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 1,
+      "description": "short brewing shed with two jars",
+      "motif": "Chinese brewery with brown/red clay jars capped with red cloth",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/wine/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 17,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 29,
+        "height": 32,
+        "pixels": 751
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 2,
+      "description": "taller tiled brewery with same jars",
+      "motif": "Chinese brewery with brown/red clay jars capped with red cloth",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/wine/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 45,
+        "height": 39,
+        "pixels": 1399
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 3,
+      "description": "two-story brewery, four jars and one simple copper pot",
+      "motif": "Chinese brewery with brown/red clay jars capped with red cloth",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/wine/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 417,
+        "y1": 557
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 47,
+        "height": 46,
+        "pixels": 1914
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 1,
+      "description": "two small leafy trees beside a tiny low Chinese cottage",
+      "motif": "CHINESE MULBERRY ORCHARD with rounded green mulberry trees and a SMALL CHINESE COUNTRY COTTAGE standing BESIDE the trees, simple blue-gray tiled roof, ivory plaster and wood; no western cabin",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 32,
+        "height": 32,
+        "pixels": 748
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 2,
+      "description": "three fuller trees beside a taller same cottage",
+      "motif": "CHINESE MULBERRY ORCHARD with rounded green mulberry trees and a SMALL CHINESE COUNTRY COTTAGE standing BESIDE the trees, simple blue-gray tiled roof, ivory plaster and wood; no western cabin",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1279
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 3,
+      "description": "denser mulberry trees beside a two-story same Chinese cottage, cottage remains secondary to trees. No enclosing square planter frame.",
+      "motif": "CHINESE MULBERRY ORCHARD with rounded green mulberry trees and a SMALL CHINESE COUNTRY COTTAGE standing BESIDE the trees, simple blue-gray tiled roof, ivory plaster and wood; no western cabin",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 2001
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 1,
+      "description": "low open weaving shed",
+      "motif": "Chinese weaving house with simple wooden loom and indigo cloth",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/weaver/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 30,
+        "height": 32,
+        "pixels": 762
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 2,
+      "description": "taller tiled weaving house",
+      "motif": "Chinese weaving house with simple wooden loom and indigo cloth",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/weaver/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 42,
+        "height": 39,
+        "pixels": 1350
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 3,
+      "description": "tall two-story weaving house with same visible loom and indigo strip",
+      "motif": "Chinese weaving house with simple wooden loom and indigo cloth",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/weaver/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 46,
+        "height": 46,
+        "pixels": 1746
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 1,
+      "description": "short clothes stall",
+      "motif": "Chinese tailor shop with hanging T-shaped garment",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tailor/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 837
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 2,
+      "description": "taller single-story tiled shop",
+      "motif": "Chinese tailor shop with hanging T-shaped garment",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tailor/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 40,
+        "height": 39,
+        "pixels": 1208
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 3,
+      "description": "tall two-story clothes shop, same hanging garment and a few fabric rolls",
+      "motif": "Chinese tailor shop with hanging T-shaped garment",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tailor/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 557,
+        "y1": 700
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 2,
+        "bottom": 47,
+        "width": 45,
+        "height": 46,
+        "pixels": 1757
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 1,
+      "description": "small stone cluster",
+      "motif": "open Chinese stone-cutting site: simple gray stone/block cluster and wooden lifting beam",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/quarry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 17,
+        "bottom": 47,
+        "width": 42,
+        "height": 31,
+        "pixels": 905
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 2,
+      "description": "more squared blocks and a lifting frame",
+      "motif": "open Chinese stone-cutting site: simple gray stone/block cluster and wooden lifting beam",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/quarry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1079
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 3,
+      "description": "larger stone cluster with taller timber lifting frame; no enclosed garden or fancy stone pit",
+      "motif": "open Chinese stone-cutting site: simple gray stone/block cluster and wooden lifting beam",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/quarry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 1601
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 1,
+      "description": "low simple clay kiln",
+      "motif": "traditional Chinese rounded terracotta ceramic kiln with short chimney and blue-white pots",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/kiln/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 32,
+        "height": 32,
+        "pixels": 756
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 2,
+      "description": "taller brick kiln/chimney",
+      "motif": "traditional Chinese rounded terracotta ceramic kiln with short chimney and blue-white pots",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/kiln/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 15,
+        "right": 48,
+        "top": 9,
+        "bottom": 47,
+        "width": 34,
+        "height": 39,
+        "pixels": 874
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 3,
+      "description": "taller twin kiln workshop with one taller chimney; simple forms, no smoke clouds",
+      "motif": "traditional Chinese rounded terracotta ceramic kiln with short chimney and blue-white pots",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/kiln/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 2,
+        "bottom": 47,
+        "width": 47,
+        "height": 46,
+        "pixels": 1455
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 1,
+      "description": "low wood goods shed",
+      "motif": "Chinese trading shop with two or three simple cargo crates",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/trade/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 1021
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 2,
+      "description": "taller tiled shop",
+      "motif": "Chinese trading shop with two or three simple cargo crates",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/trade/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1330
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 3,
+      "description": "tall two-story trading house, same crate motif",
+      "motif": "Chinese trading shop with two or three simple cargo crates",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/trade/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 700,
+        "y1": 834
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 48,
+        "height": 46,
+        "pixels": 1786
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 1,
+      "description": "low civic hall",
+      "motif": "Chinese merchant guildhall, single cash-coin crest, blue-gray roofs",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/guild/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 15,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 33,
+        "height": 32,
+        "pixels": 761
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 2,
+      "description": "taller main hall with same crest",
+      "motif": "Chinese merchant guildhall, single cash-coin crest, blue-gray roofs",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/guild/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 40,
+        "height": 39,
+        "pixels": 1179
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 3,
+      "description": "tall two-story guildhall, restrained roof silhouette and crest",
+      "motif": "Chinese merchant guildhall, single cash-coin crest, blue-gray roofs",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/guild/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 4,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 55,
+        "height": 46,
+        "pixels": 1912
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 1,
+      "description": "low workshop",
+      "motif": "Chinese artisans hall, hammer/anvil/workbench motif, NOT a harbor",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/port/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 868
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 2,
+      "description": "taller workshop house",
+      "motif": "Chinese artisans hall, hammer/anvil/workbench motif, NOT a harbor",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/port/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 45,
+        "height": 39,
+        "pixels": 1484
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 3,
+      "description": "tall two-story craft house and one side workbench; no boats",
+      "motif": "Chinese artisans hall, hammer/anvil/workbench motif, NOT a harbor",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/port/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 4,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 55,
+        "height": 46,
+        "pixels": 2003
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 1,
+      "description": "short low stage canopy",
+      "motif": "Chinese opera stage with open red curtains, tiled canopy, round drum",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/stage/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 30,
+        "height": 32,
+        "pixels": 753
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 2,
+      "description": "taller open stage with visible pillars",
+      "motif": "Chinese opera stage with open red curtains, tiled canopy, round drum",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/stage/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 41,
+        "height": 39,
+        "pixels": 1209
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 3,
+      "description": "tall double-eaved stage and higher pillars; do not enclose the front",
+      "motif": "Chinese opera stage with open red curtains, tiled canopy, round drum",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/stage/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 834,
+        "y1": 974
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 2,
+        "bottom": 47,
+        "width": 43,
+        "height": 46,
+        "pixels": 1546
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 1,
+      "description": "tiny low folk altar",
+      "motif": "small Chinese earth-god temple with orange tiles and little incense burner",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/earth/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 32,
+        "height": 32,
+        "pixels": 673
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 2,
+      "description": "taller same little orange-roof shrine",
+      "motif": "small Chinese earth-god temple with orange tiles and little incense burner",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/earth/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1223
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 3,
+      "description": "taller double-eaved same folk shrine, still smaller than main ancestral hall",
+      "motif": "small Chinese earth-god temple with orange tiles and little incense burner",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/earth/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 5,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 53,
+        "height": 46,
+        "pixels": 1785
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 1,
+      "description": "short full-body gray guardian on low plinth",
+      "motif": "simple Chinese bearded guardian statue wearing official cap and holding sword, not a giant face icon",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/zhong/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 431,
+        "x1": 552,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 20,
+        "right": 43,
+        "top": 16,
+        "bottom": 47,
+        "width": 24,
+        "height": 32,
+        "pixels": 572
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 2,
+      "description": "taller bronze same full-body statue and pedestal",
+      "motif": "simple Chinese bearded guardian statue wearing official cap and holding sword, not a giant face icon",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/zhong/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 688,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 9,
+        "bottom": 47,
+        "width": 32,
+        "height": 39,
+        "pixels": 885
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 3,
+      "description": "taller gold/bronze same full-body statue and pedestal; simple pixel silhouette",
+      "motif": "simple Chinese bearded guardian statue wearing official cap and holding sword, not a giant face icon",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/zhong/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 688,
+        "x1": 838,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 2,
+        "bottom": 47,
+        "width": 38,
+        "height": 46,
+        "pixels": 1286
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 1,
+      "description": "low one-story temple",
+      "motif": "Chinese Taoist temple with blue-gray tiled roof and one yin-yang round sign",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tao/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 838,
+        "x1": 967,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 784
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 2,
+      "description": "taller same temple",
+      "motif": "Chinese Taoist temple with blue-gray tiled roof and one yin-yang round sign",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tao/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 967,
+        "x1": 1098,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1200
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 3,
+      "description": "tall two-story/double-eaved temple, same yin-yang sign and modest incense urn",
+      "motif": "Chinese Taoist temple with blue-gray tiled roof and one yin-yang round sign",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tao/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1098,
+        "x1": 1254,
+        "y0": 974,
+        "y1": 1121
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 2,
+        "bottom": 47,
+        "width": 45,
+        "height": 46,
+        "pixels": 1519
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 1,
+      "description": "low small wood chest",
+      "motif": "simple Chinese jade-latched treasure chest",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/fortune/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 139,
+        "y0": 1121,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 40,
+        "height": 32,
+        "pixels": 1261
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 2,
+      "description": "taller metal-reinforced same chest",
+      "motif": "simple Chinese jade-latched treasure chest",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/fortune/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 139,
+        "x1": 273,
+        "y0": 1121,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1895
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 3,
+      "description": "taller rich wood/jade chest with restrained gold corners; not a house",
+      "motif": "simple Chinese jade-latched treasure chest",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/fortune/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 431,
+        "y0": 1121,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 2564
+      }
+    }
+  ]
+}

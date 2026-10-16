@@ -1,0 +1,7 @@
+Use case: precise-object-edit.
+EDIT THIS USER-APPROVED REFERENCE directly. The user explicitly LOVES THIS EXACT COLOR PALETTE. Lock all existing colors and the current flat2D cartoon pixel-art style. No extra desaturation, brightness, contrast, gold shine, bluish tint or color grading. Do not redesign anything.
+
+ONLY REQUESTED CHANGE: the outline is a little thick. Reduce the outer dark-brown contour thickness by about35–40%, from the current heavy outline to a fine ONE-LOGICAL-PIXEL brown border (roughly2–3 pixels in the enlarged artwork). Keep brown rather than black. Lighten the weight of dark internal separators a little where needed, without changing the material colors. Preserve hard pixel edges and visual readability; no antialiased hairline, no loss of contour.
+
+Everything else is INVARIANT: exact18 buildings, shapes, proportions, relative sizes, positions, low/mid/high three-column ×six-row layout, all roofs/doors/upper floors. All3 merchant guildhall coins must remain; all3 artisans hammer/anvil symbols must remain; inn lanterns, shrine burner, tower flags/ladders and wooden gate design must stay. Keep original simple Chinese design and flat cartoon finish. No realistic texture, stone fortress, changed architecture, new props, stretching, squashing, new gradient or shadows.
+Preserve the genuinely TRANSPARENT background. Do NOT introduce any brown backdrop, mist, glow, halo, floor shadow or checkerboard. Only make the brown outlines thinner, keeping the user's exact preferred colors.

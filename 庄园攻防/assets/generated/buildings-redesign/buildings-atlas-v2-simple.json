@@ -1,0 +1,2821 @@
+{
+  "version": 2,
+  "image": "assets/generated/buildings-redesign/buildings-atlas.png",
+  "width": 576,
+  "height": 576,
+  "columns": 9,
+  "rows": 9,
+  "groupsPerRow": 3,
+  "stagesPerType": 3,
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "pivot": {
+    "x": 32,
+    "y": 48
+  },
+  "sourceImage": "assets/generated/buildings-redesign/source-v2-simple.png",
+  "sourceCuts": {
+    "x": [
+      0,
+      140,
+      273,
+      434,
+      552,
+      684,
+      839,
+      964,
+      1103,
+      1254
+    ],
+    "y": [
+      0,
+      149,
+      274,
+      402,
+      541,
+      677,
+      811,
+      950,
+      1101,
+      1254
+    ]
+  },
+  "style": "简约正交偏俯视像素风；没有透视缩短、倾斜侧墙、梯形地块与立体庭院；强调屋顶及1–2个功能符号；固定少量平涂色及一像素深棕外轮廓#4A2E20；同类以面积、主体数量和材料逐级递进；初版复杂细节方案已废弃，不接入游戏",
+  "frames": [
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 1,
+      "description": "one small roof",
+      "motif": "teal roof rectangle, red entrance strip, one small incense-burner symbol",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/shrine/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 19,
+        "right": 44,
+        "top": 16,
+        "bottom": 47,
+        "width": 26,
+        "height": 32,
+        "pixels": 515
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 2,
+      "description": "bigger same roof with two little side roof blocks",
+      "motif": "teal roof rectangle, red entrance strip, one small incense-burner symbol",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/shrine/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1131
+      }
+    },
+    {
+      "type": "shrine",
+      "name": "祠堂",
+      "stage": 3,
+      "description": "broad same roof group and a tiny gold ridge",
+      "motif": "teal roof rectangle, red entrance strip, one small incense-burner symbol",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/shrine/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 1811
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 1,
+      "description": "small wooden gate",
+      "motif": "plain central dark opening and two stone/wood side piers, a straight short roof strip",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/gate/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 16,
+        "bottom": 47,
+        "width": 41,
+        "height": 32,
+        "pixels": 1086
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 2,
+      "description": "wider gray stone gateway",
+      "motif": "plain central dark opening and two stone/wood side piers, a straight short roof strip",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/gate/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 13,
+        "bottom": 47,
+        "width": 50,
+        "height": 35,
+        "pixels": 1508
+      }
+    },
+    {
+      "type": "gate",
+      "name": "庄园城门",
+      "stage": 3,
+      "description": "heavier gray stone gateway with a second straight roof strip",
+      "motif": "plain central dark opening and two stone/wood side piers, a straight short roof strip",
+      "gameLevels": [
+        7,
+        15
+      ],
+      "image": "assets/sprites/buildings/gate/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 6,
+        "bottom": 47,
+        "width": 58,
+        "height": 42,
+        "pixels": 2040
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 1,
+      "description": "one hut/one flag",
+      "motif": "simple brown/teal hut roof, red flag, one spear-rack icon",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/barracks/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 38,
+        "height": 32,
+        "pixels": 750
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 2,
+      "description": "bigger roof/two flags",
+      "motif": "simple brown/teal hut roof, red flag, one spear-rack icon",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/barracks/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 9,
+        "bottom": 47,
+        "width": 50,
+        "height": 39,
+        "pixels": 1194
+      }
+    },
+    {
+      "type": "barracks",
+      "name": "兵营",
+      "stage": 3,
+      "description": "main roof with two small side roof blocks and same red flags",
+      "motif": "simple brown/teal hut roof, red flag, one spear-rack icon",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/barracks/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 0,
+        "y1": 149
+      },
+      "subject": {
+        "left": 5,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 53,
+        "height": 46,
+        "pixels": 1818
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 1,
+      "description": "small timber square",
+      "motif": "square flat shooting platform with four corner posts and a bow/crossbow symbol",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tower/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 18,
+        "right": 44,
+        "top": 16,
+        "bottom": 47,
+        "width": 27,
+        "height": 32,
+        "pixels": 777
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 2,
+      "description": "wider timber/stone square",
+      "motif": "square flat shooting platform with four corner posts and a bow/crossbow symbol",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tower/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 9,
+        "bottom": 47,
+        "width": 37,
+        "height": 39,
+        "pixels": 1311
+      }
+    },
+    {
+      "type": "tower",
+      "name": "箭塔",
+      "stage": 3,
+      "description": "larger stone square with stronger corner posts; no perspective tower rendering",
+      "motif": "square flat shooting platform with four corner posts and a bow/crossbow symbol",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tower/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 6,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 52,
+        "height": 46,
+        "pixels": 2110
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 1,
+      "description": "small stone slab with rocks",
+      "motif": "flat rectangular stone platform with three round gray rocks and a short brown lifting beam",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/rock/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 15,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 34,
+        "height": 32,
+        "pixels": 847
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 2,
+      "description": "wider reinforced slab and more rocks",
+      "motif": "flat rectangular stone platform with three round gray rocks and a short brown lifting beam",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/rock/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 10,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 44,
+        "height": 39,
+        "pixels": 1393
+      }
+    },
+    {
+      "type": "rock",
+      "name": "擂石台",
+      "stage": 3,
+      "description": "large stone slab, same rocks and one clear lifting beam",
+      "motif": "flat rectangular stone platform with three round gray rocks and a short brown lifting beam",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/rock/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 2069
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 1,
+      "description": "plain stone ring",
+      "motif": "one circular gray stone rim with blue water center, simple horizontal wooden beam and bucket",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/well/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 17,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 29,
+        "height": 32,
+        "pixels": 761
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 2,
+      "description": "larger same ring with short square wooden frame",
+      "motif": "one circular gray stone rim with blue water center, simple horizontal wooden beam and bucket",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/well/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 9,
+        "bottom": 47,
+        "width": 38,
+        "height": 39,
+        "pixels": 1287
+      }
+    },
+    {
+      "type": "well",
+      "name": "水井",
+      "stage": 3,
+      "description": "refined ring with small square roof frame",
+      "motif": "one circular gray stone rim with blue water center, simple horizontal wooden beam and bucket",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/well/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 64,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 149,
+        "y1": 274
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 50,
+        "height": 46,
+        "pixels": 2123
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 1,
+      "description": "small green awning with cup",
+      "motif": "simple muted-green awning/roof rectangle and clear teapot/cup symbol",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tea/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 16,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 31,
+        "height": 32,
+        "pixels": 738
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 2,
+      "description": "wider same green awning and one extra tea table",
+      "motif": "simple muted-green awning/roof rectangle and clear teapot/cup symbol",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tea/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 10,
+        "bottom": 47,
+        "width": 50,
+        "height": 38,
+        "pixels": 1443
+      }
+    },
+    {
+      "type": "tea",
+      "name": "茶肆",
+      "stage": 3,
+      "description": "broad same roof and two cup/table motifs",
+      "motif": "simple muted-green awning/roof rectangle and clear teapot/cup symbol",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tea/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 5,
+        "bottom": 47,
+        "width": 58,
+        "height": 43,
+        "pixels": 1842
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 1,
+      "description": "one roof with two lanterns",
+      "motif": "rectangular teal roof and two red lantern dots on entrance edge",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/inn/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 944
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 2,
+      "description": "larger same roof with a small attached roof",
+      "motif": "rectangular teal roof and two red lantern dots on entrance edge",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/inn/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 14,
+        "bottom": 47,
+        "width": 50,
+        "height": 34,
+        "pixels": 1538
+      }
+    },
+    {
+      "type": "inn",
+      "name": "客栈",
+      "stage": 3,
+      "description": "broad roof group, same red lanterns and a few window blocks",
+      "motif": "rectangular teal roof and two red lantern dots on entrance edge",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/inn/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 9,
+        "bottom": 47,
+        "width": 58,
+        "height": 39,
+        "pixels": 1939
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 1,
+      "description": "small compact roof/coin",
+      "motif": "compact teal roof and unmistakable round gold cash-coin symbol, square vault door strip",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/bank/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 954
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 2,
+      "description": "larger same roof and gray stone edge",
+      "motif": "compact teal roof and unmistakable round gold cash-coin symbol, square vault door strip",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/bank/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 9,
+        "bottom": 47,
+        "width": 50,
+        "height": 39,
+        "pixels": 1685
+      }
+    },
+    {
+      "type": "bank",
+      "name": "钱庄",
+      "stage": 3,
+      "description": "wider same bank roof with stronger stone edge and same gold coin",
+      "motif": "compact teal roof and unmistakable round gold cash-coin symbol, square vault door strip",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/bank/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 128,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 274,
+        "y1": 402
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 4,
+        "bottom": 47,
+        "width": 58,
+        "height": 44,
+        "pixels": 2216
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 1,
+      "description": "small rectangle with three rows of green sprouts",
+      "motif": "PERFECTLY RECTANGULAR OVERHEAD PLOT, horizontal/vertical rows of crops, narrow water channel",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/farm/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 1147
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 2,
+      "description": "larger same rectangle with four dense green rows",
+      "motif": "PERFECTLY RECTANGULAR OVERHEAD PLOT, horizontal/vertical rows of crops, narrow water channel",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/farm/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1788
+      }
+    },
+    {
+      "type": "farm",
+      "name": "农田",
+      "stage": 3,
+      "description": "larger same rectangle with five golden crop rows; ALL edges parallel, no trapezoid, no soil sidewalls, no 3D wheel",
+      "motif": "PERFECTLY RECTANGULAR OVERHEAD PLOT, horizontal/vertical rows of crops, narrow water channel",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/farm/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 6,
+        "bottom": 47,
+        "width": 58,
+        "height": 42,
+        "pixels": 2412
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 1,
+      "description": "little roof/small wheel",
+      "motif": "plain roof rectangle attached to an obvious flat round six-spoke brown waterwheel and grain sack",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mill/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 30,
+        "height": 32,
+        "pixels": 703
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 2,
+      "description": "bigger same roof/larger wheel",
+      "motif": "plain roof rectangle attached to an obvious flat round six-spoke brown waterwheel and grain sack",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mill/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 8,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 47,
+        "height": 39,
+        "pixels": 1486
+      }
+    },
+    {
+      "type": "mill",
+      "name": "磨坊",
+      "stage": 3,
+      "description": "broad same roof and large wheel with two sacks",
+      "motif": "plain roof rectangle attached to an obvious flat round six-spoke brown waterwheel and grain sack",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/mill/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 6,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 52,
+        "height": 46,
+        "pixels": 2053
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 1,
+      "description": "small shed roof and two jars",
+      "motif": "plain terracotta/brown roof and large round brown jars with red lids",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/wine/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 18,
+        "right": 44,
+        "top": 16,
+        "bottom": 47,
+        "width": 27,
+        "height": 32,
+        "pixels": 660
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 2,
+      "description": "bigger same roof and three jars",
+      "motif": "plain terracotta/brown roof and large round brown jars with red lids",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/wine/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1339
+      }
+    },
+    {
+      "type": "wine",
+      "name": "酒坊",
+      "stage": 3,
+      "description": "broad same roof and four jars, one simple copper pot",
+      "motif": "plain terracotta/brown roof and large round brown jars with red lids",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/wine/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 192,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 402,
+        "y1": 541
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 2,
+        "bottom": 47,
+        "width": 58,
+        "height": 46,
+        "pixels": 2124
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 1,
+      "description": "one or two small treetop circles",
+      "motif": "round flat green treetop clusters and one little silkworm-leaf basket, optional thin rectangular fence",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 972
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 2,
+      "description": "two or three bigger same leaf clusters",
+      "motif": "round flat green treetop clusters and one little silkworm-leaf basket, optional thin rectangular fence",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 10,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 44,
+        "height": 39,
+        "pixels": 1464
+      }
+    },
+    {
+      "type": "mulberry",
+      "name": "桑园",
+      "stage": 3,
+      "description": "three or four full same treetop circles inside simple low outline; no visible tree depth",
+      "motif": "round flat green treetop clusters and one little silkworm-leaf basket, optional thin rectangular fence",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/mulberry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 5,
+        "right": 57,
+        "top": 2,
+        "bottom": 47,
+        "width": 53,
+        "height": 46,
+        "pixels": 2142
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 1,
+      "description": "small loom/small roof",
+      "motif": "simple brown roof, clearly readable rectangular wood loom with a few parallel warp lines, one indigo cloth strip",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/weaver/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 19,
+        "right": 44,
+        "top": 16,
+        "bottom": 47,
+        "width": 26,
+        "height": 32,
+        "pixels": 691
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 2,
+      "description": "larger same loom/roof and cloth roll",
+      "motif": "simple brown roof, clearly readable rectangular wood loom with a few parallel warp lines, one indigo cloth strip",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/weaver/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 11,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 41,
+        "height": 39,
+        "pixels": 1398
+      }
+    },
+    {
+      "type": "weaver",
+      "name": "织坊",
+      "stage": 3,
+      "description": "two same loom rectangles and broader roof, indigo cloth",
+      "motif": "simple brown roof, clearly readable rectangular wood loom with a few parallel warp lines, one indigo cloth strip",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/weaver/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 2301
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 1,
+      "description": "one roof/one T-shaped garment",
+      "motif": "simple roof, recognizable hanging T-shaped red garment and cloth roll",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tailor/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 15,
+        "right": 47,
+        "top": 16,
+        "bottom": 47,
+        "width": 33,
+        "height": 32,
+        "pixels": 816
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 2,
+      "description": "bigger same roof/two garments",
+      "motif": "simple roof, recognizable hanging T-shaped red garment and cloth roll",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tailor/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 9,
+        "right": 53,
+        "top": 9,
+        "bottom": 47,
+        "width": 45,
+        "height": 39,
+        "pixels": 1285
+      }
+    },
+    {
+      "type": "tailor",
+      "name": "成衣铺",
+      "stage": 3,
+      "description": "broader same roof, garment rack and three simple cloth rolls",
+      "motif": "simple roof, recognizable hanging T-shaped red garment and cloth roll",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tailor/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 541,
+        "y1": 677
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 2028
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 1,
+      "description": "three gray rocks",
+      "motif": "flat OVERHEAD irregular cluster of gray stones and squared blocks, one tiny brown lifting beam",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/quarry/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 13,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 38,
+        "height": 32,
+        "pixels": 872
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 2,
+      "description": "five rocks/blocks and simple beam",
+      "motif": "flat OVERHEAD irregular cluster of gray stones and squared blocks, one tiny brown lifting beam",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/quarry/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1034
+      }
+    },
+    {
+      "type": "quarry",
+      "name": "石场",
+      "stage": 3,
+      "description": "bigger same stone cluster and squared blocks; no cliffs, no cutaway soil, no perspective walls",
+      "motif": "flat OVERHEAD irregular cluster of gray stones and squared blocks, one tiny brown lifting beam",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/quarry/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 3,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 57,
+        "height": 46,
+        "pixels": 1788
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 1,
+      "description": "one small round kiln",
+      "motif": "round terracotta kiln/dome top, one short chimney rectangle, two blue-white pot dots",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/kiln/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 17,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 29,
+        "height": 32,
+        "pixels": 717
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 2,
+      "description": "larger same kiln with two pots",
+      "motif": "round terracotta kiln/dome top, one short chimney rectangle, two blue-white pot dots",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/kiln/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 16,
+        "right": 47,
+        "top": 9,
+        "bottom": 47,
+        "width": 32,
+        "height": 39,
+        "pixels": 893
+      }
+    },
+    {
+      "type": "kiln",
+      "name": "瓷窑",
+      "stage": 3,
+      "description": "two same round kilns with three pots; no smoke clouds or architectural tiny details",
+      "motif": "round terracotta kiln/dome top, one short chimney rectangle, two blue-white pot dots",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/kiln/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 50,
+        "height": 46,
+        "pixels": 1623
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 1,
+      "description": "small roof/two crates",
+      "motif": "plain roof rectangle with clearly visible brown crates and bundles",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/trade/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 36,
+        "height": 32,
+        "pixels": 955
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 2,
+      "description": "larger same roof/three crates",
+      "motif": "plain roof rectangle with clearly visible brown crates and bundles",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/trade/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 7,
+        "right": 56,
+        "top": 10,
+        "bottom": 47,
+        "width": 50,
+        "height": 38,
+        "pixels": 1569
+      }
+    },
+    {
+      "type": "trade",
+      "name": "商号",
+      "stage": 3,
+      "description": "broad same roof/five cargo blocks and simple handcart; no coin badge",
+      "motif": "plain roof rectangle with clearly visible brown crates and bundles",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/trade/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 320,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 677,
+        "y1": 811
+      },
+      "subject": {
+        "left": 4,
+        "right": 59,
+        "top": 2,
+        "bottom": 47,
+        "width": 56,
+        "height": 46,
+        "pixels": 2099
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 1,
+      "description": "compact roof and coin",
+      "motif": "wide simple teal roof group, round gold cash-coin crest at center, red entrance strip",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/guild/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 13,
+        "right": 49,
+        "top": 16,
+        "bottom": 47,
+        "width": 37,
+        "height": 32,
+        "pixels": 993
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 2,
+      "description": "bigger same roof with two small side roof blocks",
+      "motif": "wide simple teal roof group, round gold cash-coin crest at center, red entrance strip",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/guild/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 9,
+        "bottom": 47,
+        "width": 49,
+        "height": 39,
+        "pixels": 1628
+      }
+    },
+    {
+      "type": "guild",
+      "name": "汇财会馆",
+      "stage": 3,
+      "description": "broad organized three-roof group and same coin crest; no carved dragons/lions",
+      "motif": "wide simple teal roof group, round gold cash-coin crest at center, red entrance strip",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/guild/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 3,
+        "right": 60,
+        "top": 4,
+        "bottom": 47,
+        "width": 58,
+        "height": 44,
+        "pixels": 2084
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 1,
+      "description": "small workshop with hammer",
+      "motif": "brown/teal workshop roof, one flat hammer-and-anvil symbol, plain wood workbench",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/port/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 17,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 29,
+        "height": 32,
+        "pixels": 797
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 2,
+      "description": "bigger same workshop with tool rack",
+      "motif": "brown/teal workshop roof, one flat hammer-and-anvil symbol, plain wood workbench",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/port/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1462
+      }
+    },
+    {
+      "type": "port",
+      "name": "百工院",
+      "stage": 3,
+      "description": "two roof blocks and two benches, same hammer; NOT a port, no boats",
+      "motif": "brown/teal workshop roof, one flat hammer-and-anvil symbol, plain wood workbench",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/port/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 8,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 48,
+        "height": 46,
+        "pixels": 1851
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 1,
+      "description": "small red curtain and drum",
+      "motif": "flat rectangular red-curtained stage, one roof strip at back, round drum",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/stage/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 18,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 28,
+        "height": 32,
+        "pixels": 725
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 2,
+      "description": "wider same curtain/roof",
+      "motif": "flat rectangular red-curtained stage, one roof strip at back, round drum",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/stage/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 12,
+        "right": 51,
+        "top": 9,
+        "bottom": 47,
+        "width": 40,
+        "height": 39,
+        "pixels": 1297
+      }
+    },
+    {
+      "type": "stage",
+      "name": "戏台",
+      "stage": 3,
+      "description": "broader same curtain with two pillar dots and two drums; front/top symbol view, no angled stage/platform",
+      "motif": "flat rectangular red-curtained stage, one roof strip at back, round drum",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/stage/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 811,
+        "y1": 950
+      },
+      "subject": {
+        "left": 7,
+        "right": 55,
+        "top": 2,
+        "bottom": 47,
+        "width": 49,
+        "height": 46,
+        "pixels": 1854
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 1,
+      "description": "small orange roof/altar",
+      "motif": "small ORANGE roof rectangle, tiny shrine niche and incense-burner symbol",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/earth/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 17,
+        "right": 46,
+        "top": 16,
+        "bottom": 47,
+        "width": 30,
+        "height": 32,
+        "pixels": 712
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 2,
+      "description": "wider same orange roof and altar",
+      "motif": "small ORANGE roof rectangle, tiny shrine niche and incense-burner symbol",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/earth/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1308
+      }
+    },
+    {
+      "type": "earth",
+      "name": "土地庙",
+      "stage": 3,
+      "description": "larger same orange roof and pale stone outline; remains compact",
+      "motif": "small ORANGE roof rectangle, tiny shrine niche and incense-burner symbol",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/earth/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 6,
+        "right": 56,
+        "top": 2,
+        "bottom": 47,
+        "width": 51,
+        "height": 46,
+        "pixels": 2023
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 1,
+      "description": "small gray guardian icon/plinth",
+      "motif": "very simple bearded guardian-head/cap silhouette and sword icon on flat gray plinth",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/zhong/level-1.png",
+      "frame": {
+        "x": 192,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 434,
+        "x1": 552,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 18,
+        "right": 45,
+        "top": 16,
+        "bottom": 47,
+        "width": 28,
+        "height": 32,
+        "pixels": 658
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 2,
+      "description": "larger bronze same guardian icon and gray base",
+      "motif": "very simple bearded guardian-head/cap silhouette and sword icon on flat gray plinth",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/zhong/level-2.png",
+      "frame": {
+        "x": 256,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 552,
+        "x1": 684,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 14,
+        "right": 49,
+        "top": 9,
+        "bottom": 47,
+        "width": 36,
+        "height": 39,
+        "pixels": 1030
+      }
+    },
+    {
+      "type": "zhong",
+      "name": "钟馗像",
+      "stage": 3,
+      "description": "same guardian icon in gold/bronze and slightly wider base; flat sprite symbol, no realistic sculptural depth",
+      "motif": "very simple bearded guardian-head/cap silhouette and sword icon on flat gray plinth",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/zhong/level-3.png",
+      "frame": {
+        "x": 320,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 684,
+        "x1": 839,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 11,
+        "right": 52,
+        "top": 2,
+        "bottom": 47,
+        "width": 42,
+        "height": 46,
+        "pixels": 1408
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 1,
+      "description": "small roof/yin-yang",
+      "motif": "dark-teal roof rectangle with obvious round black-white YIN-YANG icon",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/tao/level-1.png",
+      "frame": {
+        "x": 384,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 839,
+        "x1": 964,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 14,
+        "right": 48,
+        "top": 16,
+        "bottom": 47,
+        "width": 35,
+        "height": 32,
+        "pixels": 922
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 2,
+      "description": "bigger same roof with two little side roof blocks",
+      "motif": "dark-teal roof rectangle with obvious round black-white YIN-YANG icon",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/tao/level-2.png",
+      "frame": {
+        "x": 448,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 964,
+        "x1": 1103,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 9,
+        "right": 54,
+        "top": 9,
+        "bottom": 47,
+        "width": 46,
+        "height": 39,
+        "pixels": 1502
+      }
+    },
+    {
+      "type": "tao",
+      "name": "道观",
+      "stage": 3,
+      "description": "broader same roof group and same yin-yang, two small incense dots",
+      "motif": "dark-teal roof rectangle with obvious round black-white YIN-YANG icon",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/tao/level-3.png",
+      "frame": {
+        "x": 512,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 1103,
+        "x1": 1254,
+        "y0": 950,
+        "y1": 1101
+      },
+      "subject": {
+        "left": 5,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 54,
+        "height": 46,
+        "pixels": 1944
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 1,
+      "description": "small wood lid/jade latch",
+      "motif": "simple overhead RECTANGULAR chest lid, central jade latch dot and gold corner blocks",
+      "gameLevels": [
+        1,
+        3
+      ],
+      "image": "assets/sprites/buildings/fortune/level-1.png",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 0,
+        "x1": 140,
+        "y0": 1101,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 12,
+        "right": 50,
+        "top": 16,
+        "bottom": 47,
+        "width": 39,
+        "height": 32,
+        "pixels": 1196
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 2,
+      "description": "bigger same teal/wood lid and metal corners",
+      "motif": "simple overhead RECTANGULAR chest lid, central jade latch dot and gold corner blocks",
+      "gameLevels": [
+        4,
+        6
+      ],
+      "image": "assets/sprites/buildings/fortune/level-2.png",
+      "frame": {
+        "x": 64,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 140,
+        "x1": 273,
+        "y0": 1101,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 10,
+        "right": 52,
+        "top": 9,
+        "bottom": 47,
+        "width": 43,
+        "height": 39,
+        "pixels": 1615
+      }
+    },
+    {
+      "type": "fortune",
+      "name": "造化匣",
+      "stage": 3,
+      "description": "broader same chest lid with gold band and jade dot; no perspective side walls",
+      "motif": "simple overhead RECTANGULAR chest lid, central jade latch dot and gold corner blocks",
+      "gameLevels": [
+        7,
+        9
+      ],
+      "image": "assets/sprites/buildings/fortune/level-3.png",
+      "frame": {
+        "x": 128,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 48
+      },
+      "source": {
+        "x0": 273,
+        "x1": 434,
+        "y0": 1101,
+        "y1": 1254
+      },
+      "subject": {
+        "left": 5,
+        "right": 58,
+        "top": 2,
+        "bottom": 47,
+        "width": 54,
+        "height": 46,
+        "pixels": 2436
+      }
+    }
+  ]
+}

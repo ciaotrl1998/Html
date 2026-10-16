@@ -1,0 +1,168 @@
+{
+  "version": 9,
+  "frameWidth": 96,
+  "frameHeight": 128,
+  "pivot": {
+    "x": 48,
+    "y": 120
+  },
+  "heights": {
+    "shrine": [
+      49,
+      65,
+      73
+    ],
+    "gate": [
+      64,
+      82,
+      92
+    ],
+    "barracks": [
+      26,
+      43,
+      47
+    ],
+    "tower": [
+      60,
+      72,
+      84
+    ],
+    "rock": [
+      33,
+      41,
+      50
+    ],
+    "well": [
+      27,
+      38,
+      50
+    ],
+    "tea": [
+      30,
+      43,
+      49
+    ],
+    "inn": [
+      25,
+      37,
+      42
+    ],
+    "bank": [
+      29,
+      42,
+      47
+    ],
+    "farm": [
+      48,
+      48,
+      48
+    ],
+    "mill": [
+      28,
+      41,
+      46
+    ],
+    "wine": [
+      31,
+      40,
+      51
+    ],
+    "mulberry": [
+      32,
+      38,
+      44
+    ],
+    "weaver": [
+      34,
+      41,
+      50
+    ],
+    "tailor": [
+      29,
+      40,
+      49
+    ],
+    "quarry": [
+      29,
+      39,
+      58
+    ],
+    "kiln": [
+      26,
+      36,
+      48
+    ],
+    "trade": [
+      30,
+      38,
+      46
+    ],
+    "guild": [
+      40,
+      52,
+      57
+    ],
+    "port": [
+      38,
+      56,
+      63
+    ],
+    "stage": [
+      36,
+      39,
+      50
+    ],
+    "earth": [
+      35,
+      37,
+      44
+    ],
+    "zhong": [
+      36,
+      46,
+      56
+    ],
+    "tao": [
+      31,
+      38,
+      47
+    ],
+    "fortune": [
+      28,
+      30,
+      34
+    ]
+  },
+  "gateOrientations": {
+    "ns": {
+      "image": "stages.png",
+      "groundY": 54,
+      "heights": [
+        64,
+        82,
+        92
+      ],
+      "destroyed": {
+        "image": "destroyed.png",
+        "thumbnail": "destroyed-preview.png",
+        "width": 64,
+        "height": 25
+      }
+    },
+    "ew": {
+      "image": "stages-ew.png",
+      "groundY": 64,
+      "heights": [
+        66,
+        81,
+        94
+      ],
+      "destroyed": {
+        "image": "destroyed-ew.png",
+        "thumbnail": "destroyed-preview-ew.png",
+        "width": 45,
+        "height": 64
+      }
+    }
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "version": 3,
+  "layout": {
+    "columns": 9,
+    "rows": 9,
+    "groupsPerRow": 3,
+    "stagesPerType": 3,
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "pivot": {
+      "x": 32,
+      "y": 48
+    }
+  },
+  "stageLevels": [
+    [
+      1,
+      3
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      7,
+      15
+    ]
+  ],
+  "style": "参考用户提供的WorldBox简约像素城镇尺度，保留中式灰蓝瓦顶、木构白墙及深棕描边#4A2E20；正交偏俯视，建筑有真实竖向高度，低级矮、高级增加墙高或二层楼；农田为1:1无围栏开放式水田，稻苗间可见浅水，地块不加闭合棕框；桑园旁有中式小屋；箭塔为细长塔身、梯子、射击层与瓦顶，不作平台图标",
+  "buildings": [
+    {
+      "id": "shrine",
+      "name": "祠堂",
+      "motif": "Chinese ancestral hall, gray-blue tiled roof, warm red entrance, small incense burner",
+      "stages": [
+        "low one-story hall",
+        "taller hall with raised timber frame",
+        "visibly tall two-story/double-eaved hall, same entrance and roof color"
+      ]
+    },
+    {
+      "id": "gate",
+      "name": "庄园城门",
+      "motif": "Chinese wooden double-door gateway, gray stone piers and tiled roof",
+      "stages": [
+        "low wooden gateway",
+        "taller stone gatehouse",
+        "tall two-floor gate tower above same doorway"
+      ]
+    },
+    {
+      "id": "barracks",
+      "name": "兵营",
+      "motif": "Chinese garrison house with red flags and a small spear rack",
+      "stages": [
+        "short single-story hut",
+        "taller tiled barracks",
+        "tall two-story garrison building with the same red flags"
+      ]
+    },
+    {
+      "id": "tower",
+      "name": "箭塔",
+      "motif": "ACTUAL TALL SLENDER CHINESE ARCHER WATCHTOWER with upright support posts/stone shaft, ladder, raised shooting deck, simple tiled canopy",
+      "stages": [
+        "short but clearly upright wooden watchtower",
+        "taller wood/stone tower with two vertical sections",
+        "very tall narrow three-section tower and upper shooting balcony; height visibly much greater than width at EVERY tier; NEVER a flat platform or bow-emblem tile"
+      ]
+    },
+    {
+      "id": "rock",
+      "name": "擂石台",
+      "motif": "upright low stone rock-throwing tower/platform with visible stone pile",
+      "stages": [
+        "low stone platform",
+        "raised stone parapet",
+        "taller stone tower with stones and simple lifting beam"
+      ]
+    },
+    {
+      "id": "well",
+      "name": "水井",
+      "motif": "Chinese circular stone well, bucket and simple wood windlass",
+      "stages": [
+        "low stone well ring",
+        "same well with a small wooden roof frame",
+        "taller little Chinese tiled well pavilion; keep visible circular water opening"
+      ]
+    },
+    {
+      "id": "tea",
+      "name": "茶肆",
+      "motif": "Chinese country teahouse, simple gray-green tiled roof, green tea awning, teapot",
+      "stages": [
+        "short tea stall",
+        "taller one-story tiled tea shop",
+        "visibly taller two-story tea house with same green awning and teapot"
+      ]
+    },
+    {
+      "id": "inn",
+      "name": "客栈",
+      "motif": "Chinese timber/plaster inn, gray-blue tiled roof and two red lanterns",
+      "stages": [
+        "low one-story inn",
+        "taller house with attic",
+        "tall two-story inn with same entrance and red lanterns"
+      ]
+    },
+    {
+      "id": "bank",
+      "name": "钱庄",
+      "motif": "Chinese money shop with plain stone/timber walls and one cash-coin sign",
+      "stages": [
+        "low single-story money shop",
+        "taller sturdy bank",
+        "tall two-story bank with same coin sign; no oversized ornamental gold facade"
+      ]
+    },
+    {
+      "id": "farm",
+      "name": "农田",
+      "motif": "OPEN CHINESE FLOODED RICE PADDY, TRUE SQUARE1:1 width:height FOOTPRINT, overhead view, visible pale-blue shallow water BETWEEN orderly tufts of rice; open natural muddy/grass edges",
+      "stages": [
+        "square open shallow paddy with sparse young green rice",
+        "same square shape with denser taller green rice",
+        "same square shape with mature yellow-green Chinese rice panicles. No fences, no railings, no enclosing walls, no timber frame, no brick border, no raised planter box, no blue pool rim, no wheel, no decorative platform. All3 paddies must be true square overhead footprints. Brown line may outline rice tufts/muddy bits but must NOT form a closed heavy box around field. Not maize or wheat, not a swimming pool."
+      ]
+    },
+    {
+      "id": "mill",
+      "name": "磨坊",
+      "motif": "Chinese water mill, tiled roof and obvious round side waterwheel",
+      "stages": [
+        "low little mill",
+        "taller main mill house",
+        "tall two-story mill with same waterwheel and a grain sack"
+      ]
+    },
+    {
+      "id": "wine",
+      "name": "酒坊",
+      "motif": "Chinese brewery with brown/red clay jars capped with red cloth",
+      "stages": [
+        "short brewing shed with two jars",
+        "taller tiled brewery with same jars",
+        "two-story brewery, four jars and one simple copper pot"
+      ]
+    },
+    {
+      "id": "mulberry",
+      "name": "桑园",
+      "motif": "CHINESE MULBERRY ORCHARD with rounded green mulberry trees and a SMALL CHINESE COUNTRY COTTAGE standing BESIDE the trees, simple blue-gray tiled roof, ivory plaster and wood; no western cabin",
+      "stages": [
+        "two small leafy trees beside a tiny low Chinese cottage",
+        "three fuller trees beside a taller same cottage",
+        "denser mulberry trees beside a two-story same Chinese cottage, cottage remains secondary to trees. No enclosing square planter frame."
+      ]
+    },
+    {
+      "id": "weaver",
+      "name": "织坊",
+      "motif": "Chinese weaving house with simple wooden loom and indigo cloth",
+      "stages": [
+        "low open weaving shed",
+        "taller tiled weaving house",
+        "tall two-story weaving house with same visible loom and indigo strip"
+      ]
+    },
+    {
+      "id": "tailor",
+      "name": "成衣铺",
+      "motif": "Chinese tailor shop with hanging T-shaped garment",
+      "stages": [
+        "short clothes stall",
+        "taller single-story tiled shop",
+        "tall two-story clothes shop, same hanging garment and a few fabric rolls"
+      ]
+    },
+    {
+      "id": "quarry",
+      "name": "石场",
+      "motif": "open Chinese stone-cutting site: simple gray stone/block cluster and wooden lifting beam",
+      "stages": [
+        "small stone cluster",
+        "more squared blocks and a lifting frame",
+        "larger stone cluster with taller timber lifting frame; no enclosed garden or fancy stone pit"
+      ]
+    },
+    {
+      "id": "kiln",
+      "name": "瓷窑",
+      "motif": "traditional Chinese rounded terracotta ceramic kiln with short chimney and blue-white pots",
+      "stages": [
+        "low simple clay kiln",
+        "taller brick kiln/chimney",
+        "taller twin kiln workshop with one taller chimney; simple forms, no smoke clouds"
+      ]
+    },
+    {
+      "id": "trade",
+      "name": "商号",
+      "motif": "Chinese trading shop with two or three simple cargo crates",
+      "stages": [
+        "low wood goods shed",
+        "taller tiled shop",
+        "tall two-story trading house, same crate motif"
+      ]
+    },
+    {
+      "id": "guild",
+      "name": "汇财会馆",
+      "motif": "Chinese merchant guildhall, single cash-coin crest, blue-gray roofs",
+      "stages": [
+        "low civic hall",
+        "taller main hall with same crest",
+        "tall two-story guildhall, restrained roof silhouette and crest"
+      ]
+    },
+    {
+      "id": "port",
+      "name": "百工院",
+      "motif": "Chinese artisans hall, hammer/anvil/workbench motif, NOT a harbor",
+      "stages": [
+        "low workshop",
+        "taller workshop house",
+        "tall two-story craft house and one side workbench; no boats"
+      ]
+    },
+    {
+      "id": "stage",
+      "name": "戏台",
+      "motif": "Chinese opera stage with open red curtains, tiled canopy, round drum",
+      "stages": [
+        "short low stage canopy",
+        "taller open stage with visible pillars",
+        "tall double-eaved stage and higher pillars; do not enclose the front"
+      ]
+    },
+    {
+      "id": "earth",
+      "name": "土地庙",
+      "motif": "small Chinese earth-god temple with orange tiles and little incense burner",
+      "stages": [
+        "tiny low folk altar",
+        "taller same little orange-roof shrine",
+        "taller double-eaved same folk shrine, still smaller than main ancestral hall"
+      ]
+    },
+    {
+      "id": "zhong",
+      "name": "钟馗像",
+      "motif": "simple Chinese bearded guardian statue wearing official cap and holding sword, not a giant face icon",
+      "stages": [
+        "short full-body gray guardian on low plinth",
+        "taller bronze same full-body statue and pedestal",
+        "taller gold/bronze same full-body statue and pedestal; simple pixel silhouette"
+      ]
+    },
+    {
+      "id": "tao",
+      "name": "道观",
+      "motif": "Chinese Taoist temple with blue-gray tiled roof and one yin-yang round sign",
+      "stages": [
+        "low one-story temple",
+        "taller same temple",
+        "tall two-story/double-eaved temple, same yin-yang sign and modest incense urn"
+      ]
+    },
+    {
+      "id": "fortune",
+      "name": "造化匣",
+      "motif": "simple Chinese jade-latched treasure chest",
+      "stages": [
+        "low small wood chest",
+        "taller metal-reinforced same chest",
+        "taller rich wood/jade chest with restrained gold corners; not a house"
+      ]
+    }
+  ]
+}

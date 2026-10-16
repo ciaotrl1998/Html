@@ -1,0 +1,6 @@
+Use case: precise-object-edit.
+Edit ONLY the line weight of this18-building flat cartoon pixel sprite sheet.
+The user says the outlines are a little too thick.
+Make the outside dark-brown outlines about40–50% THINNER than now: a clean SINGLE LOGICAL PIXEL contour (roughly2–3 pixels at this enlarged preview resolution), not a heavy black border. Keep the contour clearly dark BROWN #4A2E20 rather than near-black. Thin the inner door/roof/pillar separator strokes slightly too, but retain readable structural joints. Preserve hard pixel edges, not antialiased vector hairlines. Do NOT remove the outline entirely.
+Preserve EXACTLY the current building designs, relative sizes, colors inside materials, level structure, shapes, symbols and3-column×6-row arrangement. Preserve the shrine's incense burner; all3 guildhall coin crests; all3 artisans hammer/anvil symbols; all3 inn pairs of red lanterns; tower ladder and red flag; gate doors. No new detail, no realism, no redesign, no added textures or gradients, no stretching or squashing.
+Keep flat2D cartoon pixel style. No background color, no glow, no haze or shadows: genuine transparent background right outside the now-thinner contours. This is a LINE-THICKNESS revision only, not a new art direction.

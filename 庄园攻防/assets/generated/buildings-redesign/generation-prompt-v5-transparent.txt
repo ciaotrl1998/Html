@@ -1,0 +1,4 @@
+Use case: background-extraction.
+Remove ONLY the dark brown/black background and ALL surrounding brown glow, haze, cast shadows and halos from this18-sprite sheet. Output genuinely transparent PNG background.
+Preserve the existing18 flat cartoon pixel buildings EXACTLY: same designs, symbols, silhouettes, outlines, colors, positions, three-column/six-row layout, size and spacing. Do not redraw, add detail, change buildings or alter the coin / hammer / anvil / lantern / red flag symbols. Keep clean dark-brown contours around buildings and transparent areas between buildings. Remove every background pixel right up to each sprite's outside outline. No replacement background, no checkerboard baked in, no shadows or glow.
+This is a transparency cleanup only, NOT a redesign.

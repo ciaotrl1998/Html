@@ -1,0 +1,69 @@
+Use case: stylized-concept.
+Asset type: ONE SINGLE batch-generated transparent PNG sprite ATLAS containing all buildings for an ancient Chinese manor strategy game, "庄园攻防". This is a NEW COMPLETE REDESIGN, not an illustration of a town.
+Input image1 is a REFERENCE ONLY for the game's near-front elevated camera, warm dark-brown exterior outline, coherent earth/teal/red palette and small game readability. Do NOT copy its repetitive houses: redesign each building with its own obvious function and coherent upgrades.
+
+CANVAS / LAYOUT — critical:
+Generate ONE square2304x2304 transparent PNG, an invisible UNIFORM9-COLUMN by9-ROW GRID. Each cell256x256. EXACT75 separate sprites,25 distinct building types times3 upgrade stages. No grid lines, no labels, no words, no watermarks, no UI, no level numbers. Do not arrange as a perspective village or connect the buildings.
+In EACH row, columns1,2,3 are the three stages of the first type; columns4,5,6 of the second type; columns7,8,9 of the third type.
+Each group must read LEFT→RIGHT as LOW→MID→HIGH upgrade of the SAME exact building. Rows1–8 are FULL nine sprites each. Row9 ONLY columns1,2,3 are chest stages; columns4–9 remain totally empty/transparent. Total75 sprites, not81.
+Each cell has ONE self-contained, centered, fully visible sprite with a shared ground baseline at about3/4 cell height, transparent space below and around. No roof, chimney, tree, cargo or prop overlaps a neighboring cell or gets cut off.
+
+PERSPECTIVE / STYLE:
+Straight-on FRONT-facing architecture with a modest elevated RPG view so roof tops and a little depth are visible, front eaves HORIZONTAL. Same camera for ALL75. NOT a steep isometric view, no diamond floor tiles, no perspective variation.
+Genuinely LOW-RESOLUTION PIXEL ART designed for a64x64 final frame, NOT a high-resolution painted miniature. Draw like a64x64 logical pixel sprite evenly enlarged4x per cell. Strong clean square pixel clusters, material forms in two or three shades, no fine stippling, no photorealistic texture, no 3D/PBR, no blur, no smooth vector strokes.
+One logical-pixel DARK BROWN exterior contour #4A2E20, not pure black. Warm wood/stone masonry, restrained teal/blue-gray roof tiles, red lacquer/cloth accents, muted greenery, terracotta; tiny tasteful gold ornament ONLY at higher stages. Friendly readable Chinese ancient-town silhouettes that visually match the reference soldiers' chunky style.
+Background is ACTUAL TRANSPARENT ALPHA. Do not paint checkerboard/black/white backgrounds. NO drop shadow or glow. A very small attached plinth/threshold/field bund is okay; NO large colored square ground or landscape tile under the object.
+
+UPGRADE CONTINUITY — most important after the layout:
+Each consecutive TRIPLET is ONE building growing step-by-step. Preserve central doorway position, roof color, distinctive functional motif, layout orientation and architectural DNA across all3 stages.
+Stage1 = modest small/simple structure with wood, rough stone or small planting.
+Stage2 = recognizably same main structure, better tiled/stone materials, added side extension or devices and modest increase in size.
+Stage3 = unmistakably highest: greater mass/height, fuller roofline/compound, refined materials and richer but restrained craft details. Keep the original core silhouette and functional motif.
+Make differences readable at64px WITHOUT labels. Low should occupy about70–75% of high-stage width and60–70% of high-stage height; middle about85–90%. The tallest high-stage still fits inside its cell. Never use recoloring alone to indicate upgrades.
+Different types must look different at a glance: fields, orchards, quarries, wells, towers, stages, statues and chests must NOT all become generic tiered houses.
+
+EXACT CELL CONTENT IN READING ORDER:
+ROW 1:
+Columns1–3: SHRINE / ancestral hall: same teal-gray roof and red-column central hall: 1 humble single-roof hall with incense burner, 2 wider hall with two small side wings and stone steps, 3 rich double-eaved ancestral hall with same center, carved ridge and small stone lions.
+Columns4–6: GATE: same central wooden double-door and short flanking wall: 1 timber gateway/palisade with small roof, 2 solid stone arch and teal tiled gatehouse, 3 thick crenellated stone gateway with a taller two-tier gatehouse.
+Columns7–9: BARRACKS: same red military flag, spear rack and garrison main hut: 1 simple wood army hut, 2 wider tiled barracks with low enclosure and two flags, 3 fortified small garrison compound with gatehouse and organized weapon racks.
+
+ROW 2:
+Columns1–3: ARCHER WATCHTOWER: same tall square open shooting deck and ladder: 1 low timber tower with simple canopy, 2 taller timber/stone tower with tiled roof and railings, 3 taller stone-founded multi-tier watchtower with arrow slits and roofed observation deck.
+Columns4–6: ROCK DROP PLATFORM: same open stone-throwing platform and visible pile of round rocks: 1 squat timber/stone platform, 2 raised masonry platform with parapet and rock stacks, 3 heavy elevated crenellated platform with a small lifting winch and large organized rock stacks. NOT a normal house.
+Columns7–9: WELL: same round stone well-mouth, bucket and windlass: 1 bare stone ring and timber A-frame, 2 refined masonry well with small tiled pavilion, 3 ornate small roofed water pavilion around the SAME round well and carved platform.
+
+ROW 3:
+Columns1–3: TEAHOUSE: same muted green awning, visible teapot/kettle and outdoor tea table: 1 small rustic timber tea stall, 2 proper tiled-roof tea shop with extra tea tables, 3 tasteful two-floor tea house with green awning and open upper gallery.
+Columns4–6: INN: same warm-red lanterns, lodging windows and welcoming doorway: 1 modest single-story wood inn, 2 two-floor inn with entrance veranda, 3 wider two-floor inn with attached guest wing, galleries and more lanterns.
+Columns7–9: BANK: same unmistakable round gold CASH-COIN EMBLEM above secure counter and door: 1 little stone/timber money shop, 2 robust tiled bank with larger secure counters and steps, 3 grand bank with the same coin emblem, vault side wing and restrained golden roof trim.
+
+ROW 4:
+Columns1–3: RICE FIELD: same small rectangular terraced paddy plot with orderly crop rows and irrigation groove: 1 young green seedlings and simple dirt bund, 2 denser lush green rice and refined water channels, 3 abundant GOLDEN ripe rice and small irrigation wheel with stone channels. Always a FIELD, no large house.
+Columns4–6: WATER MILL: same prominent ROUND WOODEN WATERWHEEL, millstone and grain sacks: 1 small timber mill with simple wheel, 2 tiled mill and larger waterwheel with stone grinding base, 3 wider stone/timber mill with same wheel, sacks and tidy attached water channel.
+Columns7–9: WINERY: same round terracotta wine jars with RED CLOTH SEALS and copper brewing pot: 1 small wood brewing shed with two jars, 2 tiled winery with several jars and copper still, 3 wider two-bay winery with organized jars, brewing pot and small chimney.
+
+ROW 5:
+Columns1–3: MULBERRY ORCHARD: same distinctive rounded leafy mulberry trees, low fence and silkworm-leaf baskets: 1 two small trees and rustic fence, 2 three fuller leafy trees with baskets and simple silkworm rack, 3 larger dense green orchard with refined low stone/wood fence and leaf baskets. Always a TREE GARDEN, not a house.
+Columns4–6: WEAVING WORKSHOP: same EXPOSED WOODEN LOOM and INDIGO cloth roll visible at front: 1 rustic weaving shelter with loom, 2 tiled workshop with loom and hanging blue cloth, 3 wider two-bay weaving workshop with two visible looms and organized indigo fabric rolls.
+Columns7–9: TAILOR SHOP: same clearly hanging HUMAN-SHAPED GARMENT outside and cutting table: 1 modest wood clothes shop with one red garment rack, 2 tiled shop with more racks and cloth rolls, 3 refined two-floor clothing shop with hanging garments, display window and neatly folded fabric.
+
+ROW 6:
+Columns1–3: QUARRY: same OPEN angular gray stone excavation with squared blocks and timber lifting crane: 1 small exposed rock-cutting plot and picks, 2 stepped stone pit with timber crane and block pile, 3 deeper multi-step stone quarry with reinforced stone-lifting winch and organized large cut blocks. NOT a house.
+Columns4–6: CERAMIC KILN: same unmistakable ROUND DOMED CLAY/BRICK KILN, chimney and blue-white pots: 1 small clay dome kiln with short chimney and two pots, 2 brick dome kiln with higher chimney and drying awning, 3 two masonry dome kilns, taller chimneys and organized fine porcelain pots.
+Columns7–9: TRADING HOUSE: same GOODS CRATES, bundles, merchant banner and small handcart: 1 modest timber goods store, 2 tiled trading shop with side storage and more crates, 3 large two-floor trading house with porch, warehouse wing and organized cargo. NOT the bank, NO coin emblem.
+
+ROW 7:
+Columns1–3: MERCHANT GUILDHALL: same stately red-column civic hall with CASH-COIN CREST and little forecourt: 1 modest civic guild hall with coin crest and simple steps, 2 wider tiled hall with side rooms and small lions, 3 grand double-eaved merchant guild compound with same central cash crest, carved porch and restrained gold trim.
+Columns4–6: ARTISANS COURTYARD: same HAMMER/ANVIL motif, exposed carpenter workbench, tool rack and little forge: 1 small craft shed with tools and anvil, 2 tiled workshop with side shelter, tool racks and forge, 3 complete two-wing artisans courtyard with hammer/anvil motif, workbenches and organized materials. This is a craft institute, NOT a harbor: NO boats, NO docks.
+Columns7–9: OPERA STAGE: same OPEN FRONT performance platform, RED CURTAINS, drum and tiled stage roof: 1 little timber stage and red curtain, 2 same stage with tiled canopy, red pillars and lanterns, 3 ornate double-eaved opera stage with broad red curtain, carved pillars and paired drums. Always an OPEN stage, NOT an enclosed shop.
+
+ROW 8:
+Columns1–3: EARTH-GOD SHRINE: same SMALL warm orange-roof folk altar with central deity niche and incense burner: 1 humble little earthen shrine, 2 brick folk temple with same niche, orange tiles and stone base, 3 refined compact orange-roof earth temple with small offering table and lions. Always smaller than main ancestral hall.
+Columns4–6: ZHONG KUI STATUE: same bearded Chinese guardian deity wearing traditional official cap and holding sword, standing on a stone pedestal: 1 simple dark stone statue and low plinth, 2 more detailed bronze same bearded sword-bearing statue and higher carved pedestal, 3 same statue in rich bronze with restrained gilding, ornate tall stone base and incense urn. Must be a STATUE, NOT a house or pagoda.
+Columns7–9: TAOIST TEMPLE: same DEEP TEAL roof, obvious black-white YIN-YANG ROUND SYMBOL over doorway and incense urn: 1 small Taoist temple, 2 temple with same round yin-yang emblem, side rooms and stone steps, 3 refined double-eaved dark-teal Taoist courtyard with same emblem, redwood porch and incense urn. NOT the earth shrine.
+
+ROW 9:
+Columns1–3: FORTUNE CHEST: same HINGED RECTANGULAR TREASURE BOX with front latch, jade inset and metal corners: 1 modest wood chest with bronze corners and turquoise jade latch, 2 same chest with silver/bronze reinforced edges and carved jade, 3 larger same gilded jade-inlaid chest with rich metal trim and gemstones. A CHEST, not a building. THE FINAL SIX CELLS OF THIS ROW MUST BE COMPLETELY TRANSPARENT AND EMPTY.
+
+Final check: all25 types, all3 coherent stages each,75 non-overlapping sprites,9x9 exact grid, last six cells empty; crisp simple pixel art, genuine transparent background, no text. No separate images: this is ONE master sprite atlas.
