@@ -2,7 +2,19 @@
   'use strict';
   const reducedMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const T = 64, palette = { plain: '#ced5af', shore: '#d9cda7', water: '#a9c9bd', forest: '#b4c49a', mountain: '#c3c5af' };
-  const png=(c,name,x,y,w,h)=>GFUI.draw(c,`assets/${name}.png`,x,y,w,h);
+  let filterWorld=false;
+  function mapImage(c,image,...args){
+    if(!image.complete||!image.naturalWidth)return;
+    let smooth=false;
+    if(filterWorld){
+      const m=c.getTransform(),n=args.length,sw=n===8?args[2]:image.naturalWidth,sh=n===8?args[3]:image.naturalHeight;
+      const sx=Math.hypot(m.a,m.b)*args[n-2]/sw,sy=Math.hypot(m.c,m.d)*args[n-1]/sh;
+      // Exact integer-sized sprite pixels stay crisp, including the common 50% view.
+      smooth=sx<1||sy<1||Math.abs(sx-Math.round(sx))>.001||Math.abs(sy-Math.round(sy))>.001;
+    }
+    c.imageSmoothingEnabled=smooth;c.imageSmoothingQuality='low';c.drawImage(image,...args);
+  }
+  const png=(c,name,x,y,w,h)=>mapImage(c,GFUI.image(`assets/${name}.png`),x,y,w,h);
   const panel=(c,name,x,y,w,h)=>GFUI.panel(c,name,x,y,w,h);
   function health(c,x,y,w,h,fraction,kind){
     png(c,'ui/bars/health-track',x,y,w,h);
@@ -169,7 +181,9 @@
   }
   function makeGround(s,occupied,left,top,right,bottom,scale){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
-    const canvas=document.createElement('canvas');canvas.width=Math.ceil(((right-left+1)*T+96)*scale);canvas.height=Math.ceil(((bottom-top+1)*T+96)*scale);const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.scale(scale,scale);c.translate(48-left*T,48-top*T);
+    // Compose once at native world resolution: never discard grass, wall or ridge
+    // pixels with nearest-neighbor minification while painting individual assets.
+    let canvas=document.createElement('canvas');canvas.width=(right-left+1)*T+96;canvas.height=(bottom-top+1)*T+96;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.translate(48-left*T,48-top*T);
     for(let y=Math.max(0,top-1);y<=Math.min(height-1,bottom+1);y++)for(let x=Math.max(0,left-1);x<=Math.min(size-1,right+1);x++){
       const type=GF.terrain(x,y,s),px=x*T,py=y*T,image=artImage(`assets/tiles/terrain/${type}.png`);
       if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
@@ -202,6 +216,11 @@
       }
     }
     drawGroundDecorations(c,s,occupied,Math.max(0,left-2),Math.max(0,top-2),Math.min(size-1,right+2),Math.min(height-1,bottom+2));
+    if(scale<1){
+      const reduced=document.createElement('canvas');reduced.width=canvas.width*scale;reduced.height=canvas.height*scale;
+      const r=reduced.getContext('2d');r.imageSmoothingEnabled=true;r.imageSmoothingQuality='high';r.drawImage(canvas,0,0,reduced.width,reduced.height);
+      canvas.width=canvas.height=0;canvas=reduced;
+    }
     return {canvas,left,top,right,bottom,scale};
   }
   function newGround(s,occupied){
@@ -291,6 +310,30 @@
     c.globalAlpha=.3;png(c,'overlays/range',b.x*T+32-radius,b.y*T+32-radius,radius*2,radius*2);
     c.restore();
   }
+  function drawGroundGrid(c,s,cam,dpr){
+    // Draw in physical screen pixels, independently of world zoom. Round widths,
+    // dashes and positions to avoid subpixel hairlines on fractional-DPR canvases.
+    const step=T*cam.zoom*dpr,ox=cam.x*dpr,oy=cam.y*dpr;
+    const mapWidth=GF.worldWidth(s)*step,mapHeight=GF.worldHeight(s)*step;
+    const x0=Math.max(0,Math.ceil(ox)),y0=Math.max(0,Math.ceil(oy));
+    const x1=Math.min(c.canvas.width,Math.floor(ox+mapWidth)),y1=Math.min(c.canvas.height,Math.floor(oy+mapHeight));
+    if(x1<=x0||y1<=y0)return;
+    const width=Math.max(1,Math.ceil(dpr)),dash=Math.max(1,Math.round(4*dpr));
+    const snap=value=>Math.round(value-width/2)+width/2;
+    c.save();c.setTransform(1,0,0,1,0,0);
+    c.beginPath();c.rect(ox,oy,mapWidth,mapHeight);c.clip();
+    c.globalAlpha=.45;c.strokeStyle='#587850';c.lineWidth=width;c.lineCap='butt';c.setLineDash([dash,dash]);
+    c.lineDashOffset=(y0-Math.round(oy))%(dash*2);c.beginPath();
+    for(let x=Math.max(0,Math.ceil((x0-ox)/step));x<=Math.min(GF.worldWidth(s),Math.floor((x1-ox)/step));x++){
+      const px=snap(ox+x*step);c.moveTo(px,y0);c.lineTo(px,y1);
+    }
+    c.stroke();
+    c.lineDashOffset=(x0-Math.round(ox))%(dash*2);c.beginPath();
+    for(let y=Math.max(0,Math.ceil((y0-oy)/step));y<=Math.min(GF.worldHeight(s),Math.floor((y1-oy)/step));y++){
+      const py=snap(oy+y*step);c.moveTo(x0,py);c.lineTo(x1,py);
+    }
+    c.stroke();c.restore();
+  }
   function render(canvas,s,cam,selected,options={}){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount]);
     const animationTime=options.animationTime??s.elapsed,playerOwner=options.player??0,player=GF.playerView(s,playerOwner);
@@ -308,6 +351,10 @@
     if(!ground || groundSeed!==cacheKey){ground=newGround(s,occupied);groundSeed=cacheKey;}
     else updateGround(s,occupied);
     const c=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,dpr=canvas.width/w;
+    filterWorld=cam.zoom<.9;
+    // Snap only the render camera. Picking and unit simulation retain their
+    // original coordinates; fractional zoom remains available to the player.
+    if(!filterWorld)cam={...cam,x:Math.round(cam.x*dpr)/dpr,y:Math.round(cam.y*dpr)/dpr};
     const night=false,dusk=false;
     const left=Math.max(0,Math.floor(-cam.x/cam.zoom/T)-1),right=Math.min(size-1,Math.ceil((w-cam.x)/cam.zoom/T)+1),top=Math.max(0,Math.floor(-cam.y/cam.zoom/T)-1),bottom=Math.min(height-1,Math.ceil((h-cam.y)/cam.zoom/T)+1);
     const visible=(x,y,rx,ry=rx)=>x+rx>=-cam.x/cam.zoom&&x-rx<=(w-cam.x)/cam.zoom&&y+ry>=-cam.y/cam.zoom&&y-ry<=(h-cam.y)/cam.zoom;
@@ -318,8 +365,10 @@
     c.save();c.translate(cam.x,cam.y);c.scale(cam.zoom,cam.zoom);
     // Soft ink mountain silhouettes outside the map.
     if(cam.y/cam.zoom> -1||(h-cam.y)/cam.zoom>height*T){c.save();c.globalAlpha=.3;for(let i=Math.max(0,Math.floor((-cam.x/cam.zoom+20)/99));i<Math.ceil(size*T/99)+5&&i*99-180<(w-cam.x)/cam.zoom;i++){const x=i*99-180;if(cam.y/cam.zoom> -1)png(c,'scenery/mountain-'+(i%4+1),x,-245,160,240);if((h-cam.y)/cam.zoom>height*T)png(c,'scenery/mountain-'+(i%4+1),x-90,height*T+10,180,170);}c.restore();}
-    // Bounded, zoom-aware chunks avoid allocating several full 75x90 map canvases.
-    const scale=cam.zoom<.3?.25:cam.zoom<.65?.5:1;
+    // Pick the smallest mip that is still at least as detailed as the physical
+    // output. Keep the padded edges so filtering across chunk cuts has neighbors.
+    const density=cam.zoom*dpr,scale=density<=.25?.25:density<=.5?.5:1;
+    c.imageSmoothingEnabled=filterWorld;c.imageSmoothingQuality='low';
     for(let cy=Math.floor(top/16);cy<=Math.floor(bottom/16);cy++)for(let cx=Math.floor(left/16);cx<=Math.floor(right/16);cx++){
       const key=cx+','+cy+','+scale;let tile=ground.chunks.get(key);
       if(!tile){tile=makeGround(s,occupied,cx*16,cy*16,Math.min(size-1,cx*16+15),Math.min(height-1,cy*16+15),scale);ground.chunks.set(key,tile);}
@@ -328,7 +377,7 @@
       c.drawImage(tile.canvas,48*scale,48*scale,tw*scale,th*scale,tile.left*T,tile.top*T,tw,th);
     }
     while(ground.chunks.size>40)ground.chunks.delete(ground.chunks.keys().next().value);
-    if(options.grid){c.save();c.globalAlpha=.45;GFUI.tile(c,'assets/overlays/grid.png',left*T,top*T,(right-left+1)*T,(bottom-top+1)*T);c.restore();}
+    if(options.grid)drawGroundGrid(c,s,cam,dpr);
     // Batch all visible ripple segments by opacity instead of saving/stroking each tile.
     c.save();
     for(const outside of [false,true]){
@@ -346,7 +395,7 @@
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
       const buildingImage=artImage(buildingPath(b.type,b.level));
-      if(buildingImage.complete&&buildingImage.naturalWidth){c.imageSmoothingEnabled=false;c.drawImage(buildingImage,-64,-96,128,128);}
+      mapImage(c,buildingImage,-64,-96,128,128);
       if(b.type==='shrine'&&!showBuildingLabels){panel(c,s.players[b.owner].team===1?'map-enemy':b.owner===options.player?'map-primary':'map-ally',-38,-57,76,19);c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
       if(b.type==='gate'&&b.hp<=0)png(c,'overlays/gate-broken',-32,-17,64,48);
       if(b.type==='shrine'&&s.buildings.length===1){const r=32+Math.sin(s.elapsed)*2;png(c,'overlays/aura',-r,7,r*2,24);}
@@ -541,7 +590,7 @@
     if(!atlas.complete||!atlas.naturalWidth)return;
     const directionIndex={front:0,back:1,left:2,right:3},safeLevel=Math.max(1,Math.min(9,level||1));
     const row=Math.floor((safeLevel-1)/3),col=((safeLevel-1)%3)*4+directionIndex[direction];
-    c.save();c.imageSmoothingEnabled=false;if(hit)c.filter='brightness(0) invert(1)';c.drawImage(atlas,col*20,row*30,20,30,-16,-45-bounce.stretch-bounce.lift,32,48+bounce.stretch);c.restore();
+    c.save();if(hit)c.filter='brightness(0) invert(1)';mapImage(c,atlas,col*20,row*30,20,30,-16,-45-bounce.stretch-bounce.lift,32,48+bounce.stretch);c.restore();
     if(frozen){png(c,'overlays/freeze',-14,-40,28,48);c.fillStyle='#eddda5';c.font='8px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillText('封',0,-43);}
   }
   function assetCanvas(width,height,paint){

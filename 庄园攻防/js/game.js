@@ -44,7 +44,7 @@
   def('port', '百工院', 'economy', { coins: 24000, materials: 15000 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['wine', 'trade'], radius: 1, limit: 1 });
   def('tower', '箭塔', 'defense', { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
   def('rock', '擂石台', 'defense', { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: '范围轰击 · 仅可由造化匣获得' });
-  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, buildCostScale: [.5, 2], buildCostSteps: 7, desc: '持续出兵 · 一级 5s/1兵' });
+  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '持续出兵 · 一级 5s/1兵' });
   def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { farmAura: .2, fortuneOnly: true, desc: '全庄农田收入 +20% · 仅可由造化匣获得' });
   def('stage', '戏台', 'support', { coins: 300, materials: 220 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
   def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
@@ -188,7 +188,11 @@
     s = economicView(s);
     if (type !== 'fortune') {
       const d=DEFS[type];if(!d)return {coins:0,materials:0};let factor=1;
-      if(d.buildCostScale){const steps=d.buildCostSteps??d.limit-1,built=s.buildings.filter(b=>b.type===type).length,count=d.buildCostSteps===undefined?Math.min(steps,built):built,[start,end]=d.buildCostScale;factor=start+(end-start)*count/steps;}
+      if(type==='barracks'){
+        const built=s.buildings.filter(b=>b.type===type).length;
+        // 首座半价；第 2～6 座每次涨 50%，第 7 座起每次翻倍。
+        factor=.5*1.5**Math.min(built,5)*2**Math.max(built-5,0);
+      }else if(d.buildCostScale){const steps=d.buildCostSteps??d.limit-1,built=s.buildings.filter(b=>b.type===type).length,count=d.buildCostSteps===undefined?Math.min(steps,built):built,[start,end]=d.buildCostScale;factor=start+(end-start)*count/steps;}
       const scaled=value=>value?Math.ceil(value*factor-1e-9):0;
       return {coins:scaled(d.cost.coins),materials:scaled(d.cost.materials)};
     }

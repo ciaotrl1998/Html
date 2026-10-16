@@ -63,6 +63,7 @@ async function open(browser, options, manual = true) {
   await page.goto(pathToFileURL(path.join(root, process.argv.includes('--built') ? 'dist/庄园攻防.html' : 'index.html')).href);
   await page.waitForFunction(() => !!window.Gufang, null, { polling: 20 });
   await page.evaluate(() => document.getElementById('start-single').click());
+  await page.evaluate(() => document.getElementById('single-start').click());
   await page.evaluate(() => document.querySelector('[data-choice="thunder"]').click());
   return page;
 }
@@ -199,7 +200,7 @@ async function resizedSelection(page) {
   await page.setViewportSize({ width: 412, height: 915 });
   await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await advance(page, 12);
-  await dimensions(page, 1.25);
+  await dimensions(page, 1);
   const target = await page.evaluate(() => {
     const b = Gufang.state.buildings.find(b => b.type === 'shrine');
     return { x: b.x, y: b.y, point: Gufang.screenPoint(b.x, b.y) };
@@ -271,7 +272,7 @@ async function rasterMeasurement(browser) {
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true });
   try {
-    for (const [label, options, ratio] of [['mobile', mobile, 1.25], ['desktop', desktop, 2]]) {
+    for (const [label, options, ratio] of [['mobile', mobile, 1], ['desktop', desktop, 1.5]]) {
       const page = await open(browser, options);
       try {
         await check(label + ' pointer/DPR/canvas', async () => {
@@ -279,7 +280,7 @@ async function rasterMeasurement(browser) {
           assert.equal(result.coarse, label === 'mobile');
           assert.equal(result.dpr, options.deviceScaleFactor);
         });
-        const cap = label === 'mobile' ? 60 : null;
+        const cap = 60;
         for (const hz of [120, 60, 90]) {
           await check(label + ' ' + hz + 'Hz RAF and smooth animation', () => scheduling(page, label, hz, cap));
           await check(label + ' ' + hz + 'Hz paused stable/selection/camera/resume', () => pausedChanges(page, hz, cap));

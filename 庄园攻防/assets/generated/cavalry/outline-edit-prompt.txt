@@ -1,0 +1,10 @@
+Use case: precise-object-edit.
+Image 1 is the EDIT TARGET: a production cavalry pixel sprite atlas, 480x144 pixels with 12 columns and 3 rows, each frame40x48.
+Image 2 is infantry STYLE/COLOR REFERENCE. Image 3 is archer STYLE/COLOR REFERENCE. Do not change images 2 or 3.
+Primary request: change ONLY the dark/black one-logical-pixel exterior outline of the cavalry in image1 to the SAME dark brown used in the other two reference atlases: exact RGB(74,46,32), hexadecimal #4A2E20.
+Keep EVERY existing internal pixel color unchanged: skin, facial features, blue cloth, red faction fabric, horse brown fur, mane and tail, leather, silver and gold armor, spear shaft and spearhead highlights. Do not shade or repaint the interiors with brown. Only replace existing dark outer-contour pixels touching transparent background, not colored rim lights or white metal highlights.
+Preserve all sprite shapes, all pixel coordinates, all transparency/alpha, all equipment, all nine levels, all 36 frames, all front/back/left/right directions, the centered pivots and hoof baselines. No added outline thickness or dilation, no size changes, no newly drawn limbs, no new poses.
+Composition and size: exactly same480x144 horizontal atlas and same40x48 frames as image1. No cropping, rearranging or adding margins. Crisp nearest-neighbor pixel edges; no antialiasing or smoothing.
+Background: preserve true transparent PNG RGBA, no opaque background, no drawn checkerboard, no text or labels or grid. This is ONLY a palette correction of the exterior outline, NOT a redesign.
+
+交付处理说明：内置 imagegen 试稿改变了图集尺寸，因此仅保留为 outline-imagegen-draft.png，不作为游戏替换图。最终图片保留原图全部像素位置、Alpha和内部颜色，按项目warm-soldier-outlines.cjs的外缘暗色规则，将四邻域接触透明背景且亮度低于90的像素RGB统一为(74,46,32)，即#4A2E20。脚本内不执行其它士兵的内部色彩修复步骤。

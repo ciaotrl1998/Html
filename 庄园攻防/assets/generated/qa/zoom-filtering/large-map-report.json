@@ -1,0 +1,56 @@
+{
+  "width": 69,
+  "height": 84,
+  "rows": [
+    {
+      "zoom": 0.12,
+      "ms": 1.580000001192093,
+      "allocations": 0,
+      "cache": {
+        "chunks": 30,
+        "pixels": 1821312,
+        "largestSide": 280
+      }
+    },
+    {
+      "zoom": 0.2,
+      "ms": 0.925,
+      "allocations": 0,
+      "cache": {
+        "chunks": 30,
+        "pixels": 1821312,
+        "largestSide": 280
+      }
+    },
+    {
+      "zoom": 0.4,
+      "ms": 0.2800000011920929,
+      "allocations": 0,
+      "cache": {
+        "chunks": 39,
+        "pixels": 4643712,
+        "largestSide": 560
+      }
+    },
+    {
+      "zoom": 0.65,
+      "ms": 0.325,
+      "allocations": 0,
+      "cache": {
+        "chunks": 40,
+        "pixels": 9426112,
+        "largestSide": 1120
+      }
+    },
+    {
+      "zoom": 1,
+      "ms": 0.15,
+      "allocations": 0,
+      "cache": {
+        "chunks": 40,
+        "pixels": 9426112,
+        "largestSide": 1120
+      }
+    }
+  ]
+}

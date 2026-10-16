@@ -1,0 +1,1234 @@
+{
+  "image": "assets/sprites/soldiers/cavalry_player-red.png",
+  "type": "cavalry",
+  "faction": "player",
+  "width": 480,
+  "height": 144,
+  "frameWidth": 40,
+  "frameHeight": 48,
+  "columns": 12,
+  "rows": 3,
+  "levels": 9,
+  "directionOrder": [
+    "front",
+    "back",
+    "left",
+    "right"
+  ],
+  "pivot": {
+    "x": 20,
+    "y": 46
+  },
+  "outline": {
+    "color": "#4A2E20",
+    "darkEdgeLuminanceThreshold": 90,
+    "interiorChanged": false,
+    "alphaChanged": false
+  },
+  "footSoldierReference": {
+    "frameWidth": 20,
+    "frameHeight": 30
+  },
+  "sourceImage": "assets/generated/cavalry/player-red-source-v1.png",
+  "sourceRowCuts": [
+    0,
+    221,
+    418,
+    628,
+    831,
+    1039,
+    1254
+  ],
+  "frames": [
+    {
+      "name": "cavalry_lv1_front",
+      "level": 1,
+      "direction": "front",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv1_back",
+      "level": 1,
+      "direction": "back",
+      "frame": {
+        "x": 40,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 209,
+        "x1": 418,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv1_left",
+      "level": 1,
+      "direction": "left",
+      "frame": {
+        "x": 80,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv1_right",
+      "level": 1,
+      "direction": "right",
+      "frame": {
+        "x": 120,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv2_front",
+      "level": 2,
+      "direction": "front",
+      "frame": {
+        "x": 160,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv2_back",
+      "level": 2,
+      "direction": "back",
+      "frame": {
+        "x": 200,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 627,
+        "x1": 836,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv2_left",
+      "level": 2,
+      "direction": "left",
+      "frame": {
+        "x": 240,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv2_right",
+      "level": 2,
+      "direction": "right",
+      "frame": {
+        "x": 280,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv3_front",
+      "level": 3,
+      "direction": "front",
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv3_back",
+      "level": 3,
+      "direction": "back",
+      "frame": {
+        "x": 360,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 1045,
+        "x1": 1254,
+        "y0": 0,
+        "y1": 221
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv3_left",
+      "level": 3,
+      "direction": "left",
+      "frame": {
+        "x": 400,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv3_right",
+      "level": 3,
+      "direction": "right",
+      "frame": {
+        "x": 440,
+        "y": 0,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 221,
+        "y1": 418
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv4_front",
+      "level": 4,
+      "direction": "front",
+      "frame": {
+        "x": 0,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv4_back",
+      "level": 4,
+      "direction": "back",
+      "frame": {
+        "x": 40,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 209,
+        "x1": 418,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv4_left",
+      "level": 4,
+      "direction": "left",
+      "frame": {
+        "x": 80,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv4_right",
+      "level": 4,
+      "direction": "right",
+      "frame": {
+        "x": 120,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv5_front",
+      "level": 5,
+      "direction": "front",
+      "frame": {
+        "x": 160,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv5_back",
+      "level": 5,
+      "direction": "back",
+      "frame": {
+        "x": 200,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 627,
+        "x1": 836,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv5_left",
+      "level": 5,
+      "direction": "left",
+      "frame": {
+        "x": 240,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv5_right",
+      "level": 5,
+      "direction": "right",
+      "frame": {
+        "x": 280,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv6_front",
+      "level": 6,
+      "direction": "front",
+      "frame": {
+        "x": 320,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv6_back",
+      "level": 6,
+      "direction": "back",
+      "frame": {
+        "x": 360,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 1045,
+        "x1": 1254,
+        "y0": 418,
+        "y1": 628
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv6_left",
+      "level": 6,
+      "direction": "left",
+      "frame": {
+        "x": 400,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv6_right",
+      "level": 6,
+      "direction": "right",
+      "frame": {
+        "x": 440,
+        "y": 48,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 628,
+        "y1": 831
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv7_front",
+      "level": 7,
+      "direction": "front",
+      "frame": {
+        "x": 0,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv7_back",
+      "level": 7,
+      "direction": "back",
+      "frame": {
+        "x": 40,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 209,
+        "x1": 418,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv7_left",
+      "level": 7,
+      "direction": "left",
+      "frame": {
+        "x": 80,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv7_right",
+      "level": 7,
+      "direction": "right",
+      "frame": {
+        "x": 120,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 0,
+        "x1": 209,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv8_front",
+      "level": 8,
+      "direction": "front",
+      "frame": {
+        "x": 160,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv8_back",
+      "level": 8,
+      "direction": "back",
+      "frame": {
+        "x": 200,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 627,
+        "x1": 836,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv8_left",
+      "level": 8,
+      "direction": "left",
+      "frame": {
+        "x": 240,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv8_right",
+      "level": 8,
+      "direction": "right",
+      "frame": {
+        "x": 280,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 418,
+        "x1": 627,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": true
+    },
+    {
+      "name": "cavalry_lv9_front",
+      "level": 9,
+      "direction": "front",
+      "frame": {
+        "x": 320,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv9_back",
+      "level": 9,
+      "direction": "back",
+      "frame": {
+        "x": 360,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 1045,
+        "x1": 1254,
+        "y0": 831,
+        "y1": 1039
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv9_left",
+      "level": 9,
+      "direction": "left",
+      "frame": {
+        "x": 400,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": false
+    },
+    {
+      "name": "cavalry_lv9_right",
+      "level": 9,
+      "direction": "right",
+      "frame": {
+        "x": 440,
+        "y": 96,
+        "width": 40,
+        "height": 48
+      },
+      "pivot": {
+        "x": 20,
+        "y": 46
+      },
+      "source": {
+        "x0": 836,
+        "x1": 1045,
+        "y0": 1039,
+        "y1": 1254
+      },
+      "mirrored": true
+    }
+  ],
+  "validation": [
+    {
+      "level": 1,
+      "direction": "front",
+      "pixels": 519,
+      "bounds": {
+        "left": 8,
+        "top": 7,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 1,
+      "direction": "back",
+      "pixels": 517,
+      "bounds": {
+        "left": 10,
+        "top": 8,
+        "right": 29,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 1,
+      "direction": "left",
+      "pixels": 702,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 1,
+      "direction": "right",
+      "pixels": 702,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 2,
+      "direction": "front",
+      "pixels": 532,
+      "bounds": {
+        "left": 8,
+        "top": 8,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 2,
+      "direction": "back",
+      "pixels": 532,
+      "bounds": {
+        "left": 10,
+        "top": 9,
+        "right": 29,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 2,
+      "direction": "left",
+      "pixels": 699,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 2,
+      "direction": "right",
+      "pixels": 699,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 3,
+      "direction": "front",
+      "pixels": 582,
+      "bounds": {
+        "left": 8,
+        "top": 7,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 3,
+      "direction": "back",
+      "pixels": 551,
+      "bounds": {
+        "left": 9,
+        "top": 8,
+        "right": 29,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 3,
+      "direction": "left",
+      "pixels": 723,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 3,
+      "direction": "right",
+      "pixels": 723,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 4,
+      "direction": "front",
+      "pixels": 530,
+      "bounds": {
+        "left": 8,
+        "top": 9,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 4,
+      "direction": "back",
+      "pixels": 508,
+      "bounds": {
+        "left": 9,
+        "top": 10,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 4,
+      "direction": "left",
+      "pixels": 674,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 4,
+      "direction": "right",
+      "pixels": 674,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 5,
+      "direction": "front",
+      "pixels": 565,
+      "bounds": {
+        "left": 8,
+        "top": 8,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 5,
+      "direction": "back",
+      "pixels": 537,
+      "bounds": {
+        "left": 9,
+        "top": 10,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 5,
+      "direction": "left",
+      "pixels": 676,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 5,
+      "direction": "right",
+      "pixels": 676,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 6,
+      "direction": "front",
+      "pixels": 585,
+      "bounds": {
+        "left": 7,
+        "top": 8,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 6,
+      "direction": "back",
+      "pixels": 551,
+      "bounds": {
+        "left": 9,
+        "top": 9,
+        "right": 30,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 6,
+      "direction": "left",
+      "pixels": 708,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 6,
+      "direction": "right",
+      "pixels": 708,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 7,
+      "direction": "front",
+      "pixels": 563,
+      "bounds": {
+        "left": 8,
+        "top": 9,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 7,
+      "direction": "back",
+      "pixels": 554,
+      "bounds": {
+        "left": 8,
+        "top": 11,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 7,
+      "direction": "left",
+      "pixels": 692,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 7,
+      "direction": "right",
+      "pixels": 692,
+      "bounds": {
+        "left": 2,
+        "top": 10,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 8,
+      "direction": "front",
+      "pixels": 553,
+      "bounds": {
+        "left": 8,
+        "top": 10,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 8,
+      "direction": "back",
+      "pixels": 565,
+      "bounds": {
+        "left": 8,
+        "top": 10,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 8,
+      "direction": "left",
+      "pixels": 673,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 8,
+      "direction": "right",
+      "pixels": 673,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 9,
+      "direction": "front",
+      "pixels": 592,
+      "bounds": {
+        "left": 7,
+        "top": 9,
+        "right": 31,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 9,
+      "direction": "back",
+      "pixels": 608,
+      "bounds": {
+        "left": 7,
+        "top": 9,
+        "right": 32,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 9,
+      "direction": "left",
+      "pixels": 694,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    },
+    {
+      "level": 9,
+      "direction": "right",
+      "pixels": 694,
+      "bounds": {
+        "left": 2,
+        "top": 11,
+        "right": 37,
+        "bottom": 45
+      }
+    }
+  ]
+}

@@ -42,10 +42,19 @@ test('branch choice is mandatory, permanent, owner checked and atomic on failure
   fund(s);assert.equal(G.upgrade(G.playerView(s,1),b,{troopType:'archer'}).ok,false);assert(G.upgrade(p,b,{troopType:'archer'}).ok);const before=G.serialize(s);
   for(const choice of ['infantry','archer'])assert.equal(G.upgrade(p,b,{troopType:choice}).ok,false);assert.equal(G.serialize(s),before);
 });
-test('barracks have no hard limit and construction prices keep rising after eight',()=>{
-  const s=match(),p=fund(s),costs=[];assert.equal(G.DEFS.barracks.limit,undefined);
-  for(let built=0;built<12;built++){const factor=.5+1.5*built/7;assert.deepEqual(G.buildCost(p,'barracks'),{coins:Math.ceil(240*factor-1e-9),materials:Math.ceil(234*factor-1e-9)});costs.push(G.buildCost(p,'barracks'));assert(add(s));}
-  assert(costs[8].coins>costs[7].coins);assert(costs[11].materials>costs[10].materials);
+test('barracks prices rise 50 percent through six, then double from seven without a hard limit',()=>{
+  const s=match(),p=fund(s);assert.equal(G.DEFS.barracks.limit,undefined);
+  const prices=[[120,117],[180,176],[270,264],[405,395],[608,593],[912,889],
+    [1823,1777],[3645,3554],[7290,7108],[14580,14216],[29160,28431],[58320,56862]];
+  // Other estates and branch/level choices must not alter this estate's price.
+  add(s,1,7);
+  for(const [coins,materials] of prices){
+    assert.deepEqual(G.buildCost(p,'barracks'),{coins,materials});
+    const b=add(s,0,3);b.troopType=b.id%2?'archer':'infantry';
+  }
+  p.buildings=p.buildings.filter(b=>b!==p.buildings.at(-1));
+  assert.deepEqual(G.buildCost(p,'barracks'),{coins:58320,materials:56862});
+  assert.deepEqual(G.buildCost(G.playerView(G.restore(G.serialize(s)),0),'barracks'),G.buildCost(p,'barracks'));
 });
 test('archer stats respect level and difficulty while movement and training remain shared',()=>{
   const s=match({difficulty:'hell'}),p=G.playerView(s,1);s.players[1].controller='computer';

@@ -480,7 +480,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["wine", "trade"], radius: 1, limit: 1 });
   def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
   def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
-  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, buildCostScale: [0.5, 2], buildCostSteps: 7, desc: "持续出兵 · 一级 5s/1兵" });
+  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "持续出兵 · 一级 5s/1兵" });
   def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { farmAura: 0.2, fortuneOnly: true, desc: "全庄农田收入 +20% · 仅可由造化匣获得" });
   def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
   def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
@@ -760,7 +760,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const d = DEFS[type];
       if (!d) return { coins: 0, materials: 0 };
       let factor2 = 1;
-      if (d.buildCostScale) {
+      if (type === "barracks") {
+        const built = s.buildings.filter((b) => b.type === type).length;
+        factor2 = 0.5 * 1.5 ** Math.min(built, 5) * 2 ** Math.max(built - 5, 0);
+      } else if (d.buildCostScale) {
         const steps = (_a = d.buildCostSteps) != null ? _a : d.limit - 1, built = s.buildings.filter((b) => b.type === type).length, count = d.buildCostSteps === void 0 ? Math.min(steps, built) : built, [start, end] = d.buildCostScale;
         factor2 = start + (end - start) * count / steps;
       }
@@ -1970,7 +1973,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   "use strict";
   const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
-  const png = (c, name, x, y, w, h) => GFUI.draw(c, `assets/${name}.png`, x, y, w, h);
+  let filterWorld = false;
+  function mapImage(c, image, ...args) {
+    if (!image.complete || !image.naturalWidth) return;
+    let smooth = false;
+    if (filterWorld) {
+      const m = c.getTransform(), n = args.length, sw = n === 8 ? args[2] : image.naturalWidth, sh = n === 8 ? args[3] : image.naturalHeight;
+      const sx = Math.hypot(m.a, m.b) * args[n - 2] / sw, sy = Math.hypot(m.c, m.d) * args[n - 1] / sh;
+      smooth = sx < 1 || sy < 1 || Math.abs(sx - Math.round(sx)) > 1e-3 || Math.abs(sy - Math.round(sy)) > 1e-3;
+    }
+    c.imageSmoothingEnabled = smooth;
+    c.imageSmoothingQuality = "low";
+    c.drawImage(image, ...args);
+  }
+  const png = (c, name, x, y, w, h) => mapImage(c, GFUI.image(`assets/${name}.png`), x, y, w, h);
   const panel = (c, name, x, y, w, h) => GFUI.panel(c, name, x, y, w, h);
   function health(c, x, y, w, h, fraction, kind) {
     png(c, "ui/bars/health-track", x, y, w, h);
@@ -2368,12 +2384,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function makeGround(s, occupied, left, top, right, bottom, scale) {
     const size = GF.worldWidth(s), height = GF.worldHeight(s), center = GF.worldCenter(s), estate = GF.estate(s);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(((right - left + 1) * T + 96) * scale);
-    canvas.height = Math.ceil(((bottom - top + 1) * T + 96) * scale);
+    let canvas = document.createElement("canvas");
+    canvas.width = (right - left + 1) * T + 96;
+    canvas.height = (bottom - top + 1) * T + 96;
     const c = canvas.getContext("2d");
     c.imageSmoothingEnabled = false;
-    c.scale(scale, scale);
     c.translate(48 - left * T, 48 - top * T);
     for (let y = Math.max(0, top - 1); y <= Math.min(height - 1, bottom + 1); y++) for (let x = Math.max(0, left - 1); x <= Math.min(size - 1, right + 1); x++) {
       const type = GF.terrain(x, y, s), px = x * T, py = y * T, image = artImage(`assets/tiles/terrain/${type}.png`);
@@ -2428,6 +2443,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
     drawGroundDecorations(c, s, occupied, Math.max(0, left - 2), Math.max(0, top - 2), Math.min(size - 1, right + 2), Math.min(height - 1, bottom + 2));
+    if (scale < 1) {
+      const reduced = document.createElement("canvas");
+      reduced.width = canvas.width * scale;
+      reduced.height = canvas.height * scale;
+      const r = reduced.getContext("2d");
+      r.imageSmoothingEnabled = true;
+      r.imageSmoothingQuality = "high";
+      r.drawImage(canvas, 0, 0, reduced.width, reduced.height);
+      canvas.width = canvas.height = 0;
+      canvas = reduced;
+    }
     return { canvas, left, top, right, bottom, scale };
   }
   function newGround(s, occupied) {
@@ -2545,6 +2571,42 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     png(c, "overlays/range", b.x * T + 32 - radius, b.y * T + 32 - radius, radius * 2, radius * 2);
     c.restore();
   }
+  function drawGroundGrid(c, s, cam, dpr) {
+    const step = T * cam.zoom * dpr, ox = cam.x * dpr, oy = cam.y * dpr;
+    const mapWidth = GF.worldWidth(s) * step, mapHeight = GF.worldHeight(s) * step;
+    const x0 = Math.max(0, Math.ceil(ox)), y0 = Math.max(0, Math.ceil(oy));
+    const x1 = Math.min(c.canvas.width, Math.floor(ox + mapWidth)), y1 = Math.min(c.canvas.height, Math.floor(oy + mapHeight));
+    if (x1 <= x0 || y1 <= y0) return;
+    const width = Math.max(1, Math.ceil(dpr)), dash = Math.max(1, Math.round(4 * dpr));
+    const snap = (value) => Math.round(value - width / 2) + width / 2;
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.beginPath();
+    c.rect(ox, oy, mapWidth, mapHeight);
+    c.clip();
+    c.globalAlpha = 0.45;
+    c.strokeStyle = "#587850";
+    c.lineWidth = width;
+    c.lineCap = "butt";
+    c.setLineDash([dash, dash]);
+    c.lineDashOffset = (y0 - Math.round(oy)) % (dash * 2);
+    c.beginPath();
+    for (let x = Math.max(0, Math.ceil((x0 - ox) / step)); x <= Math.min(GF.worldWidth(s), Math.floor((x1 - ox) / step)); x++) {
+      const px = snap(ox + x * step);
+      c.moveTo(px, y0);
+      c.lineTo(px, y1);
+    }
+    c.stroke();
+    c.lineDashOffset = (x0 - Math.round(ox)) % (dash * 2);
+    c.beginPath();
+    for (let y = Math.max(0, Math.ceil((y0 - oy) / step)); y <= Math.min(GF.worldHeight(s), Math.floor((y1 - oy) / step)); y++) {
+      const py = snap(oy + y * step);
+      c.moveTo(x0, py);
+      c.lineTo(x1, py);
+    }
+    c.stroke();
+    c.restore();
+  }
   function render(canvas, s, cam, selected, options = {}) {
     var _a, _b;
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
@@ -2566,6 +2628,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       groundSeed = cacheKey;
     } else updateGround(s, occupied);
     const c = canvas.getContext("2d"), w = canvas.clientWidth, h = canvas.clientHeight, dpr = canvas.width / w;
+    filterWorld = cam.zoom < 0.9;
+    if (!filterWorld) cam = __spreadProps(__spreadValues({}, cam), { x: Math.round(cam.x * dpr) / dpr, y: Math.round(cam.y * dpr) / dpr });
     const night = false, dusk = false;
     const left = Math.max(0, Math.floor(-cam.x / cam.zoom / T) - 1), right = Math.min(size - 1, Math.ceil((w - cam.x) / cam.zoom / T) + 1), top = Math.max(0, Math.floor(-cam.y / cam.zoom / T) - 1), bottom = Math.min(height - 1, Math.ceil((h - cam.y) / cam.zoom / T) + 1);
     const visible = (x, y, rx, ry = rx) => x + rx >= -cam.x / cam.zoom && x - rx <= (w - cam.x) / cam.zoom && y + ry >= -cam.y / cam.zoom && y - ry <= (h - cam.y) / cam.zoom;
@@ -2586,7 +2650,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       c.restore();
     }
-    const scale = cam.zoom < 0.3 ? 0.25 : cam.zoom < 0.65 ? 0.5 : 1;
+    const density = cam.zoom * dpr, scale = density <= 0.25 ? 0.25 : density <= 0.5 ? 0.5 : 1;
+    c.imageSmoothingEnabled = filterWorld;
+    c.imageSmoothingQuality = "low";
     for (let cy = Math.floor(top / 16); cy <= Math.floor(bottom / 16); cy++) for (let cx = Math.floor(left / 16); cx <= Math.floor(right / 16); cx++) {
       const key = cx + "," + cy + "," + scale;
       let tile = ground.chunks.get(key);
@@ -2601,12 +2667,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.drawImage(tile.canvas, 48 * scale, 48 * scale, tw * scale, th * scale, tile.left * T, tile.top * T, tw, th);
     }
     while (ground.chunks.size > 40) ground.chunks.delete(ground.chunks.keys().next().value);
-    if (options.grid) {
-      c.save();
-      c.globalAlpha = 0.45;
-      GFUI.tile(c, "assets/overlays/grid.png", left * T, top * T, (right - left + 1) * T, (bottom - top + 1) * T);
-      c.restore();
-    }
+    if (options.grid) drawGroundGrid(c, s, cam, dpr);
     c.save();
     for (const outside of [false, true]) {
       c.globalAlpha = outside ? 0.38 : 0.5;
@@ -2628,10 +2689,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
       const buildingImage = artImage(buildingPath(b.type, b.level));
-      if (buildingImage.complete && buildingImage.naturalWidth) {
-        c.imageSmoothingEnabled = false;
-        c.drawImage(buildingImage, -64, -96, 128, 128);
-      }
+      mapImage(c, buildingImage, -64, -96, 128, 128);
       if (b.type === "shrine" && !showBuildingLabels) {
         panel(c, s.players[b.owner].team === 1 ? "map-enemy" : b.owner === options.player ? "map-primary" : "map-ally", -38, -57, 76, 19);
         c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
@@ -2944,9 +3002,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const directionIndex = { front: 0, back: 1, left: 2, right: 3 }, safeLevel = Math.max(1, Math.min(9, level || 1));
     const row = Math.floor((safeLevel - 1) / 3), col = (safeLevel - 1) % 3 * 4 + directionIndex[direction];
     c.save();
-    c.imageSmoothingEnabled = false;
     if (hit) c.filter = "brightness(0) invert(1)";
-    c.drawImage(atlas, col * 20, row * 30, 20, 30, -16, -45 - bounce.stretch - bounce.lift, 32, 48 + bounce.stretch);
+    mapImage(c, atlas, col * 20, row * 30, 20, 30, -16, -45 - bounce.stretch - bounce.lift, 32, 48 + bounce.stretch);
     c.restore();
     if (frozen) {
       png(c, "overlays/freeze", -14, -40, 28, 48);
