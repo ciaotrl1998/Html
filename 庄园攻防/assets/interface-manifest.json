@@ -228,8 +228,8 @@
       "slice": 0
     },
     "assets/overlays/range.png": {
-      "width": 128,
-      "height": 128,
+      "width": 512,
+      "height": 512,
       "slice": 0
     },
     "assets/overlays/pulse.png": {

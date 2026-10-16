@@ -13,6 +13,7 @@ const root = __dirname;
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/icon.png', ['icon.png', 'image/png']],
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
   ['/css/png-interface.css', ['css/png-interface.css', 'text/css; charset=utf-8']],
   ...['boot', 'runtime', 'maps', 'game', 'network', 'ui', 'art', 'autoplay', 'app'].map(name => [`/js/${name}.js`, [`js/${name}.js`, 'text/javascript; charset=utf-8']]),

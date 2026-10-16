@@ -74,7 +74,8 @@ fs.mkdirSync(qa, { recursive: true });
         assert(result.cache.chunks <= 40 && result.cache.largestSide <= 1120, 'Terrain retains bounded chunk caches');
         {
           assert(result.filteredBuildings + result.sharpBuildings > 0, 'Loaded buildings exercised');
-          if (zoom >= .9 || zoom === .5 && dpr === 1) assert.equal(result.filteredBuildings, 0, 'Near or exact integer sprite pixels remain crisp');
+          const nativePixel=zoom*dpr;
+          if (zoom >= .9 || nativePixel >= 1 && Math.abs(nativePixel-Math.round(nativePixel))<.001) assert.equal(result.filteredBuildings, 0, 'Near or exact integer sprite pixels remain crisp');
           else assert(result.filteredBuildings > 0, 'Fractional distant sprites are filtered');
         }
         report.push({ offline, dpr, ...result });

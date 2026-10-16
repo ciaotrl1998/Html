@@ -2,6 +2,23 @@
   'use strict';
   const reducedMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const T = 64, palette = { plain: '#ced5af', shore: '#d9cda7', water: '#a9c9bd', forest: '#b4c49a', mountain: '#c3c5af' };
+  // Generated-art geometry, checked against gate-destruction-v9/metrics.json.
+  const BUILDING_ART=/* building-art:start */{
+    "version":9,"frameWidth":96,"frameHeight":128,"pivot":{"x":48,"y":120},
+    "heights":{
+      "shrine":[49,65,73],"gate":[64,82,92],"barracks":[26,43,47],"tower":[60,72,84],
+      "rock":[33,41,50],"well":[27,38,50],"tea":[30,43,49],"inn":[25,37,42],
+      "bank":[29,42,47],"farm":[48,48,48],"mill":[28,41,46],"wine":[31,40,51],
+      "mulberry":[32,38,44],"weaver":[34,41,50],"tailor":[29,40,49],"quarry":[29,39,58],
+      "kiln":[26,36,48],"trade":[30,38,46],"guild":[40,52,57],"port":[38,56,63],
+      "stage":[36,39,50],"earth":[35,37,44],"zhong":[36,46,56],"tao":[31,38,47],"fortune":[28,30,34]
+    },
+    "gateOrientations":{
+      "ns":{"image":"stages.png","groundY":54,"heights":[64,82,92],"destroyed":{"image":"destroyed.png","thumbnail":"destroyed-preview.png","width":64,"height":25}},
+      "ew":{"image":"stages-ew.png","groundY":64,"heights":[66,81,94],"destroyed":{"image":"destroyed-ew.png","thumbnail":"destroyed-preview-ew.png","width":45,"height":64}}
+    }
+  }/* building-art:end */;
+  const BUILDING_GROUND_Y=T-10,buildingGroundOffset=BUILDING_GROUND_Y-T/2;
   let filterWorld=false;
   function mapImage(c,image,...args){
     if(!image.complete||!image.naturalWidth)return;
@@ -9,7 +26,7 @@
     if(filterWorld){
       const m=c.getTransform(),n=args.length,sw=n===8?args[2]:image.naturalWidth,sh=n===8?args[3]:image.naturalHeight;
       const sx=Math.hypot(m.a,m.b)*args[n-2]/sw,sy=Math.hypot(m.c,m.d)*args[n-1]/sh;
-      // Exact integer-sized sprite pixels stay crisp, including the common 50% view.
+      // Exact integer-sized sprite pixels stay crisp at any device pixel ratio.
       smooth=sx<1||sy<1||Math.abs(sx-Math.round(sx))>.001||Math.abs(sy-Math.round(sy))>.001;
     }
     c.imageSmoothingEnabled=smooth;c.imageSmoothingQuality='low';c.drawImage(image,...args);
@@ -30,7 +47,12 @@
     if(artImages.has(path))return artImages.get(path);
     const image=new Image();image.onload=image.onerror=()=>{artAssetVersion++;groundSeed=null;};image.src=assetUrl(path);artImages.set(path,image);return image;
   }
-  const buildingPath=(type,level)=>`assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}.png`;
+  const sideGate=(type,direction)=>type==='gate'&&(direction===1||direction===3);
+  const buildingPath=(type,level,direction=0)=>`assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}${sideGate(type,direction)?'-ew':''}.png`;
+  const buildingSheetPath=(type,direction=0)=>`assets/sprites/buildings/${type}/${sideGate(type,direction)?'stages-ew':'stages'}.png`;
+  const gateProfile=b=>b.type==='gate'?BUILDING_ART.gateOrientations[sideGate(b.type,b.direction)?'ew':'ns']:null;
+  const gateDestroyed=b=>b.type==='gate'&&b.hp<=0;
+  const groundOffset=b=>(gateProfile(b)?.groundY??BUILDING_GROUND_Y)-T/2;
   const maskName=mask=>mask.toString(16).padStart(2,'0');
   const soldierAtlasSources={
     infantry_player:'assets/sprites/soldiers/infantry_player-red.png',
@@ -176,8 +198,9 @@
     if(type==='kiln')for(let i=0;i<3;i++)ellipse(c,19+Math.sin(time+i)*3,-38-i*7,3+i,3+i,'#e7e7cf66');
   }
   function houseTiny(c,x,y){rect(c,x-5,y,10,7,'#d6d0a6');roof(c,x,y-5,16,7,'#887a52');}
-  function thumbnail(type, level=1){
-    return assetUrl(buildingPath(type,level));
+  function thumbnail(type, level=1,direction=0,destroyed=false){
+    if(type==='gate'&&destroyed){const profile=BUILDING_ART.gateOrientations[sideGate(type,direction)?'ew':'ns'];return assetUrl(`assets/sprites/buildings/gate/${profile.destroyed.thumbnail}`);}
+    return assetUrl(buildingPath(type,level,direction));
   }
   function makeGround(s,occupied,left,top,right,bottom,scale){
     const size=GF.worldWidth(s),height=GF.worldHeight(s),center=GF.worldCenter(s),estate=GF.estate(s);
@@ -213,6 +236,16 @@
         const x=index%size,y=Math.floor(index/size);if(x<left-1||x>right+1||y<top-1||y>bottom+1)continue;const px=x*T,py=y*T;
         const mask=Number(connects(x,y-1))|Number(connects(x+1,y))*2|Number(connects(x,y+1))*4|Number(connects(x-1,y))*8,image=artImage(`assets/tiles/walls/${maskName(mask)}.png`);
         if(image.complete&&image.naturalWidth)c.drawImage(image,px,py,T,T);
+      }
+      // Gate roofs are wider than their stone piers. Bridge only the short
+      // exposed edge strips, behind the gate art, instead of leaving a grass
+      // slit between each neighboring wall tile and the gatehouse body.
+      for(const g of estate.gates){
+        if(g.x<left-1||g.x>right+1||g.y<top-1||g.y>bottom+1)continue;
+        const side=sideGate('gate',g.direction),image=artImage(`assets/tiles/walls/${side?'05':'0a'}.png`),px=g.x*T,py=g.y*T;
+        if(!image.complete||!image.naturalWidth)continue;
+        if(side){c.drawImage(image,0,0,T,14,px,py,T,14);c.drawImage(image,0,50,T,14,px,py+50,T,14);}
+        else{c.drawImage(image,0,0,12,T,px,py,12,T);c.drawImage(image,52,0,12,T,px+52,py,12,T);}
       }
     }
     drawGroundDecorations(c,s,occupied,Math.max(0,left-2),Math.max(0,top-2),Math.min(size-1,right+2),Math.min(height-1,bottom+2));
@@ -252,17 +285,8 @@
   }
   let ground, groundSeed;
   function healthBarY(b){
-    const type=b.type,level=GF.visualLevel(b.level);
-    if(type==='gate')return level>1?-56:-46;
-    if(type==='farm')return -26;
-    if(type==='mulberry')return -31;
-    if(type==='quarry'||type==='rock')return -34;
-    if(type==='tower')return level>1?-57:-49;
-    if(type==='well')return -37;
-    if(type==='zhong')return -43;
-    if(level===3)return -61;
-    if(level===2)return -48;
-    return ['shrine','earth','tao','guild','port','barracks'].includes(type)?-44:-29;
+    const profile=gateProfile(b),height=gateDestroyed(b)?profile.destroyed.height:(profile?.heights??BUILDING_ART.heights[b.type])[GF.visualLevel(b.level)-1];
+    return groundOffset(b)-height-7;
   }
   function influenceBounds(s,b){
     const d=GF.DEFS[b.type];
@@ -394,10 +418,13 @@
     if(selected){const px=selected.x*T,py=selected.y*T;png(c,'overlays/selection',px,py,T,T);if(!GF.at(s,selected.x,selected.y))png(c,'overlays/placement',px,py,T,T);}
     for(const b of s.buildings.filter(b=>visible(b.x*T+32,b.y*T+32,64,96)).sort((a,b)=>a.y-b.y)){
       c.save();c.translate(b.x*T+32,b.y*T+32);
-      const buildingImage=artImage(buildingPath(b.type,b.level));
-      mapImage(c,buildingImage,-64,-96,128,128);
-      if(b.type==='shrine'&&!showBuildingLabels){panel(c,s.players[b.owner].team===1?'map-enemy':b.owner===options.player?'map-primary':'map-ally',-38,-57,76,19);c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,-43);}
-      if(b.type==='gate'&&b.hp<=0)png(c,'overlays/gate-broken',-32,-17,64,48);
+      const destroyed=gateDestroyed(b),buildingImage=artImage(destroyed?`assets/sprites/buildings/gate/${gateProfile(b).destroyed.image}`:buildingSheetPath(b.type,b.direction)),stage=destroyed?0:GF.visualLevel(b.level)-1;
+      // Geometry and height progression live in the PNGs. Draw native pixels
+      // uniformly; the common ground pivot stays at tile-local (32,54).
+      const {frameWidth:bw,frameHeight:bh,pivot:bp}=BUILDING_ART;
+      const buildingGround=groundOffset(b);
+      mapImage(c,buildingImage,stage*bw,0,bw,bh,-bp.x,buildingGround-bp.y,bw,bh);
+      if(b.type==='shrine'&&!showBuildingLabels){const titleTop=healthBarY(b)-22;panel(c,s.players[b.owner].team===1?'map-enemy':b.owner===options.player?'map-primary':'map-ally',-38,titleTop,76,19);c.font='bold 12px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.fillStyle='#fff4d9';c.fillText(b.owner===options.player?'你的庄园':s.players[b.owner].team===0?'队友庄园':'敌方庄园 '+(b.owner+1),0,titleTop+14);}
       if(b.type==='shrine'&&s.buildings.length===1){const r=32+Math.sin(s.elapsed)*2;png(c,'overlays/aura',-r,7,r*2,24);}
       if(b.hp<GF.maxHP(b)){const y=healthBarY(b);health(c,-21,y,42,4,b.hp/GF.maxHP(b),b.hp/GF.maxHP(b)>.35?'building':'critical');}
       const canUpgrade=b.type==='barracks'&&b.level===1
@@ -407,12 +434,13 @@
         png(c,'ui/icons/upgrade',6,-23+upgradeBob,24,24);
       }
       const levelLabel=String(b.level),badgeWidth=16,badgeX=25-badgeWidth;
-      png(c,'overlays/level-badge',badgeX,5,16,16);
-      c.fillStyle='#f4ebd2';c.font='900 11px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(levelLabel,badgeX+badgeWidth/2,13);c.textBaseline='alphabetic';
+      const badgeOffset=buildingGround-buildingGroundOffset;
+      png(c,'overlays/level-badge',badgeX,5+badgeOffset,16,16);
+      c.fillStyle='#f4ebd2';c.font='900 11px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(levelLabel,badgeX+badgeWidth/2,13+badgeOffset);c.textBaseline='alphabetic';
       if(showBuildingLabels&&b.type!=='gate'){
         const label=b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name;
         c.font='9px "SimHei","Microsoft YaHei",sans-serif';c.textAlign='center';
-        const text=c.measureText(label),labelWidth=text.width+14,labelTop=18,labelHeight=20;
+        const text=c.measureText(label),labelWidth=text.width+14,labelTop=buildingGroundOffset+4,labelHeight=18;
         panel(c,'map-paper',-labelWidth/2,labelTop,labelWidth,labelHeight);
         c.fillStyle='#4a2e20';
         c.fillText(label,0,labelTop+(labelHeight+text.actualBoundingBoxAscent-text.actualBoundingBoxDescent)/2);

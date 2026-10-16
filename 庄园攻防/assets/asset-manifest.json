@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "count": 221,
+  "count": 257,
   "assets": [
     {
       "path": "assets/effects/arrow.png",
@@ -84,7 +84,7 @@
       "width": 64,
       "height": 64,
       "slice": 0,
-      "usage": "地图叠加标记"
+      "usage": "历史城门裂缝覆盖图，已停用；保留文件兼容旧资源清单"
     },
     {
       "path": "assets/overlays/grid.png",
@@ -279,451 +279,649 @@
       "path": "assets/sprites/buildings/bank/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/bank/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/bank/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/bank/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/barracks/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/barracks/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/barracks/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/barracks/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/earth/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/earth/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/earth/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/earth/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/farm/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/farm/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/farm/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/farm/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/fortune/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/fortune/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/fortune/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/fortune/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/destroyed-ew.png",
+      "width": 96,
+      "height": 128,
+      "usage": "城门完整损毁态，96×128；同方向所有等级共用；锚点 (48,120)，取代完整城门，不再叠加裂缝"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/destroyed-preview-ew.png",
+      "width": 64,
+      "height": 64,
+      "usage": "城门损毁详情预览，64×64；同方向所有等级共用"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/destroyed-preview.png",
+      "width": 64,
+      "height": 64,
+      "usage": "城门损毁详情预览，64×64；同方向所有等级共用"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/destroyed.png",
+      "width": 96,
+      "height": 128,
+      "usage": "城门完整损毁态，96×128；同方向所有等级共用；锚点 (48,120)，取代完整城门，不再叠加裂缝"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-1-ew.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；东西门侧向，方向1/3"
     },
     {
       "path": "assets/sprites/buildings/gate/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；南北门正面，方向0/2"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-2-ew.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；东西门侧向，方向1/3"
     },
     {
       "path": "assets/sprites/buildings/gate/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；南北门正面，方向0/2"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/level-3-ew.png",
+      "width": 64,
+      "height": 64,
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；东西门侧向，方向1/3"
     },
     {
       "path": "assets/sprites/buildings/gate/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60；南北门正面，方向0/2"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/stages-ew.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)；东西门侧向，方向1/3"
+    },
+    {
+      "path": "assets/sprites/buildings/gate/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)；南北门正面，方向0/2"
     },
     {
       "path": "assets/sprites/buildings/guild/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/guild/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/guild/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/guild/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/inn/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/inn/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/inn/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/inn/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/kiln/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/kiln/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/kiln/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/kiln/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/mill/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/mill/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/mill/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/mill/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/mulberry/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/mulberry/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/mulberry/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/mulberry/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/port/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/port/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/port/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/port/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/quarry/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/quarry/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/quarry/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/quarry/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/rock/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/rock/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/rock/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/rock/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/shrine/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/shrine/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/shrine/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/shrine/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/stage/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/stage/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/stage/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/stage/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/tailor/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tailor/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tailor/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/tailor/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/tao/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tao/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tao/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/tao/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/tea/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tea/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tea/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/tea/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/tower/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tower/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/tower/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/tower/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/trade/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/trade/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/trade/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/trade/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/weaver/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/weaver/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/weaver/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/weaver/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/well/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/well/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/well/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/well/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/wine/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/wine/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/wine/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/wine/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/buildings/zhong/level-1.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/zhong/level-2.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
     },
     {
       "path": "assets/sprites/buildings/zhong/level-3.png",
       "width": 64,
       "height": 64,
-      "usage": "建筑精灵；锚点 (32,48)"
+      "usage": "建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60"
+    },
+    {
+      "path": "assets/sprites/buildings/zhong/stages.png",
+      "width": 288,
+      "height": 128,
+      "usage": "建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)"
     },
     {
       "path": "assets/sprites/soldiers/archer_ally-green.png",
@@ -741,6 +939,24 @@
       "path": "assets/sprites/soldiers/archer_player-red.png",
       "width": 240,
       "height": 90,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/cavalry_ally-green.png",
+      "width": 360,
+      "height": 135,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/cavalry_enemy-purple.png",
+      "width": 360,
+      "height": 135,
+      "usage": "士兵图集，20×30 帧，12列×3行"
+    },
+    {
+      "path": "assets/sprites/soldiers/cavalry_player-red.png",
+      "width": 360,
+      "height": 135,
       "usage": "士兵图集，20×30 帧，12列×3行"
     },
     {
@@ -1011,97 +1227,97 @@
       "path": "assets/tiles/walls/00.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/01.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/02.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/03.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/04.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/05.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/06.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/07.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/08.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/09.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0a.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0b.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0c.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0d.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0e.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/tiles/walls/0f.png",
       "width": 64,
       "height": 64,
-      "usage": "地图瓦片"
+      "usage": "中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐"
     },
     {
       "path": "assets/ui/backgrounds/dimmer.png",

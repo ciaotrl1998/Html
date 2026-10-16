@@ -263,14 +263,14 @@
     if (d.required) stats += `<div>全镇${d.auraResource === 'materials' ? '工材' : '铜钱'}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? '' : ' → ' + rateText(d.aura * GF.auraFactor(next) * 100) + '%'}</strong></div>`;
     const branches=b.type==='barracks'&&b.level===1;
     const actions=branches?['infantry','archer'].map(type=>`<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join(''):`<button class="upgrade-button" id="upgrade-building">${max ? '已臻化境' : '升级'}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches?' branches':''}">${actions}</div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? 'disabled' : ''}>${demolishReason ? '不可拆除' : '拆除'}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level,b.direction,b.hp<=0)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches?' branches':''}">${actions}</div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
     if (GF.isWall(state,x,y)||(!b&&!GF.owns(playerState(),x,y))) {closePanel();return;}
     const buildableDefs = Object.values(GF.DEFS).filter(d => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${b?.id || ''},${b?.level || ''},${b?.troopType||''},${b?.type === 'barracks' ? GF.soldierPower(playerState(), b) : ''}`;
+    const key = `${x},${y},${b?.id || ''},${b?.level || ''},${b?.troopType||''},${b?.type==='gate'?b.direction+':'+(b.hp<=0):''},${b?.type === 'barracks' ? GF.soldierPower(playerState(), b) : ''}`;
     $('plot-label').textContent = b ? (b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : b.type==='barracks'?GF.name(b):GF.DEFS[b.type].name) : GF.TERRAIN[GF.terrain(x, y, state)] + ' · 可兴建';
     $('build-view').hidden = !!b; $('detail-view').hidden = !b;
     if (key !== panelKey) {

@@ -5,7 +5,14 @@ const ui=JSON.parse(fs.readFileSync(path.join(root,'assets/interface-manifest.js
 function scan(dir){for(const e of fs.readdirSync(path.join(root,dir),{withFileTypes:true})){
   const file=path.posix.join(dir,e.name);if(e.isDirectory()){if(e.name!=='generated')scan(file);continue;}if(!e.name.endsWith('.png'))continue;
   const data=fs.readFileSync(path.join(root,file));
-  entries.push({path:file,width:data.readUInt32BE(16),height:data.readUInt32BE(20),...(ui[file]?{slice:ui[file].slice}:{}),usage:file.startsWith('assets/ui/panels/')?'界面九宫格边框；四边切片 6px':file.includes('/icons/')?'界面图标':file.includes('/hints/')?'资源增益提示':file.includes('/soldiers/')?'士兵图集，20×30 帧，12列×3行':file.includes('/buildings/')?'建筑精灵；锚点 (32,48)':file.includes('/bars/')?'血条，可水平拉伸':file.startsWith('assets/effects/')?'特效，由程序控制位置、旋转和淡出':file.startsWith('assets/overlays/')?'地图叠加标记':file.startsWith('assets/scenery/')?'地图背景':file.includes('/backgrounds/')?'界面底纹／首页场景':'地图瓦片'});
+  const sheet=/\/stages(?:-ew)?\.png$/.test(file);
+  let usage=file.startsWith('assets/ui/panels/')?'界面九宫格边框；四边切片 6px':file.includes('/icons/')?'界面图标':file.includes('/hints/')?'资源增益提示':file.includes('/soldiers/')?'士兵图集，20×30 帧，12列×3行':file.includes('/buildings/')?(sheet?'建筑三阶段图集，288×128；每帧96×128，低中高横排；锚点 (48,120)':'建筑卡片／详情缩略图；64×64；同源等比整理，地面 y=60'):file.includes('/bars/')?'血条，可水平拉伸':file.startsWith('assets/effects/')?'特效，由程序控制位置、旋转和淡出':file.startsWith('assets/overlays/')?'地图叠加标记':file.startsWith('assets/scenery/')?'地图背景':file.includes('/backgrounds/')?'界面底纹／首页场景':'地图瓦片';
+  if(file.startsWith('assets/tiles/walls/'))usage='中式城墙半俯视正交拼接，64×64；文件名为 N=1/E=2/S=4/W=8 连接掩码；接口像素完全对齐';
+  if(file.includes('/buildings/gate/'))usage+=(file.endsWith('-ew.png')?'；东西门侧向，方向1/3':'；南北门正面，方向0/2');
+  if(/\/gate\/destroyed(?:-ew)?\.png$/.test(file))usage='城门完整损毁态，96×128；同方向所有等级共用；锚点 (48,120)，取代完整城门，不再叠加裂缝';
+  if(/\/gate\/destroyed-preview(?:-ew)?\.png$/.test(file))usage='城门损毁详情预览，64×64；同方向所有等级共用';
+  if(file==='assets/overlays/gate-broken.png')usage='历史城门裂缝覆盖图，已停用；保留文件兼容旧资源清单';
+  entries.push({path:file,width:data.readUInt32BE(16),height:data.readUInt32BE(20),...(ui[file]?{slice:ui[file].slice}:{}),usage});
 }}
 scan('assets');
 fs.writeFileSync(path.join(root,'assets/asset-manifest.json'),JSON.stringify({version:1,count:entries.length,assets:entries},null,2)+'\n');

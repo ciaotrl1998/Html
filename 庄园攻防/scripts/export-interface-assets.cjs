@@ -42,7 +42,9 @@ const root=path.resolve(__dirname,'..');
     for(const [relative,{data,...spec}] of Object.entries(assets)){
       const target=path.join(root,relative);fs.mkdirSync(path.dirname(target),{recursive:true});
       if((!only||only===relative)&&(overwrite||!fs.existsSync(target)))fs.writeFileSync(target,Buffer.from(data.split(',')[1],'base64'));
-      manifest.assets[relative]=spec;
+      // Preserved hand-edited images may have a different native resolution.
+      const actual=fs.existsSync(target)?PNG.sync.read(fs.readFileSync(target)):spec;
+      manifest.assets[relative]={...spec,width:actual.width,height:actual.height};
     }
     fs.writeFileSync(path.join(root,'assets/interface-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
     console.log(`Interface pack: ${Object.keys(assets).length} PNGs (${overwrite?'overwrite':'preserve existing'}).`);

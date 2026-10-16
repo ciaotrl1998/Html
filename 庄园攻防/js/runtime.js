@@ -1973,6 +1973,47 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   "use strict";
   const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const T = 64, palette = { plain: "#ced5af", shore: "#d9cda7", water: "#a9c9bd", forest: "#b4c49a", mountain: "#c3c5af" };
+  const BUILDING_ART = (
+    /* building-art:start */
+    {
+      "version": 9,
+      "frameWidth": 96,
+      "frameHeight": 128,
+      "pivot": { "x": 48, "y": 120 },
+      "heights": {
+        "shrine": [49, 65, 73],
+        "gate": [64, 82, 92],
+        "barracks": [26, 43, 47],
+        "tower": [60, 72, 84],
+        "rock": [33, 41, 50],
+        "well": [27, 38, 50],
+        "tea": [30, 43, 49],
+        "inn": [25, 37, 42],
+        "bank": [29, 42, 47],
+        "farm": [48, 48, 48],
+        "mill": [28, 41, 46],
+        "wine": [31, 40, 51],
+        "mulberry": [32, 38, 44],
+        "weaver": [34, 41, 50],
+        "tailor": [29, 40, 49],
+        "quarry": [29, 39, 58],
+        "kiln": [26, 36, 48],
+        "trade": [30, 38, 46],
+        "guild": [40, 52, 57],
+        "port": [38, 56, 63],
+        "stage": [36, 39, 50],
+        "earth": [35, 37, 44],
+        "zhong": [36, 46, 56],
+        "tao": [31, 38, 47],
+        "fortune": [28, 30, 34]
+      },
+      "gateOrientations": {
+        "ns": { "image": "stages.png", "groundY": 54, "heights": [64, 82, 92], "destroyed": { "image": "destroyed.png", "thumbnail": "destroyed-preview.png", "width": 64, "height": 25 } },
+        "ew": { "image": "stages-ew.png", "groundY": 64, "heights": [66, 81, 94], "destroyed": { "image": "destroyed-ew.png", "thumbnail": "destroyed-preview-ew.png", "width": 45, "height": 64 } }
+      }
+    }
+  );
+  const BUILDING_GROUND_Y = T - 10, buildingGroundOffset = BUILDING_GROUND_Y - T / 2;
   let filterWorld = false;
   function mapImage(c, image, ...args) {
     if (!image.complete || !image.naturalWidth) return;
@@ -2012,7 +2053,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     artImages.set(path, image);
     return image;
   }
-  const buildingPath = (type, level) => `assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}.png`;
+  const sideGate = (type, direction) => type === "gate" && (direction === 1 || direction === 3);
+  const buildingPath = (type, level, direction = 0) => `assets/sprites/buildings/${type}/level-${GF.visualLevel(level)}${sideGate(type, direction) ? "-ew" : ""}.png`;
+  const buildingSheetPath = (type, direction = 0) => `assets/sprites/buildings/${type}/${sideGate(type, direction) ? "stages-ew" : "stages"}.png`;
+  const gateProfile = (b) => b.type === "gate" ? BUILDING_ART.gateOrientations[sideGate(b.type, b.direction) ? "ew" : "ns"] : null;
+  const gateDestroyed = (b) => b.type === "gate" && b.hp <= 0;
+  const groundOffset = (b) => {
+    var _a, _b;
+    return ((_b = (_a = gateProfile(b)) == null ? void 0 : _a.groundY) != null ? _b : BUILDING_GROUND_Y) - T / 2;
+  };
   const maskName = (mask) => mask.toString(16).padStart(2, "0");
   const soldierAtlasSources = {
     infantry_player: "assets/sprites/soldiers/infantry_player-red.png",
@@ -2379,8 +2428,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     rect(c, x - 5, y, 10, 7, "#d6d0a6");
     roof(c, x, y - 5, 16, 7, "#887a52");
   }
-  function thumbnail(type, level = 1) {
-    return assetUrl(buildingPath(type, level));
+  function thumbnail(type, level = 1, direction = 0, destroyed = false) {
+    if (type === "gate" && destroyed) {
+      const profile = BUILDING_ART.gateOrientations[sideGate(type, direction) ? "ew" : "ns"];
+      return assetUrl(`assets/sprites/buildings/gate/${profile.destroyed.thumbnail}`);
+    }
+    return assetUrl(buildingPath(type, level, direction));
   }
   function makeGround(s, occupied, left, top, right, bottom, scale) {
     const size = GF.worldWidth(s), height = GF.worldHeight(s), center = GF.worldCenter(s), estate = GF.estate(s);
@@ -2440,6 +2493,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const px = x * T, py = y * T;
         const mask = Number(connects(x, y - 1)) | Number(connects(x + 1, y)) * 2 | Number(connects(x, y + 1)) * 4 | Number(connects(x - 1, y)) * 8, image = artImage(`assets/tiles/walls/${maskName(mask)}.png`);
         if (image.complete && image.naturalWidth) c.drawImage(image, px, py, T, T);
+      }
+      for (const g of estate.gates) {
+        if (g.x < left - 1 || g.x > right + 1 || g.y < top - 1 || g.y > bottom + 1) continue;
+        const side = sideGate("gate", g.direction), image = artImage(`assets/tiles/walls/${side ? "05" : "0a"}.png`), px = g.x * T, py = g.y * T;
+        if (!image.complete || !image.naturalWidth) continue;
+        if (side) {
+          c.drawImage(image, 0, 0, T, 14, px, py, T, 14);
+          c.drawImage(image, 0, 50, T, 14, px, py + 50, T, 14);
+        } else {
+          c.drawImage(image, 0, 0, 12, T, px, py, 12, T);
+          c.drawImage(image, 52, 0, 12, T, px + 52, py, 12, T);
+        }
       }
     }
     drawGroundDecorations(c, s, occupied, Math.max(0, left - 2), Math.max(0, top - 2), Math.min(size - 1, right + 2), Math.min(height - 1, bottom + 2));
@@ -2504,17 +2569,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   let ground, groundSeed;
   function healthBarY(b) {
-    const type = b.type, level = GF.visualLevel(b.level);
-    if (type === "gate") return level > 1 ? -56 : -46;
-    if (type === "farm") return -26;
-    if (type === "mulberry") return -31;
-    if (type === "quarry" || type === "rock") return -34;
-    if (type === "tower") return level > 1 ? -57 : -49;
-    if (type === "well") return -37;
-    if (type === "zhong") return -43;
-    if (level === 3) return -61;
-    if (level === 2) return -48;
-    return ["shrine", "earth", "tao", "guild", "port", "barracks"].includes(type) ? -44 : -29;
+    var _a;
+    const profile = gateProfile(b), height = gateDestroyed(b) ? profile.destroyed.height : ((_a = profile == null ? void 0 : profile.heights) != null ? _a : BUILDING_ART.heights[b.type])[GF.visualLevel(b.level) - 1];
+    return groundOffset(b) - height - 7;
   }
   function influenceBounds(s, b) {
     const d = GF.DEFS[b.type];
@@ -2688,16 +2745,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (const b of s.buildings.filter((b2) => visible(b2.x * T + 32, b2.y * T + 32, 64, 96)).sort((a, b2) => a.y - b2.y)) {
       c.save();
       c.translate(b.x * T + 32, b.y * T + 32);
-      const buildingImage = artImage(buildingPath(b.type, b.level));
-      mapImage(c, buildingImage, -64, -96, 128, 128);
+      const destroyed = gateDestroyed(b), buildingImage = artImage(destroyed ? `assets/sprites/buildings/gate/${gateProfile(b).destroyed.image}` : buildingSheetPath(b.type, b.direction)), stage = destroyed ? 0 : GF.visualLevel(b.level) - 1;
+      const { frameWidth: bw, frameHeight: bh, pivot: bp } = BUILDING_ART;
+      const buildingGround = groundOffset(b);
+      mapImage(c, buildingImage, stage * bw, 0, bw, bh, -bp.x, buildingGround - bp.y, bw, bh);
       if (b.type === "shrine" && !showBuildingLabels) {
-        panel(c, s.players[b.owner].team === 1 ? "map-enemy" : b.owner === options.player ? "map-primary" : "map-ally", -38, -57, 76, 19);
+        const titleTop = healthBarY(b) - 22;
+        panel(c, s.players[b.owner].team === 1 ? "map-enemy" : b.owner === options.player ? "map-primary" : "map-ally", -38, titleTop, 76, 19);
         c.font = 'bold 12px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
         c.fillStyle = "#fff4d9";
-        c.fillText(b.owner === options.player ? "你的庄园" : s.players[b.owner].team === 0 ? "队友庄园" : "敌方庄园 " + (b.owner + 1), 0, -43);
+        c.fillText(b.owner === options.player ? "你的庄园" : s.players[b.owner].team === 0 ? "队友庄园" : "敌方庄园 " + (b.owner + 1), 0, titleTop + 14);
       }
-      if (b.type === "gate" && b.hp <= 0) png(c, "overlays/gate-broken", -32, -17, 64, 48);
       if (b.type === "shrine" && s.buildings.length === 1) {
         const r = 32 + Math.sin(s.elapsed) * 2;
         png(c, "overlays/aura", -r, 7, r * 2, 24);
@@ -2711,18 +2770,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         png(c, "ui/icons/upgrade", 6, -23 + upgradeBob, 24, 24);
       }
       const levelLabel = String(b.level), badgeWidth = 16, badgeX = 25 - badgeWidth;
-      png(c, "overlays/level-badge", badgeX, 5, 16, 16);
+      const badgeOffset = buildingGround - buildingGroundOffset;
+      png(c, "overlays/level-badge", badgeX, 5 + badgeOffset, 16, 16);
       c.fillStyle = "#f4ebd2";
       c.font = '900 11px "SimHei","Microsoft YaHei",sans-serif';
       c.textAlign = "center";
       c.textBaseline = "middle";
-      c.fillText(levelLabel, badgeX + badgeWidth / 2, 13);
+      c.fillText(levelLabel, badgeX + badgeWidth / 2, 13 + badgeOffset);
       c.textBaseline = "alphabetic";
       if (showBuildingLabels && b.type !== "gate") {
         const label = b.type === "barracks" ? GF.name(b) : GF.DEFS[b.type].name;
         c.font = '9px "SimHei","Microsoft YaHei",sans-serif';
         c.textAlign = "center";
-        const text = c.measureText(label), labelWidth = text.width + 14, labelTop = 18, labelHeight = 20;
+        const text = c.measureText(label), labelWidth = text.width + 14, labelTop = buildingGroundOffset + 4, labelHeight = 18;
         panel(c, "map-paper", -labelWidth / 2, labelTop, labelWidth, labelHeight);
         c.fillStyle = "#4a2e20";
         c.fillText(label, 0, labelTop + (labelHeight + text.actualBoundingBoxAscent - text.actualBoundingBoxDescent) / 2);
@@ -4045,7 +4105,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) stats += `<div>全镇${d.auraResource === "materials" ? "工材" : "铜钱"}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? "" : " → " + rateText(d.aura * GF.auraFactor(next) * 100) + "%"}</strong></div>`;
     const branches = b.type === "barracks" && b.level === 1;
     const actions = branches ? ["infantry", "archer"].map((type) => `<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join("") : `<button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches ? " branches" : ""}">${actions}</div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level, b.direction, b.hp <= 0)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches ? " branches" : ""}">${actions}</div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
@@ -4055,7 +4115,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return;
     }
     const buildableDefs = Object.values(GF.DEFS).filter((d) => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""},${(b == null ? void 0 : b.troopType) || ""},${(b == null ? void 0 : b.type) === "barracks" ? GF.soldierPower(playerState(), b) : ""}`;
+    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""},${(b == null ? void 0 : b.troopType) || ""},${(b == null ? void 0 : b.type) === "gate" ? b.direction + ":" + (b.hp <= 0) : ""},${(b == null ? void 0 : b.type) === "barracks" ? GF.soldierPower(playerState(), b) : ""}`;
     $("plot-label").textContent = b ? b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : b.type === "barracks" ? GF.name(b) : GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y, state)] + " · 可兴建";
     $("build-view").hidden = !!b;
     $("detail-view").hidden = !b;

@@ -2,13 +2,13 @@
 
 游戏的建筑、士兵、地图、界面图形、图标和地图特效均从目录读取 PNG。文字、等级、金额、血量数值继续由程序显示，图片负责外观，程序负责位置、缩放、旋转、淡出和填充比例。
 
-打开 [ART_CATALOG.html](ART_CATALOG.html) 可按分类查看 **221 张图片**，点击缩略图即可打开原 PNG。[asset-manifest.json](asset-manifest.json) 记录全部路径、实际尺寸和用途；[interface-manifest.json](interface-manifest.json) 记录 UI／特效尺寸及切片参数。
+打开 [ART_CATALOG.html](ART_CATALOG.html) 可按分类查看 **257 张图片**，点击缩略图即可打开原 PNG。[asset-manifest.json](asset-manifest.json) 记录全部路径、实际尺寸和用途；[interface-manifest.json](interface-manifest.json) 记录 UI／特效尺寸及切片参数。
 
 ## 统一修改规则
 
 ### 场景与士兵的统一风格
 
-建筑、树石、墙体、远山、UI 和图标现使用更厚重的像素材质配色，外轮廓与士兵保持相同的 **深焦棕色 `#4a2e20`**。本次覆盖 **211 张非士兵 PNG**：包括 75 张建筑外观、地形与连接瓦片、场景装饰、UI、叠加图素及特效。六张士兵图集保留。
+建筑现使用用户确认的 **v7平面卡通像素风**：灰蓝屋顶、米白墙、木棕与红色点缀，细深棕描边，不采用写实材质。树石、墙体、远山、UI、图标仍保留此前的统一风格资源；外轮廓与士兵相同，为 **深焦棕色 `#4a2e20`**。六张士兵图集保留。
 
 - 外轮廓仅占原生画布一像素，不向内部扩张或用棕色填充材质。
 - 仅对建筑实体描边，淡色庭院／地台不做方框式包边。
@@ -55,9 +55,9 @@
 | --- | --- | --- |
 | `assets/overlays/selection.png`、`placement.png` | 64×64 | 选中格、空地建造加号 |
 | `assets/overlays/hints/<coins或materials>-tier-<1至3>.png` | 64×64 | 铜钱／工材增益的三级角标 |
-| `assets/overlays/range.png` | 128×128 | 箭塔范围，以中心缩放 |
+| `assets/overlays/range.png` | 512×512 | 箭塔范围，以中心缩放 |
 | `assets/overlays/level-badge.png` | 24×24 | 建筑等级底，数字由程序叠加 |
-| `assets/overlays/gate-broken.png` | 64×64 | 城门破损裂口 |
+| `assets/overlays/gate-broken.png` | 64×64 | 历史裂缝图，已停用；当前改用完整损毁图素 |
 | `assets/overlays/pulse.png`、`repair.png`、`repel.png`、`freeze.png`、`slow.png`、`aura.png` | 64×64 | 法术、封印、减速、光环，透明中心 |
 | `assets/overlays/links/*.png` | 9×4 | 商／农／丝／工产业链连接，横向重复后旋转 |
 | `assets/overlays/grid.png` | 64×64 | 地图网格，平铺 |
@@ -115,17 +115,25 @@ npm run build
 
 ## 建筑
 
-路径：`assets/sprites/buildings/<建筑类型>/level-<外观等级>.png`
+地图路径：`assets/sprites/buildings/<建筑类型>/stages.png`，25张三阶段图集，每张288×128、三帧横排，单帧96×128。建造卡片／详情页使用同目录的`level-<外观等级>.png`，75张64×64预览图由同一建筑等比整理，去除地图帧顶部预留空间，不使用CSS放大裁切。
 
-- 图片尺寸：`64x64`
-- 地面锚点：`(32, 48)`
-- 缩放方式：最近邻硬边缘，不使用平滑插值
+- 地图单帧：`96×128`；实际主体尺寸见`generated/buildings-redesign/v7/buildings-atlas.json`
+- 地图帧地面锚点：`(48,120)`；主体最下行y=119。64×64预览图地面为y=60。
+- 世界绘制：地图帧按原生1:1绘制，偏移(-48,-98)（相对地格中心）。地面仍落到地格内(32,54)，距离下边界10像素，升级不改变落地点。更大的画布仅保留高层、塔身及旗帜空间，不代表占地扩大；占地与点击判定仍是一格。没有运行时分类型尺寸拉伸或调色滤镜；近景最近邻硬边，远景沿用非整数缩放过滤。
 - Alpha 通道：二值透明，所有像素透明度只能为 `0` 或 `255`
 - `level-1.png`：游戏等级 1-3
 - `level-2.png`：游戏等级 4-6
 - `level-3.png`：游戏等级 7 及以上
 
-城门也属于建筑，路径为 `assets/sprites/buildings/gate/`。
+城门也属于建筑，路径为 `assets/sprites/buildings/gate/`。当前v8城门分两套：`stages.png`为南北门正面（direction 0/2），`stages-ew.png`为东西门侧向（direction 1/3），都为288×128。对应详情预览为`level-N.png`／`level-N-ew.png`。南北门宽64、高64／82／92，东西门宽40、高66／81／94，初级均至少一格高。两套都由原生图素的实际楼层增高，不做非等比拉伸。
+
+南北门地面沿用格内y=54，与横墙前基座对齐；东西门侧向沿纵墙落在y=64，避免下端缺口。门柱背后只补同套城墙的短接头，通道中央仍为空。血条、等级牌、破损叠加图和详情预览按方向同步定位。详见[城门城墙制作说明](generated/fortifications-v8/README.md)。
+
+损毁态使用同目录`destroyed.png`（横墙／南北门）和`destroyed-ew.png`（纵墙／东西门），各96×128，三个外观阶段、所有游戏等级共用两张，不随等级拉大。`destroyed-preview.png`／`destroyed-preview-ew.png`为64×64同源详情预览。耐久≤0时完整城门被残骸替代，恢复到正值后显示原等级完好城门；不再使用旧裂缝叠加图，血条按残骸高度定位。源图及内置生图提示词见[v9损毁图说明](generated/gate-destruction-v9/README.md)。
+
+建筑基础为v7细描边平面卡通像素方案，城门／城墙现由v8修订。箭塔高度60／72／84；水田固定48×48；祠堂与终极建筑初始体量更大，铜钱与锤砧标识从初级保留。普通建筑主要通过新增墙高、阁楼和楼层增高。原建筑源图、坐标、提示词和接入前备份见[v7制作说明](generated/buildings-redesign/v7/README.md)。历史v3及未采用样稿保留，不要运行旧的生成、v3安装或全局调色脚本覆盖新版成品。
+
+重新整理全部建筑：`npm run art:buildings`（基础建筑→v8城门城墙→v9损毁态）。只整理城门城墙：`npm run art:fortifications`；只整理损毁态：`npm run art:gate-destruction`。如改变尺寸，需同步`js/art.js`标记区；`npm run build`会与`gate-destruction-v9/metrics.json`核对。`npm run test:buildings`、`npm run test:fortifications`和`npm run test:gate-destruction`检查成品、预览、备份、门墙接头及源码／离线渲染。
 
 ## 地图
 
@@ -142,6 +150,8 @@ npm run build
 - `8`：左
 
 例如 `05.png` 表示上下连接，`0a.png` 表示左右连接，`0f.png` 表示四面连接。
+
+城墙采用v8半俯视正交的中式材质，并已应用[v10转角修正](generated/wall-corner-fix-v10/README.md)：可见墙顶步道、灰蓝压顶垛口、暖灰砖身与箭孔，保留细深棕外描边。16张PNG仍沿用`00.png`至`0f.png`，没有改变碰撞或连接规则。各掩码共用完整墙顶／垛口／墙身剖面和纹样相位，转角不再独立缩放；纵向开放通道不会被封口墙身遮断。检测覆盖完整连接臂、全部内部步道、墙身基线、四种连续阶梯拐角及缓存分块边界，不再仅依赖一行／一列边缘像素。源图和更新后的成品包仍在`assets/generated/fortifications-v8/`，本次接入前16张PNG另行备份在`assets/generated/wall-corner-fix-v10/before/`。
 
 ## 修改生效
 
