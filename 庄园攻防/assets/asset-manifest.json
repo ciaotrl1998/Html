@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "count": 257,
+  "count": 258,
   "assets": [
     {
       "path": "assets/effects/arrow.png",
@@ -130,6 +130,13 @@
     },
     {
       "path": "assets/overlays/hints/materials-tier-3.png",
+      "width": 64,
+      "height": 64,
+      "slice": 0,
+      "usage": "资源增益提示"
+    },
+    {
+      "path": "assets/overlays/hints/starter-white.png",
       "width": 64,
       "height": 64,
       "slice": 0,

@@ -817,8 +817,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     return ignoreFunds ? "" : shortage(s, buildCost(s, type));
   }
-  function buildHints(s, x, y, ignoreEnemies = false) {
-    return Object.values(DEFS).filter((d) => d.cat === "economy" && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true, ignoreEnemies)).map((d) => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
+  function buildHints(s, x, y, ignoreEnemies = false, includeStarters = false) {
+    return Object.values(DEFS).filter((d) => d.cat === "economy" && (d.tier >= 1 || d.required || includeStarters && d.tier === 0) && !buildReason(s, d.id, x, y, true, ignoreEnemies)).map((d) => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = "info") {
     s.events.push({ text, kind });
@@ -2669,7 +2669,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
     const upgradeBob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(animationTime * Math.PI) * 3;
-    const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
+    const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, player.eliminated, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
     let hints = hintCaches.get(s);
     if (!hints || hints.key !== hintKey) {
       hints = { key: hintKey, tiles: /* @__PURE__ */ new Map() };
@@ -2943,28 +2943,34 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
       const tile = y * size + x;
       if (occupied.has(x + "," + y) || blockedHints.has(tile) || !visible(x * T + 32, y * T + 32, 29)) continue;
-      let best = hints.tiles.get(tile);
+      let candidates = hints.tiles.get(tile);
       if (!hints.tiles.has(tile)) {
-        let bestIncome = -Infinity;
-        best = null;
+        let bestIncome = -Infinity, best2 = null;
+        const starters = [];
         const town = player;
-        for (const hint of GF.buildHints(town, x, y, true)) {
+        for (const hint of GF.buildHints(town, x, y, true, true)) {
           if (hint.resource !== "coins" && hint.resource !== "materials") continue;
+          if (hint.tier === 0) {
+            starters.push({ type: hint.type, cost: GF.buildCost(town, hint.type) });
+            continue;
+          }
           const preview = { type: hint.type, x, y, level: 1 };
           const shadow = __spreadProps(__spreadValues({}, town), { buildings: [...town.buildings, preview] }), income = GF.income(shadow, preview);
-          if (!best || income > bestIncome || income === bestIncome && (hint.tier > best.tier || hint.tier === best.tier && hint.resource === "coins" && best.resource !== "coins")) {
-            best = hint;
+          if (!best2 || income > bestIncome || income === bestIncome && (hint.tier > best2.tier || hint.tier === best2.tier && hint.resource === "coins" && best2.resource !== "coins")) {
+            best2 = hint;
             bestIncome = income;
           }
         }
-        hints.tiles.set(tile, best);
+        candidates = { best: best2, starters };
+        hints.tiles.set(tile, candidates);
       }
-      if (!best) continue;
+      const best = candidates.best, starter = candidates.starters.some(({ cost }) => player.coins >= cost.coins && player.materials >= cost.materials);
+      if (!best && !starter) continue;
       c.save();
       c.translate(x * T + 32, y * T + 32);
       c.scale(hintPulse, hintPulse);
       c.globalAlpha = 0.7;
-      png(c, `overlays/hints/${best.resource}-tier-${best.tier}`, -32, -32, 64, 64);
+      png(c, best ? `overlays/hints/${best.resource}-tier-${best.tier}` : "overlays/hints/starter-white", -32, -32, 64, 64);
       c.restore();
     }
     drawSelection(c, s, selected);

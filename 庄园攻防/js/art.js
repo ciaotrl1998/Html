@@ -364,7 +364,7 @@
     // One shared phase per render: all upgrade markers float together, with no per-building timers.
     const upgradeBob=reducedMotion||options.reducedMotion===true?0:Math.sin(animationTime*Math.PI)*3;
     // Enemy occupancy changes every frame; economic recommendations only change with the town.
-    const hintKey=JSON.stringify([cacheKey,player.actorId,s.over,s.day,player.buildings.map(b=>[b.type,b.x,b.y,b.level,b.owner])]);
+    const hintKey=JSON.stringify([cacheKey,player.actorId,s.over,player.eliminated,s.day,player.buildings.map(b=>[b.type,b.x,b.y,b.level,b.owner])]);
     let hints=hintCaches.get(s);
     if(!hints||hints.key!==hintKey){hints={key:hintKey,tiles:new Map()};hintCaches.set(s,hints);}
     const blockedHints=new Set();
@@ -558,12 +558,13 @@
     for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
       const tile=y*size+x;
       if(occupied.has(x+','+y)||blockedHints.has(tile)||!visible(x*T+32,y*T+32,29))continue;
-      let best=hints.tiles.get(tile);
+      let candidates=hints.tiles.get(tile);
       if(!hints.tiles.has(tile)){
-        let bestIncome=-Infinity;best=null;
+        let bestIncome=-Infinity,best=null;const starters=[];
         const town=player;
-        for(const hint of GF.buildHints(town,x,y,true)){
+        for(const hint of GF.buildHints(town,x,y,true,true)){
           if(hint.resource!=='coins'&&hint.resource!=='materials')continue;
+          if(hint.tier===0){starters.push({type:hint.type,cost:GF.buildCost(town,hint.type)});continue;}
           const preview={type:hint.type,x,y,level:1};
           // Include the new building's own aura without changing the live state.
           const shadow={...town,buildings:[...town.buildings,preview]},income=GF.income(shadow,preview);
@@ -571,11 +572,14 @@
             best=hint;bestIncome=income;
           }
         }
-        hints.tiles.set(tile,best);
+        candidates={best,starters};hints.tiles.set(tile,candidates);
       }
-      if(!best)continue;
+      // Funds change independently of the town layout. Recheck both balances
+      // every render without invalidating all structural placement candidates.
+      const best=candidates.best,starter=candidates.starters.some(({cost})=>player.coins>=cost.coins&&player.materials>=cost.materials);
+      if(!best&&!starter)continue;
       c.save();c.translate(x*T+32,y*T+32);c.scale(hintPulse,hintPulse);
-      c.globalAlpha=.7;png(c,`overlays/hints/${best.resource}-tier-${best.tier}`,-32,-32,64,64);c.restore();
+      c.globalAlpha=.7;png(c,best?`overlays/hints/${best.resource}-tier-${best.tier}`:'overlays/hints/starter-white',-32,-32,64,64);c.restore();
     }
     drawSelection(c,s,selected);
     for(const p of options.projectiles||s.projectiles){const f=1-p.life/p.total,x=(p.x+(p.tx-p.x)*f)*T+32,y=(p.y+(p.ty-p.y)*f)*T+22;if(!visible(x,y,Math.abs((p.tx-p.x)*5)+5,Math.abs((p.ty-p.y)*5)+40))continue;if(p.type==='rock')png(c,'effects/rock',x-4,y-4-Math.sin(f*Math.PI)*35,8,8);else{c.save();c.translate(x,y);c.rotate(Math.atan2(p.ty-p.y,p.tx-p.x));png(c,'effects/'+(p.type==='archer'?'arrow':'bolt'),-18,-2,20,5);c.restore();}}

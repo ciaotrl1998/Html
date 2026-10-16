@@ -241,8 +241,8 @@
     }
     return ignoreFunds ? '' : shortage(s, buildCost(s, type));
   }
-  function buildHints(s, x, y, ignoreEnemies = false) {
-    return Object.values(DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required) && !buildReason(s, d.id, x, y, true, ignoreEnemies))
+  function buildHints(s, x, y, ignoreEnemies = false, includeStarters = false) {
+    return Object.values(DEFS).filter(d => d.cat === 'economy' && (d.tier >= 1 || d.required || includeStarters && d.tier === 0) && !buildReason(s, d.id, x, y, true, ignoreEnemies))
       .map(d => ({ type: d.id, resource: d.resource, tier: d.required ? 3 : d.tier }));
   }
   function event(s, text, kind = 'info') { s.events.push({ text, kind }); if (s.events.length > 30) s.events.shift(); }

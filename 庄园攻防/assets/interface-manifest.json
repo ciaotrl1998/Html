@@ -227,6 +227,11 @@
       "height": 64,
       "slice": 0
     },
+    "assets/overlays/hints/starter-white.png": {
+      "width": 64,
+      "height": 64,
+      "slice": 0
+    },
     "assets/overlays/range.png": {
       "width": 512,
       "height": 512,

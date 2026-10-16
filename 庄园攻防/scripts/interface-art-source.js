@@ -46,7 +46,9 @@
   asset('assets/scenery/world-background.png',2,2,c=>box(c,0,0,2,2,'#d5dcc5'));
   overlay('selection',c=>{box(c,2,2,60,60,'#dcca81');c.clearRect(4,4,56,56);for(const x of [2,55])for(const y of [2,55])box(c,x,y,7,7,gold);});
   overlay('placement',c=>{box(c,30,21,4,22,gold);box(c,21,30,22,4,gold);});
-  for(const resource of ['coins','materials'])for(let tier=1;tier<=3;tier++)overlay(`hints/${resource}-tier-${tier}`,c=>{for(let layer=0;layer<(tier>=2?2:1);layer++){const a=6+layer*6,b=58-layer*6,n=layer?8:12;for(const x of [a,b])for(const y of [a,b])stroke(c,[[x+(x===a?n:-n),y],[x,y],[x,y+(y===a?n:-n)]],resource==='coins'?'#e3c575':'#a68fae',3);}if(tier===3){box(c,30,26,4,12,gold);box(c,26,30,12,4,gold);}});
+  function hintFrame(c,tier,color){for(let layer=0;layer<(tier>=2?2:1);layer++){const a=6+layer*6,b=58-layer*6,n=layer?8:12;for(const x of [a,b])for(const y of [a,b])stroke(c,[[x+(x===a?n:-n),y],[x,y],[x,y+(y===a?n:-n)]],color,3);}if(tier===3){box(c,30,26,4,12,gold);box(c,26,30,12,4,gold);}}
+  for(const resource of ['coins','materials'])for(let tier=1;tier<=3;tier++)overlay(`hints/${resource}-tier-${tier}`,c=>hintFrame(c,tier,resource==='coins'?'#e3c575':'#a68fae'));
+  overlay('hints/starter-white',c=>hintFrame(c,1,'#ffffff'));
   overlay('range',c=>{ellipse(c,64,64,63,63,'#769258');ellipse(c,64,64,60,60,'#bac69a');c.clearRect(0,0,0,0);},128,128);
   // Ring sprites retain a transparent center, allowing terrain and units to show through.
   for(const [name,color] of [['pulse','#8eb8a0'],['repair','#d0e8a4'],['repel','#dbc384'],['freeze','#e9d28d'],['slow','#76a08f'],['aura','#b99e67']])overlay(name,c=>{ellipse(c,32,32,31,31,color);c.globalCompositeOperation='destination-out';ellipse(c,32,32,29,29,'#ffffff');});
