@@ -5,6 +5,7 @@
   "description": "庄园攻防：古风庄园经营与多方攻防对战游戏",
   "scripts": {
     "build": "node build.js",
+    "test:distribution": "node --test tests/generated-exclusion.test.js",
     "serve": "node server.js",
     "art:interface": "node scripts/export-interface-assets.cjs && node scripts/catalog-art-assets.cjs",
     "art:catalog": "node scripts/catalog-art-assets.cjs",

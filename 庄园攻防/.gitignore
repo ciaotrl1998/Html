@@ -1,3 +1,6 @@
 node_modules/
 test-results/
 playwright-report/
+
+# Local art sources, backups and generated previews; shipped PNGs live elsewhere.
+/assets/generated/

@@ -20,9 +20,16 @@ html = html.replace('<link rel="stylesheet" href="css/png-interface.css">', () =
 html = html.replace('src="assets/ui/backgrounds/title-town.png"', () => 'src="' + dataUrl('assets/ui/backgrounds/title-town.png') + '"');
 html = html.replace('href="icon.png"', () => 'href="' + dataUrl('icon.png') + '"');
 const sources = ['js/maps.js', 'js/game.js', 'js/network.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
-const buildingArt = JSON.parse(read('assets/generated/gate-destruction-v9/metrics.json'));
 const geometry = JSON.parse(read('js/art.js').match(/\/\* building-art:start \*\/([\s\S]*?)\/\* building-art:end \*\//)[1]);
-require('node:assert/strict').deepEqual(geometry, buildingArt, 'Renderer geometry must match the installed building PNG metrics');
+// Art-production sources are local-only. Keep the extra consistency check on
+// the development machine, but let play-only checkouts build the shipped PNGs.
+const localMetrics = 'assets/generated/gate-destruction-v9/metrics.json';
+if (fs.existsSync(path.join(root, localMetrics))) {
+  const buildingArt = JSON.parse(read(localMetrics));
+  require('node:assert/strict').deepEqual(geometry, buildingArt, 'Renderer geometry must match the installed building PNG metrics');
+} else {
+  console.log('未发现本机美术制作元数据，使用已提交的建筑渲染配置。');
+}
 const runtime = sources.map(file => esbuild.transformSync(read(file), { target: 'es2017', charset: 'utf8', sourcefile: path.basename(file) }).code).join('\n');
 fs.writeFileSync(path.join(root, 'js/runtime.js'), runtime, 'utf8');
 const packagedAssets = ['assets/sprites/soldiers', 'assets/sprites/buildings', 'assets/tiles', 'assets/ui', 'assets/overlays', 'assets/effects', 'assets/scenery'].flatMap(directory => pngAssets(directory));

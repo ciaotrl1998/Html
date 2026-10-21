@@ -4,6 +4,8 @@
 
 打开 [ART_CATALOG.html](ART_CATALOG.html) 可按分类查看 **257 张图片**，点击缩略图即可打开原 PNG。[asset-manifest.json](asset-manifest.json) 记录全部路径、实际尺寸和用途；[interface-manifest.json](interface-manifest.json) 记录 UI／特效尺寸及切片参数。
 
+`assets/generated/` 现为仅保存在本机的美术制作目录，整体不再由 Git 跟踪。本文中指向该目录的源图、备份和验收记录链接仅在开发机可用；新拉取的游玩副本只需已提交的运行 PNG、脚本或离线单文件。正常打包不要求该目录，美术重建及依赖源图的素材测试仍需本机完整制作资料。请单独备份该目录。
+
 ## 统一修改规则
 
 ### 场景与士兵的统一风格
