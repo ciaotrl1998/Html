@@ -86,7 +86,7 @@
   const dist8=(ax,ay,bx,by)=>Math.max(Math.abs(ax-bx),Math.abs(ay-by));
   const NEIGHBORS8=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
   const mapCache=new WeakMap(),viewCache=new WeakMap(),indexCache=new WeakMap();
-  function map(s){const w=world(s);let value=mapCache.get(w);if(!value){value=Maps.create(w.mapSeed,w.mode,w.enemyCount,w.rotation);mapCache.set(w,value);}return value;}
+  function map(s){const w=world(s);let value=mapCache.get(w);if(!value){value=Maps.create(w.mapSeed,w.mode,w.enemyCount,w.rotation,w.estateSize);mapCache.set(w,value);}return value;}
   function buildingIndex(s){
     const w=world(s);let index=indexCache.get(w);
     if(!index||index.revision!==w.revision||index.list!==w.buildings){
@@ -118,13 +118,14 @@
     if(!inside(x,y,s))return 'plain';const cells=map(s).terrain,base=cells[y*worldWidth(s)+x];
     return base==='plain'&&NEIGHBORS8.some(([dx,dy])=>inside(x+dx,y+dy,s)&&cells[(y+dy)*worldWidth(s)+x+dx]==='water')?'shore':base;
   }
-  function createMatch({mode='single',enemyCount=mode==='coop'?2:1,difficulty='beginner',mapSeed=Math.floor(Math.random()*4294967296),rotation}={}){
+  function createMatch({mode='single',enemyCount=mode==='coop'?2:1,difficulty='beginner',estateSize='medium',mapSeed=Math.floor(Math.random()*4294967296),rotation}={}){
     if(!['single','coop'].includes(mode)||!(mode==='coop'?[2,4,6]:[1,2,3,4]).includes(enemyCount))throw new Error('Invalid match configuration');
     if(!Object.prototype.hasOwnProperty.call(DIFFICULTIES,difficulty))throw new Error('Invalid difficulty');
+    if(typeof estateSize!=='string'||!Object.prototype.hasOwnProperty.call(Maps.ESTATE_SIZES,estateSize))throw new Error('Invalid estate size');
     if(!Number.isInteger(mapSeed)||mapSeed<0||mapSeed>4294967295)throw new Error('Invalid map seed');
     rotation??=mapSeed%4;if(![0,1,2,3].includes(rotation))throw new Error('Invalid rotation');
-    const [width,height]=Maps.dimensions(mode,enemyCount),blue=mode==='coop'?2:1;
-    const s={version:VERSION,mode,enemyCount,difficulty,mapSeed,rotation,mapGeneration:3,worldSize:rotation%2?height:width,worldHeight:rotation%2?width:height,
+    const [width,height]=Maps.dimensions(mode,enemyCount,estateSize),blue=mode==='coop'?2:1;
+    const s={version:VERSION,mode,enemyCount,difficulty,estateSize,mapSeed,rotation,mapGeneration:3,worldSize:rotation%2?height:width,worldHeight:rotation%2?width:height,
       seed:mapSeed,nextId:1,elapsed:0,time:0,day:1,phase:'day',revision:0,over:false,result:null,kills:0,
       players:[],buildings:[],soldiers:[],projectiles:[],effects:[],events:[]};
     for(let id=0;id<blue+enemyCount;id++)s.players.push({id,team:id<blue?0:1,controller:id===0?'human':'computer',eliminated:false,
@@ -196,8 +197,8 @@
       const d=DEFS[type];if(!d)return {coins:0,materials:0};let factor=1;
       if(type==='barracks'){
         const built=s.buildings.filter(b=>b.type===type).length;
-        // 首座半价；第 2～6 座每次涨 50%，第 7 座起每次翻倍。
-        factor=.5*1.5**Math.min(built,5)*2**Math.max(built-5,0);
+        // 首座半价；第 2～4 座每次 ×1.8，第 5～8 座每次 ×2.2，第 9 座起每次 ×3。
+        factor=.5*1.8**Math.min(built,3)*2.2**Math.min(Math.max(built-3,0),4)*3**Math.max(built-7,0);
       }else if(d.buildCostScale){const steps=d.buildCostSteps??d.limit-1,built=s.buildings.filter(b=>b.type===type).length,count=d.buildCostSteps===undefined?Math.min(steps,built):built,[start,end]=d.buildCostScale;factor=start+(end-start)*count/steps;}
       const scaled=value=>value?Math.ceil(value*factor-1e-9):0;
       return {coins:scaled(d.cost.coins),materials:scaled(d.cost.materials)};
@@ -702,8 +703,10 @@
       const legacy=s.version===9,oldVersion=s.version<11,oldEconomy=s.version<12;s.version=VERSION;
       if(!Object.prototype.hasOwnProperty.call(s,'difficulty'))s.difficulty='beginner';
       if(!Object.prototype.hasOwnProperty.call(DIFFICULTIES,s.difficulty))return null;
+      if(!Object.prototype.hasOwnProperty.call(s,'estateSize'))s.estateSize='medium';
+      if(typeof s.estateSize!=='string'||!Object.prototype.hasOwnProperty.call(Maps.ESTATE_SIZES,s.estateSize))return null;
       if(!Number.isInteger(s.mapSeed)||s.mapSeed<0||s.mapSeed>4294967295||!Number.isInteger(s.seed)||s.seed<0||s.seed>4294967295)return null;
-      const [width,height]=Maps.dimensions(s.mode,s.enemyCount),[oldWidth,oldHeight]=Maps.layoutDimensions(s.mode,s.enemyCount),blue=s.mode==='coop'?2:1;
+      const [width,height]=Maps.dimensions(s.mode,s.enemyCount,s.estateSize),[oldWidth,oldHeight]=Maps.layoutDimensions(s.mode,s.enemyCount,s.estateSize),blue=s.mode==='coop'?2:1;
       const expectedWidth=s.rotation%2?height:width,expectedHeight=s.rotation%2?width:height,legacyWidth=s.rotation%2?oldHeight:oldWidth,legacyHeight=s.rotation%2?oldWidth:oldHeight;
       const cropped=oldVersion&&s.worldSize===legacyWidth&&s.worldHeight===legacyHeight;
       if(cropped){
@@ -762,6 +765,6 @@
       s.phase='day';s.day=1;s.time=s.elapsed;s.events=[];s.effects=[];return s;
     }catch{return null;}
   }
-  return {VERSION,UNIT_CAP,SOLDIER_SPEED,TROOPS,troopType,troopDef,DIFFICULTIES,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,gateRepairRate,stepSoldierMovement,
+  return {VERSION,UNIT_CAP,SOLDIER_SPEED,TROOPS,troopType,troopDef,DIFFICULTIES,ESTATE_SIZES:Maps.ESTATE_SIZES,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,gateRepairRate,stepSoldierMovement,
     SIZE,CENTER,COIN_VALUE,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierTrainingTime,soldierRate,barracksCapacity,barracksPopulation,difficultyModifiers,difficultyEconomy,difficultySoldier,soldierBoost,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
 });

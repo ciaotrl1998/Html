@@ -219,14 +219,62 @@
   }
 
   const EDGE_CROP=3;
-  function layoutDimensions(mode, count) {
-    return mode === 'coop' ? [count === 2 ? 50 : 75, count === 6 ? 90 : 40] : [[0,0],[50,25],[75,25],[75,50],[75,75]][count];
+  const ESTATE_SIZES=Object.freeze({
+    mini:Object.freeze({name:'迷你',area:30,tile:19,pair:28}),
+    small:Object.freeze({name:'小',area:60,tile:21,pair:32}),
+    medium:Object.freeze({name:'中',area:110,tile:25,pair:40}),
+    large:Object.freeze({name:'大',area:200,tile:31,pair:52})
+  });
+  function sizedTemplate(seed,config,paired){
+    const width=config.tile,height=paired?config.pair:width;
+    let randomSeed=seed>>>0;
+    const rand=()=>{randomSeed=(Math.imul(randomSeed,1664525)+1013904223)>>>0;return randomSeed/4294967296;};
+    const shapes=Array.from({length:paired?2:1},()=>{
+      const area=Math.round(config.area*(.92+rand()*.16)),w=Math.max(5,Math.round(Math.sqrt(area)*(.9+rand()*.2))),h=Math.ceil(area/w);
+      const rows=Array.from({length:h},()=>[-Math.floor(w/2),w-1-Math.floor(w/2)]);
+      let excess=w*h-area,turn=0;
+      while(excess>0){const y=turn%2?h-1-Math.floor(turn/2)%h:Math.floor(turn/2)%h,row=rows[y];
+        if(Math.abs(y-Math.floor(h/2))>1&&row[1]-row[0]>=3){if((rand()<.5&&row[0]<0)||row[1]===0)row[0]++;else row[1]--;excess--;}
+        turn++;
+      }
+      return {rows,h,terrain:generatedTerrain(createTemplate((randomSeed^seed)>>>0))};
+    });
+    const firstTop=paired?Math.floor((height-shapes[0].h-shapes[1].h-3)/2)+1:Math.floor((height-shapes[0].h)/2);
+    const estates=shapes.map((shape,i)=>{
+      const top=i?firstTop+shapes[0].h+1:firstTop,cx=Math.floor(width/2),cy=top+Math.floor(shape.h/2),cells=new Set(),walls=new Set(),roads=new Set();
+      for(const [y,row] of shape.rows.entries())for(let x=row[0];x<=row[1];x++)cells.add((top+y)*width+cx+x);
+      for(const k of cells)for(const [dx,dy] of NEIGHBORS8){const next=k+dy*width+dx;if(!cells.has(next))walls.add(next);}
+      const centerRow=shape.rows[Math.floor(shape.h/2)];
+      const gates=[{x:cx,y:top-1,direction:0},{x:cx+centerRow[1]+1,y:cy,direction:1},{x:cx,y:top+shape.h,direction:2},{x:cx+centerRow[0]-1,y:cy,direction:3}];
+      for(const g of gates)walls.delete(g.y*width+g.x);
+      const root=cy*width+cx,parents=new Map([[root,null]]),queue=[root];
+      for(let n=0;n<queue.length;n++)for(const delta of [-width,1,width,-1]){const next=queue[n]+delta;if(cells.has(next)&&!parents.has(next)){parents.set(next,queue[n]);queue.push(next);}}
+      for(const g of gates){const [dx,dy]=[[0,-1],[1,0],[0,1],[-1,0]][g.direction];let k=(g.y-dy)*width+g.x-dx;while(k!==null&&k!==undefined){roads.add(k);k=parents.get(k);}roads.add(g.y*width+g.x);}
+      return {cells,walls,roads,gates,center:{x:cx,y:cy}};
+    });
+    const terrain=Array(width*height).fill('plain'),scale=Math.sqrt(config.area/110);
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+      const i=paired&&y>=firstTop+shapes[0].h+1?1:0,e=estates[i];
+      const sx=Math.max(0,Math.min(24,Math.round(12+(x-e.center.x)/scale))),sy=Math.max(0,Math.min(24,Math.round(12+(y-e.center.y)/scale)));
+      terrain[y*width+x]=shapes[i].terrain[sy*25+sx];
+    }
+    for(const e of estates){
+      const root=e.center.y*width+e.center.x;terrain[root]='plain';
+      const plots=[...e.cells].filter(k=>!e.roads.has(k)).sort((a,b)=>Math.abs(a%width-e.center.x)+Math.abs(Math.floor(a/width)-e.center.y)-Math.abs(b%width-e.center.x)-Math.abs(Math.floor(b/width)-e.center.y)||a-b);
+      if(plots.length>=3){terrain[plots[0]]='forest';terrain[plots[1]]='mountain';terrain[plots[plots.length-1]]='water';}
+    }
+    return {land:{estates},terrain};
   }
-  function dimensions(mode, count) {
-    const [width,height]=layoutDimensions(mode,count);return [width-EDGE_CROP*2,height-EDGE_CROP*2];
+  function layoutDimensions(mode, count, estateSize='medium') {
+    const {tile,pair}=ESTATE_SIZES[estateSize];
+    return mode === 'coop' ? [count === 2 ? tile*2 : tile*3, count === 6 ? tile*2+pair : pair] : [[0,0],[tile*2,tile],[tile*3,tile],[tile*3,tile*2],[tile*3,tile*3]][count];
   }
-  function create(mapSeed, mode, count, rotation) {
-    const [width,height] = layoutDimensions(mode,count), turned=rotation%2;
+  function dimensions(mode, count, estateSize='medium') {
+    const [width,height]=layoutDimensions(mode,count,estateSize);return [width-EDGE_CROP*2,height-EDGE_CROP*2];
+  }
+  function create(mapSeed, mode, count, rotation, estateSize='medium') {
+    const config=ESTATE_SIZES[estateSize],tile=config.tile,pairHeight=config.pair;
+    const [width,height] = layoutDimensions(mode,count,estateSize), turned=rotation%2;
     const outWidth=turned?height:width, outHeight=turned?width:height;
     const rotate=(x,y)=>rotation===0?[x,y]:rotation===1?[height-1-y,x]:rotation===2?[width-1-x,height-1-y]:[y,width-1-x];
     const index=(x,y)=>{const [rx,ry]=rotate(x,y);return ry*outWidth+rx;};
@@ -234,34 +282,34 @@
     const single=(owner,x,y,gates)=>slots.push({owners:[owner],x,y,gates:[gates]});
     const pair=(owners,x,y,gates)=>slots.push({owners,x,y,gates});
     if(mode==='single') {
-      if(count===1){single(0,0,0,[1]);single(1,25,0,[3]);}
-      if(count===2){single(0,25,0,[1,3]);single(1,0,0,[1]);single(2,50,0,[3]);}
+      if(count===1){single(0,0,0,[1]);single(1,tile,0,[3]);}
+      if(count===2){single(0,tile,0,[1,3]);single(1,0,0,[1]);single(2,tile*2,0,[3]);}
       if(count>=3){
-        single(0,25,25,count===3?[0,1,3]:[0,1,2,3]);
-        single(1,25,0,[2]);single(2,0,25,[1]);single(3,50,25,[3]);
-        if(count===4)single(4,25,50,[0]);
+        single(0,tile,tile,count===3?[0,1,3]:[0,1,2,3]);
+        single(1,tile,0,[2]);single(2,0,tile,[1]);single(3,tile*2,tile,[3]);
+        if(count===4)single(4,tile,tile*2,[0]);
       }
     } else {
-      const y=count===6?25:0;
-      pair([0,1],count===2?0:25,y,count===2?[[1],[1]]:count===4?[[1,3],[1,3]]:[[0,1,3],[1,2,3]]);
-      pair([2,3],count===2?25:0,y,count===2?[[3],[3]]:[[1],[1]]);
-      if(count>=4)pair([4,5],50,y,[[3],[3]]);
-      if(count===6){single(6,25,0,[2]);single(7,25,65,[0]);}
+      const y=count===6?tile:0;
+      pair([0,1],count===2?0:tile,y,count===2?[[1],[1]]:count===4?[[1,3],[1,3]]:[[0,1,3],[1,2,3]]);
+      pair([2,3],count===2?tile:0,y,count===2?[[3],[3]]:[[1],[1]]);
+      if(count>=4)pair([4,5],tile*2,y,[[3],[3]]);
+      if(count===6){single(6,tile,0,[2]);single(7,tile,tile+pairHeight,[0]);}
     }
     const terrain=Array(outWidth*outHeight).fill('plain'), estates=[];
     for(const slot of slots) {
       const seed=(Math.imul(mapSeed ^ (slot.owners[0]+1),2246822519)+3266489917)>>>0;
       const source=createTemplate(seed), isPair=slot.owners.length===2;
-      const template=isPair?coopMap({...source,worldSize:25,worldHeight:40,coopLayout:'vertical'}):{land:{estates:[estate(source)]},terrain:generatedTerrain(source)};
-      const convert=k=>index(k%25+slot.x,Math.floor(k/25)+slot.y);
-      for(let y=0;y<(isPair?40:25);y++)for(let x=0;x<25;x++)terrain[index(x+slot.x,y+slot.y)]=template.terrain[y*25+x];
+      const template=estateSize!=='medium'?sizedTemplate(seed,config,isPair):isPair?coopMap({...source,worldSize:25,worldHeight:40,coopLayout:'vertical'}):{land:{estates:[estate(source)]},terrain:generatedTerrain(source)};
+      const convert=k=>index(k%tile+slot.x,Math.floor(k/tile)+slot.y);
+      for(let y=0;y<(isPair?pairHeight:tile);y++)for(let x=0;x<tile;x++)terrain[index(x+slot.x,y+slot.y)]=template.terrain[y*tile+x];
       template.land.estates.forEach((land,i)=>{
         const owner=slot.owners[i], masks=slot.gates[i];
-        const walls=new Set([...land.walls,...land.gates.filter(g=>!masks.includes(g.direction)).map(g=>g.y*25+g.x)].map(convert));
+        const walls=new Set([...land.walls,...land.gates.filter(g=>!masks.includes(g.direction)).map(g=>g.y*tile+g.x)].map(convert));
         const gates=land.gates.filter(g=>masks.includes(g.direction)).map(g=>{
           const [x,y]=rotate(g.x+slot.x,g.y+slot.y);return {x,y,owner,direction:(g.direction+rotation)%4};
         });
-        const originalCenter=land.center||{x:12,y:12}, [cx,cy]=rotate(originalCenter.x+slot.x,originalCenter.y+slot.y);
+        const originalCenter=land.center||{x:Math.floor(tile/2),y:Math.floor(tile/2)}, [cx,cy]=rotate(originalCenter.x+slot.x,originalCenter.y+slot.y);
         estates[owner]={owner,cells:new Set([...land.cells].map(convert)),walls,gates,roads:new Set([...land.roads].map(convert)),center:{x:cx,y:cy}};
       });
     }
@@ -302,5 +350,5 @@
     for(let y=0;y<croppedHeight;y++)for(let x=0;x<croppedWidth;x++){const next=y*croppedWidth+x,old=(y+EDGE_CROP)*outWidth+x+EDGE_CROP;croppedTerrain[next]=terrain[old];croppedOwners[next]=owners[old];croppedWalk[next]=walk[old];}
     return {terrain:croppedTerrain,land:croppedLand,owners:croppedOwners,walk:croppedWalk,width:croppedWidth,height:croppedHeight};
   }
-  return {create,dimensions,layoutDimensions,EDGE_CROP};
+  return {create,dimensions,layoutDimensions,EDGE_CROP,ESTATE_SIZES};
 });

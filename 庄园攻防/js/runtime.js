@@ -272,15 +272,93 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     return value;
   }
   const EDGE_CROP = 3;
-  function layoutDimensions(mode, count) {
-    return mode === "coop" ? [count === 2 ? 50 : 75, count === 6 ? 90 : 40] : [[0, 0], [50, 25], [75, 25], [75, 50], [75, 75]][count];
+  const ESTATE_SIZES = Object.freeze({
+    mini: Object.freeze({ name: "迷你", area: 30, tile: 19, pair: 28 }),
+    small: Object.freeze({ name: "小", area: 60, tile: 21, pair: 32 }),
+    medium: Object.freeze({ name: "中", area: 110, tile: 25, pair: 40 }),
+    large: Object.freeze({ name: "大", area: 200, tile: 31, pair: 52 })
+  });
+  function sizedTemplate(seed, config, paired) {
+    const width = config.tile, height = paired ? config.pair : width;
+    let randomSeed = seed >>> 0;
+    const rand = () => {
+      randomSeed = Math.imul(randomSeed, 1664525) + 1013904223 >>> 0;
+      return randomSeed / 4294967296;
+    };
+    const shapes = Array.from({ length: paired ? 2 : 1 }, () => {
+      const area = Math.round(config.area * (0.92 + rand() * 0.16)), w = Math.max(5, Math.round(Math.sqrt(area) * (0.9 + rand() * 0.2))), h = Math.ceil(area / w);
+      const rows = Array.from({ length: h }, () => [-Math.floor(w / 2), w - 1 - Math.floor(w / 2)]);
+      let excess = w * h - area, turn = 0;
+      while (excess > 0) {
+        const y = turn % 2 ? h - 1 - Math.floor(turn / 2) % h : Math.floor(turn / 2) % h, row = rows[y];
+        if (Math.abs(y - Math.floor(h / 2)) > 1 && row[1] - row[0] >= 3) {
+          if (rand() < 0.5 && row[0] < 0 || row[1] === 0) row[0]++;
+          else row[1]--;
+          excess--;
+        }
+        turn++;
+      }
+      return { rows, h, terrain: generatedTerrain(createTemplate((randomSeed ^ seed) >>> 0)) };
+    });
+    const firstTop = paired ? Math.floor((height - shapes[0].h - shapes[1].h - 3) / 2) + 1 : Math.floor((height - shapes[0].h) / 2);
+    const estates = shapes.map((shape, i) => {
+      const top = i ? firstTop + shapes[0].h + 1 : firstTop, cx = Math.floor(width / 2), cy = top + Math.floor(shape.h / 2), cells = /* @__PURE__ */ new Set(), walls = /* @__PURE__ */ new Set(), roads = /* @__PURE__ */ new Set();
+      for (const [y, row] of shape.rows.entries()) for (let x = row[0]; x <= row[1]; x++) cells.add((top + y) * width + cx + x);
+      for (const k of cells) for (const [dx, dy] of NEIGHBORS8) {
+        const next = k + dy * width + dx;
+        if (!cells.has(next)) walls.add(next);
+      }
+      const centerRow = shape.rows[Math.floor(shape.h / 2)];
+      const gates = [{ x: cx, y: top - 1, direction: 0 }, { x: cx + centerRow[1] + 1, y: cy, direction: 1 }, { x: cx, y: top + shape.h, direction: 2 }, { x: cx + centerRow[0] - 1, y: cy, direction: 3 }];
+      for (const g of gates) walls.delete(g.y * width + g.x);
+      const root = cy * width + cx, parents = /* @__PURE__ */ new Map([[root, null]]), queue = [root];
+      for (let n = 0; n < queue.length; n++) for (const delta of [-width, 1, width, -1]) {
+        const next = queue[n] + delta;
+        if (cells.has(next) && !parents.has(next)) {
+          parents.set(next, queue[n]);
+          queue.push(next);
+        }
+      }
+      for (const g of gates) {
+        const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][g.direction];
+        let k = (g.y - dy) * width + g.x - dx;
+        while (k !== null && k !== void 0) {
+          roads.add(k);
+          k = parents.get(k);
+        }
+        roads.add(g.y * width + g.x);
+      }
+      return { cells, walls, roads, gates, center: { x: cx, y: cy } };
+    });
+    const terrain = Array(width * height).fill("plain"), scale = Math.sqrt(config.area / 110);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = paired && y >= firstTop + shapes[0].h + 1 ? 1 : 0, e = estates[i];
+      const sx = Math.max(0, Math.min(24, Math.round(12 + (x - e.center.x) / scale))), sy = Math.max(0, Math.min(24, Math.round(12 + (y - e.center.y) / scale)));
+      terrain[y * width + x] = shapes[i].terrain[sy * 25 + sx];
+    }
+    for (const e of estates) {
+      const root = e.center.y * width + e.center.x;
+      terrain[root] = "plain";
+      const plots = [...e.cells].filter((k) => !e.roads.has(k)).sort((a, b) => Math.abs(a % width - e.center.x) + Math.abs(Math.floor(a / width) - e.center.y) - Math.abs(b % width - e.center.x) - Math.abs(Math.floor(b / width) - e.center.y) || a - b);
+      if (plots.length >= 3) {
+        terrain[plots[0]] = "forest";
+        terrain[plots[1]] = "mountain";
+        terrain[plots[plots.length - 1]] = "water";
+      }
+    }
+    return { land: { estates }, terrain };
   }
-  function dimensions(mode, count) {
-    const [width, height] = layoutDimensions(mode, count);
+  function layoutDimensions(mode, count, estateSize = "medium") {
+    const { tile, pair } = ESTATE_SIZES[estateSize];
+    return mode === "coop" ? [count === 2 ? tile * 2 : tile * 3, count === 6 ? tile * 2 + pair : pair] : [[0, 0], [tile * 2, tile], [tile * 3, tile], [tile * 3, tile * 2], [tile * 3, tile * 3]][count];
+  }
+  function dimensions(mode, count, estateSize = "medium") {
+    const [width, height] = layoutDimensions(mode, count, estateSize);
     return [width - EDGE_CROP * 2, height - EDGE_CROP * 2];
   }
-  function create(mapSeed, mode, count, rotation) {
-    const [width, height] = layoutDimensions(mode, count), turned = rotation % 2;
+  function create(mapSeed, mode, count, rotation, estateSize = "medium") {
+    const config = ESTATE_SIZES[estateSize], tile = config.tile, pairHeight = config.pair;
+    const [width, height] = layoutDimensions(mode, count, estateSize), turned = rotation % 2;
     const outWidth = turned ? height : width, outHeight = turned ? width : height;
     const rotate = (x, y) => rotation === 0 ? [x, y] : rotation === 1 ? [height - 1 - y, x] : rotation === 2 ? [width - 1 - x, height - 1 - y] : [y, width - 1 - x];
     const index = (x, y) => {
@@ -293,45 +371,45 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (mode === "single") {
       if (count === 1) {
         single(0, 0, 0, [1]);
-        single(1, 25, 0, [3]);
+        single(1, tile, 0, [3]);
       }
       if (count === 2) {
-        single(0, 25, 0, [1, 3]);
+        single(0, tile, 0, [1, 3]);
         single(1, 0, 0, [1]);
-        single(2, 50, 0, [3]);
+        single(2, tile * 2, 0, [3]);
       }
       if (count >= 3) {
-        single(0, 25, 25, count === 3 ? [0, 1, 3] : [0, 1, 2, 3]);
-        single(1, 25, 0, [2]);
-        single(2, 0, 25, [1]);
-        single(3, 50, 25, [3]);
-        if (count === 4) single(4, 25, 50, [0]);
+        single(0, tile, tile, count === 3 ? [0, 1, 3] : [0, 1, 2, 3]);
+        single(1, tile, 0, [2]);
+        single(2, 0, tile, [1]);
+        single(3, tile * 2, tile, [3]);
+        if (count === 4) single(4, tile, tile * 2, [0]);
       }
     } else {
-      const y = count === 6 ? 25 : 0;
-      pair([0, 1], count === 2 ? 0 : 25, y, count === 2 ? [[1], [1]] : count === 4 ? [[1, 3], [1, 3]] : [[0, 1, 3], [1, 2, 3]]);
-      pair([2, 3], count === 2 ? 25 : 0, y, count === 2 ? [[3], [3]] : [[1], [1]]);
-      if (count >= 4) pair([4, 5], 50, y, [[3], [3]]);
+      const y = count === 6 ? tile : 0;
+      pair([0, 1], count === 2 ? 0 : tile, y, count === 2 ? [[1], [1]] : count === 4 ? [[1, 3], [1, 3]] : [[0, 1, 3], [1, 2, 3]]);
+      pair([2, 3], count === 2 ? tile : 0, y, count === 2 ? [[3], [3]] : [[1], [1]]);
+      if (count >= 4) pair([4, 5], tile * 2, y, [[3], [3]]);
       if (count === 6) {
-        single(6, 25, 0, [2]);
-        single(7, 25, 65, [0]);
+        single(6, tile, 0, [2]);
+        single(7, tile, tile + pairHeight, [0]);
       }
     }
     const terrain = Array(outWidth * outHeight).fill("plain"), estates = [];
     for (const slot of slots) {
       const seed = Math.imul(mapSeed ^ slot.owners[0] + 1, 2246822519) + 3266489917 >>> 0;
       const source = createTemplate(seed), isPair = slot.owners.length === 2;
-      const template = isPair ? coopMap(__spreadProps(__spreadValues({}, source), { worldSize: 25, worldHeight: 40, coopLayout: "vertical" })) : { land: { estates: [estate(source)] }, terrain: generatedTerrain(source) };
-      const convert = (k) => index(k % 25 + slot.x, Math.floor(k / 25) + slot.y);
-      for (let y = 0; y < (isPair ? 40 : 25); y++) for (let x = 0; x < 25; x++) terrain[index(x + slot.x, y + slot.y)] = template.terrain[y * 25 + x];
+      const template = estateSize !== "medium" ? sizedTemplate(seed, config, isPair) : isPair ? coopMap(__spreadProps(__spreadValues({}, source), { worldSize: 25, worldHeight: 40, coopLayout: "vertical" })) : { land: { estates: [estate(source)] }, terrain: generatedTerrain(source) };
+      const convert = (k) => index(k % tile + slot.x, Math.floor(k / tile) + slot.y);
+      for (let y = 0; y < (isPair ? pairHeight : tile); y++) for (let x = 0; x < tile; x++) terrain[index(x + slot.x, y + slot.y)] = template.terrain[y * tile + x];
       template.land.estates.forEach((land2, i) => {
         const owner = slot.owners[i], masks = slot.gates[i];
-        const walls = new Set([...land2.walls, ...land2.gates.filter((g) => !masks.includes(g.direction)).map((g) => g.y * 25 + g.x)].map(convert));
+        const walls = new Set([...land2.walls, ...land2.gates.filter((g) => !masks.includes(g.direction)).map((g) => g.y * tile + g.x)].map(convert));
         const gates = land2.gates.filter((g) => masks.includes(g.direction)).map((g) => {
           const [x, y] = rotate(g.x + slot.x, g.y + slot.y);
           return { x, y, owner, direction: (g.direction + rotation) % 4 };
         });
-        const originalCenter = land2.center || { x: 12, y: 12 }, [cx, cy] = rotate(originalCenter.x + slot.x, originalCenter.y + slot.y);
+        const originalCenter = land2.center || { x: Math.floor(tile / 2), y: Math.floor(tile / 2) }, [cx, cy] = rotate(originalCenter.x + slot.x, originalCenter.y + slot.y);
         estates[owner] = { owner, cells: new Set([...land2.cells].map(convert)), walls, gates, roads: new Set([...land2.roads].map(convert)), center: { x: cx, y: cy } };
       });
     }
@@ -394,7 +472,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     return { terrain: croppedTerrain, land: croppedLand, owners: croppedOwners, walk: croppedWalk, width: croppedWidth, height: croppedHeight };
   }
-  return { create, dimensions, layoutDimensions, EDGE_CROP };
+  return { create, dimensions, layoutDimensions, EDGE_CROP, ESTATE_SIZES };
 });
 
 var __defProp = Object.defineProperty;
@@ -524,7 +602,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const w = world(s);
     let value = mapCache.get(w);
     if (!value) {
-      value = Maps.create(w.mapSeed, w.mode, w.enemyCount, w.rotation);
+      value = Maps.create(w.mapSeed, w.mode, w.enemyCount, w.rotation, w.estateSize);
       mapCache.set(w, value);
     }
     return value;
@@ -600,18 +678,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const cells = map(s).terrain, base = cells[y * worldWidth(s) + x];
     return base === "plain" && NEIGHBORS8.some(([dx, dy]) => inside(x + dx, y + dy, s) && cells[(y + dy) * worldWidth(s) + x + dx] === "water") ? "shore" : base;
   }
-  function createMatch({ mode = "single", enemyCount = mode === "coop" ? 2 : 1, difficulty = "beginner", mapSeed = Math.floor(Math.random() * 4294967296), rotation } = {}) {
+  function createMatch({ mode = "single", enemyCount = mode === "coop" ? 2 : 1, difficulty = "beginner", estateSize = "medium", mapSeed = Math.floor(Math.random() * 4294967296), rotation } = {}) {
     if (!["single", "coop"].includes(mode) || !(mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(enemyCount)) throw new Error("Invalid match configuration");
     if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, difficulty)) throw new Error("Invalid difficulty");
+    if (typeof estateSize !== "string" || !Object.prototype.hasOwnProperty.call(Maps.ESTATE_SIZES, estateSize)) throw new Error("Invalid estate size");
     if (!Number.isInteger(mapSeed) || mapSeed < 0 || mapSeed > 4294967295) throw new Error("Invalid map seed");
     rotation != null ? rotation : rotation = mapSeed % 4;
     if (![0, 1, 2, 3].includes(rotation)) throw new Error("Invalid rotation");
-    const [width, height] = Maps.dimensions(mode, enemyCount), blue = mode === "coop" ? 2 : 1;
+    const [width, height] = Maps.dimensions(mode, enemyCount, estateSize), blue = mode === "coop" ? 2 : 1;
     const s = {
       version: VERSION,
       mode,
       enemyCount,
       difficulty,
+      estateSize,
       mapSeed,
       rotation,
       mapGeneration: 3,
@@ -767,7 +847,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let factor2 = 1;
       if (type === "barracks") {
         const built = s.buildings.filter((b) => b.type === type).length;
-        factor2 = 0.5 * 1.5 ** Math.min(built, 5) * 2 ** Math.max(built - 5, 0);
+        factor2 = 0.5 * 1.8 ** Math.min(built, 3) * 2.2 ** Math.min(Math.max(built - 3, 0), 4) * 3 ** Math.max(built - 7, 0);
       } else if (d.buildCostScale) {
         const steps = (_a = d.buildCostSteps) != null ? _a : d.limit - 1, built = s.buildings.filter((b) => b.type === type).length, count = d.buildCostSteps === void 0 ? Math.min(steps, built) : built, [start, end] = d.buildCostScale;
         factor2 = start + (end - start) * count / steps;
@@ -1553,8 +1633,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       s.version = VERSION;
       if (!Object.prototype.hasOwnProperty.call(s, "difficulty")) s.difficulty = "beginner";
       if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, s.difficulty)) return null;
+      if (!Object.prototype.hasOwnProperty.call(s, "estateSize")) s.estateSize = "medium";
+      if (typeof s.estateSize !== "string" || !Object.prototype.hasOwnProperty.call(Maps.ESTATE_SIZES, s.estateSize)) return null;
       if (!Number.isInteger(s.mapSeed) || s.mapSeed < 0 || s.mapSeed > 4294967295 || !Number.isInteger(s.seed) || s.seed < 0 || s.seed > 4294967295) return null;
-      const [width, height] = Maps.dimensions(s.mode, s.enemyCount), [oldWidth, oldHeight] = Maps.layoutDimensions(s.mode, s.enemyCount), blue = s.mode === "coop" ? 2 : 1;
+      const [width, height] = Maps.dimensions(s.mode, s.enemyCount, s.estateSize), [oldWidth, oldHeight] = Maps.layoutDimensions(s.mode, s.enemyCount, s.estateSize), blue = s.mode === "coop" ? 2 : 1;
       const expectedWidth = s.rotation % 2 ? height : width, expectedHeight = s.rotation % 2 ? width : height, legacyWidth = s.rotation % 2 ? oldHeight : oldWidth, legacyHeight = s.rotation % 2 ? oldWidth : oldHeight;
       const cropped = oldVersion && s.worldSize === legacyWidth && s.worldHeight === legacyHeight;
       if (cropped) {
@@ -1671,6 +1753,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     troopType,
     troopDef,
     DIFFICULTIES,
+    ESTATE_SIZES: Maps.ESTATE_SIZES,
     createMatch,
     createState,
     createCoopState,
@@ -2710,7 +2793,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   function render(canvas, s, cam, selected, options = {}) {
     var _a, _b;
-    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount]);
+    const size = GF.worldWidth(s), height = GF.worldHeight(s), estate = GF.estate(s), cacheKey = JSON.stringify([s.mapSeed, s.rotation, size, height, s.mapGeneration, s.mode, s.enemyCount, s.estateSize]);
     const animationTime = (_a = options.animationTime) != null ? _a : s.elapsed, playerOwner = (_b = options.player) != null ? _b : 0, player = GF.playerView(s, playerOwner);
     const upgradeBob = reducedMotion || options.reducedMotion === true ? 0 : Math.sin(animationTime * Math.PI) * 3;
     const hintKey = JSON.stringify([cacheKey, player.actorId, s.over, player.eliminated, s.day, player.buildings.map((b) => [b.type, b.x, b.y, b.level, b.owner])]);
@@ -3764,6 +3847,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     var _a;
     return ((_a = GF.DIFFICULTIES[value]) == null ? void 0 : _a.name) || GF.DIFFICULTIES.beginner.name;
   };
+  const estateSizeName = (value) => {
+    var _a;
+    return ((_a = GF.ESTATE_SIZES[value]) == null ? void 0 : _a.name) || GF.ESTATE_SIZES.medium.name;
+  };
   const onlineSend = (message) => {
     var _a;
     if (((_a = online == null ? void 0 : online.socket) == null ? void 0 : _a.readyState) === WebSocket.OPEN) online.socket.send(JSON.stringify(message));
@@ -3892,7 +3979,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
     online = { kind: "server", socket, role: kind === "create" ? "host" : "guest", code, peerConnected: false, started: false, serverPaused: true };
     socket.onopen = () => {
-      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code, enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value });
+      if ((online == null ? void 0 : online.socket) === socket) onlineSend({ type: kind, code, enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value, estateSize: $("coop-estate-size").value });
     };
     socket.onmessage = (event) => {
       if ((online == null ? void 0 : online.socket) !== socket) return;
@@ -3905,12 +3992,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (message.type === "settings") {
         $("coop-enemies").value = String(message.enemyCount);
         $("coop-difficulty").value = message.difficulty;
+        $("coop-estate-size").value = message.estateSize || "medium";
         updateCoopSeat();
         return;
       }
       if (message.type === "created" || message.type === "joined") {
         $("coop-enemies").value = String(message.enemyCount);
         $("coop-difficulty").value = message.difficulty;
+        $("coop-estate-size").value = message.estateSize || "medium";
         online.code = message.code;
         online.peerConnected = message.type === "created" ? false : true;
         $("coop-code").value = message.code;
@@ -4450,7 +4539,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function updateStartMenu() {
     const loaded = readSave();
     $("start-load").disabled = !loaded;
-    $("start-save-detail").textContent = loaded ? duration(loaded.elapsed) + " · " + loaded.enemyCount + "个敌庄 · " + difficultyName(loaded.difficulty) + (loaded.over ? " · 已结束" : " · 继续对局") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
+    $("start-save-detail").textContent = loaded ? duration(loaded.elapsed) + " · " + loaded.enemyCount + "个敌庄 · " + estateSizeName(loaded.estateSize) + "庄园 · " + difficultyName(loaded.difficulty) + (loaded.over ? " · 已结束" : " · 继续对局") : storageWarning ? "本地存档不可用" : saved ? "存档损坏或版本不兼容" : "暂无本地存档";
     updateSound();
   }
   function showStartMenu() {
@@ -4531,6 +4620,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("coop-seat").disabled = !!online;
     $("coop-enemies").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
     $("coop-difficulty").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
+    $("coop-estate-size").disabled = (online == null ? void 0 : online.role) === "guest" || !!(online == null ? void 0 : online.started);
     $("coop-seat").classList.toggle("is-ready", computerSeat || linked || joining);
     $("coop-avatar").textContent = computerSeat ? "智" : linked || joining ? "友" : "候";
     $("coop-seat-title").innerHTML = computerSeat ? "电脑队友<small>已就绪 · 点击切换为等待玩家</small>" : linked || joining ? "联机队友<small>已加入房间</small>" : "等待其它玩家<small>点击席位，切换为电脑</small>";
@@ -4564,10 +4654,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     connectOnline("join", code);
   };
   function sendCoopSettings() {
-    if ((online == null ? void 0 : online.role) === "host") onlineSend({ type: "settings", enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value });
+    if ((online == null ? void 0 : online.role) === "host") onlineSend({ type: "settings", enemyCount: Number($("coop-enemies").value), difficulty: $("coop-difficulty").value, estateSize: $("coop-estate-size").value });
   }
   $("coop-enemies").onchange = sendCoopSettings;
   $("coop-difficulty").onchange = sendCoopSettings;
+  $("coop-estate-size").onchange = sendCoopSettings;
   $("coop-back").onclick = showStartMenu;
   $("coop-start").onclick = () => {
     if (!computerSeat && !((online == null ? void 0 : online.role) === "host" && online.peerConnected)) return;
@@ -4646,9 +4737,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     const selectedEnemies = document.querySelector('input[name="single-enemies"]:checked');
     const selectedDifficulty = document.querySelector('input[name="single-difficulty"]:checked');
+    const selectedEstateSize = document.querySelector('input[name="single-estate-size"]:checked');
     const enemyCount = started && state.mode === (coop ? "coop" : "single") ? state.enemyCount : Number(coop ? $("coop-enemies").value : (selectedEnemies == null ? void 0 : selectedEnemies.value) || 1);
     const difficulty = started && state.mode === (coop ? "coop" : "single") ? state.difficulty : coop ? $("coop-difficulty").value : (selectedDifficulty == null ? void 0 : selectedDifficulty.value) || "beginner";
-    enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount, difficulty }));
+    const estateSize = started && state.mode === (coop ? "coop" : "single") ? state.estateSize : coop ? $("coop-estate-size").value : (selectedEstateSize == null ? void 0 : selectedEstateSize.value) || "medium";
+    enterGame(GF.createMatch({ mode: coop ? "coop" : "single", enemyCount, difficulty, estateSize }));
     save();
   }
   function downloadSave(raw) {

@@ -2,7 +2,7 @@
   "version": 12,
   "exchange": 5,
   "sourceHashes": {
-    "js/game.js": "ac99b4bd888a98fd8a67b104db299bb60b31f7f1a474455099ef9c36e8c691ab",
+    "js/game.js": "6e232a6aa4e1e109f8805d78f3c65f10d228f1c599f44804da17c22a9442eaf0",
     "js/autoplay.js": "7bcea01ca9345cd93fae8d853f0433e2d80e0366bd86d5a280600b449c667f72"
   },
   "base": {
@@ -1699,40 +1699,40 @@
           "materials": 90
         },
         {
-          "coins": 900,
-          "materials": 135
+          "coins": 1080,
+          "materials": 162
         },
         {
-          "coins": 1350,
-          "materials": 203
+          "coins": 1944,
+          "materials": 292
         },
         {
-          "coins": 2025,
-          "materials": 304
+          "coins": 3500,
+          "materials": 525
         },
         {
-          "coins": 3038,
-          "materials": 456
+          "coins": 7699,
+          "materials": 1155
         },
         {
-          "coins": 4557,
-          "materials": 684
+          "coins": 16937,
+          "materials": 2541
         },
         {
-          "coins": 9113,
-          "materials": 1367
+          "coins": 37260,
+          "materials": 5589
         },
         {
-          "coins": 18225,
-          "materials": 2734
+          "coins": 81971,
+          "materials": 12296
         },
         {
-          "coins": 36450,
-          "materials": 5468
+          "coins": 245913,
+          "materials": 36887
         },
         {
-          "coins": 72900,
-          "materials": 10935
+          "coins": 737738,
+          "materials": 110661
         }
       ],
       "income": [],
@@ -2499,12 +2499,12 @@
       "seed": 7,
       "seconds": 1800,
       "spent": {
-        "coins": 10296475,
-        "materials": 1902751
+        "coins": 10297249,
+        "materials": 1902867
       },
       "income": {
-        "coins": 11769421,
-        "materials": 6951633
+        "coins": 11904587,
+        "materials": 7006601
       },
       "reward": {
         "coins": 750,
@@ -2573,8 +2573,8 @@
         {
           "seconds": 180,
           "stock": {
-            "coins": 856,
-            "materials": 128
+            "coins": 568,
+            "materials": 81
           },
           "rates": {
             "coins": 112.5,
@@ -2700,8 +2700,8 @@
         {
           "seconds": 600,
           "stock": {
-            "coins": 101650,
-            "materials": 129824
+            "coins": 130780,
+            "materials": 142473
           },
           "rates": {
             "coins": 3480,
@@ -2875,8 +2875,8 @@
         {
           "seconds": 1200,
           "stock": {
-            "coins": 1853048,
-            "materials": 2495340
+            "coins": 1916531,
+            "materials": 2533382
           },
           "rates": {
             "coins": 7472,
@@ -3050,8 +3050,8 @@
         {
           "seconds": 1800,
           "stock": {
-            "coins": 1473696,
-            "materials": 5048882
+            "coins": 1608088,
+            "materials": 5103734
           },
           "rates": {
             "coins": 15808,
@@ -3228,12 +3228,12 @@
       "seed": 42,
       "seconds": 1800,
       "spent": {
-        "coins": 11246500,
-        "materials": 2272121
+        "coins": 11247274,
+        "materials": 2272237
       },
       "income": {
-        "coins": 39005247,
-        "materials": 2477710
+        "coins": 37447431,
+        "materials": 2404568
       },
       "reward": {
         "coins": 750,
@@ -3302,15 +3302,15 @@
         {
           "seconds": 180,
           "stock": {
-            "coins": 938,
-            "materials": 36
+            "coins": 921,
+            "materials": 231
           },
           "rates": {
-            "coins": 132,
+            "coins": 80,
             "materials": 20
           },
           "normalizedRates": {
-            "coins": 26.4,
+            "coins": 16,
             "materials": 20
           },
           "shrine": 2,
@@ -3419,26 +3419,22 @@
             {
               "type": "mill",
               "level": 1
-            },
-            {
-              "type": "inn",
-              "level": 1
             }
           ]
         },
         {
           "seconds": 600,
           "stock": {
-            "coins": 659195,
-            "materials": 5478
+            "coins": 487485,
+            "materials": 1245
           },
           "rates": {
             "coins": 13608,
-            "materials": 869.4399999999999
+            "materials": 693.1199999999999
           },
           "normalizedRates": {
             "coins": 2721.6,
-            "materials": 869.4399999999999
+            "materials": 693.1199999999999
           },
           "shrine": 5,
           "gate": 4,
@@ -3453,7 +3449,7 @@
             },
             {
               "type": "farm",
-              "level": 4
+              "level": 3
             },
             {
               "type": "mulberry",
@@ -3461,7 +3457,7 @@
             },
             {
               "type": "farm",
-              "level": 4
+              "level": 3
             },
             {
               "type": "mulberry",
@@ -3485,7 +3481,7 @@
             },
             {
               "type": "barracks",
-              "level": 4
+              "level": 3
             },
             {
               "type": "tower",
@@ -3517,7 +3513,7 @@
             },
             {
               "type": "quarry",
-              "level": 4
+              "level": 3
             },
             {
               "type": "tea",
@@ -3525,7 +3521,7 @@
             },
             {
               "type": "quarry",
-              "level": 4
+              "level": 3
             },
             {
               "type": "tea",
@@ -3552,12 +3548,12 @@
               "level": 3
             },
             {
-              "type": "barracks",
+              "type": "kiln",
               "level": 3
             },
             {
-              "type": "kiln",
-              "level": 4
+              "type": "barracks",
+              "level": 3
             },
             {
               "type": "weaver",
@@ -3569,7 +3565,7 @@
             },
             {
               "type": "kiln",
-              "level": 4
+              "level": 3
             },
             {
               "type": "bank",
@@ -3604,8 +3600,8 @@
         {
           "seconds": 1200,
           "stock": {
-            "coins": 14093281,
-            "materials": 298689
+            "coins": 13371269,
+            "materials": 264063
           },
           "rates": {
             "coins": 29763.2,
@@ -3727,11 +3723,11 @@
               "level": 4
             },
             {
-              "type": "barracks",
+              "type": "kiln",
               "level": 4
             },
             {
-              "type": "kiln",
+              "type": "barracks",
               "level": 4
             },
             {
@@ -3779,8 +3775,8 @@
         {
           "seconds": 1800,
           "stock": {
-            "coins": 27759497,
-            "materials": 205589
+            "coins": 26200907,
+            "materials": 132331
           },
           "rates": {
             "coins": 64620.799999999996,
@@ -3902,11 +3898,11 @@
               "level": 5
             },
             {
-              "type": "barracks",
+              "type": "kiln",
               "level": 5
             },
             {
-              "type": "kiln",
+              "type": "barracks",
               "level": 5
             },
             {
@@ -3957,12 +3953,12 @@
       "seed": 73193,
       "seconds": 1800,
       "spent": {
-        "coins": 9760300,
-        "materials": 1829261
+        "coins": 9761074,
+        "materials": 1829377
       },
       "income": {
-        "coins": 13022506,
-        "materials": 2409444
+        "coins": 12827989,
+        "materials": 2373684
       },
       "reward": {
         "coins": 750,
@@ -4031,8 +4027,8 @@
         {
           "seconds": 180,
           "stock": {
-            "coins": 856,
-            "materials": 128
+            "coins": 568,
+            "materials": 81
           },
           "rates": {
             "coins": 112.5,
@@ -4158,16 +4154,16 @@
         {
           "seconds": 600,
           "stock": {
-            "coins": 993,
-            "materials": 5183
+            "coins": 53225,
+            "materials": 12816
           },
           "rates": {
-            "coins": 4521.6,
-            "materials": 912.64
+            "coins": 4131.2,
+            "materials": 849.92
           },
           "normalizedRates": {
-            "coins": 904.32,
-            "materials": 912.64
+            "coins": 826.24,
+            "materials": 849.92
           },
           "shrine": 5,
           "gate": 4,
@@ -4282,15 +4278,15 @@
             },
             {
               "type": "barracks",
-              "level": 4
+              "level": 3
             },
             {
               "type": "inn",
-              "level": 4
+              "level": 3
             },
             {
               "type": "kiln",
-              "level": 4
+              "level": 3
             },
             {
               "type": "mill",
@@ -4329,8 +4325,8 @@
         {
           "seconds": 1200,
           "stock": {
-            "coins": 2970370,
-            "materials": 429351
+            "coins": 2877255,
+            "materials": 412694
           },
           "rates": {
             "coins": 8048,
@@ -4500,8 +4496,8 @@
         {
           "seconds": 1800,
           "stock": {
-            "coins": 3262956,
-            "materials": 580183
+            "coins": 3067665,
+            "materials": 544307
           },
           "rates": {
             "coins": 17152,

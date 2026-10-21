@@ -359,7 +359,7 @@
     c.stroke();c.restore();
   }
   function render(canvas,s,cam,selected,options={}){
-    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount]);
+    const size=GF.worldWidth(s),height=GF.worldHeight(s),estate=GF.estate(s),cacheKey=JSON.stringify([s.mapSeed,s.rotation,size,height,s.mapGeneration,s.mode,s.enemyCount,s.estateSize]);
     const animationTime=options.animationTime??s.elapsed,playerOwner=options.player??0,player=GF.playerView(s,playerOwner);
     // One shared phase per render: all upgrade markers float together, with no per-building timers.
     const upgradeBob=reducedMotion||options.reducedMotion===true?0:Math.sin(animationTime*Math.PI)*3;

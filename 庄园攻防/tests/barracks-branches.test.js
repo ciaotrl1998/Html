@@ -60,10 +60,10 @@ test('branch affordability uses its own quote and bulk upgrades preserve the fix
     assert.equal(quote.cost.coins/G.COIN_VALUE/(quote.cost.coins/G.COIN_VALUE+quote.cost.materials),troopType==='archer'?.6:.4);
   }
 });
-test('barracks prices rise 50 percent through six, then double from seven without a hard limit',()=>{
+test('barracks prices grow by 1.8 through four, 2.2 through eight and 3 from nine without a hard limit',()=>{
   const s=match(),p=fund(s);assert.equal(G.DEFS.barracks.limit,undefined);
-  const prices=[[600,90],[900,135],[1350,203],[2025,304],[3038,456],[4557,684],
-    [9113,1367],[18225,2734],[36450,5468],[72900,10935],[145800,21870],[291600,43740]];
+  const prices=[[600,90],[1080,162],[1944,292],[3500,525],[7699,1155],[16937,2541],
+    [37260,5589],[81971,12296],[245913,36887],[737738,110661],[2213214,331982],[6639640,995946]];
   // Other estates and branch/level choices must not alter this estate's price.
   add(s,1,7);
   for(const [coins,materials] of prices){
@@ -71,7 +71,7 @@ test('barracks prices rise 50 percent through six, then double from seven withou
     const b=add(s,0,3);b.troopType=b.id%2?'archer':'infantry';
   }
   p.buildings=p.buildings.filter(b=>b!==p.buildings.at(-1));
-  assert.deepEqual(G.buildCost(p,'barracks'),{coins:291600,materials:43740});
+  assert.deepEqual(G.buildCost(p,'barracks'),{coins:6639640,materials:995946});
   assert.deepEqual(G.buildCost(G.playerView(G.restore(G.serialize(s)),0),'barracks'),G.buildCost(p,'barracks'));
 });
 test('archer stats respect level and difficulty while movement and training remain shared',()=>{
