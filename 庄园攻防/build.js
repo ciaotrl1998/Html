@@ -18,7 +18,8 @@ let html = read('index.html');
 html = html.replace('<link rel="stylesheet" href="css/style.css">', () => '<style>\n' + read('css/style.css') + '\n</style>');
 html = html.replace('<link rel="stylesheet" href="css/png-interface.css">', () => '<style>\n' + read('css/png-interface.css') + '\n</style>');
 html = html.replace('src="assets/ui/backgrounds/title-town.png"', () => 'src="' + dataUrl('assets/ui/backgrounds/title-town.png') + '"');
-html = html.replace('href="icon.png"', () => 'href="' + dataUrl('icon.png') + '"');
+// 浏览器与手机主屏幕图标均嵌入离线包，统一使用根目录的 icon.png。
+html = html.replaceAll('href="icon.png"', () => 'href="' + dataUrl('icon.png') + '"');
 const sources = ['js/maps.js', 'js/game.js', 'js/network.js', 'js/art.js', 'js/autoplay.js', 'js/app.js'];
 const geometry = JSON.parse(read('js/art.js').match(/\/\* building-art:start \*\/([\s\S]*?)\/\* building-art:end \*\//)[1]);
 // Art-production sources are local-only. Keep the extra consistency check on
