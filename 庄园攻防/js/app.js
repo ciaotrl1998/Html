@@ -181,12 +181,13 @@
   }
   function closePanel() { selected = null; panelKey = ''; recruitmentFeedback = null; $('panel').hidden = true; $('game').classList.remove('has-panel'); }
   const rateText = value => String(Math.round((value + Number.EPSILON) * 10) / 10);
+  const productionText = value => String(Math.round(value));
   const soldierTrainingText = level => { const seconds=GF.soldierTrainingTime(level),rounded=Math.round(seconds);return `${Math.abs(seconds-rounded)<1e-8?rounded:rateText(seconds)}s`; };
   const costText = cost => [cost.coins ? cost.coins + ' 铜钱' : '', cost.materials ? cost.materials + ' 工材' : ''].filter(Boolean).join(' · ') || '免费';
   const costHTML = (cost, markMissing = false) => `<span class="cost-parts">${cost.coins ? `<span class="cost-part"><i class="coin-icon"></i><b class="cost-number${markMissing && playerState().coins < cost.coins ? ' insufficient' : ''}">${cost.coins}</b></span>` : ''}${cost.materials ? `<span class="cost-part"><i class="material-icon"></i><b class="cost-number${markMissing && playerState().materials < cost.materials ? ' insufficient' : ''}">${cost.materials}</b></span>` : ''}</span>`;
   function productionLine(resource, base, total) {
-    const bonus = rateText(Math.max(0, total - base));
-    return `${resource} +${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
+    const bonus = productionText(Math.max(0, Math.round(total) - Math.round(base)));
+    return `${resource} +${productionText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}/秒`;
   }
   function effect(d, b) {
     if (d.id === 'barracks') return '训练士兵';
@@ -208,7 +209,7 @@
     const center = lines => `<div class="card-effect production">${lines.join('')}</div>`;
     if (d.income) {
       const building = { type: d.id, x, y, level: 1 }, economic = playerState(), preview = { ...economic, buildings: [...economic.buildings, building] };
-      return center([label('生产'), figure(`<span class="effect-value effect-total">${rateText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
+      return center([label('生产'), figure(`<span class="effect-value effect-total">${productionText(GF.income(preview, building))}</span>${icon(d.resource)}/秒`)]);
     }
     if (d.id === 'tower') return rows([['攻击', d.damage], ['射程', d.range]]);
     if (d.id === 'barracks') return center([figure('<span class="effect-value">训练士兵</span>')]);
@@ -250,15 +251,15 @@
     const context=GF.playerView(state,b.owner), d = GF.DEFS[b.type], max = b.level >= GF.maxLevel(b), hp = GF.maxHP(b), f = GF.factor(b), next = { ...b, level: b.level + 1 }, nextF = GF.factor(next);
     const name = b.type === 'gate' ? (['北','东','南','西'][b.direction] || '') + '城门' : GF.name(b), demolishReason = GF.demolishReason(playerState(), b);
     const base = d.income ? d.income * GF.incomeFactor(b) : 0;
-    const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : '0';
-    const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
+    const bonus = d.income ? productionText(Math.max(0, Math.round(GF.income(context, b)) - Math.round(base))) : '0';
+    const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === 'materials' ? 'material-icon' : 'coin-icon'}" aria-hidden="true"></i><strong>+${productionText(base)}${bonus === '0' ? '' : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : '';
     const recruitment = b.type==='barracks' ? `<div class="detail-recruit" id="detail-recruit" role="progressbar" aria-label="补员进度" aria-valuemin="0" aria-valuemax="100">${Array.from({length:GF.barracksCapacity(b)},()=>'<span class="recruit-slot" aria-hidden="true"><i class="recruit-fill"></i></span>').join('')}</div>` : '';
     let stats = `<div>耐久上限<strong>${hp}${max ? '' : ' → ' + GF.maxHP(next)}</strong></div>`;
     if(b.type==='gate')stats+=`<div>修复速度<strong>${rateText(GF.gateRepairRate(b.level)*100)}%/秒${max?'':' → '+rateText(GF.gateRepairRate(next.level)*100)+'%/秒'}</strong></div>`;
-    if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? '' : ' → ' + GF.income(context, next).toFixed(1)}</strong></div>`; if (b.type === 'shrine') stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? '' : ' → ' + soldierTrainingText(next.level)}</strong></div>`; }
+    if (d.income) { stats += `<div>${d.resource === 'materials' ? '工材' : '铜钱'} / 秒<strong>${productionText(GF.income(context, b))}${max ? '' : ' → ' + productionText(GF.income(context, next))}</strong></div>`; if (b.type === 'shrine') stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? '' : ' → ' + soldierTrainingText(next.level)}</strong></div>`; }
     else if (b.type === 'barracks') {
-      const count=GF.barracksPopulation(state,b),capacity=GF.barracksCapacity(b);
-      stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===1?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div><div>本营兵力<strong>${count} / ${capacity}${max ? '' : ' → 上限 ' + GF.barracksCapacity(next)}</strong></div>`;
+      const capacity=GF.barracksCapacity(b);
+      stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level===1?' · 下级可分支':''}</strong></div><div>士兵等级<strong>${b.level}${max ? '' : ' → ' + next.level}</strong></div><div>本营兵力<strong>${capacity}${max ? '' : ' → ' + GF.barracksCapacity(next)}</strong></div>`;
     }
     else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? '' : ' → ' + Math.round(d.damage * nextF)}</strong></div>`;
     else if (['well', 'stage'].includes(b.type)) { const v = { well: 20, stage: 3 }[b.type]; stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? '' : ' → ' + rateText(v * GF.auraFactor(next)) + '%'}</strong></div>`; }
@@ -303,10 +304,11 @@
         const progress=full?100:armyFull?0:Math.min(100,Math.max(0,(b.production||0)*100));
         const label=`兵力 ${count}/${capacity}，`+(full?'已满员':armyFull?'总兵力已满':'补员 '+Math.floor(progress)+'%');
         const recruitment=$('detail-recruit');
+        recruitment.style.gap=capacity>9?'0px':'2px';
         for(const [index,slot] of [...recruitment.children].entries()){
           const fill=index<count?100:index===count?progress:0;
           slot.dataset.state=index<count?'full':index===count&&!full&&!armyFull?'training':'empty';
-          // The source icons share a 12×27 body inside a 32×32 transparent canvas.
+          // Preserve the selected PNG proportions and the outline's rightmost pixel.
           slot.firstElementChild.style.clipPath=`inset(${27-Math.floor(27*fill/100)}px 0 0)`;
           if(units[index]&&previous&&!previous.ids.has(units[index].id)){
             const flash=slot.firstElementChild.animate([{filter:'brightness(0) invert(1)'},{filter:'brightness(0) invert(1)',offset:.5},{filter:'none'}],{duration:280});

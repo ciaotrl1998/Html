@@ -31,7 +31,7 @@ function prepareBarracks(s,owner){
         for(const k of GF.estate(p).cells){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);if(!GF.at(s,x,y)&&GF.terrain(x,y,s)!=='water'){const b=GF.grantBuilding(p,'barracks',x,y,1);if(b){b.production=.75;Gufang.select(x,y);return {id:b.id,x,y};}}}
       });
       const branches=page.locator('[data-barracks-branch]');assert.equal(await branches.count(),2);
-      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*0 \/ 3 → 上限 4/);
+      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*3 → 4/);
       const progress=page.getByRole('progressbar',{name:'补员进度'});
       assert.equal(await progress.getAttribute('aria-valuenow'),'75');
       assert.match(await progress.getAttribute('aria-valuetext'),/补员 75%/);
@@ -110,12 +110,12 @@ function prepareBarracks(s,owner){
         for(let i=0;i<100;i++){for(const u of Gufang.state.soldiers)u.repelled=100;GF.step(Gufang.state,.05);}
         Gufang.refresh();
       });
-      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*4 \/ 4 → 上限 5/);
+      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*4 → 5/);
       assert.doesNotMatch(await page.locator('.upgrade-stats').innerText(),/补员状态|满员暂停/);
       assert.equal(await progress.getAttribute('aria-valuenow'),'100');assert.match(await progress.getAttribute('aria-valuetext'),/已满员/);
       assert.equal(await progress.locator('[data-state="full"]').count(),4);
       await page.evaluate(()=>{Gufang.state.soldiers[0].hp=0;GF.step(Gufang.state,.05);Gufang.refresh();});
-      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*3 \/ 4 → 上限 5/);
+      assert.match(await page.locator('.upgrade-stats').innerText(),/本营兵力\s*4 → 5/);
       assert.doesNotMatch(await page.locator('.upgrade-stats').innerText(),/满员暂停/);
       assert.equal(await progress.getAttribute('aria-valuenow'),'5');
       assert.equal(await progress.locator('[data-state="full"]').count(),3);
@@ -149,7 +149,7 @@ function prepareBarracks(s,owner){
           return {slots:group.children.length,overflow:group.scrollWidth>group.clientWidth,icons:[...group.children].map(el=>{const b=el.getBoundingClientRect();return {width:b.width,height:b.height,inside:b.left>=r.left&&b.right<=r.right};})};
         });
         assert.equal(iconLayout.slots,11);assert(!iconLayout.overflow);
-        assert(iconLayout.icons.every(icon=>icon.width===12&&icon.height===27&&icon.inside),`All eleven icons fit at ${width}px: ${JSON.stringify(iconLayout)}`);
+        assert(iconLayout.icons.every(icon=>icon.width===13&&icon.height===27&&icon.inside),`All eleven original icons fit without stretching or cropping at ${width}px: ${JSON.stringify(iconLayout)}`);
       }
       // Render a controlled coop scene to inspect all six sprite sources in both packaging modes.
       const rendered=await page.evaluate(async()=>{

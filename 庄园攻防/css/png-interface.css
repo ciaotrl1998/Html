@@ -23,7 +23,7 @@
 .level-badge,.chain-tag,.card-reason,.start-badge{background:transparent;border:3px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0}
 .detail-title .level-badge{border-width:5px}
 .detail-title .detail-recruit{display:flex;align-items:center;gap:2px;flex:1;min-width:0;height:27px;margin:0 5px;overflow:hidden}
-.detail-recruit .recruit-slot{position:relative;display:block;flex:0 1 12px;min-width:0;width:12px;height:27px;overflow:hidden;background:var(--art-icon-recruit-soldier-outline) -10px -3px/32px 32px no-repeat;image-rendering:pixelated}
+.detail-recruit .recruit-slot{position:relative;display:block;flex:0 0 13px;width:13px;height:27px;overflow:hidden;background:var(--art-icon-recruit-soldier-outline) -10px -3px/32px 32px no-repeat;image-rendering:pixelated}
 .detail-recruit .recruit-fill{position:absolute;inset:0;display:block;background:var(--art-icon-recruit-soldier-full) -10px -3px/32px 32px no-repeat;clip-path:inset(27px 0 0);pointer-events:none}
 .detail-art{background:transparent}
 .coin-icon,.material-icon{border:0!important;outline:0;box-shadow:none;border-radius:0;background:var(--art-icon-coin) center/contain no-repeat;transform:none;image-rendering:pixelated}
