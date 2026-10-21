@@ -11,7 +11,7 @@ function advanceEconomy(s,bot,seconds){
 function count(view,type){return view.buildings.filter(b=>b.type===type).length;}
 
 test('autoplay uses public actions and pays normal costs',()=>{
-  const s=G.createState(42),view=G.playerView(s,0);view.coins=view.materials=1000;G.chooseSkill(view,'thunder');
+  const s=G.createState(42),view=G.playerView(s,0);view.coins=1000*G.COIN_VALUE;view.materials=1000;G.chooseSkill(view,'thunder');
   const before=G.serialize(s),bot=A.create(view);assert.equal(G.serialize(s),before,'planning must not change the estate');
   const originals={},calls={build:0,upgrade:0};
   for(const name of Object.keys(calls)){
@@ -78,7 +78,7 @@ test('game controller runs the same balanced route for computer players',()=>{
 
 test('strategic production planning clusters suppliers and completes ultimate buildings',()=>{
   for(const seed of [1,42,99991]){
-    const s=G.createState(seed),view=G.playerView(s,0);view.coins=view.materials=1e7;G.chooseSkill(view,'thunder');
+    const s=G.createState(seed),view=G.playerView(s,0);view.coins=1e7*G.COIN_VALUE;view.materials=1e7;G.chooseSkill(view,'thunder');
     // Nine military tiers now share the decision budget with economic construction.
     const bot=A.create(view);for(let i=0;i<100;i++)bot.tick(1);
     const ultimates=view.buildings.filter(b=>G.DEFS[b.type].required);

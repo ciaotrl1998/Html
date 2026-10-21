@@ -9,24 +9,25 @@ function advance(s,seconds){for(let time=0;time<seconds-1e-8;time+=.05)G.step(s,
 function openLine(s){const p=G.playerView(s,0),w=G.worldWidth(s);for(const k of G.estate(p).cells){const x=k%w,y=Math.floor(k/w);if([0,1,2,3,4].every(dx=>G.owns(p,x+dx,y)&&G.walkable(s,x+dx,y)&&!G.at(s,x+dx,y)))return {x,y};}throw Error('No open line');}
 function unit(s,owner,x,y,troopType='infantry',level=1){const stats={troopType,level},hp=G.soldierHP(G.playerView(s,owner),stats);const u={id:s.nextId++,owner,barracksId:999999,troopType,x,y,level,hp,maxHp:hp,baseDamage:G.TROOPS[troopType].damage*G.factor(stats),attack:0,attackAt:0,targetOwner:null,targetId:null,targetBuildingId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null};s.soldiers.push(u);return u;}
 
-test('level one trains infantry and both level-two branches cost the same',()=>{
+test('level one trains infantry and branch prices have equal value with opposite 60/40 shares',()=>{
   const s=match(),p=fund(s);
   const base=add(s);base.production=.99;advance(s,.05);const recruit=s.soldiers.find(u=>u.barracksId===base.id);assert.equal(recruit.troopType,'infantry');assert.equal(recruit.level,1);
   const costs=[];
   for(const troopType of ['infantry','archer']){const b=add(s),stock=[p.coins,p.materials];assert(G.upgrade(p,b,{troopType}).ok);assert.equal(b.level,2);costs.push([stock[0]-p.coins,stock[1]-p.materials]);}
-  assert.deepEqual(costs[0],costs[1]);
+  assert.deepEqual(costs,[[1520,456],[2280,304]]);
+  assert.equal(costs[0][0]/G.COIN_VALUE+costs[0][1],costs[1][0]/G.COIN_VALUE+costs[1][1]);
 });
 
 test('bulk stops at level one; archer branch preserves progress, health and old infantry',()=>{
   const s=match(),p=fund(s),b=add(s);b.production=.4;b.hp=G.maxHP(b)*.5;
   assert.equal(G.upgradeOptions(p,b).levels,0);assert.equal(G.bulkUpgrade(p,b).levels,0);assert.equal(b.level,1);assert.equal(G.name(b),'兵营');
   const old=unit(s,0,b.x,b.y,'infantry',1);old.barracksId=b.id;
-  const cost=G.upgradeCost(b),stock=[p.coins,p.materials],progress=b.production;
+  const cost=G.upgradeCost(b,{troopType:'archer'}),stock=[p.coins,p.materials],progress=b.production;
   assert(G.upgrade(p,b,{troopType:'archer'}).ok);
   assert.equal(b.level,2);assert.equal(G.name(b),'弓兵营');assert.equal(b.production,progress);assert.equal(b.hp/G.maxHP(b),.5);
   assert.equal(p.coins,stock[0]-cost.coins);assert.equal(p.materials,stock[1]-cost.materials);assert.equal(old.troopType,'infantry');assert.equal(old.level,1);
   b.production=.99;advance(s,.05);const archer=s.soldiers.find(u=>u.troopType==='archer');assert(archer);assert.equal(archer.level,2);
-  assert.equal(archer.baseDamage,20);assert.equal(archer.maxHp,Math.round(44*.7*2));
+  assert.equal(archer.baseDamage,22);assert.equal(archer.maxHp,Math.round(110*2));
   assert(G.upgrade(p,b).ok);advance(s,.05);assert.equal(archer.level,3);assert.equal(old.level,1);assert.equal(old.troopType,'infantry');assert(G.restore(G.serialize(s)));
 });
 test('infantry branch upgrades old infantry and high-level granted barracks default to infantry',()=>{
@@ -42,10 +43,27 @@ test('branch choice is mandatory, permanent, owner checked and atomic on failure
   fund(s);assert.equal(G.upgrade(G.playerView(s,1),b,{troopType:'archer'}).ok,false);assert(G.upgrade(p,b,{troopType:'archer'}).ok);const before=G.serialize(s);
   for(const choice of ['infantry','archer'])assert.equal(G.upgrade(p,b,{troopType:choice}).ok,false);assert.equal(G.serialize(s),before);
 });
+
+test('branch affordability uses its own quote and bulk upgrades preserve the fixed bias',()=>{
+  for(const troopType of ['infantry','archer']){
+    const s=match(),p=fund(s),b=add(s),options={troopType},cost=G.upgradeCost(b,options);
+    for(const resource of ['coins','materials']){
+      p.coins=cost.coins;p.materials=cost.materials;p[resource]--;
+      const before=G.serialize(s);assert(G.upgradeReason(p,b,false,options));assert.equal(G.upgrade(p,b,options).ok,false);assert.equal(G.serialize(s),before);
+    }
+    p.coins=cost.coins;p.materials=cost.materials;assert.equal(G.upgradeReason(p,b,false,options),'');
+    assert(G.upgrade(p,b,options).ok);assert.equal(p.coins,0);assert.equal(p.materials,0);
+    p.coins=p.materials=1e12;
+    const quote=G.upgradeOptions(p,b),before={coins:p.coins,materials:p.materials},result=G.bulkUpgrade(p,b);
+    assert(result.ok);assert.equal(b.level,9);assert.deepEqual(result.costspent,quote.cost);
+    assert.equal(p.coins,before.coins-quote.cost.coins);assert.equal(p.materials,before.materials-quote.cost.materials);
+    assert.equal(quote.cost.coins/G.COIN_VALUE/(quote.cost.coins/G.COIN_VALUE+quote.cost.materials),troopType==='archer'?.6:.4);
+  }
+});
 test('barracks prices rise 50 percent through six, then double from seven without a hard limit',()=>{
   const s=match(),p=fund(s);assert.equal(G.DEFS.barracks.limit,undefined);
-  const prices=[[120,117],[180,176],[270,264],[405,395],[608,593],[912,889],
-    [1823,1777],[3645,3554],[7290,7108],[14580,14216],[29160,28431],[58320,56862]];
+  const prices=[[600,90],[900,135],[1350,203],[2025,304],[3038,456],[4557,684],
+    [9113,1367],[18225,2734],[36450,5468],[72900,10935],[145800,21870],[291600,43740]];
   // Other estates and branch/level choices must not alter this estate's price.
   add(s,1,7);
   for(const [coins,materials] of prices){
@@ -53,12 +71,12 @@ test('barracks prices rise 50 percent through six, then double from seven withou
     const b=add(s,0,3);b.troopType=b.id%2?'archer':'infantry';
   }
   p.buildings=p.buildings.filter(b=>b!==p.buildings.at(-1));
-  assert.deepEqual(G.buildCost(p,'barracks'),{coins:58320,materials:56862});
+  assert.deepEqual(G.buildCost(p,'barracks'),{coins:291600,materials:43740});
   assert.deepEqual(G.buildCost(G.playerView(G.restore(G.serialize(s)),0),'barracks'),G.buildCost(p,'barracks'));
 });
 test('archer stats respect level and difficulty while movement and training remain shared',()=>{
   const s=match({difficulty:'hell'}),p=G.playerView(s,1);s.players[1].controller='computer';
-  for(let level=2;level<=9;level++){const b={troopType:'archer',level};assert.equal(G.soldierHP(p,b),Math.round(44*.7*2**(level-1)*1.5));assert.equal(G.soldierDamage(p,b),10*2**(level-1)*1.5);}
+  for(let level=2;level<=9;level++){const b={troopType:'archer',level};assert.equal(G.soldierHP(p,b),Math.round(110*2**(level-1)*1.5));assert.equal(G.soldierDamage(p,b),11*2**(level-1)*1.5);}
   const plot=openLine(s),owner=G.playerView(s,0);assert(G.grantBuilding(owner,'tao',plot.x,plot.y,2));
   for(const troopType of ['infantry','archer'])assert.equal(G.soldierDamage(owner,{troopType,level:4}),G.TROOPS[troopType].damage*8*G.defenseBoost(owner));
   assert.equal(G.TROOPS.archer.range,3);assert.equal(G.TROOPS.archer.interval,1.5);assert.equal(G.soldierRate(G.playerView(s,0)),.2);assert.equal(G.SOLDIER_SPEED,.8);
@@ -66,7 +84,7 @@ test('archer stats respect level and difficulty while movement and training rema
 test('archers stop at three tiles, arrows land after .3 seconds and shots are 1.5 seconds apart',()=>{
   const s=match(),{x,y}=openLine(s),u=unit(s,0,x,y,'archer',4),target=unit(s,1,x+3,y,'infantry',9);target.repelled=100;const hp=target.hp;
   advance(s,.05);assert.equal(s.projectiles.length,1);assert.equal(target.hp,hp);assert.equal(u.x,x);
-  advance(s,.25);assert.equal(target.hp,hp);advance(s,.05);assert.equal(target.hp,hp-80);
+  advance(s,.25);assert.equal(target.hp,hp);advance(s,.05);assert.equal(target.hp,hp-88);
   const first=u.attackAt;advance(s,1.15);assert.equal(u.attackAt,first);advance(s,.05);assert(Math.abs(u.attackAt-first-1.5)<1e-8);assert.equal(u.x,x);
 });
 test('archers approach from outside range and lost arrows do not hit a replacement target',()=>{
@@ -83,7 +101,7 @@ test('archers shoot the first enemy gate and cannot shoot soldiers through it',(
   const s=match(),gate=s.buildings.find(b=>b.type==='gate'&&b.owner===1),offset=[[0,-1],[1,0],[0,1],[-1,0]][gate.direction],x=gate.x+offset[0]*2,y=gate.y+offset[1]*2;
   assert(G.walkable(s,x,y));const u=unit(s,0,x,y,'archer',4);u.targetOwner=1;const target=unit(s,1,gate.x-offset[0],gate.y-offset[1],'infantry',9);target.repelled=100;
   advance(s,.05);assert.equal(s.projectiles.length,1);assert.equal(s.projectiles[0].targetType,'building');assert.equal(s.projectiles[0].targetId,gate.id);
-  const hp=gate.hp,targetHp=target.hp;advance(s,.3);assert.equal(gate.hp,hp-80);assert.equal(target.hp,targetHp);
+  const hp=gate.hp,targetHp=target.hp;advance(s,.3);assert.equal(gate.hp,hp-88);assert.equal(target.hp,targetHp);
 });
 
 test('walls block archer shots and mixed troops share one estate population cap',()=>{
@@ -97,11 +115,11 @@ test('walls block archer shots and mixed troops share one estate population cap'
   assert.equal(capped.soldiers.length,120);assert.equal(capped.soldiers.at(-1).troopType,'archer');
   advance(capped,1.5);assert.equal(capped.soldiers.length,120);assert.equal(infantry.production,0);assert.equal(archer.production,0);
 });
-test('version nine migrates and version eleven round-trips mixed troops and in-flight arrows',()=>{
+test('version nine migrates and current saves round-trip mixed troops and in-flight arrows',()=>{
   const s=match(),p=fund(s),b=add(s,0,4);b.production=.6;const old=unit(s,0,b.x,b.y,'infantry',4);old.barracksId=b.id;old.hp=old.maxHp*.5;
   const raw=JSON.parse(G.serialize(s));raw.version=9;for(const n of raw.buildings)delete n.troopType;for(const n of raw.soldiers){delete n.troopType;delete n.attackAt;delete n.targetBuildingId;}
-  const loaded=G.restore(JSON.stringify(raw));assert(loaded);assert.equal(loaded.version,11);assert.equal(loaded.soldiers[0].hp/loaded.soldiers[0].maxHp,.5);
-  assert.equal(loaded.buildings.find(n=>n.id===b.id).troopType,'infantry');assert.equal(loaded.buildings.find(n=>n.id===b.id).production,.6);assert.equal(loaded.players[0].coins,p.coins);
+  const loaded=G.restore(JSON.stringify(raw));assert(loaded);assert.equal(loaded.version,G.VERSION);assert.equal(loaded.soldiers[0].hp/loaded.soldiers[0].maxHp,.5);
+  assert.equal(loaded.buildings.find(n=>n.id===b.id).troopType,'infantry');assert.equal(loaded.buildings.find(n=>n.id===b.id).production,.6);assert.equal(loaded.players[0].coins,p.coins*G.COIN_VALUE);
   const {x,y}=openLine(s),u=unit(s,0,x,y,'archer',4),target=unit(s,1,x+2,y,'infantry',9);target.repelled=100;advance(s,.05);
   const copy=G.restore(G.serialize(s));assert(copy);assert(copy.projectiles.some(shot=>shot.sourceId===u.id));advance(s,.4);advance(copy,.4);assert.deepEqual(JSON.parse(G.serialize(copy)),JSON.parse(G.serialize(s)));
   const bad=JSON.parse(G.serialize(copy));bad.soldiers.find(n=>n.troopType==='archer').level=1;assert.equal(G.restore(JSON.stringify(bad)),null);

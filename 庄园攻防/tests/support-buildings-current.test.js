@@ -23,7 +23,7 @@ test('all players start new matches with zero resources',()=>{
     for(const p of s.players)assert.deepEqual([p.coins,p.materials],[0,0]);
   }
   const s=match(),p=G.playerView(s,0);advance(s,1);
-  assert.deepEqual([p.coins,p.materials],[1,0]);
+  assert.deepEqual([p.coins,p.materials],[G.COIN_VALUE,0]);
 });
 
 test('rock platform is fortune-only and uses its original splash attack',()=>{
@@ -43,11 +43,11 @@ test('rock platform is fortune-only and uses its original splash attack',()=>{
 test('main-city upgrades improve training time without changing soldier power',()=>{
   const s=match(),p=G.playerView(s,0),shrine=p.buildings.find(b=>b.type==='shrine');
   const barracksPlot=emptyPlot(p),barracks=G.grantBuilding(p,'barracks',barracksPlot.x,barracksPlot.y,1);
-  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1/5);
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),110);assert.equal(G.soldierDamage(p,barracks),20);assert.equal(G.soldierRate(p),1/5);
   shrine.level=2;shrine.hp=G.maxHP(shrine);
-  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1/G.soldierTrainingTime(2));
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),110);assert.equal(G.soldierDamage(p,barracks),20);assert.equal(G.soldierRate(p),1/G.soldierTrainingTime(2));
   shrine.level=15;shrine.hp=G.maxHP(shrine);
-  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),44);assert.equal(G.soldierDamage(p,barracks),18);assert.equal(G.soldierRate(p),1);
+  assert.equal(G.soldierBoost(p),1);assert.equal(G.soldierHP(p,barracks),110);assert.equal(G.soldierDamage(p,barracks),20);assert.equal(G.soldierRate(p),1);
 });
 
 test('well boosts every farm in its estate regardless of distance',()=>{
@@ -58,11 +58,11 @@ test('well boosts every farm in its estate regardless of distance',()=>{
 });
 
 test('farm and mulberry construction costs rise from ten to one hundred twenty percent while upgrades stay fixed',()=>{
-  assert.deepEqual(G.DEFS.farm.cost,{coins:75,materials:0});
-  assert.deepEqual(G.DEFS.mulberry.cost,{coins:0,materials:65});
+  assert.deepEqual(G.DEFS.farm.cost,{coins:250,materials:0});
+  assert.deepEqual(G.DEFS.mulberry.cost,{coins:0,materials:50});
   for(const [type,terrain,costs,lastRefund] of [
-    ['farm','shore',[8,24,41,57,74,90],{coins:36,materials:0}],
-    ['mulberry','forest',[7,21,36,50,64,78],{coins:0,materials:31}]
+    ['farm','shore',[25,80,135,190,245,300],{coins:120,materials:0}],
+    ['mulberry','forest',[5,16,27,38,49,60],{coins:0,materials:24}]
   ]){
     const s=match(),p=G.playerView(s,0);p.coins=p.materials=10000;
     const upgradeCost=G.upgradeCost({type,level:1});let last;
@@ -89,5 +89,5 @@ test('farm and mulberry production chains fully swap resources and ultimate prer
 
 test('version-eight saves are discarded',()=>{
   const s=match(),raw=JSON.parse(G.serialize(s));raw.version=8;
-  assert.equal(G.VERSION,11);assert.equal(G.restore(JSON.stringify(raw)),null);
+  assert.equal(G.VERSION,12);assert.equal(G.restore(JSON.stringify(raw)),null);
 });

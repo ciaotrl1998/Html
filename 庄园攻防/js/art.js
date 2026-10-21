@@ -567,7 +567,7 @@
           if(hint.tier===0){starters.push({type:hint.type,cost:GF.buildCost(town,hint.type)});continue;}
           const preview={type:hint.type,x,y,level:1};
           // Include the new building's own aura without changing the live state.
-          const shadow={...town,buildings:[...town.buildings,preview]},income=GF.income(shadow,preview);
+          const shadow={...town,buildings:[...town.buildings,preview]},income=GF.income(shadow,preview)/(hint.resource==='coins'?GF.COIN_VALUE:1);
           if(!best||income>bestIncome||income===bestIncome&&(hint.tier>best.tier||hint.tier===best.tier&&hint.resource==='coins'&&best.resource!=='coins')){
             best=hint;bestIncome=income;
           }

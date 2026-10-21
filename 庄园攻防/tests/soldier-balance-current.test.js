@@ -25,32 +25,77 @@ test('barracks levels retain exponential soldier health and attack while shrine 
   const s=match(),p=G.playerView(s,0),shrine=p.buildings.find(b=>b.type==='shrine');
   for(let level=1;level<=9;level++){
     const b={type:'barracks',level};
-    assert.equal(G.soldierHP(p,b),Math.round(44*2**(level-1)));
-    assert.equal(G.soldierHP(b),Math.round(44*2**(level-1)));
-    assert.equal(G.soldierDamage(p,b),18*2**(level-1));
+    assert.equal(G.soldierHP(p,b),Math.round(110*2**(level-1)));
+    assert.equal(G.soldierHP(b),Math.round(110*2**(level-1)));
+    assert.equal(G.soldierDamage(p,b),20*2**(level-1));
     assert.equal(G.maxHP(b),Math.round(G.DEFS.barracks.hp*1.55**(level-1)));
   }
   assert.equal(G.soldierTrainingTime(1),5);assert.equal(G.soldierTrainingTime(15),1);
   shrine.level=15;shrine.hp=G.maxHP(shrine);
   assert.equal(G.soldierRate(p),1);
-  assert.equal(G.soldierHP(p,{level:1}),44);assert.equal(G.soldierDamage(p,{level:1}),18);
+  assert.equal(G.soldierHP(p,{level:1}),110);assert.equal(G.soldierDamage(p,{level:1}),20);
 });
 
-test('a level-one soldier survives one level-one tower arrow and dies to the second',()=>{
-  const s=match(),tower=add(s,1,'tower'),hp=G.soldierHP({level:1});
-  assert.equal(hp,G.DEFS.tower.damage*2);
-  const u={id:s.nextId++,owner:0,barracksId:99999,x:tower.x,y:tower.y,level:1,hp,maxHp:hp,baseDamage:18,attack:0,targetOwner:null,targetId:null,repelled:10,slowed:0,slowFactor:1,waypoint:null};
-  s.soldiers.push(u);G.step(s,.05);assert.equal(s.projectiles.length,1);
-  advance(s,.35);assert.equal(u.hp,G.DEFS.tower.damage);assert(s.soldiers.includes(u));
-  advance(s,.5);assert.equal(s.projectiles.length,1);
-  advance(s,.35);assert(!s.soldiers.includes(u));
+test('both troop branches die on the fifth actual arrow from an equal-level tower at every level',()=>{
+  for(const troopType of ['infantry','archer'])for(let level=troopType==='archer'?2:1;level<=9;level++){
+    const s=match(),tower=add(s,1,'tower',level),hp=G.soldierHP({level,troopType}),damage=G.DEFS.tower.damage*G.factor(tower);
+    assert.equal(hp,damage*5);
+    const u={id:s.nextId++,owner:0,barracksId:99999,troopType,x:tower.x,y:tower.y,level,hp,maxHp:hp,baseDamage:20,attack:0,targetOwner:null,targetId:null,repelled:100,slowed:0,slowFactor:1,waypoint:null};
+    s.soldiers.push(u);
+    for(let hit=1;hit<=5;hit++){
+      if(hit===1)advance(s,.05);else advance(s,.5);
+      assert.equal(s.projectiles.length,1);advance(s,.35);
+      assert.equal(u.hp,hp-hit*damage);assert.equal(s.soldiers.includes(u),hit<5);
+    }
+  }
 });
 
-test('old saved soldiers keep their health percentage under the new lower maximum',()=>{
+test('each camp pauses at capacity, discards queued progress and replaces only casualties',()=>{
+  const s=match(),a=add(s,0),b=add(s,0),enemy=add(s,1);
+  advance(s,15);
+  for(const camp of [a,b,enemy])assert.equal(G.barracksPopulation(s,camp),3);
+  // Keep this isolated from travel and combat while checking long full-cap pauses.
+  for(const u of s.soldiers)u.repelled=100;
+  advance(s,20);assert.equal(s.soldiers.length,9);
+  for(const camp of [a,b,enemy])assert.equal(camp.production,0);
+  s.soldiers.find(u=>u.barracksId===a.id).hp=0;
+  advance(s,4.9);assert.equal(G.barracksPopulation(s,a),2);assert.equal(G.barracksPopulation(s,b),3);
+  advance(s,.1);assert.equal(G.barracksPopulation(s,a),3);
+  advance(s,5);assert.equal(G.barracksPopulation(s,a),3);assert.equal(a.production,0);
+});
+
+test('levels add one slot, branch veterans share slots and saves preserve replacement progress',()=>{
+  for(let level=1;level<=9;level++)assert.equal(G.barracksCapacity({level}),level+2);
+  const s=match(),p=G.playerView(s,0),b=add(s,0);p.coins=p.materials=1e12;
+  advance(s,15);for(const u of s.soldiers)u.repelled=100;
+  const shrine=p.buildings.find(n=>n.type==='shrine');shrine.level=2;shrine.hp=G.maxHP(shrine);
+  const training=G.soldierTrainingTime(2);
+  assert(G.upgrade(p,b,{troopType:'archer'}).ok);
+  advance(s,training);assert.equal(G.barracksPopulation(s,b),4);
+  assert.equal(s.soldiers.filter(u=>u.troopType==='infantry').length,3);
+  assert.equal(s.soldiers.filter(u=>u.troopType==='archer').length,1);
+  s.soldiers[0].hp=0;advance(s,2);
+  const loaded=G.restore(G.serialize(s));assert(loaded);
+  advance(loaded,training-2.1);assert.equal(G.barracksPopulation(loaded,b),3);
+  advance(loaded,.1);assert.equal(G.barracksPopulation(loaded,b),4);
+});
+
+test('over-cap legacy armies remain alive and cannot train until a slot opens',()=>{
+  const s=match(),b=add(s,0);advance(s,15);
+  const extra={...s.soldiers[0],id:s.nextId++,repelled:100};s.soldiers.push(extra);b.production=.99;
+  const loaded=G.restore(G.serialize(s));assert(loaded);
+  for(const u of loaded.soldiers)u.repelled=100;
+  advance(loaded,10);assert.equal(G.barracksPopulation(loaded,b),4);
+  const camp=loaded.buildings.find(n=>n.id===b.id);assert.equal(camp.production,0);
+  loaded.soldiers[0].hp=0;advance(loaded,5);assert.equal(G.barracksPopulation(loaded,b),3);
+  loaded.soldiers[0].hp=0;advance(loaded,5);assert.equal(G.barracksPopulation(loaded,b),3);
+});
+
+test('old saved soldiers keep their health percentage under the new higher maximum',()=>{
   const s=match(),b=add(s,0);advance(s,5);const raw=JSON.parse(G.serialize(s)),u=raw.soldiers.find(unit=>unit.barracksId===b.id);
   u.maxHp=120;u.hp=60;
   const loaded=G.restore(JSON.stringify(raw)),migrated=loaded.soldiers.find(unit=>unit.id===u.id);
-  assert.equal(migrated.maxHp,44);assert.equal(migrated.hp,22);
+  assert.equal(migrated.maxHp,110);assert.equal(migrated.hp,55);
 });
 
 test('thunder has a two-minute cooldown',()=>{

@@ -32,9 +32,10 @@
     const upgradeChoice=b=>b?.type==='barracks'&&b.level===1?{troopType:nextBarracksTroop(s.buildings)}:{};
     function upgrade(b,reason){const result=b&&G.upgrade(s,b,upgradeChoice(b));return !!result?.ok&&record('upgrade',b.type,reason);}
     const count=type=>s.buildings.filter(b=>b.type===type).length;
+    const valueRates=()=>{const rates=G.rates(s);return {...rates,coins:rates.coins/G.COIN_VALUE};};
     const canAfford=cost=>s.coins>=cost.coins&&s.materials>=cost.materials;
-    function waitSeconds(cost,rates=G.rates(s)){
-      const coin=Math.max(0,cost.coins-s.coins)/(rates.coins||Number.EPSILON);
+    function waitSeconds(cost,rates=valueRates()){
+      const coin=Math.max(0,cost.coins-s.coins)/G.COIN_VALUE/(rates.coins||Number.EPSILON);
       const material=Math.max(0,cost.materials-s.materials)/(rates.materials||Number.EPSILON);
       return Math.max(coin,material);
     }
@@ -71,7 +72,7 @@
         if(count(type)===0||d.tier>0)score+=chainPotential(type,p)*1.5;
         if(d.prev)score+=s.buildings.filter(b=>b.type===d.prev&&Math.max(Math.abs(b.x-p.x),Math.abs(b.y-p.y))<=1).reduce((n,b)=>n+b.level*3,0);
         score+=s.buildings.filter(b=>supports(type,b.type)&&Math.max(Math.abs(b.x-p.x),Math.abs(b.y-p.y))<=1)
-          .reduce((total,b)=>total+3+b.level*2+Math.log2(1+G.income(s,b)),0);
+          .reduce((total,b)=>total+3+b.level*2+Math.log2(1+G.income(s,b)/(G.DEFS[b.type].resource==='coins'?G.COIN_VALUE:1)),0);
       }
       return score;
     }
@@ -80,7 +81,7 @@
       return choices.sort((a,b)=>placementScore(type,b)-placementScore(type,a)||a.y-b.y||a.x-b.x)[0];
     }
     function buildPlan(type,p,reason){return p&&{type,cost:G.buildCost(s,type),reason,run:()=>build(type,p,reason)};}
-    function upgradePlan(b,reason){return b&&{type:b.type,cost:G.upgradeCost(b),reason,run:()=>upgrade(b,reason)};}
+    function upgradePlan(b,reason){return b&&{type:b.type,cost:G.upgradeCost(b,upgradeChoice(b)),reason,run:()=>upgrade(b,reason)};}
     function perform(plan,saveLimit=0,forceSave=false){
       if(!plan)return null;
       if(canAfford(plan.cost))return plan.run()?'acted':null;
@@ -95,7 +96,7 @@
       return reason?null:b;
     }
     function resourceIncome(buildings,resource){
-      return buildings.reduce((total,b)=>G.DEFS[b.type].resource===resource?total+G.income(s,b,buildings):total,0);
+      return buildings.reduce((total,b)=>G.DEFS[b.type].resource===resource?total+G.income(s,b,buildings):total,0)/(resource==='coins'?G.COIN_VALUE:1);
     }
     function buildIncomeGain(d,p){
       const next={...p,id:-1,type:d.id,level:1,owner:s.actorId};
@@ -164,7 +165,7 @@
     }
     function selectUltimate(){
       const remaining=ULTIMATES.filter(d=>!count(d.id));if(!remaining.length)return null;
-      const rates=G.rates(s),progress=d=>[...chainTypes(d.id)].filter(type=>count(type)).length;
+      const rates=valueRates(),progress=d=>[...chainTypes(d.id)].filter(type=>count(type)).length;
       remaining.sort((a,b)=>progress(b)-progress(a)||
         (a.resource==='coins'?rates.coins-rates.materials:rates.materials-rates.coins)-
         (b.resource==='coins'?rates.coins-rates.materials:rates.materials-rates.coins)||a.id.localeCompare(b.id));
@@ -198,7 +199,7 @@
       if(firstFarm)return perform(buildPlan('farm',firstFarm,'建立工材来源'),0,true);
       const firstMulberry=count('mulberry')===0&&bestPlot('mulberry');
       if(firstMulberry)return perform(buildPlan('mulberry',firstMulberry,'建立铜钱来源'),0,true);
-      const rates=G.rates(s),plans=[];
+      const rates=valueRates(),plans=[];
       for(const type of ['farm','mulberry'])if(count(type)<4){
         const p=bestPlot(type);if(p)plans.push(buildPlan(type,p,type==='farm'?'扩充基础工材':'扩充基础铜钱'));
       }
@@ -267,12 +268,12 @@
     }
 
     function economyPlan(){
-      const rates=G.rates(s),options=[],resourceWeight=resource=>{
+      const rates=valueRates(),options=[],resourceWeight=resource=>{
         const own=Math.max(.5,rates[resource]),other=Math.max(.5,rates[resource==='coins'?'materials':'coins']);
         return Math.max(.7,Math.min(2.2,other/own));
       };
       function score(gain,cost,d,multiplier=1){
-        const productionSeconds=cost.coins/Math.max(1,rates.coins)+cost.materials/Math.max(1,rates.materials);
+        const productionSeconds=cost.coins/G.COIN_VALUE/Math.max(1,rates.coins)+cost.materials/Math.max(1,rates.materials);
         return gain*resourceWeight(d.resource)*multiplier/Math.max(1,productionSeconds);
       }
       const reserved=strategicLayout&&stats.ultimateGoal===strategicLayout.goal?chainTypes(strategicLayout.goal):new Set();
@@ -296,13 +297,13 @@
       return waitSeconds(best.cost,rates)<=9?best:(affordable||best);
     }
     function diversificationPlan(){
-      const rates=G.rates(s),plans=Object.values(G.DEFS).filter(d=>d.cat==='economy'&&d.tier===1&&!count(d.id))
+      const rates=valueRates(),plans=Object.values(G.DEFS).filter(d=>d.cat==='economy'&&d.tier===1&&!count(d.id))
         .map(d=>({definition:d,plot:bestPlot(d.id)})).filter(option=>option.plot)
         .map(option=>buildPlan(option.definition.id,option.plot,`完善${option.definition.chain}产业链`));
       return plans.sort((a,b)=>waitSeconds(a.cost,rates)-waitSeconds(b.cost,rates))[0]||null;
     }
     function basicSupplyPlan(){
-      const rates=G.rates(s),plans=['farm','mulberry','tea','quarry'].filter(type=>count(type)<(type==='farm'||type==='mulberry'?G.DEFS[type].limit:2))
+      const rates=valueRates(),plans=['farm','mulberry','tea','quarry'].filter(type=>count(type)<G.DEFS[type].limit)
         .map(type=>({type,plot:bestPlot(type)})).filter(option=>option.plot)
         .map(option=>buildPlan(option.type,option.plot,G.DEFS[option.type].resource==='materials'?'扩充前置工材建筑':'扩充前置铜钱建筑'));
       return plans.sort((a,b)=>{
@@ -312,7 +313,7 @@
     }
 
     function militaryPlan(){
-      const rates=G.rates(s),minimum=Math.min(rates.coins,rates.materials),barracks=s.buildings.filter(b=>b.type==='barracks').sort((a,b)=>a.level-b.level||a.id-b.id);
+      const rates=valueRates(),minimum=Math.min(rates.coins,rates.materials),barracks=s.buildings.filter(b=>b.type==='barracks').sort((a,b)=>a.level-b.level||a.id-b.id);
       const desiredBarracks=1+(minimum>=8?1:0)+(minimum>=16?1:0);
       if(barracks.length<desiredBarracks){
         const gate=primaryGate(),p=bestPlot('barracks',n=>Math.hypot(n.x-gate.x,n.y-gate.y)<=7)||bestPlot('barracks');
@@ -339,7 +340,7 @@
       const armyStart=firstArmy();if(armyStart)return armyStart==='acted'||cast;
       const supply=basicSupplyPlan(),supplyResult=perform(supply,9);
       if(supplyResult){if(supplyResult==='acted')stats.armyTurn=true;return supplyResult==='acted'||cast;}
-      const strategic=ultimatePlan(),strategicDef=G.DEFS[strategic?.type],strategicRates=G.rates(s),strategicBase=Math.min(strategicRates.coins,strategicRates.materials);
+      const strategic=ultimatePlan(),strategicDef=G.DEFS[strategic?.type],strategicRates=valueRates(),strategicBase=Math.min(strategicRates.coins,strategicRates.materials);
       const strategicWait=strategicDef?.required?(strategicBase>=100?45:12):strategicDef?.end?(strategicBase>=85?70:12):strategicDef?.tier===1?(strategicBase>=15?12:4):strategicBase>=10?9:4;
       if(stats.armyTurn){
         const plan=militaryPlan(),result=perform(plan,7);if(result){if(result==='acted')stats.armyTurn=false;return result==='acted'||cast;}

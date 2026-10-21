@@ -2,6 +2,7 @@
 // Read-only balance audit: calls the current game API; never edits game values.
 const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto'), assert = require('node:assert/strict');
 const G = require('../js/game'), A = require('../js/autoplay');
+if(G.VERSION!==11)throw Error('Historical v11 audit: for current v12 pricing run scripts/check-economy-v12.cjs.');
 const root = path.resolve(__dirname, '..'), date = '2026-10-21';
 const prefix = path.join(root, 'docs', `resource-balance-audit-${date}`);
 const definitions = Object.values(G.DEFS), economy = definitions.filter(d => d.cat === 'economy');

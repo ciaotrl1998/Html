@@ -99,6 +99,9 @@
     } finally { s.nextId=nextId; }
   }
   function createReplica(raw, owner, session, seq, ack = 0) {
+    // Save imports may migrate currencies; live server deltas must already use
+    // this version's units or their balances would overwrite converted values.
+    try{if(JSON.parse(raw)?.version!==G.VERSION)return null;}catch{return null;}
     const base = G.restore(raw);
     if (!base || base.mode !== 'coop') return null;
     const state = clone(base), replica = { base, state, owner, session, seq, ack, pending: [], economic: economy(base, owner) };

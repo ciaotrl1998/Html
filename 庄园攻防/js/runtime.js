@@ -434,17 +434,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   };
   const worldCenter = (s) => Math.floor(worldSize(s) / 2);
   const worldCenterY = (s) => Math.floor(worldHeight(s) / 2);
-  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const COIN_VALUE = 5;
+  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1;
   const SOLDIER_HP_GROWTH = 2;
   const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: "平地", shore: "水岸", water: "水域", forest: "林地", mountain: "山地" };
   const DEFS = {};
   function balancedCost(cost) {
-    return { coins: cost.coins, materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
+    return { coins: Math.ceil(cost.coins * COIN_VALUE), materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
   }
   function def(id, name2, cat, cost, hp, extra = {}) {
     if (extra.upgradeBase) extra = __spreadProps(__spreadValues({}, extra), { upgradeBase: balancedCost(extra.upgradeBase) });
+    if (extra.resource === "coins" && extra.income) extra = __spreadProps(__spreadValues({}, extra), { income: extra.income * COIN_VALUE });
     DEFS[id] = __spreadValues({ id, name: name2, cat, cost: balancedCost(cost), hp }, extra);
   }
   const chains = [
@@ -454,7 +456,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     ["quarry", "kiln", "trade", "石场", "瓷窑", "商号", "mountain", "工", "#7b9fa2"]
   ];
   const COIN_CHAIN_COSTS = [{ coins: 0, materials: 50 }, { coins: 90, materials: 160 }, { coins: 430, materials: 750 }];
-  const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
+  const MATERIAL_CHAIN_COSTS = COIN_CHAIN_COSTS.map((cost) => ({ coins: cost.materials, materials: cost.coins }));
   chains.forEach((a, ci) => {
     for (let i = 0; i < 3; i++) {
       const coinChain = ci === 0 || ci === 2, baseCost = (coinChain ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
@@ -477,10 +479,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   });
   def("guild", "汇财会馆", "economy", { coins: 18e3, materials: 24e3 }, 600, { income: 240, resource: "coins", aura: 0.05, auraResource: "coins", required: ["bank", "tailor"], radius: 1, limit: 1 });
-  def("port", "百工院", "economy", { coins: 24e3, materials: 15e3 }, 900, { income: 300, resource: "materials", aura: 0.1, auraResource: "materials", required: ["wine", "trade"], radius: 1, limit: 1 });
+  def("port", "百工院", "economy", { coins: 24e3, materials: 18e3 }, 900, { income: 240, resource: "materials", aura: 0.05, auraResource: "materials", required: ["wine", "trade"], radius: 1, limit: 1 });
   def("tower", "箭塔", "defense", { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: 0.85, desc: "单体远射 · 射程 4 格" });
   def("rock", "擂石台", "defense", { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: "范围轰击 · 仅可由造化匣获得" });
-  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: 0.8, desc: "持续出兵 · 一级 5s/1兵" });
+  def("barracks", "兵营", "defense", { coins: 240, materials: 180 }, 420, { damage: 20, range: 4.5, interval: 0.8, desc: "一级限 3 兵 · 每级 +1 · 阵亡补员" });
   def("well", "水井", "support", { coins: 100, materials: 60 }, 250, { farmAura: 0.2, fortuneOnly: true, desc: "全庄农田收入 +20% · 仅可由造化匣获得" });
   def("stage", "戏台", "support", { coins: 300, materials: 220 }, 280, { aura: 0.03, fortuneOnly: true, desc: "全镇收入 +3%" });
   def("shrine", "祠堂", "temple", { coins: 0, materials: 0 }, 1800, { income: 1, resource: "coins", desc: "古坊之根 · 决定全坊升级上限", unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ["古坊祠堂", "百福祠堂", "万安宗祠"] });
@@ -498,10 +500,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     { title: "百业初兴", desc: "建成任意两种经济链终点建筑", reward: 200, test: (s) => new Set(s.buildings.filter((b) => DEFS[b.type].end).map((b) => b.type)).size >= 2 },
     { title: "四方会聚", desc: "建成一座汇财会馆", reward: 300, test: (s) => s.buildings.some((b) => b.type === "guild") }
   ];
-  const VERSION = 11, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
+  for (const mission of MISSIONS) mission.reward *= COIN_VALUE;
+  const VERSION = 12, UNIT_CAP = 120, SOLDIER_SPEED = 0.8;
   const TROOPS = Object.freeze({
-    infantry: Object.freeze({ name: "步兵", hp: 44, damage: 18, range: 0.75, interval: 1 }),
-    archer: Object.freeze({ name: "弓兵", hp: 44 * 0.7, damage: 10, range: 3, interval: 1.5 })
+    infantry: Object.freeze({ name: "步兵", hp: 110, damage: 20, range: 0.75, interval: 1 }),
+    archer: Object.freeze({ name: "弓兵", hp: 110, damage: 11, range: 3, interval: 1.5 })
   });
   const troopType = (entity) => (entity == null ? void 0 : entity.troopType) || "infantry";
   const troopDef = (entity) => TROOPS[troopType(entity)] || TROOPS.infantry;
@@ -686,6 +689,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const maxHP = (b) => Math.round(DEFS[b.type].hp * hpFactor(b));
   const soldierTrainingTime = (level) => 5 - 4 * (Math.max(1, Math.min(SHRINE_MAX_LEVEL, level)) - 1) / (SHRINE_MAX_LEVEL - 1);
   const soldierRate = (s) => 1 / soldierTrainingTime(shrineLevel(s));
+  const barracksCapacity = (b) => b.level + 2;
+  const barracksPopulation = (s, b) => world(s).soldiers.filter((u) => u.hp > 0 && u.owner === b.owner && u.barracksId === b.id).length;
   function difficultyModifiers(s) {
     const p = economicView(s), d = DIFFICULTIES[world(s).difficulty] || DIFFICULTIES.beginner;
     return p.team === 1 && p.controller === "computer" ? d : DIFFICULTIES.beginner;
@@ -854,7 +859,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     missions(s);
     return { ok: true, building: b };
   }
-  function upgradeCost(b) {
+  function upgradeCost(b, options = {}) {
     var _a;
     const d = DEFS[b.type], base = d.upgradeBase || d.cost;
     if (d.cat === "economy" && d.income) {
@@ -863,16 +868,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const oppositeRate = Object.values(DEFS).filter((n) => {
         var _a2;
         return n.cat === "economy" && n.resource === oppositeResource && ((_a2 = n.tier) != null ? _a2 : 3) <= tier;
-      }).reduce((sum, n) => sum + n.income * (n.limit || 1), 0);
+      }).reduce((sum, n) => sum + n.income / (n.resource === "coins" ? COIN_VALUE : 1) * (n.limit || 1), 0);
       const oppositeBase = Math.ceil(oppositeRate * ECONOMY_UPGRADE_WAIT * (d.upgradeWeight || 1));
       const ownBase = Math.ceil(oppositeBase * ownShare / (1 - ownShare));
       const scale = Math.pow(ECONOMY_UPGRADE_GROWTH, b.level - 1);
       const scaled = (value) => value ? Math.ceil(value * scale - 1e-9) : 0;
-      return d.resource === "materials" ? { coins: scaled(oppositeBase), materials: scaled(ownBase) } : { coins: scaled(ownBase), materials: scaled(oppositeBase) };
+      return d.resource === "materials" ? { coins: scaled(oppositeBase * COIN_VALUE), materials: scaled(ownBase) } : { coins: scaled(ownBase * COIN_VALUE), materials: scaled(oppositeBase) };
     }
     const foundation = b.type === "shrine" || b.type === "gate";
     const premium = b.type === "shrine" ? 1.18 : b.type === "gate" ? 1.06 : d.income ? 1.2 : 1.12;
     const multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1) * Math.pow(premium, Math.max(0, b.level - (foundation ? 7 : 4)));
+    if (["shrine", "gate", "barracks", "tower"].includes(b.type)) {
+      const budget = Math.ceil((base.coins / COIN_VALUE + base.materials) * multiple / 10) * 10;
+      const branch = b.level === 1 ? options.troopType || troopType(b) : troopType(b);
+      const coinShare = b.type === "barracks" ? branch === "archer" ? 0.6 : 0.4 : b.level % 2 ? 0.4 : 0.6;
+      return { coins: Math.round(budget * coinShare * COIN_VALUE), materials: Math.round(budget * (1 - coinShare)) };
+    }
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
   function upgradeReason(s, b, ignoreFunds = false, options = {}) {
@@ -899,7 +910,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       for (const id of d.required) if (!adjacent(s, b.x, b.y).some((n) => n.type === id && n.level >= b.level + 1)) return "需邻" + DEFS[id].name + " Lv" + (b.level + 1);
     }
     if (b.type === "barracks" && b.level === 1 && branch === void 0) return "请选择步兵营或弓兵营";
-    return ignoreFunds ? "" : shortage(s, upgradeCost(b));
+    return ignoreFunds ? "" : shortage(s, upgradeCost(b, options));
   }
   function upgradeOptions(s, b) {
     s = economicView(s);
@@ -947,7 +958,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const reason = upgradeReason(s, b, false, options);
     if (reason) return { ok: false, reason };
     if (b.type === "barracks") syncSoldierHealth(world(s));
-    pay(s, upgradeCost(b));
+    pay(s, upgradeCost(b, options));
     const targets = b.type === "gate" ? s.buildings.filter((n) => n.type === "gate") : [b];
     const level = b.level + 1;
     for (const target of targets) {
@@ -1124,8 +1135,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (u.hp <= 0) u.killer = owner;
   }
   function recruit(s, dt) {
-    const counts = s.players.map(() => 0);
-    for (const u of s.soldiers) if (u.hp > 0) counts[u.owner]++;
+    const counts = s.players.map(() => 0), campCounts = /* @__PURE__ */ new Map();
+    for (const u of s.soldiers) if (u.hp > 0) {
+      counts[u.owner]++;
+      const key = u.owner + ":" + u.barracksId;
+      campCounts.set(key, (campCounts.get(key) || 0) + 1);
+    }
     const index = buildingIndex(s);
     for (const p of s.players) {
       if (p.eliminated) continue;
@@ -1135,12 +1150,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         for (const b of barracks) b.production = 0;
         continue;
       }
-      for (const b of barracks) b.production = (b.production || 0) + soldierRate(playerView(s, p.id)) * dt;
+      for (const b of barracks) {
+        if ((campCounts.get(p.id + ":" + b.id) || 0) >= barracksCapacity(b)) {
+          b.production = 0;
+          continue;
+        }
+        b.production = (b.production || 0) + soldierRate(playerView(s, p.id)) * dt;
+      }
       for (let n = 0; n < barracks.length && counts[p.id] < UNIT_CAP; n++) {
         const i = (p.recruitCursor + n) % barracks.length, b = barracks[i];
-        if (b.production < 1 - 1e-8) continue;
+        const key = p.id + ":" + b.id, count = campCounts.get(key) || 0;
+        if (count >= barracksCapacity(b) || b.production < 1 - 1e-8) continue;
         b.production = Math.max(0, b.production - 1);
         counts[p.id]++;
+        campCounts.set(key, count + 1);
+        if (count + 1 >= barracksCapacity(b)) b.production = 0;
         const maxHp = soldierHP(playerView(s, p.id), b);
         s.soldiers.push({
           id: s.nextId++,
@@ -1524,8 +1548,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function restore(raw) {
     try {
       const s = JSON.parse(raw), finite = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
-      if (!s || ![9, 10, VERSION].includes(s.version) || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
-      const legacy = s.version === 9, oldVersion = s.version < VERSION;
+      if (!s || ![9, 10, 11, VERSION].includes(s.version) || !["single", "coop"].includes(s.mode) || !(s.mode === "coop" ? [2, 4, 6] : [1, 2, 3, 4]).includes(s.enemyCount) || ![0, 1, 2, 3].includes(s.rotation)) return null;
+      const legacy = s.version === 9, oldVersion = s.version < 11, oldEconomy = s.version < 12;
       s.version = VERSION;
       if (!Object.prototype.hasOwnProperty.call(s, "difficulty")) s.difficulty = "beginner";
       if (!Object.prototype.hasOwnProperty.call(DIFFICULTIES, s.difficulty)) return null;
@@ -1618,6 +1642,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       const aliveBlue = s.players.some((p) => p.team === 0 && !p.eliminated), aliveRed = s.players.some((p) => p.team === 1 && !p.eliminated);
       if (s.over !== (!aliveBlue || !aliveRed) || s.result !== (aliveBlue && aliveRed ? null : aliveBlue ? "victory" : aliveRed ? "defeat" : "draw")) return null;
+      if (oldEconomy) {
+        for (const p of s.players) {
+          p.coins *= COIN_VALUE;
+          if (!finite(p.coins)) return null;
+        }
+        for (const b of s.buildings) {
+          b.coinPending *= COIN_VALUE;
+          if (b.originCost) b.originCost.coins *= COIN_VALUE;
+          if (!finite(b.coinPending) || b.originCost && !finite(b.originCost.coins)) return null;
+        }
+      }
       s.phase = "day";
       s.day = 1;
       s.time = s.elapsed;
@@ -1650,6 +1685,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     stepSoldierMovement,
     SIZE,
     CENTER,
+    COIN_VALUE,
     worldSize,
     worldWidth,
     worldHeight,
@@ -1689,6 +1725,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     maxHP,
     soldierTrainingTime,
     soldierRate,
+    barracksCapacity,
+    barracksPopulation,
     difficultyModifiers,
     difficultyEconomy,
     difficultySoldier,
@@ -1851,6 +1889,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   function createReplica(raw, owner, session, seq, ack = 0) {
+    var _a;
+    try {
+      if (((_a = JSON.parse(raw)) == null ? void 0 : _a.version) !== G.VERSION) return null;
+    } catch (e) {
+      return null;
+    }
     const base = G.restore(raw);
     if (!base || base.mode !== "coop") return null;
     const state = clone(base), replica = { base, state, owner, session, seq, ack, pending: [], economic: economy(base, owner) };
@@ -2955,7 +2999,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             continue;
           }
           const preview = { type: hint.type, x, y, level: 1 };
-          const shadow = __spreadProps(__spreadValues({}, town), { buildings: [...town.buildings, preview] }), income = GF.income(shadow, preview);
+          const shadow = __spreadProps(__spreadValues({}, town), { buildings: [...town.buildings, preview] }), income = GF.income(shadow, preview) / (hint.resource === "coins" ? GF.COIN_VALUE : 1);
           if (!best2 || income > bestIncome || income === bestIncome && (hint.tier > best2.tier || hint.tier === best2.tier && hint.resource === "coins" && best2.resource !== "coins")) {
             best2 = hint;
             bestIncome = income;
@@ -3269,9 +3313,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return !!(result == null ? void 0 : result.ok) && record("upgrade", b.type, reason);
     }
     const count = (type) => s.buildings.filter((b) => b.type === type).length;
+    const valueRates = () => {
+      const rates = G.rates(s);
+      return __spreadProps(__spreadValues({}, rates), { coins: rates.coins / G.COIN_VALUE });
+    };
     const canAfford = (cost) => s.coins >= cost.coins && s.materials >= cost.materials;
-    function waitSeconds(cost, rates = G.rates(s)) {
-      const coin = Math.max(0, cost.coins - s.coins) / (rates.coins || Number.EPSILON);
+    function waitSeconds(cost, rates = valueRates()) {
+      const coin = Math.max(0, cost.coins - s.coins) / G.COIN_VALUE / (rates.coins || Number.EPSILON);
       const material = Math.max(0, cost.materials - s.materials) / (rates.materials || Number.EPSILON);
       return Math.max(coin, material);
     }
@@ -3316,7 +3364,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (d.cat === "economy") {
         if (count(type) === 0 || d.tier > 0) score += chainPotential(type, p) * 1.5;
         if (d.prev) score += s.buildings.filter((b) => b.type === d.prev && Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)) <= 1).reduce((n, b) => n + b.level * 3, 0);
-        score += s.buildings.filter((b) => supports(type, b.type) && Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)) <= 1).reduce((total, b) => total + 3 + b.level * 2 + Math.log2(1 + G.income(s, b)), 0);
+        score += s.buildings.filter((b) => supports(type, b.type) && Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)) <= 1).reduce((total, b) => total + 3 + b.level * 2 + Math.log2(1 + G.income(s, b) / (G.DEFS[b.type].resource === "coins" ? G.COIN_VALUE : 1)), 0);
       }
       return score;
     }
@@ -3328,7 +3376,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return p && { type, cost: G.buildCost(s, type), reason, run: () => build(type, p, reason) };
     }
     function upgradePlan(b, reason) {
-      return b && { type: b.type, cost: G.upgradeCost(b), reason, run: () => upgrade(b, reason) };
+      return b && { type: b.type, cost: G.upgradeCost(b, upgradeChoice(b)), reason, run: () => upgrade(b, reason) };
     }
     function perform(plan, saveLimit = 0, forceSave = false) {
       if (!plan) return null;
@@ -3348,7 +3396,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return reason ? null : b;
     }
     function resourceIncome(buildings, resource) {
-      return buildings.reduce((total, b) => G.DEFS[b.type].resource === resource ? total + G.income(s, b, buildings) : total, 0);
+      return buildings.reduce((total, b) => G.DEFS[b.type].resource === resource ? total + G.income(s, b, buildings) : total, 0) / (resource === "coins" ? G.COIN_VALUE : 1);
     }
     function buildIncomeGain(d, p) {
       const next = __spreadProps(__spreadValues({}, p), { id: -1, type: d.id, level: 1, owner: s.actorId });
@@ -3428,7 +3476,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     function selectUltimate() {
       const remaining = ULTIMATES.filter((d) => !count(d.id));
       if (!remaining.length) return null;
-      const rates = G.rates(s), progress = (d) => [...chainTypes(d.id)].filter((type) => count(type)).length;
+      const rates = valueRates(), progress = (d) => [...chainTypes(d.id)].filter((type) => count(type)).length;
       remaining.sort((a, b) => progress(b) - progress(a) || (a.resource === "coins" ? rates.coins - rates.materials : rates.materials - rates.coins) - (b.resource === "coins" ? rates.coins - rates.materials : rates.materials - rates.coins) || a.id.localeCompare(b.id));
       return remaining[0];
     }
@@ -3469,7 +3517,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (firstFarm) return perform(buildPlan("farm", firstFarm, "建立工材来源"), 0, true);
       const firstMulberry = count("mulberry") === 0 && bestPlot("mulberry");
       if (firstMulberry) return perform(buildPlan("mulberry", firstMulberry, "建立铜钱来源"), 0, true);
-      const rates = G.rates(s), plans = [];
+      const rates = valueRates(), plans = [];
       for (const type of ["farm", "mulberry"]) if (count(type) < 4) {
         const p = bestPlot(type);
         if (p) plans.push(buildPlan(type, p, type === "farm" ? "扩充基础工材" : "扩充基础铜钱"));
@@ -3544,12 +3592,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return null;
     }
     function economyPlan() {
-      const rates = G.rates(s), options = [], resourceWeight = (resource) => {
+      const rates = valueRates(), options = [], resourceWeight = (resource) => {
         const own = Math.max(0.5, rates[resource]), other = Math.max(0.5, rates[resource === "coins" ? "materials" : "coins"]);
         return Math.max(0.7, Math.min(2.2, other / own));
       };
       function score(gain, cost, d, multiplier = 1) {
-        const productionSeconds = cost.coins / Math.max(1, rates.coins) + cost.materials / Math.max(1, rates.materials);
+        const productionSeconds = cost.coins / G.COIN_VALUE / Math.max(1, rates.coins) + cost.materials / Math.max(1, rates.materials);
         return gain * resourceWeight(d.resource) * multiplier / Math.max(1, productionSeconds);
       }
       const reserved = strategicLayout && stats.ultimateGoal === strategicLayout.goal ? chainTypes(strategicLayout.goal) : /* @__PURE__ */ new Set();
@@ -3576,18 +3624,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return waitSeconds(best.cost, rates) <= 9 ? best : affordable || best;
     }
     function diversificationPlan() {
-      const rates = G.rates(s), plans = Object.values(G.DEFS).filter((d) => d.cat === "economy" && d.tier === 1 && !count(d.id)).map((d) => ({ definition: d, plot: bestPlot(d.id) })).filter((option) => option.plot).map((option) => buildPlan(option.definition.id, option.plot, `完善${option.definition.chain}产业链`));
+      const rates = valueRates(), plans = Object.values(G.DEFS).filter((d) => d.cat === "economy" && d.tier === 1 && !count(d.id)).map((d) => ({ definition: d, plot: bestPlot(d.id) })).filter((option) => option.plot).map((option) => buildPlan(option.definition.id, option.plot, `完善${option.definition.chain}产业链`));
       return plans.sort((a, b) => waitSeconds(a.cost, rates) - waitSeconds(b.cost, rates))[0] || null;
     }
     function basicSupplyPlan() {
-      const rates = G.rates(s), plans = ["farm", "mulberry", "tea", "quarry"].filter((type) => count(type) < (type === "farm" || type === "mulberry" ? G.DEFS[type].limit : 2)).map((type) => ({ type, plot: bestPlot(type) })).filter((option) => option.plot).map((option) => buildPlan(option.type, option.plot, G.DEFS[option.type].resource === "materials" ? "扩充前置工材建筑" : "扩充前置铜钱建筑"));
+      const rates = valueRates(), plans = ["farm", "mulberry", "tea", "quarry"].filter((type) => count(type) < G.DEFS[type].limit).map((type) => ({ type, plot: bestPlot(type) })).filter((option) => option.plot).map((option) => buildPlan(option.type, option.plot, G.DEFS[option.type].resource === "materials" ? "扩充前置工材建筑" : "扩充前置铜钱建筑"));
       return plans.sort((a, b) => {
         const ar = G.DEFS[a.type].resource === "materials" ? rates.materials : rates.coins, br = G.DEFS[b.type].resource === "materials" ? rates.materials : rates.coins;
         return ar - br || waitSeconds(a.cost, rates) - waitSeconds(b.cost, rates);
       })[0] || null;
     }
     function militaryPlan() {
-      const rates = G.rates(s), minimum = Math.min(rates.coins, rates.materials), barracks = s.buildings.filter((b) => b.type === "barracks").sort((a, b) => a.level - b.level || a.id - b.id);
+      const rates = valueRates(), minimum = Math.min(rates.coins, rates.materials), barracks = s.buildings.filter((b) => b.type === "barracks").sort((a, b) => a.level - b.level || a.id - b.id);
       const desiredBarracks = 1 + (minimum >= 8 ? 1 : 0) + (minimum >= 16 ? 1 : 0);
       if (barracks.length < desiredBarracks) {
         const gate = primaryGate(), p = bestPlot("barracks", (n) => Math.hypot(n.x - gate.x, n.y - gate.y) <= 7) || bestPlot("barracks");
@@ -3623,7 +3671,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (supplyResult === "acted") stats.armyTurn = true;
         return supplyResult === "acted" || cast;
       }
-      const strategic = ultimatePlan(), strategicDef = G.DEFS[strategic == null ? void 0 : strategic.type], strategicRates = G.rates(s), strategicBase = Math.min(strategicRates.coins, strategicRates.materials);
+      const strategic = ultimatePlan(), strategicDef = G.DEFS[strategic == null ? void 0 : strategic.type], strategicRates = valueRates(), strategicBase = Math.min(strategicRates.coins, strategicRates.materials);
       const strategicWait = (strategicDef == null ? void 0 : strategicDef.required) ? strategicBase >= 100 ? 45 : 12 : (strategicDef == null ? void 0 : strategicDef.end) ? strategicBase >= 85 ? 70 : 12 : (strategicDef == null ? void 0 : strategicDef.tier) === 1 ? strategicBase >= 15 ? 12 : 4 : strategicBase >= 10 ? 9 : 4;
       if (stats.armyTurn) {
         const plan = militaryPlan(), result = perform(plan, 7);
@@ -3765,7 +3813,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (!online) return;
     if (message.type === "snapshot") {
       const next = GFNetwork.createReplica(message.snapshot, playerOwner(), message.session, message.seq, message.ack);
-      if (!next) return;
+      if (!next) {
+        toast("联机版本不一致或数据无效，请重启服务器并刷新双方游戏", "warning");
+        leaveOnline();
+        return;
+      }
       const first = !started || !replica || replica.session !== message.session;
       if (!first) {
         next.pending = replica.pending.filter((action) => action.id > message.ack);
@@ -3901,6 +3953,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     updateCoopSeat();
   }
   let panelKey = "", lastPhase = "", lastFrame = 0, uiClock = 0, saveClock = 0, toastTimer, audioContext, hiddenPause = document.hidden, demolishTarget = null;
+  let recruitmentFeedback = null;
   const cam = { x: 0, y: 0, zoom: 1 }, pointers = /* @__PURE__ */ new Map();
   const view = { width: 390, height: 844 };
   const mobileRendering = window.matchMedia("(pointer: coarse)").matches;
@@ -4018,6 +4071,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   function closePanel() {
     selected = null;
     panelKey = "";
+    recruitmentFeedback = null;
     $("panel").hidden = true;
     $("game").classList.remove("has-panel");
   }
@@ -4061,7 +4115,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.id === "earth") return center2([label("守护"), figure('<span class="effect-value">-20%</span>')]);
     if (d.id === "tao") return center2([label("道法"), figure('<span class="effect-value">+15%</span>')]);
     if (d.id === "zhong") return center2([label("镇煞"), figure('<span class="effect-value">减速40%</span>')]);
-    if (d.id === "shrine") return center2([label("祠堂"), figure(`${icon("coins")}<span class="effect-value">+1/秒</span>`)]);
+    if (d.id === "shrine") return center2([label("祠堂"), figure(`${icon("coins")}<span class="effect-value">+${GF.DEFS.shrine.income}/秒</span>`)]);
     if (d.id === "fortune") return center2([label("造化"), figure('<span class="effect-value">随机建筑</span>')]);
     return center2([label(d.name), figure(d.desc || "")]);
   }
@@ -4095,13 +4149,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     const base = d.income ? d.income * GF.incomeFactor(b) : 0;
     const bonus = d.income ? rateText(Math.max(0, GF.income(context, b) - base)) : "0";
     const revenue = d.income ? `<span class="detail-revenue"><i class="${d.resource === "materials" ? "material-icon" : "coin-icon"}" aria-hidden="true"></i><strong>+${rateText(base)}${bonus === "0" ? "" : `<span class="income-bonus">（+${bonus}）</span>`}</strong><small>/秒</small></span>` : "";
+    const recruitment = b.type === "barracks" ? `<div class="detail-recruit" id="detail-recruit" role="progressbar" aria-label="补员进度" aria-valuemin="0" aria-valuemax="100">${Array.from({ length: GF.barracksCapacity(b) }, () => '<span class="recruit-slot" aria-hidden="true"><i class="recruit-fill"></i></span>').join("")}</div>` : "";
     let stats = `<div>耐久上限<strong>${hp}${max ? "" : " → " + GF.maxHP(next)}</strong></div>`;
     if (b.type === "gate") stats += `<div>修复速度<strong>${rateText(GF.gateRepairRate(b.level) * 100)}%/秒${max ? "" : " → " + rateText(GF.gateRepairRate(next.level) * 100) + "%/秒"}</strong></div>`;
     if (d.income) {
       stats += `<div>${d.resource === "materials" ? "工材" : "铜钱"} / 秒<strong>${GF.income(context, b).toFixed(1)}${max ? "" : " → " + GF.income(context, next).toFixed(1)}</strong></div>`;
       if (b.type === "shrine") stats += `<div>训练时间<strong>${soldierTrainingText(b.level)}${max ? "" : " → " + soldierTrainingText(next.level)}</strong></div>`;
-    } else if (b.type === "barracks") stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level === 1 ? " · 下级可分支" : ""}</strong></div><div>士兵等级<strong>${b.level}${max ? "" : " → " + next.level}</strong></div>`;
-    else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
+    } else if (b.type === "barracks") {
+      const count = GF.barracksPopulation(state, b), capacity = GF.barracksCapacity(b);
+      stats += `<div>训练兵种<strong>${GF.troopDef(b).name}${b.level === 1 ? " · 下级可分支" : ""}</strong></div><div>士兵等级<strong>${b.level}${max ? "" : " → " + next.level}</strong></div><div>本营兵力<strong>${count} / ${capacity}${max ? "" : " → 上限 " + GF.barracksCapacity(next)}</strong></div>`;
+    } else if (d.damage) stats += `<div>攻击伤害<strong>${Math.round(d.damage * f)}${max ? "" : " → " + Math.round(d.damage * nextF)}</strong></div>`;
     else if (["well", "stage"].includes(b.type)) {
       const v = { well: 20, stage: 3 }[b.type];
       stats += `<div>收入加成<strong>${rateText(v * GF.auraFactor(b))}%${max ? "" : " → " + rateText(v * GF.auraFactor(next)) + "%"}</strong></div>`;
@@ -4111,17 +4168,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     if (d.required) stats += `<div>全镇${d.auraResource === "materials" ? "工材" : "铜钱"}收入加成<strong>${rateText(d.aura * GF.auraFactor(b) * 100)}%${max ? "" : " → " + rateText(d.aura * GF.auraFactor(next) * 100) + "%"}</strong></div>`;
     const branches = b.type === "barracks" && b.level === 1;
     const actions = branches ? ["infantry", "archer"].map((type) => `<button class="upgrade-button" data-barracks-branch="${type}">升级为${GF.TROOPS[type].name}营<small></small></button>`).join("") : `<button class="upgrade-button" id="upgrade-building">${max ? "已臻化境" : "升级"}<small id="upgrade-label"></small></button><button class="upgrade-button" id="bulk-upgrade-building" hidden>连升<small id="bulk-upgrade-label"></small></button>`;
-    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level, b.direction, b.hp <= 0)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches ? " branches" : ""}">${actions}</div></div>`;
+    return `<div class="detail"><div class="detail-title"><h3>${name}</h3><span class="level-badge">Lv.${b.level}</span>${revenue}${recruitment}<button class="demolish-button" id="demolish-building" ${demolishReason ? "disabled" : ""}>${demolishReason ? "不可拆除" : "拆除"}</button></div><div class="detail-art"><img src="${GFArt.thumbnail(b.type, b.level, b.direction, b.hp <= 0)}" alt="${name}"></div><div class="detail-info"><div class="health-row"><span>耐久</span><div class="health-track"><i id="detail-hp-fill"></i></div><span id="detail-hp"></span></div><div class="upgrade-stats">${stats}</div></div><div class="detail-actions${branches ? " branches" : ""}">${actions}</div></div>`;
   }
   function renderPanel() {
     if (!selected) return;
     const { x, y } = selected, b = GF.at(state, x, y);
+    if ((b == null ? void 0 : b.type) !== "barracks") recruitmentFeedback = null;
     if (GF.isWall(state, x, y) || !b && !GF.owns(playerState(), x, y)) {
       closePanel();
       return;
     }
     const buildableDefs = Object.values(GF.DEFS).filter((d) => !d.unique && !d.fortuneOnly && !d.fixed);
-    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""},${(b == null ? void 0 : b.troopType) || ""},${(b == null ? void 0 : b.type) === "gate" ? b.direction + ":" + (b.hp <= 0) : ""},${(b == null ? void 0 : b.type) === "barracks" ? GF.soldierPower(playerState(), b) : ""}`;
+    const key = `${x},${y},${(b == null ? void 0 : b.id) || ""},${(b == null ? void 0 : b.level) || ""},${(b == null ? void 0 : b.troopType) || ""},${(b == null ? void 0 : b.type) === "gate" ? b.direction + ":" + (b.hp <= 0) : ""},${(b == null ? void 0 : b.type) === "barracks" ? GF.soldierPower(GF.playerView(state, b.owner), b) + ":" + GF.barracksPopulation(state, b) + ":" + GF.shrineLevel(GF.playerView(state, b.owner)) : ""}`;
     $("plot-label").textContent = b ? b.type === "gate" ? (["北", "东", "南", "西"][b.direction] || "") + "城门" : b.type === "barracks" ? GF.name(b) : GF.DEFS[b.type].name : GF.TERRAIN[GF.terrain(x, y, state)] + " · 可兴建";
     $("build-view").hidden = !!b;
     $("detail-view").hidden = !b;
@@ -4141,13 +4199,35 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (readonly) $("plot-label").textContent = (state.players[b.owner].team === 0 ? "友方" : "敌方") + "庄园 " + (b.owner + 1) + " · 仅查看";
       $("detail-hp").textContent = Math.ceil(Math.max(0, b.hp)) + " / " + GF.maxHP(b);
       $("detail-hp-fill").style.width = Math.max(0, b.hp / GF.maxHP(b) * 100) + "%";
+      if (b.type === "barracks") {
+        const units = state.soldiers.filter((u) => u.hp > 0 && u.owner === b.owner && u.barracksId === b.id);
+        const count = units.length, capacity = GF.barracksCapacity(b), full = count >= capacity;
+        const previous = (recruitmentFeedback == null ? void 0 : recruitmentFeedback.state) === state && recruitmentFeedback.buildingId === b.id ? recruitmentFeedback : null;
+        const armyFull = state.soldiers.filter((u) => u.hp > 0 && u.owner === b.owner).length >= GF.UNIT_CAP;
+        const progress = full ? 100 : armyFull ? 0 : Math.min(100, Math.max(0, (b.production || 0) * 100));
+        const label = `兵力 ${count}/${capacity}，` + (full ? "已满员" : armyFull ? "总兵力已满" : "补员 " + Math.floor(progress) + "%");
+        const recruitment = $("detail-recruit");
+        for (const [index, slot] of [...recruitment.children].entries()) {
+          const fill = index < count ? 100 : index === count ? progress : 0;
+          slot.dataset.state = index < count ? "full" : index === count && !full && !armyFull ? "training" : "empty";
+          slot.firstElementChild.style.clipPath = `inset(${27 - Math.floor(27 * fill / 100)}px 0 0)`;
+          if (units[index] && previous && !previous.ids.has(units[index].id)) {
+            const flash = slot.firstElementChild.animate([{ filter: "brightness(0) invert(1)" }, { filter: "brightness(0) invert(1)", offset: 0.5 }, { filter: "none" }], { duration: 280 });
+            flash.id = "recruit-trained";
+          }
+        }
+        recruitmentFeedback = { state, buildingId: b.id, ids: new Set(units.map((u) => u.id)) };
+        recruitment.setAttribute("aria-valuenow", String(Math.floor(progress)));
+        recruitment.setAttribute("aria-valuetext", label);
+        recruitment.title = label;
+      }
       if (b.type === "barracks" && b.level === 1) {
         for (const button of $("detail-view").querySelectorAll("[data-barracks-branch]")) {
           const reason3 = GF.upgradeReason(playerState(), b, false, { troopType: button.dataset.barracksBranch });
           button.classList.toggle("blocked", !!reason3);
           button.setAttribute("aria-disabled", String(!!reason3));
           button.title = reason3 || "";
-          const label = button.querySelector("small"), html = costHTML(GF.upgradeCost(b), true);
+          const label = button.querySelector("small"), html = costHTML(GF.upgradeCost(b, { troopType: button.dataset.barracksBranch }), true);
           if (label._costHTML !== html) {
             label.innerHTML = html;
             label._costHTML = html;
@@ -4201,6 +4281,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     $("autoplay-action").textContent = playerState().ai.lastAction;
     $("coins").textContent = fmt(playerState().coins);
     $("materials").textContent = fmt(playerState().materials);
+    const rates = GF.rates(playerState());
+    for (const resource of ["coins", "materials"]) $(resource + "-rate").textContent = "+" + (rates[resource] >= 1e4 ? fmt(rates[resource]) : rateText(rates[resource])) + "/秒";
     $("skills").hidden = !started || state.over || playerState().eliminated;
     for (const el of document.querySelectorAll("[data-skill]")) {
       el.hidden = el.dataset.skill !== playerState().selectedSkill;

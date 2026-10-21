@@ -15,7 +15,7 @@ test('all layouts, rotations and seeded terrain are connected and have the speci
   assert.deepEqual([s.worldSize,s.worldHeight],rotation%2?[...expected].reverse():expected);
   assert.equal(s.players.length,blue+count);const land=G.estate(s),own=new Set();
    for(const p of s.players){
-    const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[0,0]);assert.deepEqual(G.rates(view),{coins:1,materials:0});
+    const view=G.playerView(s,p.id),e=G.estate(view);assert.deepEqual([view.coins,view.materials],[0,0]);assert.deepEqual(G.rates(view),{coins:G.COIN_VALUE,materials:0});
     for(const k of [...e.cells,...e.walls]){const x=k%s.worldSize,y=Math.floor(k/s.worldSize);assert(x>=2&&y>=2&&x<=s.worldSize-3&&y<=s.worldHeight-3,'estate keeps a two-tile edge margin');}
     for(const g of e.gates)assert(g.x>=2&&g.y>=2&&g.x<=s.worldSize-3&&g.y<=s.worldHeight-3,'gate keeps a two-tile edge margin');
    for(const k of e.cells){assert(!own.has(k),'interiors do not overlap');own.add(k);}
@@ -53,7 +53,7 @@ test('soldiers leave by doors, destroy hostile gates and eventually attack the m
 test('nearby hostile soldiers take priority; allies and distant hostile troops do not',()=>{
  const s=match({mode:'coop',enemyCount:2}),home=G.estate(G.playerView(s,0)).center;
  const a=unit(s,0,home.x,home.y),ally=unit(s,1,home.x+.2,home.y),enemy=unit(s,2,home.x+.6,home.y);
- advance(s,.1);assert.equal(a.targetId,enemy.id);assert.equal(ally.hp,44);assert(enemy.hp<44);
+ advance(s,.1);assert.equal(a.targetId,enemy.id);assert.equal(ally.hp,ally.maxHp);assert(enemy.hp<enemy.maxHp);
  enemy.hp=0;advance(s,.1);assert.equal(a.targetId,null);assert.notEqual(a.targetOwner,null);
 });
 test('nearest reachable enemy is selected and eliminated targets are skipped',()=>{
@@ -89,7 +89,7 @@ test('new saves preserve future simulation and reject obsolete, corrupt or forei
 test('version-ten saves migrate from the old five-tile map margin',()=>{
  const s=match(),original=JSON.parse(G.serialize(s));original.version=10;original.worldSize+=6;original.worldHeight+=6;
  for(const b of original.buildings){b.x+=3;b.y+=3;}
- const restored=G.restore(JSON.stringify(original));assert(restored);assert.equal(restored.version,11);assert.equal(restored.worldSize,s.worldSize);assert.equal(restored.worldHeight,s.worldHeight);
+ const restored=G.restore(JSON.stringify(original));assert(restored);assert.equal(restored.version,G.VERSION);assert.equal(restored.worldSize,s.worldSize);assert.equal(restored.worldHeight,s.worldHeight);
  assert.deepEqual(restored.buildings.map(b=>[b.type,b.owner,b.x,b.y]),s.buildings.map(b=>[b.type,b.owner,b.x,b.y]));
 });
 test('replicas predict only own economy, reconcile rejection and receive every estate elimination',()=>{

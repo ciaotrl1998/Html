@@ -7,6 +7,7 @@
 .start-landscape{object-fit:contain;image-rendering:pixelated;min-width:0}
 .topbar,.bottom-panel,.modal-card,.settings-panel,.setting-group,.coop-connect,.coop-seat,.autoplay-settings,#autoplay-status,#startup-error,.noscript{background:transparent;border:6px solid transparent;border-image:var(--art-panel-paper) 6 fill stretch;border-radius:0;box-shadow:none}
 .topbar{border-width:0 0 6px;border-image:var(--art-panel-paper) 6 fill stretch}
+.topbar .resource>div{gap:1px}.resource-rate{font:10px/12px "Microsoft YaHei",sans-serif;color:#59734e;white-space:nowrap;font-variant-numeric:tabular-nums}
 .bottom-panel{border-width:6px 0 0}.panel-heading{border-bottom-color:#9c9976}
 .settings-panel{border:0}.setting-group,.coop-connect,.coop-seat,.autoplay-settings{border-image-source:var(--art-panel-inset)}
 .coop-seat.is-ready{background:transparent;border:6px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch}
@@ -21,6 +22,9 @@
 .build-card .card-effect{min-height:66px}.build-card .card-image{flex-shrink:1;min-height:54px}
 .level-badge,.chain-tag,.card-reason,.start-badge{background:transparent;border:3px solid transparent;border-image:var(--art-panel-inset) 6 fill stretch;border-radius:0}
 .detail-title .level-badge{border-width:5px}
+.detail-title .detail-recruit{display:flex;align-items:center;gap:2px;flex:1;min-width:0;height:27px;margin:0 5px;overflow:hidden}
+.detail-recruit .recruit-slot{position:relative;display:block;flex:0 1 12px;min-width:0;width:12px;height:27px;overflow:hidden;background:var(--art-icon-recruit-soldier-outline) -10px -3px/32px 32px no-repeat;image-rendering:pixelated}
+.detail-recruit .recruit-fill{position:absolute;inset:0;display:block;background:var(--art-icon-recruit-soldier-full) -10px -3px/32px 32px no-repeat;clip-path:inset(27px 0 0);pointer-events:none}
 .detail-art{background:transparent}
 .coin-icon,.material-icon{border:0!important;outline:0;box-shadow:none;border-radius:0;background:var(--art-icon-coin) center/contain no-repeat;transform:none;image-rendering:pixelated}
 .material-icon{background-image:var(--art-icon-materials)}

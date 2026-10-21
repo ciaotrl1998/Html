@@ -21,7 +21,7 @@
   const css=document.createElement('style');css.id='png-art-urls';
   const paths={};
   for(const name of ['paper','card','inset','dark','primary','secondary','disabled','danger','warning','ally','enemy','night','seal','ornament-border'])paths[`panel-${name}`]=`assets/ui/panels/${name}.png`;
-  for(const name of ['coin','materials','close','arrow-right','upgrade','invasion','grip','diamond','repel','repair','thunder','single','coop','load','sound-off','sound-on'])paths[`icon-${name}`]=`assets/ui/icons/${name}.png`;
+  for(const name of ['coin','materials','close','arrow-right','upgrade','invasion','grip','diamond','repel','repair','thunder','single','coop','load','sound-off','sound-on','recruit-soldier-full','recruit-soldier-outline'])paths[`icon-${name}`]=`assets/ui/icons/${name}.png`;
   for(const name of ['off','on'])paths[`switch-${name}`]=`assets/ui/controls/switch-${name}.png`;
   for(const name of ['track','player','enemy','building','critical'])paths[`health-${name}`]=`assets/ui/bars/health-${name}.png`;
   paths.paper='assets/ui/backgrounds/paper.png';paths.landscape='assets/ui/backgrounds/title-town.png';

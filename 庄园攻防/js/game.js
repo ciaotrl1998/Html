@@ -8,17 +8,19 @@
   const worldHeight = s => s?.worldHeight ?? worldWidth(s);
   const worldCenter = s => Math.floor(worldSize(s) / 2);
   const worldCenterY = s => Math.floor(worldHeight(s) / 2);
-  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1.3;
+  const COIN_VALUE = 5;
+  const GROWTH = 2, HP_GROWTH = 1.55, UPGRADE_GROWTH = 5, MATERIAL_COST_FACTOR = 1;
   const SOLDIER_HP_GROWTH = 2;
   const ECONOMY_UPGRADE_WAIT = 7.5, ECONOMY_UPGRADE_GROWTH = 5;
   const SHRINE_REQUIREMENTS = [0, 1, 2, 3, 5, 7, 9, 11, 13, 15];
   const TERRAIN = { plain: '平地', shore: '水岸', water: '水域', forest: '林地', mountain: '山地' };
   const DEFS = {};
   function balancedCost(cost) {
-    return { coins: cost.coins, materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
+    return { coins: Math.ceil(cost.coins * COIN_VALUE), materials: Math.ceil(cost.materials * MATERIAL_COST_FACTOR) };
   }
   function def(id, name, cat, cost, hp, extra = {}) {
     if (extra.upgradeBase) extra = { ...extra, upgradeBase: balancedCost(extra.upgradeBase) };
+    if (extra.resource === 'coins' && extra.income) extra = { ...extra, income: extra.income * COIN_VALUE };
     DEFS[id] = { id, name, cat, cost: balancedCost(cost), hp, ...extra };
   }
   const chains = [
@@ -29,7 +31,8 @@
   ];
   // 所有生产建筑的影响范围统一为 1（仅影响相邻格）。
   const COIN_CHAIN_COSTS = [{ coins: 0, materials: 50 }, { coins: 90, materials: 160 }, { coins: 430, materials: 750 }];
-  const MATERIAL_CHAIN_COSTS = [{ coins: 75, materials: 0 }, { coins: 190, materials: 50 }, { coins: 920, materials: 300 }];
+  // Mirror prices in resource value: five coins have the same value as one material.
+  const MATERIAL_CHAIN_COSTS = COIN_CHAIN_COSTS.map(cost => ({ coins: cost.materials, materials: cost.coins }));
   chains.forEach((a, ci) => { for (let i = 0; i < 3; i++) {
     const coinChain = ci === 0 || ci === 2, baseCost = (coinChain ? COIN_CHAIN_COSTS : MATERIAL_CHAIN_COSTS)[i], high = ci === 0 || ci === 3;
     const costFactor = (high ? 1.5 : 1) * (i === 2 ? 2 : 1);
@@ -41,10 +44,10 @@
     names: [a[i + 3], i === 0 ? ['清茗茶肆', '临水良田', '葱郁桑园', '青石矿场'][ci] : '兴旺' + a[i + 3], '鼎盛' + a[i + 3]]
   }); } });
   def('guild', '汇财会馆', 'economy', { coins: 18000, materials: 24000 }, 600, { income: 240, resource: 'coins', aura: .05, auraResource: 'coins', required: ['bank', 'tailor'], radius: 1, limit: 1 });
-  def('port', '百工院', 'economy', { coins: 24000, materials: 15000 }, 900, { income: 300, resource: 'materials', aura: .10, auraResource: 'materials', required: ['wine', 'trade'], radius: 1, limit: 1 });
+  def('port', '百工院', 'economy', { coins: 24000, materials: 18000 }, 900, { income: 240, resource: 'materials', aura: .05, auraResource: 'materials', required: ['wine', 'trade'], radius: 1, limit: 1 });
   def('tower', '箭塔', 'defense', { coins: 95, materials: 70 }, 300, { damage: 22, range: 4, interval: .85, desc: '单体远射 · 射程 4 格' });
   def('rock', '擂石台', 'defense', { coins: 260, materials: 190 }, 380, { damage: 64, range: 3.8, interval: 2, splash: 1.5, fortuneOnly: true, desc: '范围轰击 · 仅可由造化匣获得' });
-  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 18, range: 4.5, interval: .8, desc: '持续出兵 · 一级 5s/1兵' });
+  def('barracks', '兵营', 'defense', { coins: 240, materials: 180 }, 420, { damage: 20, range: 4.5, interval: .8, desc: '一级限 3 兵 · 每级 +1 · 阵亡补员' });
   def('well', '水井', 'support', { coins: 100, materials: 60 }, 250, { farmAura: .2, fortuneOnly: true, desc: '全庄农田收入 +20% · 仅可由造化匣获得' });
   def('stage', '戏台', 'support', { coins: 300, materials: 220 }, 280, { aura: .03, fortuneOnly: true, desc: '全镇收入 +3%' });
   def('shrine', '祠堂', 'temple', { coins: 0, materials: 0 }, 1800, { income: 1, resource: 'coins', desc: '古坊之根 · 决定全坊升级上限', unique: true, upgradeBase: { coins: 120, materials: 90 }, upgradeGrowth: 5, names: ['古坊祠堂', '百福祠堂', '万安宗祠'] });
@@ -62,11 +65,12 @@
     { title: '百业初兴', desc: '建成任意两种经济链终点建筑', reward: 200, test: s => new Set(s.buildings.filter(b => DEFS[b.type].end).map(b => b.type)).size >= 2 },
     { title: '四方会聚', desc: '建成一座汇财会馆', reward: 300, test: s => s.buildings.some(b => b.type === 'guild') },
   ];
+  for(const mission of MISSIONS)mission.reward*=COIN_VALUE;
 
-  const VERSION=11, UNIT_CAP=120, SOLDIER_SPEED=.8;
+  const VERSION=12, UNIT_CAP=120, SOLDIER_SPEED=.8;
   const TROOPS=Object.freeze({
-    infantry:Object.freeze({name:'步兵',hp:44,damage:18,range:.75,interval:1}),
-    archer:Object.freeze({name:'弓兵',hp:44*.7,damage:10,range:3,interval:1.5})
+    infantry:Object.freeze({name:'步兵',hp:110,damage:20,range:.75,interval:1}),
+    archer:Object.freeze({name:'弓兵',hp:110,damage:11,range:3,interval:1.5})
   });
   const troopType=entity=>entity?.troopType||'infantry';
   const troopDef=entity=>TROOPS[troopType(entity)]||TROOPS.infantry;
@@ -152,6 +156,8 @@
   const maxHP = b => Math.round(DEFS[b.type].hp * hpFactor(b));
   const soldierTrainingTime = level => 5 - 4 * (Math.max(1, Math.min(SHRINE_MAX_LEVEL, level)) - 1) / (SHRINE_MAX_LEVEL - 1);
   const soldierRate = s => 1 / soldierTrainingTime(shrineLevel(s));
+  const barracksCapacity = b => b.level + 2;
+  const barracksPopulation = (s,b) => world(s).soldiers.filter(u=>u.hp>0&&u.owner===b.owner&&u.barracksId===b.id).length;
   function difficultyModifiers(s){
     const p=economicView(s),d=DIFFICULTIES[world(s).difficulty]||DIFFICULTIES.beginner;
     return p.team===1&&p.controller==='computer'?d:DIFFICULTIES.beginner;
@@ -261,25 +267,33 @@
     }
     const b = addBuilding(s, type, x, y, 1, { originCost: cost }); missions(s); return { ok: true, building: b };
   }
-  function upgradeCost(b) {
+  function upgradeCost(b, options = {}) {
     const d = DEFS[b.type], base = d.upgradeBase || d.cost;
     if (d.cat === 'economy' && d.income) {
       const tier = d.tier ?? 3;
       const ownShare = [0, .2, .3, .4][tier], oppositeResource = d.resource === 'coins' ? 'materials' : 'coins';
       const oppositeRate = Object.values(DEFS)
         .filter(n => n.cat === 'economy' && n.resource === oppositeResource && (n.tier ?? 3) <= tier)
-        .reduce((sum, n) => sum + n.income * (n.limit || 1), 0);
+        .reduce((sum, n) => sum + n.income / (n.resource === 'coins' ? COIN_VALUE : 1) * (n.limit || 1), 0);
       const oppositeBase = Math.ceil(oppositeRate * ECONOMY_UPGRADE_WAIT * (d.upgradeWeight || 1));
       const ownBase = Math.ceil(oppositeBase * ownShare / (1 - ownShare));
       const scale = Math.pow(ECONOMY_UPGRADE_GROWTH, b.level - 1);
       const scaled = value => value ? Math.ceil(value * scale - 1e-9) : 0;
       return d.resource === 'materials'
-        ? { coins: scaled(oppositeBase), materials: scaled(ownBase) }
-        : { coins: scaled(ownBase), materials: scaled(oppositeBase) };
+        ? { coins: scaled(oppositeBase * COIN_VALUE), materials: scaled(ownBase) }
+        : { coins: scaled(ownBase * COIN_VALUE), materials: scaled(oppositeBase) };
     }
     const foundation = b.type === 'shrine' || b.type === 'gate';
     const premium = b.type === 'shrine' ? 1.18 : b.type === 'gate' ? 1.06 : d.income ? 1.20 : 1.12;
     const multiple = 1.8 * Math.pow(d.upgradeGrowth || UPGRADE_GROWTH, b.level - 1) * Math.pow(premium, Math.max(0, b.level - (foundation ? 7 : 4)));
+    if(['shrine','gate','barracks','tower'].includes(b.type)){
+      // Barracks retain their branch's resource bias; other foundations alternate.
+      // Budgets are multiples of ten so 40/60 value shares are exact integers.
+      const budget = Math.ceil((base.coins / COIN_VALUE + base.materials) * multiple / 10) * 10;
+      const branch = b.level === 1 ? options.troopType || troopType(b) : troopType(b);
+      const coinShare = b.type === 'barracks' ? (branch === 'archer' ? .6 : .4) : (b.level % 2 ? .4 : .6);
+      return { coins: Math.round(budget * coinShare * COIN_VALUE), materials: Math.round(budget * (1 - coinShare)) };
+    }
     return { coins: Math.ceil(base.coins * multiple), materials: Math.ceil(base.materials * multiple) };
   }
   function upgradeReason(s, b, ignoreFunds = false, options = {}) {
@@ -302,7 +316,7 @@
     if (d.prev && !adjacent(s, b.x, b.y).some(n => n.type === d.prev && n.level >= b.level + 1)) return '需邻' + DEFS[d.prev].name + ' Lv' + (b.level + 1);
     if (d.required) for (const id of d.required) if (!adjacent(s, b.x, b.y).some(n => n.type === id && n.level >= b.level + 1)) return '需邻' + DEFS[id].name + ' Lv' + (b.level + 1);
     if(b.type==='barracks'&&b.level===1&&branch===undefined)return '请选择步兵营或弓兵营';
-    return ignoreFunds ? '' : shortage(s, upgradeCost(b));
+    return ignoreFunds ? '' : shortage(s, upgradeCost(b, options));
   }
   function upgradeOptions(s, b) {
     s = economicView(s);
@@ -340,7 +354,7 @@
     const reason = upgradeReason(s, b, false, options); if (reason) return { ok: false, reason };
     // Catch up the old infantry before freezing their level at the branch point.
     if(b.type==='barracks')syncSoldierHealth(world(s));
-    pay(s, upgradeCost(b));
+    pay(s, upgradeCost(b, options));
     const targets = b.type === 'gate' ? s.buildings.filter(n => n.type === 'gate') : [b];
     const level = b.level + 1;
     for (const target of targets) {
@@ -474,17 +488,24 @@
   }
   function damageUnit(u,damage,owner){if(u.hp<=0)return;u.hp-=damage;if(u.hp<=0)u.killer=owner;}
   function recruit(s,dt){
-    const counts=s.players.map(()=>0);for(const u of s.soldiers)if(u.hp>0)counts[u.owner]++;
+    const counts=s.players.map(()=>0),campCounts=new Map();
+    for(const u of s.soldiers)if(u.hp>0){counts[u.owner]++;const key=u.owner+':'+u.barracksId;campCounts.set(key,(campCounts.get(key)||0)+1);}
     const index=buildingIndex(s);
     for(const p of s.players){
       if(p.eliminated)continue;const barracks=index.owners[p.id].filter(b=>b.type==='barracks'&&b.hp>0).sort((a,b)=>a.id-b.id);
       if(!barracks.length)continue;
       if(counts[p.id]>=UNIT_CAP){for(const b of barracks)b.production=0;continue;}
-      for(const b of barracks)b.production=(b.production||0)+soldierRate(playerView(s,p.id))*dt;
+      for(const b of barracks){
+        if((campCounts.get(p.id+':'+b.id)||0)>=barracksCapacity(b)){b.production=0;continue;}
+        b.production=(b.production||0)+soldierRate(playerView(s,p.id))*dt;
+      }
       for(let n=0;n<barracks.length&&counts[p.id]<UNIT_CAP;n++){
         const i=(p.recruitCursor+n)%barracks.length,b=barracks[i];
-        if(b.production<1-1e-8)continue;
+        const key=p.id+':'+b.id,count=campCounts.get(key)||0;
+        if(count>=barracksCapacity(b)||b.production<1-1e-8)continue;
         b.production=Math.max(0,b.production-1);counts[p.id]++;
+        campCounts.set(key,count+1);
+        if(count+1>=barracksCapacity(b))b.production=0;
         const maxHp=soldierHP(playerView(s,p.id),b);
         s.soldiers.push({id:s.nextId++,owner:p.id,barracksId:b.id,troopType:troopType(b),x:b.x,y:b.y,level:b.level,hp:maxHp,maxHp,baseDamage:soldierBaseDamage(b),attack:0,attackAt:0,
           targetOwner:null,targetId:null,targetBuildingId:null,repelled:0,slowed:0,slowFactor:1,waypoint:null});
@@ -677,8 +698,8 @@
   function restore(raw){
     try{
       const s=JSON.parse(raw),finite=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
-      if(!s||![9,10,VERSION].includes(s.version)||!['single','coop'].includes(s.mode)||!(s.mode==='coop'?[2,4,6]:[1,2,3,4]).includes(s.enemyCount)||![0,1,2,3].includes(s.rotation))return null;
-      const legacy=s.version===9,oldVersion=s.version<VERSION;s.version=VERSION;
+      if(!s||![9,10,11,VERSION].includes(s.version)||!['single','coop'].includes(s.mode)||!(s.mode==='coop'?[2,4,6]:[1,2,3,4]).includes(s.enemyCount)||![0,1,2,3].includes(s.rotation))return null;
+      const legacy=s.version===9,oldVersion=s.version<11,oldEconomy=s.version<12;s.version=VERSION;
       if(!Object.prototype.hasOwnProperty.call(s,'difficulty'))s.difficulty='beginner';
       if(!Object.prototype.hasOwnProperty.call(DIFFICULTIES,s.difficulty))return null;
       if(!Number.isInteger(s.mapSeed)||s.mapSeed<0||s.mapSeed>4294967295||!Number.isInteger(s.seed)||s.seed<0||s.seed>4294967295)return null;
@@ -734,9 +755,13 @@
       }
       const aliveBlue=s.players.some(p=>p.team===0&&!p.eliminated),aliveRed=s.players.some(p=>p.team===1&&!p.eliminated);
       if(s.over!==( !aliveBlue||!aliveRed)||s.result!==(aliveBlue&&aliveRed?null:aliveBlue?'victory':aliveRed?'defeat':'draw'))return null;
+      if(oldEconomy){
+        for(const p of s.players){p.coins*=COIN_VALUE;if(!finite(p.coins))return null;}
+        for(const b of s.buildings){b.coinPending*=COIN_VALUE;if(b.originCost)b.originCost.coins*=COIN_VALUE;if(!finite(b.coinPending)||b.originCost&&!finite(b.originCost.coins))return null;}
+      }
       s.phase='day';s.day=1;s.time=s.elapsed;s.events=[];s.effects=[];return s;
     }catch{return null;}
   }
   return {VERSION,UNIT_CAP,SOLDIER_SPEED,TROOPS,troopType,troopDef,DIFFICULTIES,createMatch,createState,createCoopState,playerView,ownerAt,hostile,hostileUnits,inSkillZone,ready,setControllerFactory,gateRepairRate,stepSoldierMovement,
-    SIZE,CENTER,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierTrainingTime,soldierRate,difficultyModifiers,difficultyEconomy,difficultySoldier,soldierBoost,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
+    SIZE,CENTER,COIN_VALUE,worldSize,worldWidth,worldHeight,worldCenter,worldCenterY,estate,owns,isWall,walkable,MAX_LEVEL,SHRINE_MAX_LEVEL,GROWTH,HP_GROWTH,UPGRADE_GROWTH,MATERIAL_COST_FACTOR,ECONOMY_UPGRADE_WAIT,ECONOMY_UPGRADE_GROWTH,SHRINE_REQUIREMENTS,TERRAIN,DEFS,SKILLS,MISSIONS,chains,terrain,dist8,at,adjacent,dryFarm,factor,incomeFactor,auraFactor,hpFactor,maxLevel,shrineLevel,requiredShrineLevel,unlockedBuildingLevel,maxHP,soldierTrainingTime,soldierRate,barracksCapacity,barracksPopulation,difficultyModifiers,difficultyEconomy,difficultySoldier,soldierBoost,soldierHP,soldierDamage,soldierPower,findSoldierPath,visualLevel,name,buildCost,fortuneCandidates,grantBuilding,buildReason,buildHints,build,upgradeCost,upgradeReason,upgradeOptions,bulkUpgrade,upgrade,demolishReason,demolish,income,rates,buildingGuard,defenseBoost,zhongSlow,findPath,chooseSkill,skillReason,skill,stepEconomy,step,serialize,restore};
 });

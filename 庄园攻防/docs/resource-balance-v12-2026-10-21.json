@@ -1,0 +1,4674 @@
+{
+  "version": 12,
+  "exchange": 5,
+  "sourceHashes": {
+    "js/game.js": "ac99b4bd888a98fd8a67b104db299bb60b31f7f1a474455099ef9c36e8c691ab",
+    "js/autoplay.js": "7bcea01ca9345cd93fae8d853f0433e2d80e0366bd86d5a280600b449c667f72"
+  },
+  "base": {
+    "coins": 1790,
+    "materials": 358
+  },
+  "firstRound": {
+    "coins": 47295,
+    "materials": 9459
+  },
+  "quote": [
+    {
+      "id": "tea",
+      "name": "茶肆",
+      "resource": "coins",
+      "limit": 4,
+      "definitionCost": {
+        "coins": 0,
+        "materials": 75
+      },
+      "builds": [
+        {
+          "coins": 0,
+          "materials": 75
+        },
+        {
+          "coins": 0,
+          "materials": 75
+        },
+        {
+          "coins": 0,
+          "materials": 75
+        },
+        {
+          "coins": 0,
+          "materials": 75
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 10
+        },
+        {
+          "level": 2,
+          "amount": 20
+        },
+        {
+          "level": 3,
+          "amount": 40
+        },
+        {
+          "level": 4,
+          "amount": 80
+        },
+        {
+          "level": 5,
+          "amount": 160
+        },
+        {
+          "level": 6,
+          "amount": 320
+        },
+        {
+          "level": 7,
+          "amount": 640
+        },
+        {
+          "level": 8,
+          "amount": 1280
+        },
+        {
+          "level": 9,
+          "amount": 2560
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 0,
+          "materials": 123
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 0,
+          "materials": 615
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 0,
+          "materials": 3075
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 0,
+          "materials": 15375
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 0,
+          "materials": 76875
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 0,
+          "materials": 384375
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 0,
+          "materials": 1921875
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 0,
+          "materials": 9609375
+        }
+      ]
+    },
+    {
+      "id": "inn",
+      "name": "客栈",
+      "resource": "coins",
+      "limit": 2,
+      "definitionCost": {
+        "coins": 675,
+        "materials": 240
+      },
+      "builds": [
+        {
+          "coins": 675,
+          "materials": 240
+        },
+        {
+          "coins": 675,
+          "materials": 240
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 40
+        },
+        {
+          "level": 2,
+          "amount": 80
+        },
+        {
+          "level": 3,
+          "amount": 160
+        },
+        {
+          "level": 4,
+          "amount": 320
+        },
+        {
+          "level": 5,
+          "amount": 640
+        },
+        {
+          "level": 6,
+          "amount": 1280
+        },
+        {
+          "level": 7,
+          "amount": 2560
+        },
+        {
+          "level": 8,
+          "amount": 5120
+        },
+        {
+          "level": 9,
+          "amount": 10240
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 375,
+          "materials": 300
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 1875,
+          "materials": 1500
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 9375,
+          "materials": 7500
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 46875,
+          "materials": 37500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 234375,
+          "materials": 187500
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 1171875,
+          "materials": 937500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 5859375,
+          "materials": 4687500
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 29296875,
+          "materials": 23437500
+        }
+      ]
+    },
+    {
+      "id": "bank",
+      "name": "钱庄",
+      "resource": "coins",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 6450,
+        "materials": 2250
+      },
+      "builds": [
+        {
+          "coins": 6450,
+          "materials": 2250
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 240
+        },
+        {
+          "level": 2,
+          "amount": 480
+        },
+        {
+          "level": 3,
+          "amount": 960
+        },
+        {
+          "level": 4,
+          "amount": 1920
+        },
+        {
+          "level": 5,
+          "amount": 3840
+        },
+        {
+          "level": 6,
+          "amount": 7680
+        },
+        {
+          "level": 7,
+          "amount": 15360
+        },
+        {
+          "level": 8,
+          "amount": 30720
+        },
+        {
+          "level": 9,
+          "amount": 61440
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1900,
+          "materials": 885
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 9500,
+          "materials": 4425
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 47500,
+          "materials": 22125
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 237500,
+          "materials": 110625
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1187500,
+          "materials": 553125
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 5937500,
+          "materials": 2765625
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 29687500,
+          "materials": 13828125
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 148437500,
+          "materials": 69140625
+        }
+      ]
+    },
+    {
+      "id": "farm",
+      "name": "农田",
+      "resource": "materials",
+      "limit": 6,
+      "definitionCost": {
+        "coins": 250,
+        "materials": 0
+      },
+      "builds": [
+        {
+          "coins": 25,
+          "materials": 0
+        },
+        {
+          "coins": 80,
+          "materials": 0
+        },
+        {
+          "coins": 135,
+          "materials": 0
+        },
+        {
+          "coins": 190,
+          "materials": 0
+        },
+        {
+          "coins": 245,
+          "materials": 0
+        },
+        {
+          "coins": 300,
+          "materials": 0
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 1
+        },
+        {
+          "level": 2,
+          "amount": 2
+        },
+        {
+          "level": 3,
+          "amount": 4
+        },
+        {
+          "level": 4,
+          "amount": 8
+        },
+        {
+          "level": 5,
+          "amount": 16
+        },
+        {
+          "level": 6,
+          "amount": 32
+        },
+        {
+          "level": 7,
+          "amount": 64
+        },
+        {
+          "level": 8,
+          "amount": 128
+        },
+        {
+          "level": 9,
+          "amount": 256
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 385,
+          "materials": 0
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 1925,
+          "materials": 0
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 9625,
+          "materials": 0
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 48125,
+          "materials": 0
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 240625,
+          "materials": 0
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 1203125,
+          "materials": 0
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 6015625,
+          "materials": 0
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 30078125,
+          "materials": 0
+        }
+      ]
+    },
+    {
+      "id": "mill",
+      "name": "磨坊",
+      "resource": "materials",
+      "limit": 2,
+      "definitionCost": {
+        "coins": 800,
+        "materials": 90
+      },
+      "builds": [
+        {
+          "coins": 800,
+          "materials": 90
+        },
+        {
+          "coins": 800,
+          "materials": 90
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 5
+        },
+        {
+          "level": 2,
+          "amount": 10
+        },
+        {
+          "level": 3,
+          "amount": 20
+        },
+        {
+          "level": 4,
+          "amount": 40
+        },
+        {
+          "level": 5,
+          "amount": 80
+        },
+        {
+          "level": 6,
+          "amount": 160
+        },
+        {
+          "level": 7,
+          "amount": 320
+        },
+        {
+          "level": 8,
+          "amount": 640
+        },
+        {
+          "level": 9,
+          "amount": 1280
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1500,
+          "materials": 75
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 7500,
+          "materials": 375
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 37500,
+          "materials": 1875
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 187500,
+          "materials": 9375
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 937500,
+          "materials": 46875
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 4687500,
+          "materials": 234375
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 23437500,
+          "materials": 1171875
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 117187500,
+          "materials": 5859375
+        }
+      ]
+    },
+    {
+      "id": "wine",
+      "name": "酒坊",
+      "resource": "materials",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 7500,
+        "materials": 860
+      },
+      "builds": [
+        {
+          "coins": 7500,
+          "materials": 860
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 30
+        },
+        {
+          "level": 2,
+          "amount": 60
+        },
+        {
+          "level": 3,
+          "amount": 120
+        },
+        {
+          "level": 4,
+          "amount": 240
+        },
+        {
+          "level": 5,
+          "amount": 480
+        },
+        {
+          "level": 6,
+          "amount": 960
+        },
+        {
+          "level": 7,
+          "amount": 1920
+        },
+        {
+          "level": 8,
+          "amount": 3840
+        },
+        {
+          "level": 9,
+          "amount": 7680
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 4425,
+          "materials": 380
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 22125,
+          "materials": 1900
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 110625,
+          "materials": 9500
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 553125,
+          "materials": 47500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 2765625,
+          "materials": 237500
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 13828125,
+          "materials": 1187500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 69140625,
+          "materials": 5937500
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 345703125,
+          "materials": 29687500
+        }
+      ]
+    },
+    {
+      "id": "mulberry",
+      "name": "桑园",
+      "resource": "coins",
+      "limit": 6,
+      "definitionCost": {
+        "coins": 0,
+        "materials": 50
+      },
+      "builds": [
+        {
+          "coins": 0,
+          "materials": 5
+        },
+        {
+          "coins": 0,
+          "materials": 16
+        },
+        {
+          "coins": 0,
+          "materials": 27
+        },
+        {
+          "coins": 0,
+          "materials": 38
+        },
+        {
+          "coins": 0,
+          "materials": 49
+        },
+        {
+          "coins": 0,
+          "materials": 60
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 5
+        },
+        {
+          "level": 2,
+          "amount": 10
+        },
+        {
+          "level": 3,
+          "amount": 20
+        },
+        {
+          "level": 4,
+          "amount": 40
+        },
+        {
+          "level": 5,
+          "amount": 80
+        },
+        {
+          "level": 6,
+          "amount": 160
+        },
+        {
+          "level": 7,
+          "amount": 320
+        },
+        {
+          "level": 8,
+          "amount": 640
+        },
+        {
+          "level": 9,
+          "amount": 1280
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 0,
+          "materials": 77
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 0,
+          "materials": 385
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 0,
+          "materials": 1925
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 0,
+          "materials": 9625
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 0,
+          "materials": 48125
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 0,
+          "materials": 240625
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 0,
+          "materials": 1203125
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 0,
+          "materials": 6015625
+        }
+      ]
+    },
+    {
+      "id": "weaver",
+      "name": "织坊",
+      "resource": "coins",
+      "limit": 2,
+      "definitionCost": {
+        "coins": 450,
+        "materials": 160
+      },
+      "builds": [
+        {
+          "coins": 450,
+          "materials": 160
+        },
+        {
+          "coins": 450,
+          "materials": 160
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 25
+        },
+        {
+          "level": 2,
+          "amount": 50
+        },
+        {
+          "level": 3,
+          "amount": 100
+        },
+        {
+          "level": 4,
+          "amount": 200
+        },
+        {
+          "level": 5,
+          "amount": 400
+        },
+        {
+          "level": 6,
+          "amount": 800
+        },
+        {
+          "level": 7,
+          "amount": 1600
+        },
+        {
+          "level": 8,
+          "amount": 3200
+        },
+        {
+          "level": 9,
+          "amount": 6400
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 375,
+          "materials": 300
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 1875,
+          "materials": 1500
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 9375,
+          "materials": 7500
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 46875,
+          "materials": 37500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 234375,
+          "materials": 187500
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 1171875,
+          "materials": 937500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 5859375,
+          "materials": 4687500
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 29296875,
+          "materials": 23437500
+        }
+      ]
+    },
+    {
+      "id": "tailor",
+      "name": "成衣铺",
+      "resource": "coins",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 4300,
+        "materials": 1500
+      },
+      "builds": [
+        {
+          "coins": 4300,
+          "materials": 1500
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 150
+        },
+        {
+          "level": 2,
+          "amount": 300
+        },
+        {
+          "level": 3,
+          "amount": 600
+        },
+        {
+          "level": 4,
+          "amount": 1200
+        },
+        {
+          "level": 5,
+          "amount": 2400
+        },
+        {
+          "level": 6,
+          "amount": 4800
+        },
+        {
+          "level": 7,
+          "amount": 9600
+        },
+        {
+          "level": 8,
+          "amount": 19200
+        },
+        {
+          "level": 9,
+          "amount": 38400
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1900,
+          "materials": 885
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 9500,
+          "materials": 4425
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 47500,
+          "materials": 22125
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 237500,
+          "materials": 110625
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1187500,
+          "materials": 553125
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 5937500,
+          "materials": 2765625
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 29687500,
+          "materials": 13828125
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 148437500,
+          "materials": 69140625
+        }
+      ]
+    },
+    {
+      "id": "quarry",
+      "name": "石场",
+      "resource": "materials",
+      "limit": 4,
+      "definitionCost": {
+        "coins": 375,
+        "materials": 0
+      },
+      "builds": [
+        {
+          "coins": 375,
+          "materials": 0
+        },
+        {
+          "coins": 375,
+          "materials": 0
+        },
+        {
+          "coins": 375,
+          "materials": 0
+        },
+        {
+          "coins": 375,
+          "materials": 0
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 2
+        },
+        {
+          "level": 2,
+          "amount": 4
+        },
+        {
+          "level": 3,
+          "amount": 8
+        },
+        {
+          "level": 4,
+          "amount": 16
+        },
+        {
+          "level": 5,
+          "amount": 32
+        },
+        {
+          "level": 6,
+          "amount": 64
+        },
+        {
+          "level": 7,
+          "amount": 128
+        },
+        {
+          "level": 8,
+          "amount": 256
+        },
+        {
+          "level": 9,
+          "amount": 512
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 615,
+          "materials": 0
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 3075,
+          "materials": 0
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 15375,
+          "materials": 0
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 76875,
+          "materials": 0
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 384375,
+          "materials": 0
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 1921875,
+          "materials": 0
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 9609375,
+          "materials": 0
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 48046875,
+          "materials": 0
+        }
+      ]
+    },
+    {
+      "id": "kiln",
+      "name": "瓷窑",
+      "resource": "materials",
+      "limit": 2,
+      "definitionCost": {
+        "coins": 1200,
+        "materials": 135
+      },
+      "builds": [
+        {
+          "coins": 1200,
+          "materials": 135
+        },
+        {
+          "coins": 1200,
+          "materials": 135
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 8
+        },
+        {
+          "level": 2,
+          "amount": 16
+        },
+        {
+          "level": 3,
+          "amount": 32
+        },
+        {
+          "level": 4,
+          "amount": 64
+        },
+        {
+          "level": 5,
+          "amount": 128
+        },
+        {
+          "level": 6,
+          "amount": 256
+        },
+        {
+          "level": 7,
+          "amount": 512
+        },
+        {
+          "level": 8,
+          "amount": 1024
+        },
+        {
+          "level": 9,
+          "amount": 2048
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1500,
+          "materials": 75
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 7500,
+          "materials": 375
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 37500,
+          "materials": 1875
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 187500,
+          "materials": 9375
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 937500,
+          "materials": 46875
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 4687500,
+          "materials": 234375
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 23437500,
+          "materials": 1171875
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 117187500,
+          "materials": 5859375
+        }
+      ]
+    },
+    {
+      "id": "trade",
+      "name": "商号",
+      "resource": "materials",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 11250,
+        "materials": 1290
+      },
+      "builds": [
+        {
+          "coins": 11250,
+          "materials": 1290
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 48
+        },
+        {
+          "level": 2,
+          "amount": 96
+        },
+        {
+          "level": 3,
+          "amount": 192
+        },
+        {
+          "level": 4,
+          "amount": 384
+        },
+        {
+          "level": 5,
+          "amount": 768
+        },
+        {
+          "level": 6,
+          "amount": 1536
+        },
+        {
+          "level": 7,
+          "amount": 3072
+        },
+        {
+          "level": 8,
+          "amount": 6144
+        },
+        {
+          "level": 9,
+          "amount": 12288
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 4425,
+          "materials": 380
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 22125,
+          "materials": 1900
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 110625,
+          "materials": 9500
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 553125,
+          "materials": 47500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 2765625,
+          "materials": 237500
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 13828125,
+          "materials": 1187500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 69140625,
+          "materials": 5937500
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 345703125,
+          "materials": 29687500
+        }
+      ]
+    },
+    {
+      "id": "guild",
+      "name": "汇财会馆",
+      "resource": "coins",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 90000,
+        "materials": 24000
+      },
+      "builds": [
+        {
+          "coins": 90000,
+          "materials": 24000
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 1200
+        },
+        {
+          "level": 2,
+          "amount": 2400
+        },
+        {
+          "level": 3,
+          "amount": 4800
+        },
+        {
+          "level": 4,
+          "amount": 9600
+        },
+        {
+          "level": 5,
+          "amount": 19200
+        },
+        {
+          "level": 6,
+          "amount": 38400
+        },
+        {
+          "level": 7,
+          "amount": 76800
+        },
+        {
+          "level": 8,
+          "amount": 153600
+        },
+        {
+          "level": 9,
+          "amount": 307200
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 8950,
+          "materials": 2685
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 44750,
+          "materials": 13425
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 223750,
+          "materials": 67125
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 1118750,
+          "materials": 335625
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 5593750,
+          "materials": 1678125
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 27968750,
+          "materials": 8390625
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 139843750,
+          "materials": 41953125
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 699218750,
+          "materials": 209765625
+        }
+      ]
+    },
+    {
+      "id": "port",
+      "name": "百工院",
+      "resource": "materials",
+      "limit": 1,
+      "definitionCost": {
+        "coins": 120000,
+        "materials": 18000
+      },
+      "builds": [
+        {
+          "coins": 120000,
+          "materials": 18000
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 240
+        },
+        {
+          "level": 2,
+          "amount": 480
+        },
+        {
+          "level": 3,
+          "amount": 960
+        },
+        {
+          "level": 4,
+          "amount": 1920
+        },
+        {
+          "level": 5,
+          "amount": 3840
+        },
+        {
+          "level": 6,
+          "amount": 7680
+        },
+        {
+          "level": 7,
+          "amount": 15360
+        },
+        {
+          "level": 8,
+          "amount": 30720
+        },
+        {
+          "level": 9,
+          "amount": 61440
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 13425,
+          "materials": 1790
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 67125,
+          "materials": 8950
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 335625,
+          "materials": 44750
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 1678125,
+          "materials": 223750
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 8390625,
+          "materials": 1118750
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 41953125,
+          "materials": 5593750
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 209765625,
+          "materials": 27968750
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 1048828125,
+          "materials": 139843750
+        }
+      ]
+    },
+    {
+      "id": "tower",
+      "name": "箭塔",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 475,
+        "materials": 70
+      },
+      "builds": [
+        {
+          "coins": 475,
+          "materials": 70
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 600,
+          "materials": 180
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 4470,
+          "materials": 596
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 14860,
+          "materials": 4458
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 111390,
+          "materials": 14852
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 415820,
+          "materials": 124746
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 3492750,
+          "materials": 465700
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 13039500,
+          "materials": 3911850
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 109531710,
+          "materials": 14604228
+        }
+      ]
+    },
+    {
+      "id": "rock",
+      "name": "擂石台",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 1300,
+        "materials": 190
+      },
+      "builds": [
+        {
+          "coins": 1300,
+          "materials": 190
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 2340,
+          "materials": 342
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 11700,
+          "materials": 1710
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 58500,
+          "materials": 8550
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 292500,
+          "materials": 42750
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1638001,
+          "materials": 239401
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 9172801,
+          "materials": 1340641
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 51367681,
+          "materials": 7507585
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 287659009,
+          "materials": 42042471
+        }
+      ]
+    },
+    {
+      "id": "barracks",
+      "name": "兵营",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 1200,
+        "materials": 180
+      },
+      "builds": [
+        {
+          "coins": 600,
+          "materials": 90
+        },
+        {
+          "coins": 900,
+          "materials": 135
+        },
+        {
+          "coins": 1350,
+          "materials": 203
+        },
+        {
+          "coins": 2025,
+          "materials": 304
+        },
+        {
+          "coins": 3038,
+          "materials": 456
+        },
+        {
+          "coins": 4557,
+          "materials": 684
+        },
+        {
+          "coins": 9113,
+          "materials": 1367
+        },
+        {
+          "coins": 18225,
+          "materials": 2734
+        },
+        {
+          "coins": 36450,
+          "materials": 5468
+        },
+        {
+          "coins": 72900,
+          "materials": 10935
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1520,
+          "materials": 456
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 7560,
+          "materials": 2268
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 37800,
+          "materials": 11340
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 189000,
+          "materials": 56700
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1058420,
+          "materials": 317526
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 5927060,
+          "materials": 1778118
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 33191440,
+          "materials": 9957432
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 185871980,
+          "materials": 55761594
+        }
+      ],
+      "archerUpgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 2280,
+          "materials": 304
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 11340,
+          "materials": 1512
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 56700,
+          "materials": 7560
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 283500,
+          "materials": 37800
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1587630,
+          "materials": 211684
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 8890590,
+          "materials": 1185412
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 49787160,
+          "materials": 6638288
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 278807970,
+          "materials": 37174396
+        }
+      ]
+    },
+    {
+      "id": "well",
+      "name": "水井",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 500,
+        "materials": 60
+      },
+      "builds": [
+        {
+          "coins": 500,
+          "materials": 60
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 900,
+          "materials": 108
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 4500,
+          "materials": 540
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 22500,
+          "materials": 2700
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 112500,
+          "materials": 13500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 630001,
+          "materials": 75601
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 3528001,
+          "materials": 423361
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 19756801,
+          "materials": 2370817
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 110638081,
+          "materials": 13276570
+        }
+      ]
+    },
+    {
+      "id": "stage",
+      "name": "戏台",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 1500,
+        "materials": 220
+      },
+      "builds": [
+        {
+          "coins": 1500,
+          "materials": 220
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 2700,
+          "materials": 396
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 13500,
+          "materials": 1980
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 67500,
+          "materials": 9900
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 337500,
+          "materials": 49500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1890001,
+          "materials": 277201
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 10584001,
+          "materials": 1552321
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 59270401,
+          "materials": 8692993
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 331914241,
+          "materials": 48680756
+        }
+      ]
+    },
+    {
+      "id": "shrine",
+      "name": "祠堂",
+      "resource": "coins",
+      "limit": null,
+      "definitionCost": {
+        "coins": 0,
+        "materials": 0
+      },
+      "builds": [
+        {
+          "coins": 0,
+          "materials": 0
+        }
+      ],
+      "income": [
+        {
+          "level": 1,
+          "amount": 5
+        },
+        {
+          "level": 2,
+          "amount": 10
+        },
+        {
+          "level": 3,
+          "amount": 20
+        },
+        {
+          "level": 4,
+          "amount": 40
+        },
+        {
+          "level": 5,
+          "amount": 80
+        },
+        {
+          "level": 6,
+          "amount": 160
+        },
+        {
+          "level": 7,
+          "amount": 320
+        },
+        {
+          "level": 8,
+          "amount": 480
+        },
+        {
+          "level": 9,
+          "amount": 720
+        },
+        {
+          "level": 10,
+          "amount": 1080
+        },
+        {
+          "level": 11,
+          "amount": 1620
+        },
+        {
+          "level": 12,
+          "amount": 2430
+        },
+        {
+          "level": 13,
+          "amount": 3645
+        },
+        {
+          "level": 14,
+          "amount": 5467.5
+        },
+        {
+          "level": 15,
+          "amount": 8201.25
+        }
+      ],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 760,
+          "materials": 228
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 5670,
+          "materials": 756
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 18900,
+          "materials": 5670
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 141750,
+          "materials": 18900
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 472500,
+          "materials": 141750
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 3543750,
+          "materials": 472500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 11812500,
+          "materials": 3543750
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 104540640,
+          "materials": 13938752
+        },
+        {
+          "from": 9,
+          "to": 10,
+          "coins": 411193140,
+          "materials": 123357942
+        },
+        {
+          "from": 10,
+          "to": 11,
+          "coins": 3639059160,
+          "materials": 485207888
+        },
+        {
+          "from": 11,
+          "to": 12,
+          "coins": 14313632700,
+          "materials": 4294089810
+        },
+        {
+          "from": 12,
+          "to": 13,
+          "coins": 126675649230,
+          "materials": 16890086564
+        },
+        {
+          "from": 13,
+          "to": 14,
+          "coins": 498257553640,
+          "materials": 149477266092
+        },
+        {
+          "from": 14,
+          "to": 15,
+          "coins": 4409579349690,
+          "materials": 587943913292
+        }
+      ]
+    },
+    {
+      "id": "earth",
+      "name": "土地庙",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 900,
+        "materials": 130
+      },
+      "builds": [
+        {
+          "coins": 900,
+          "materials": 130
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 1620,
+          "materials": 234
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 8100,
+          "materials": 1170
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 40500,
+          "materials": 5850
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 202500,
+          "materials": 29250
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 1134001,
+          "materials": 163801
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 6350401,
+          "materials": 917281
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 35562241,
+          "materials": 5136769
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 199148545,
+          "materials": 28765901
+        }
+      ]
+    },
+    {
+      "id": "zhong",
+      "name": "钟馗像",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 1800,
+        "materials": 260
+      },
+      "builds": [
+        {
+          "coins": 1800,
+          "materials": 260
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 3240,
+          "materials": 468
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 16200,
+          "materials": 2340
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 81000,
+          "materials": 11700
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 405000,
+          "materials": 58500
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 2268001,
+          "materials": 327601
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 12700801,
+          "materials": 1834561
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 71124481,
+          "materials": 10273537
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 398297089,
+          "materials": 57531802
+        }
+      ]
+    },
+    {
+      "id": "tao",
+      "name": "道观",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 3000,
+        "materials": 440
+      },
+      "builds": [
+        {
+          "coins": 3000,
+          "materials": 440
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 5400,
+          "materials": 792
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 27000,
+          "materials": 3960
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 135000,
+          "materials": 19800
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 675000,
+          "materials": 99000
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 3780001,
+          "materials": 554401
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 21168001,
+          "materials": 3104641
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 118540801,
+          "materials": 17385985
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 663828481,
+          "materials": 97361511
+        }
+      ]
+    },
+    {
+      "id": "fortune",
+      "name": "造化匣",
+      "resource": null,
+      "limit": 10,
+      "definitionCost": {
+        "coins": 450,
+        "materials": 60
+      },
+      "builds": [
+        {
+          "coins": 450,
+          "materials": 60
+        },
+        {
+          "coins": 698,
+          "materials": 93
+        },
+        {
+          "coins": 1082,
+          "materials": 145
+        },
+        {
+          "coins": 1676,
+          "materials": 224
+        },
+        {
+          "coins": 2598,
+          "materials": 347
+        },
+        {
+          "coins": 4026,
+          "materials": 537
+        },
+        {
+          "coins": 6241,
+          "materials": 833
+        },
+        {
+          "coins": 9673,
+          "materials": 1290
+        },
+        {
+          "coins": 14993,
+          "materials": 1999
+        },
+        {
+          "coins": 23238,
+          "materials": 3099
+        }
+      ],
+      "income": [],
+      "upgrades": []
+    },
+    {
+      "id": "gate",
+      "name": "庄园城门",
+      "resource": null,
+      "limit": null,
+      "definitionCost": {
+        "coins": 475,
+        "materials": 120
+      },
+      "builds": [
+        {
+          "coins": 475,
+          "materials": 120
+        }
+      ],
+      "income": [],
+      "upgrades": [
+        {
+          "from": 1,
+          "to": 2,
+          "coins": 980,
+          "materials": 294
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "coins": 7290,
+          "materials": 972
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "coins": 24300,
+          "materials": 7290
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "coins": 182250,
+          "materials": 24300
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "coins": 607500,
+          "materials": 182250
+        },
+        {
+          "from": 6,
+          "to": 7,
+          "coins": 4556250,
+          "materials": 607500
+        },
+        {
+          "from": 7,
+          "to": 8,
+          "coins": 15187500,
+          "materials": 4556250
+        },
+        {
+          "from": 8,
+          "to": 9,
+          "coins": 120740640,
+          "materials": 16098752
+        },
+        {
+          "from": 9,
+          "to": 10,
+          "coins": 426616880,
+          "materials": 127985064
+        },
+        {
+          "from": 10,
+          "to": 11,
+          "coins": 3391604160,
+          "materials": 452213888
+        },
+        {
+          "from": 11,
+          "to": 12,
+          "coins": 11983668020,
+          "materials": 3595100406
+        },
+        {
+          "from": 12,
+          "to": 13,
+          "coins": 95270160750,
+          "materials": 12702688100
+        },
+        {
+          "from": 13,
+          "to": 14,
+          "coins": 336621234660,
+          "materials": 100986370398
+        },
+        {
+          "from": 14,
+          "to": 15,
+          "coins": 2676138815460,
+          "materials": 356818508728
+        }
+      ]
+    }
+  ],
+  "simulations": [
+    {
+      "seed": 7,
+      "seconds": 1800,
+      "spent": {
+        "coins": 10296475,
+        "materials": 1902751
+      },
+      "income": {
+        "coins": 11769421,
+        "materials": 6951633
+      },
+      "reward": {
+        "coins": 750,
+        "materials": 0
+      },
+      "history": [
+        {
+          "seconds": 60,
+          "stock": {
+            "coins": 520,
+            "materials": 64
+          },
+          "rates": {
+            "coins": 25,
+            "materials": 4
+          },
+          "normalizedRates": {
+            "coins": 5,
+            "materials": 4
+          },
+          "shrine": 1,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 1
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 180,
+          "stock": {
+            "coins": 856,
+            "materials": 128
+          },
+          "rates": {
+            "coins": 112.5,
+            "materials": 20.5
+          },
+          "normalizedRates": {
+            "coins": 22.5,
+            "materials": 20.5
+          },
+          "shrine": 2,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 2
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "mill",
+              "level": 1
+            },
+            {
+              "type": "weaver",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 600,
+          "stock": {
+            "coins": 101650,
+            "materials": 129824
+          },
+          "rates": {
+            "coins": 3480,
+            "materials": 2668.8
+          },
+          "normalizedRates": {
+            "coins": 696,
+            "materials": 2668.8
+          },
+          "shrine": 4,
+          "gate": 4,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 4
+            },
+            {
+              "type": "gate",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 3
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 3
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 3
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 3
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 3
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 3
+            },
+            {
+              "type": "mill",
+              "level": 3
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 3
+            },
+            {
+              "type": "inn",
+              "level": 3
+            },
+            {
+              "type": "kiln",
+              "level": 3
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            },
+            {
+              "type": "inn",
+              "level": 3
+            },
+            {
+              "type": "wine",
+              "level": 3
+            },
+            {
+              "type": "kiln",
+              "level": 3
+            },
+            {
+              "type": "trade",
+              "level": 3
+            },
+            {
+              "type": "bank",
+              "level": 3
+            },
+            {
+              "type": "tailor",
+              "level": 3
+            },
+            {
+              "type": "port",
+              "level": 3
+            },
+            {
+              "type": "mill",
+              "level": 3
+            }
+          ]
+        },
+        {
+          "seconds": 1200,
+          "stock": {
+            "coins": 1853048,
+            "materials": 2495340
+          },
+          "rates": {
+            "coins": 7472,
+            "materials": 5832.320000000001
+          },
+          "normalizedRates": {
+            "coins": 1494.4,
+            "materials": 5832.320000000001
+          },
+          "shrine": 6,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 6
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "wine",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "trade",
+              "level": 4
+            },
+            {
+              "type": "bank",
+              "level": 4
+            },
+            {
+              "type": "tailor",
+              "level": 4
+            },
+            {
+              "type": "port",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            }
+          ]
+        },
+        {
+          "seconds": 1800,
+          "stock": {
+            "coins": 1473696,
+            "materials": 5048882
+          },
+          "rates": {
+            "coins": 15808,
+            "materials": 7893.759999999999
+          },
+          "normalizedRates": {
+            "coins": 3161.6,
+            "materials": 7893.759999999999
+          },
+          "shrine": 7,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 7
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "mill",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "wine",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "trade",
+              "level": 5
+            },
+            {
+              "type": "bank",
+              "level": 5
+            },
+            {
+              "type": "tailor",
+              "level": 5
+            },
+            {
+              "type": "port",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "seconds": 1800,
+      "spent": {
+        "coins": 11246500,
+        "materials": 2272121
+      },
+      "income": {
+        "coins": 39005247,
+        "materials": 2477710
+      },
+      "reward": {
+        "coins": 750,
+        "materials": 0
+      },
+      "history": [
+        {
+          "seconds": 60,
+          "stock": {
+            "coins": 520,
+            "materials": 64
+          },
+          "rates": {
+            "coins": 25,
+            "materials": 4
+          },
+          "normalizedRates": {
+            "coins": 5,
+            "materials": 4
+          },
+          "shrine": 1,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 1
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 180,
+          "stock": {
+            "coins": 938,
+            "materials": 36
+          },
+          "rates": {
+            "coins": 132,
+            "materials": 20
+          },
+          "normalizedRates": {
+            "coins": 26.4,
+            "materials": 20
+          },
+          "shrine": 2,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 2
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "mill",
+              "level": 1
+            },
+            {
+              "type": "inn",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 600,
+          "stock": {
+            "coins": 659195,
+            "materials": 5478
+          },
+          "rates": {
+            "coins": 13608,
+            "materials": 869.4399999999999
+          },
+          "normalizedRates": {
+            "coins": 2721.6,
+            "materials": 869.4399999999999
+          },
+          "shrine": 5,
+          "gate": 4,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 5
+            },
+            {
+              "type": "gate",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "farm",
+              "level": 3
+            },
+            {
+              "type": "mulberry",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "quarry",
+              "level": 3
+            },
+            {
+              "type": "tea",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 3
+            },
+            {
+              "type": "mill",
+              "level": 3
+            },
+            {
+              "type": "inn",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 3
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            },
+            {
+              "type": "mill",
+              "level": 3
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "bank",
+              "level": 3
+            },
+            {
+              "type": "tailor",
+              "level": 3
+            },
+            {
+              "type": "trade",
+              "level": 3
+            },
+            {
+              "type": "wine",
+              "level": 3
+            },
+            {
+              "type": "guild",
+              "level": 3
+            },
+            {
+              "type": "inn",
+              "level": 3
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            }
+          ]
+        },
+        {
+          "seconds": 1200,
+          "stock": {
+            "coins": 14093281,
+            "materials": 298689
+          },
+          "rates": {
+            "coins": 29763.2,
+            "materials": 1443.2
+          },
+          "normalizedRates": {
+            "coins": 5952.64,
+            "materials": 1443.2
+          },
+          "shrine": 6,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 6
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "bank",
+              "level": 4
+            },
+            {
+              "type": "tailor",
+              "level": 4
+            },
+            {
+              "type": "trade",
+              "level": 4
+            },
+            {
+              "type": "wine",
+              "level": 4
+            },
+            {
+              "type": "guild",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            }
+          ]
+        },
+        {
+          "seconds": 1800,
+          "stock": {
+            "coins": 27759497,
+            "materials": 205589
+          },
+          "rates": {
+            "coins": 64620.799999999996,
+            "materials": 3052.8
+          },
+          "normalizedRates": {
+            "coins": 12924.16,
+            "materials": 3052.8
+          },
+          "shrine": 7,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 7
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "mill",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            },
+            {
+              "type": "mill",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "bank",
+              "level": 5
+            },
+            {
+              "type": "tailor",
+              "level": 5
+            },
+            {
+              "type": "trade",
+              "level": 5
+            },
+            {
+              "type": "wine",
+              "level": 5
+            },
+            {
+              "type": "guild",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 73193,
+      "seconds": 1800,
+      "spent": {
+        "coins": 9760300,
+        "materials": 1829261
+      },
+      "income": {
+        "coins": 13022506,
+        "materials": 2409444
+      },
+      "reward": {
+        "coins": 750,
+        "materials": 0
+      },
+      "history": [
+        {
+          "seconds": 60,
+          "stock": {
+            "coins": 520,
+            "materials": 64
+          },
+          "rates": {
+            "coins": 25,
+            "materials": 4
+          },
+          "normalizedRates": {
+            "coins": 5,
+            "materials": 4
+          },
+          "shrine": 1,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 1
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 180,
+          "stock": {
+            "coins": 856,
+            "materials": 128
+          },
+          "rates": {
+            "coins": 112.5,
+            "materials": 20.5
+          },
+          "normalizedRates": {
+            "coins": 22.5,
+            "materials": 20.5
+          },
+          "shrine": 2,
+          "gate": 1,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 2
+            },
+            {
+              "type": "gate",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 1
+            },
+            {
+              "type": "mulberry",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "quarry",
+              "level": 1
+            },
+            {
+              "type": "tea",
+              "level": 1
+            },
+            {
+              "type": "barracks",
+              "level": 1
+            },
+            {
+              "type": "mill",
+              "level": 1
+            },
+            {
+              "type": "weaver",
+              "level": 1
+            }
+          ]
+        },
+        {
+          "seconds": 600,
+          "stock": {
+            "coins": 993,
+            "materials": 5183
+          },
+          "rates": {
+            "coins": 4521.6,
+            "materials": 912.64
+          },
+          "normalizedRates": {
+            "coins": 904.32,
+            "materials": 912.64
+          },
+          "shrine": 5,
+          "gate": 4,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 5
+            },
+            {
+              "type": "gate",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 3
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 3
+            },
+            {
+              "type": "weaver",
+              "level": 3
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 3
+            },
+            {
+              "type": "tailor",
+              "level": 3
+            },
+            {
+              "type": "trade",
+              "level": 3
+            },
+            {
+              "type": "bank",
+              "level": 3
+            },
+            {
+              "type": "wine",
+              "level": 3
+            }
+          ]
+        },
+        {
+          "seconds": 1200,
+          "stock": {
+            "coins": 2970370,
+            "materials": 429351
+          },
+          "rates": {
+            "coins": 8048,
+            "materials": 1481.6
+          },
+          "normalizedRates": {
+            "coins": 1609.6,
+            "materials": 1481.6
+          },
+          "shrine": 6,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 6
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "farm",
+              "level": 4
+            },
+            {
+              "type": "mulberry",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "quarry",
+              "level": 4
+            },
+            {
+              "type": "tea",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            },
+            {
+              "type": "barracks",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "mill",
+              "level": 4
+            },
+            {
+              "type": "weaver",
+              "level": 4
+            },
+            {
+              "type": "kiln",
+              "level": 4
+            },
+            {
+              "type": "inn",
+              "level": 4
+            },
+            {
+              "type": "tailor",
+              "level": 4
+            },
+            {
+              "type": "trade",
+              "level": 4
+            },
+            {
+              "type": "bank",
+              "level": 4
+            },
+            {
+              "type": "wine",
+              "level": 4
+            }
+          ]
+        },
+        {
+          "seconds": 1800,
+          "stock": {
+            "coins": 3262956,
+            "materials": 580183
+          },
+          "rates": {
+            "coins": 17152,
+            "materials": 3142.4
+          },
+          "normalizedRates": {
+            "coins": 3430.4,
+            "materials": 3142.4
+          },
+          "shrine": 7,
+          "gate": 6,
+          "buildingLevels": [
+            {
+              "type": "shrine",
+              "level": 7
+            },
+            {
+              "type": "gate",
+              "level": 6
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "tower",
+              "level": 1
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "farm",
+              "level": 5
+            },
+            {
+              "type": "mulberry",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "quarry",
+              "level": 5
+            },
+            {
+              "type": "tea",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "mill",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            },
+            {
+              "type": "barracks",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "mill",
+              "level": 5
+            },
+            {
+              "type": "weaver",
+              "level": 5
+            },
+            {
+              "type": "kiln",
+              "level": 5
+            },
+            {
+              "type": "inn",
+              "level": 5
+            },
+            {
+              "type": "tailor",
+              "level": 5
+            },
+            {
+              "type": "trade",
+              "level": 5
+            },
+            {
+              "type": "bank",
+              "level": 5
+            },
+            {
+              "type": "wine",
+              "level": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
