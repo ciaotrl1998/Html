@@ -1,5 +1,5 @@
 import * as THREE from '/vendor/three.js';
-import { TABLE_GESTURES } from './table-actions.js';
+import { ChipSlider } from './chip-slider.js';
 import { NUMBER_FONT } from './typography.js';
 
 const VALUES = [1000000, 100000, 10000, 1000, 100, 25, 5, 1];
@@ -60,13 +60,10 @@ export class TableBetView {
     this.anchors();
     this.stageEntry = saloon.layout?.register(this.stageAnchor, 'staged-chips', '自己 · 预下注筹码', '筹码与扑克');
     this.state = { pending: 0, bankroll: 0, remaining: 0 }; this.lastBank = -1; this.lastStage = -1;
-    this.slider = document.createElement('div'); this.slider.className = 'chip-selector'; this.slider.hidden = true;
-    this.slider.setAttribute('role', 'slider'); this.slider.setAttribute('aria-label', '预下筹码'); this.slider.setAttribute('aria-orientation', 'vertical');
-    this.slider.innerHTML = '<div class="chip-selector-value"></div><div class="chip-selector-track"><i></i><b></b></div><span class="chip-selector-max"></span>';
-    saloon.container.appendChild(this.slider);
-    this.sliderValue = this.slider.querySelector('.chip-selector-value'); this.sliderFill = this.slider.querySelector('i');
-    this.sliderThumb = this.slider.querySelector('b'); this.sliderMax = this.slider.querySelector('.chip-selector-max');
-    this.sliderTrack = this.slider.querySelector('.chip-selector-track');
+    this.selector = new ChipSlider(saloon.container);
+    this.slider = this.selector.root; this.sliderTrack = this.selector.track;
+    this.sliderValue = this.selector.value; this.sliderFill = this.selector.fill;
+    this.sliderThumb = this.selector.thumb; this.sliderMax = this.selector.maximum;
     this.setActive(false);
   }
   setActive(active) {
@@ -140,14 +137,7 @@ export class TableBetView {
       this.numberMap.needsUpdate = true;
     }
     this.saloon.cards.setHandDrag?.(state.dragging === 'hand' ? Math.min(1.5, state.progress) : 0);
-    this.slider.hidden = !this.active || !state.selecting;
-    if (state.selecting) {
-      this.sliderValue.textContent = `${state.selected.toLocaleString('zh-CN')}${state.selected === state.bankroll ? ' · ALL IN' : ''}`;
-      this.sliderFill.style.height = `${state.ratio * 100}%`; this.sliderThumb.style.bottom = `${state.ratio * 100}%`;
-      this.sliderMax.textContent = `最大 ${state.maximum.toLocaleString('zh-CN')}`;
-      this.slider.setAttribute('aria-valuemin', '0'); this.slider.setAttribute('aria-valuemax', String(state.maximum)); this.slider.setAttribute('aria-valuenow', String(state.selected));
-      this.positionSlider();
-    }
+    this.selector.render(state, this.active);
     this.stage.visible = this.active && (state.pending > 0 || !!this.flight);
     this.number.visible = !this.flight;
   }
@@ -166,14 +156,8 @@ export class TableBetView {
     this.cancelFlight(); this.stage.visible = false; return adopted;
   }
   cancelFlight() { this.flight = null; this.committedAmount = 0; this.lastStage = -1; }
-  sliderHeight(height = this.saloon.container.getBoundingClientRect().height) { return Math.min(TABLE_GESTURES.sliderTravel, Math.max(120, height - 90)); }
-  positionSlider() {
-    const point = this.bank.getWorldPosition(new THREE.Vector3()); point.y += .25; point.project(this.saloon.camera);
-    const { width, height } = this.saloon.container.getBoundingClientRect();
-    const travel = this.sliderHeight(height); this.sliderTrack.style.height = `${travel}px`;
-    this.slider.style.left = `${Math.max(8, Math.min(width - 130, (point.x + 1) * width / 2 + 18))}px`;
-    this.slider.style.top = `${Math.max(12, Math.min(height - travel - 65, (1 - point.y) * height / 2 - travel - 35))}px`;
-  }
+  sliderHeight() { return this.selector.layout(false); }
+  positionSlider() { return this.selector.layout(); }
   measureForward(start, point) {
     this.anchors();
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.home.y), rect = this.saloon.renderer.domElement.getBoundingClientRect();
@@ -201,7 +185,6 @@ export class TableBetView {
         const position = this.home.clone().addScaledVector(this.forward, this.state.dragging === 'chips' ? Math.min(1.5, this.state.progress) * .45 : 0);
         this.stage.position.copy(this.stageAnchor.worldToLocal(position));
       }
-      if (!this.slider.hidden) this.positionSlider();
     }
     let completed = false;
     this.transfers = this.transfers.filter(transfer => {

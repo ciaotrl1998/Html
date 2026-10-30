@@ -299,6 +299,32 @@ test('prop gestures select and push chips without turning the camera; table drag
   assert.deepEqual(sent, ['raise', 'check']);
 });
 
+test('a held chip bank captures dragging anywhere on screen and immediately reverses away from either limit', () => {
+  for (const pointerType of ['mouse', 'touch']) {
+    const f = fixture(true), states = [], sent = [];
+    f.scene.tableActions = new TableActions({ change: state => states.push(state), send: action => sent.push(action) });
+    f.scene.tableActions.sync({ code: 'TEST', phase: 'playing', turnId: '1', hand: { number: 1, done: false, actor: 0, pot: 200, currentBet: 0,
+      players: [{ id: 'me', seat: 0, bet: 0, chips: 1000 }], legal: { toCall: 0, callAmount: 0, canCheck: true, canRaise: true, minTo: 1, maxTo: 1000, canAllIn: true } } }, 'me');
+    f.scene.target = { chipRole: 'bank' };
+    event(f.canvas, 'pointerdown', { pointerType });
+    assert.equal(f.canvas.hasPointerCapture(1), true); assert.equal(states.at(-1).selecting, true);
+    event(f.canvas, 'pointermove', { pointerType, clientX: 0, clientY: 0, buttons: 1 });
+    assert.equal(states.at(-1).selected, 1000);
+    event(f.canvas, 'pointermove', { pointerType, clientX: 390, clientY: 40, buttons: 1 });
+    assert.ok(states.at(-1).selected < 1000, 'downward motion immediately decreases after reaching ALL IN');
+    const amount = states.at(-1).selected;
+    event(f.canvas, 'pointermove', { pointerType, clientX: 0, clientY: 40, buttons: 1 });
+    assert.equal(states.at(-1).selected, amount, 'horizontal position cannot change the amount');
+    event(f.canvas, 'pointermove', { pointerType, clientX: 390, clientY: 844, buttons: 1 });
+    assert.equal(states.at(-1).selected, 0);
+    event(f.canvas, 'pointermove', { pointerType, clientX: 0, clientY: 804, buttons: 1 });
+    assert.ok(states.at(-1).selected > 0, 'upward motion immediately increases after reaching zero');
+    event(f.canvas, 'pointerup', { pointerType, clientX: 0, clientY: 804 });
+    assert.equal(states.at(-1).selecting, false); assert.equal(f.canvas.captures.size, 0);
+    assert.equal(f.looks, 0); assert.deepEqual(sent, []);
+  }
+});
+
 test('mouse and touch can peek during dealing, and a held drag never becomes a fold when actions unlock', () => {
   for (const pointerType of ['mouse', 'touch']) {
     const f = fixture(true), sent = [];

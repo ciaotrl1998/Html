@@ -100,8 +100,8 @@ test('pending labels count new chips, while raise messages include the player ex
   f.select(50); assert.equal(f.actions.pending, 50); f.push(); assert.equal(f.sent[0].amount, 60);
   for (let ratio = 0; ratio <= 1; ratio += .01) {
     const amount = amountAtRatio(f.actions.context, ratio);
-    assert.ok(amount === 10 || amount >= 30);
-    assert.ok(stagedAction(f.actions.context, amount));
+    assert.ok(amount === 0 || amount === 10 || amount >= 30);
+    if (amount) assert.ok(stagedAction(f.actions.context, amount));
   }
 });
 
@@ -122,21 +122,22 @@ test('the wager slider snaps by five through 50 and by ten above 50 without skip
 test('snapping preserves exact calls and odd all-ins while rounding raises up to legal minimums', () => {
   const input = room({ player: { chips: 1373 }, legal: { toCall: 23, callAmount: 23, minTo: 57, maxTo: 1373 } }); input.hand.currentBet = 23;
   const { actions } = fixture(input), context = actions.context;
-  assert.equal(amountAtRatio(context, 0), 23); assert.equal(amountAtRatio(context, -1), 23);
-  assert.equal(amountAtRatio(context, .05), 60); assert.equal(amountAtRatio(context, 1), 1373); assert.equal(ratioForAmount(context, 1373), 1);
+  assert.equal(amountAtRatio(context, 0), 0); assert.equal(amountAtRatio(context, -1), 0);
+  assert.equal(amountAtRatio(context, ratioForAmount(context, 23)), 23);
+  assert.equal(amountAtRatio(context, ratioForAmount(context, 57)), 60); assert.equal(amountAtRatio(context, 1), 1373); assert.equal(ratioForAmount(context, 1373), 1);
   for (let index = 1; index <= 1000; index++) {
     const amount = amountAtRatio(context, index / 1000);
-    assert.ok(amount >= 60 && amount <= 1373); assert.ok(stagedAction(context, amount));
-    if (amount !== 1373) assert.equal(amount % 10, 0);
+    assert.ok(amount === 23 || amount >= 60 && amount <= 1373); assert.ok(stagedAction(context, amount));
+    if (amount !== 1373 && amount !== 23) assert.equal(amount % 10, 0);
   }
   const short = fixture(room({ player: { chips: 57 }, legal: { minTo: 58, maxTo: 57 } }));
-  assert.equal(amountAtRatio(short.actions.context, .05), 57); assert.equal(ratioForAmount(short.actions.context, 57), 1);
+  assert.equal(amountAtRatio(short.actions.context, .05), 20); assert.equal(ratioForAmount(short.actions.context, 57), 1);
 });
 
 test('the thumb snaps to the selected amount and uses the displayed slider height without drift', () => {
   const f = fixture(); f.actions.sliderTravel = () => 240;
   f.actions.begin({ chipRole: 'bank' }, point, 0);
-  const rawRatio = ratioForAmount(f.actions.context, 232), end = { x: point.x, y: point.y - rawRatio * 240 };
+  const rawRatio = ratioForAmount(f.actions.context, 232), end = { x: point.x, y: point.y - (rawRatio - f.actions.gesture.initialRatio) * 240 };
   f.actions.move(end, 400);
   assert.equal(f.states.at(-1).selected, 230); assert.equal(f.states.at(-1).ratio, ratioForAmount(f.actions.context, 230));
   f.actions.move(end, 450); assert.equal(f.states.at(-1).selected, 230); assert.equal(f.actions.pending, 0);

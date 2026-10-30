@@ -5,11 +5,14 @@
   var game = document.getElementById('game');
   var ready = false;
   var agent = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  var appleMobile = /iPhone|iPad|iPod/i.test(agent) ||
+    (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1);
   var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ||
     (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1);
   var phoneRatio = 1200 / 2652;
   function fitViewport() {
-    var height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var scale = mobile && window.visualViewport ? window.visualViewport.scale || 1 : 1;
+    var height = window.visualViewport ? window.visualViewport.height * scale : window.innerHeight;
     var width = window.visualViewport && window.visualViewport.width || window.innerWidth;
     if (!(height > 0)) return;
     if (!mobile && width > 0) {
@@ -26,6 +29,41 @@
   fitViewport();
   window.addEventListener('resize', fitViewport);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);
+  if (appleMobile) {
+    var recoveringInput = false, recoveryTimers = [];
+    function editable(element) {
+      return element && (/^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName) || element.isContentEditable);
+    }
+    function clearRecoveryTimers() {
+      recoveryTimers.forEach(function (timer) { clearTimeout(timer); }); recoveryTimers = [];
+    }
+    function recoverInputViewport() {
+      if (!recoveringInput || editable(document.activeElement)) return;
+      fitViewport();
+      // A deliberate pinch zoom is the user's choice. Do not force its scale
+      // or pan back to the origin; prevent automatic focus zoom through CSS.
+      if (window.visualViewport && Math.abs((window.visualViewport.scale || 1) - 1) > .02) return;
+      window.scrollTo(0, 0);
+    }
+    document.addEventListener('focusin', function (event) {
+      if (!editable(event.target)) return;
+      recoveringInput = false; clearRecoveryTimers();
+    });
+    document.addEventListener('focusout', function (event) {
+      if (!editable(event.target)) return;
+      recoveringInput = true; clearRecoveryTimers();
+      // Safari can publish its final viewport after the keyboard animation.
+      [0, 150, 400, 900].forEach(function (delay) {
+        recoveryTimers.push(setTimeout(function () {
+          recoverInputViewport();
+          if (delay === 900) recoveringInput = false;
+        }, delay));
+      });
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', recoverInputViewport);
+    }
+  }
   function panel(message) {
     loading.hidden = false;
     loading.className = 'loading local-entry';

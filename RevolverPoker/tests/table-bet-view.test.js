@@ -65,7 +65,7 @@ test('3D chip staging, returns, slider placement and forward dragging respect ed
   const nodes = Object.fromEntries(['.chip-selector-value', 'i', 'b', '.chip-selector-max', '.chip-selector-track'].map(key => [key, node()]));
   const ctx = new Proxy({}, { get: (target, key) => key in target ? target[key] : () => {} });
   globalThis.document = { createElement(tag) { return tag === 'canvas' ? { width: 0, height: 0, getContext: () => ctx }
-    : { ...node(), querySelector: key => nodes[key] }; } };
+    : { ...node(), querySelector: key => nodes[key] ||= node() }; } };
   try {
     const world = new THREE.Scene(), bank = new THREE.Group(), boardAnchor = new THREE.Object3D();
     const decoration = new THREE.Object3D(); bank.add(decoration); bank.position.set(.57, 1.56, 3.16); bank.rotation.y = -.39;
@@ -97,13 +97,16 @@ test('3D chip staging, returns, slider placement and forward dragging respect ed
     const start = screen(view.home), ahead = screen(view.home.clone().addScaledVector(view.forward, .55));
     assert.ok(view.measureForward(start, ahead) > 1); assert.ok(view.measureForward(ahead, start) < 0);
     view.setState({ ...state, selecting: true, selected: 1000, ratio: 1 }); view.tick(performance.now());
-    assert.equal(view.slider.hidden, false); assert.ok(nodes['.chip-selector-value'].textContent.includes('ALL IN'));
-    assert.ok(Number.parseFloat(view.slider.style.left) >= 8); assert.equal(nodes.i.style.height, '100%');
-    assert.equal(nodes['.chip-selector-track'].style.height, '320px');
+    assert.equal(view.slider.hidden, false); assert.equal(nodes['.chip-selector-preset'].textContent, 'ALL IN');
+    assert.equal(nodes.i.style.height, '100%');
+    const originalTop = view.slider.style.top, originalHeight = nodes['.chip-selector-track'].style.height;
+    assert.ok(Number.parseFloat(originalHeight) > 320);
+    camera.rotation.y += .8; view.positionSlider();
+    assert.equal(view.slider.style.top, originalTop); assert.equal(nodes['.chip-selector-track'].style.height, originalHeight, 'camera rotation cannot move the UI track');
     rect.height = 360; view.positionSlider();
-    assert.equal(nodes['.chip-selector-track'].style.height, '270px');
-    assert.ok(Number.parseFloat(view.slider.style.top) >= 12);
-    assert.ok(Number.parseFloat(view.slider.style.top) + 270 + 52 <= rect.height);
+    assert.ok(Number.parseFloat(nodes['.chip-selector-track'].style.height) < Number.parseFloat(originalHeight));
+    assert.ok(Number.parseFloat(view.slider.style.top) >= 10);
+    assert.ok(Number.parseFloat(view.slider.style.top) + Number.parseFloat(nodes['.chip-selector-track'].style.height) <= rect.height - 70);
     rect.height = 844; view.positionSlider();
     const map = view.numberMap; view.commit({ type: 'call', amount: 20 }); view.setState({ ...state, pending: 0, remaining: 1000, inFlight: true });
     view.tick(view.flight.start + 500); assert.ok(view.flight); assert.equal(view.stage.visible, true); assert.equal(view.numberMap, map);

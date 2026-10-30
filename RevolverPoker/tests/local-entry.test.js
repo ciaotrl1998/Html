@@ -7,13 +7,13 @@ const source = await readFile(new URL('../client/boot.js', import.meta.url), 'ut
 function boot(protocol = 'file:', search = '', hash = '', options = {}) {
   const elements = [], scripts = [], images = [], replaced = [], timers = new Map(); let nextTimer = 0;
   const node = () => ({ children: [], style: {}, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, get firstChild() { return this.children[0]; }, appendChild(child) { this.children.push(child); }, removeChild(child) { this.children.splice(this.children.indexOf(child), 1); } });
-  const loading = node(), game = node(), listeners = {};
-  const window = { innerHeight: 736, addEventListener(name, handler) { listeners[name] = handler; }, ...options.window };
-  const document = { getElementById: id => id === 'game' ? game : loading, createElement(tag) { const result = node(); if (tag === 'script' && options.modules !== false) result.noModule = false; elements.push(result); return result; }, head: { appendChild: script => scripts.push(script) } };
+  const loading = node(), game = node(), listeners = {}, documentListeners = {}, scrolls = [];
+  const window = { innerHeight: 736, scrollTo(x, y) { scrolls.push([x, y]); }, addEventListener(name, handler) { listeners[name] = handler; }, ...options.window };
+  const document = { activeElement: null, addEventListener(name, handler) { documentListeners[name] = handler; }, getElementById: id => id === 'game' ? game : loading, createElement(tag) { const result = node(); if (tag === 'script' && options.modules !== false) result.noModule = false; elements.push(result); return result; }, head: { appendChild: script => scripts.push(script) } };
   const location = { protocol, search, hash, replace: url => replaced.push(url) };
   vm.runInNewContext(source, { window, document, location, navigator: { userAgent: options.userAgent || '' }, Date, Image: class { constructor() { images.push(this); } },
     setTimeout(fn) { const id = ++nextTimer; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id) });
-  return { window, game, listeners, loading, elements, scripts, images, replaced, timers };
+  return { window, document, documentListeners, scrolls, game, listeners, loading, elements, scripts, images, replaced, timers };
 }
 
 test('local index loads a classic bootstrap and uses relative local styles without loading file-origin ES modules', async () => {
@@ -91,6 +91,35 @@ test('mobile screens retain their own full viewport instead of receiving the des
     assert.equal(page.game.style.width, ''); assert.equal(page.game.style.height, '844px');
     assert.equal(page.game.attributes['data-phone-frame'], 'false');
   }
+});
+
+test('iPhone keyboard recovery restores layout after delayed viewport updates and cancels when another field is focused', () => {
+  const events = {};
+  const viewport = { height: 844, width: 390, scale: 1, addEventListener(name, handler) { (events[name] ||= []).push(handler); } };
+  const page = boot('http:', '', '', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)', window: { innerWidth: 390, innerHeight: 844, visualViewport: viewport } });
+  const input = { tagName: 'INPUT' }, emitResize = () => events.resize.forEach(handler => handler());
+  page.document.activeElement = input; page.documentListeners.focusin({ target: input });
+  viewport.height = 330; emitResize(); assert.equal(page.game.style.height, '330px');
+  assert.equal(page.scrolls.length, 0, 'do not fight Safari while the user is typing');
+  page.document.activeElement = null; page.documentListeners.focusout({ target: input });
+  viewport.height = 844; emitResize();
+  for (const timer of page.timers.values()) timer(); page.timers.clear();
+  assert.equal(page.game.style.height, '844px'); assert.ok(page.scrolls.length > 0);
+  assert.deepEqual(page.scrolls[0], [0, 0]);
+  page.documentListeners.focusout({ target: input });
+  page.document.activeElement = { tagName: 'INPUT' }; page.documentListeners.focusin({ target: page.document.activeElement });
+  assert.equal(page.timers.size, 0, 'moving between nickname/password/room fields cancels pending restoration');
+  const scrolls = page.scrolls.length; emitResize(); assert.equal(page.scrolls.length, scrolls);
+});
+
+test('mobile viewport sizing separates page scale from keyboard height without overriding a manual pinch zoom', () => {
+  const viewport = { height: 844 / 1.5, width: 390 / 1.5, scale: 1.5, addEventListener() {} };
+  const page = boot('http:', '', '', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)', window: { innerWidth: 390, innerHeight: 844, visualViewport: viewport } });
+  assert.equal(page.game.style.height, '844px', 'do not shrink the game just because visualViewport is zoomed');
+  page.documentListeners.focusout({ target: { tagName: 'INPUT' } });
+  for (const timer of page.timers.values()) timer();
+  assert.equal(page.scrolls.length, 0, 'leave intentional zoom and pan under user control');
+  assert.equal(viewport.scale, 1.5);
 });
 
 test('old WebViews get an explicit message instead of silently ignoring module scripts', () => {

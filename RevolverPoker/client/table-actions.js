@@ -1,32 +1,8 @@
+import { ratioForAmount, stagedAction, selectionAtRatio, potStops, maximumBet } from './bet-sizing.js';
+export { amountAtRatio, ratioForAmount, stagedAction } from './bet-sizing.js';
 export const TABLE_GESTURES = { hold: 350, sliderTravel: 320, forward: 38, doubleTap: 320, tapSlop: 8 };
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 export const tableTurnKey = room => room?.hand ? `${room.code}:${room.hand.number}:${room.turnId}` : null;
-
-export function amountAtRatio(context, ratio) {
-  const { legal, player } = context;
-  if (!legal.canRaise) return legal.callAmount;
-  const r = clamp(ratio, 0, 1), minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
-  if (r <= 0) return legal.callAmount;
-  if (r >= 1) return player.chips;
-  const amount = minimum + (player.chips - minimum) * clamp((r - .05) / .95, 0, 1);
-  const step = amount <= 50 ? 5 : 10;
-  const firstRaise = Math.ceil(minimum / (minimum <= 50 ? 5 : 10)) * (minimum <= 50 ? 5 : 10);
-  return Math.min(player.chips, Math.max(firstRaise, Math.round(amount / step) * step));
-}
-export function ratioForAmount(context, amount) {
-  if (amount <= context.legal.callAmount) return 0;
-  if (amount >= context.player.chips) return 1;
-  const minimum = Math.min(context.legal.minTo, context.legal.maxTo) - context.player.bet;
-  return .05 + .95 * clamp((amount - minimum) / Math.max(1, context.player.chips - minimum), 0, 1);
-}
-export function stagedAction(context, amount) {
-  if (!context || !Number.isSafeInteger(amount) || amount <= 0 || amount > context.player.chips) return null;
-  const { legal, player, currentBet } = context, total = player.bet + amount;
-  if (legal.toCall > 0 && amount === legal.callAmount) return { type: 'call' };
-  if (amount === player.chips && legal.canAllIn) return { type: 'allin' };
-  if (legal.canRaise && total > currentBet && total >= legal.minTo && total <= legal.maxTo) return { type: 'raise', amount: total };
-  return null;
-}
 
 export class TableActions {
   constructor({ send = () => false, change = () => {}, commit = () => {}, forward, sliderTravel = () => TABLE_GESTURES.sliderTravel } = {}) {
@@ -41,8 +17,8 @@ export class TableActions {
   sync(room, you, connected = true) {
     const hand = room?.hand, player = hand?.players.find(p => p.id === you);
     const context = connected && room?.phase === 'playing' && !room.dealing && !hand?.done && hand?.legal && player?.seat === hand.actor
-      ? { key: tableTurnKey(room), legal: hand.legal, player, currentBet: hand.currentBet } : null;
-    const signature = context ? JSON.stringify([context.key, context.legal, player.bet, player.chips]) : null;
+      ? { key: tableTurnKey(room), legal: hand.legal, player, currentBet: hand.currentBet, pot: hand.pot || 0 } : null;
+    const signature = context ? JSON.stringify([context.key, context.legal, player.bet, player.chips, context.pot]) : null;
     if (signature !== this.signature) {
       this.pending = 0; this.gesture = null; this.lastTap = null; this.inFlight = false; this.signature = signature;
     }
@@ -53,8 +29,8 @@ export class TableActions {
     const g = this.gesture;
     this.change({ pending: this.pending, bankroll: this.bankroll, remaining: this.bankroll - this.pending,
       enabled: this.enabled, inFlight: this.inFlight, selecting: g?.kind === 'bank' || g?.kind === 'select',
-      selected: g?.selected ?? this.pending, ratio: g?.ratio ?? 0,
-      maximum: this.context?.legal.canRaise ? this.bankroll : this.context?.legal.callAmount || 0,
+      selected: g?.selected ?? this.pending, ratio: g?.ratio ?? ratioForAmount(this.context, this.pending), preset: g?.preset ?? potStops(this.context).find(stop => stop.amount === this.pending)?.label ?? '', stops: potStops(this.context),
+      maximum: this.context ? maximumBet(this.context) : 0,
       progress: g?.progress || 0, dragging: g?.kind === 'staged' ? 'chips' : g?.kind === 'hand' ? 'hand' : null });
   }
   begin(target, point, time) {
@@ -67,6 +43,7 @@ export class TableActions {
     if (kind === 'bank') {
       const initial = this.pending || this.context.legal.callAmount || Math.min(this.context.legal.minTo, this.context.legal.maxTo) - this.context.player.bet;
       this.gesture.initialRatio = ratioForAmount(this.context, initial);
+      this.gesture.rawRatio = this.gesture.initialRatio; this.gesture.lastY = point.y;
       this.select(this.gesture);
     }
     return true;
@@ -79,9 +56,10 @@ export class TableActions {
     }
   }
   select(g) {
-    const ratio = this.context.legal.canRaise ? clamp(g.initialRatio + (g.start.y - g.point.y) / this.sliderTravel(), 0, 1) : 0;
-    g.selected = amountAtRatio(this.context, ratio);
-    g.ratio = ratioForAmount(this.context, g.selected); this.emit();
+    const ratio = clamp(g.rawRatio + (g.lastY - g.point.y) / this.sliderTravel(), 0, 1);
+    g.rawRatio = ratio; g.lastY = g.point.y;
+    const selected = selectionAtRatio(this.context, ratio, this.sliderTravel());
+    g.selected = selected.amount; g.ratio = selected.ratio; g.preset = selected.preset; this.emit();
   }
   move(point, time) {
     const g = this.gesture;
