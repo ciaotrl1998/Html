@@ -95,8 +95,9 @@ function chair(wood) {
 }
 
 export class SaloonScene {
-  constructor(container, { editor = false } = {}) {
+  constructor(container, { editor = false, followOtherPlayers = true } = {}) {
     this.editor = editor;
+    this.followOtherPlayers = followOtherPlayers;
     this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.focus = 0; this.seated = false;
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
@@ -354,6 +355,7 @@ export class SaloonScene {
     if (actor.id === this.viewerId) {
       return { key, ...pose };
     }
+    if (this.followOtherPlayers === false) return null;
     // Models are arranged relative to the viewer's seat. Use their live world
     // positions so edited characters and seats stay correctly aligned.
     const model = this.models.find(model => model.userData.seat === hand.actor);
@@ -365,6 +367,7 @@ export class SaloonScene {
     if (horizontal < .001) return null;
     return { key, position: pose.position, roll: pose.roll, yaw: Math.atan2(-target.x, -target.z), pitch: Math.atan2(target.y, horizontal) };
   }
+  setFollowOtherPlayers(enabled) { this.followOtherPlayers = !!enabled; }
   cancelViewInput() { this.controls?.cancel(); }
   setActionConnection(connected) {
     this.actionConnected = connected;

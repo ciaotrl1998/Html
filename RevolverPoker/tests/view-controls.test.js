@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SceneViewControls, OVERVIEW_LIMITS, TURN_FOLLOW, overviewResponse } from '../client/view-controls.js';
+import { SceneViewControls, OVERVIEW_LIMITS, TURN_FOLLOW, overviewStep } from '../client/view-controls.js';
 import { TableActions } from '../client/table-actions.js';
 
 class Surface extends EventTarget {
@@ -64,23 +64,42 @@ test('touch turns the view only while dragging and a drag cannot select a seat',
   assert.equal(f.picks, 1);
 });
 
-test('overview responds only to dragging, has soft edges, and returns to center on leave', () => {
-  const f = fixture();
-  event(f.canvas, 'pointermove', { clientX: 410, clientY: 820 });
-  assert.deepEqual(f.controls.input, { x: 0, y: 0 });
-  event(f.canvas, 'pointerdown');
-  event(f.canvas, 'pointermove', { clientX: 510, clientY: 820, buttons: 1 });
-  event(f.canvas, 'pointerup', { clientX: 510, clientY: 820 });
-  assert.equal(f.looks, 0, 'pointer input does not snap the camera');
-  f.controls.tick(1 / 40); assert.ok(f.scene.yaw < 0); assert.ok(Math.abs(f.scene.yaw) < OVERVIEW_LIMITS.yaw);
-  for (let i = 0; i < 100; i++) f.controls.tick(1 / 40);
-  assert.ok(Math.abs(f.scene.yaw) <= OVERVIEW_LIMITS.yaw);
-  assert.ok(Math.abs(f.scene.pitch - f.scene.overviewPitch) <= OVERVIEW_LIMITS.pitch);
-  assert.ok(overviewResponse(.2) - overviewResponse(0) > overviewResponse(1) - overviewResponse(.8), 'response becomes gentler near the limit');
-  const edgeYaw = Math.abs(f.scene.yaw); event(f.canvas, 'pointerleave'); f.controls.tick(1 / 40);
-  assert.ok(Math.abs(f.scene.yaw) < edgeYaw);
-  for (let i = 0; i < 100; i++) f.controls.tick(1 / 40);
-  assert.ok(Math.abs(f.scene.yaw) < .00001);
+test('overview drags retain their pose after release, leaving, dialogs and focus changes until explicitly reset', () => {
+  for (const pointerType of ['mouse', 'touch']) {
+    const f = fixture();
+    event(f.canvas, 'pointermove', { pointerType, clientX: 410, clientY: 820 });
+    assert.deepEqual(f.controls.input, { x: 0, y: 0 });
+    event(f.canvas, 'pointerdown', { pointerType });
+    event(f.canvas, 'pointermove', { pointerType, clientX: 510, clientY: 820, buttons: 1 });
+    event(f.canvas, 'pointerup', { pointerType, clientX: 510, clientY: 820 });
+    const yaw = f.scene.yaw, pitch = f.scene.pitch;
+    assert.ok(yaw < -.25 && Math.abs(yaw) <= OVERVIEW_LIMITS.yaw, 'horizontal travel is wider than the former 0.1 radian limit');
+    assert.ok(Math.abs(pitch - f.scene.overviewPitch) <= OVERVIEW_LIMITS.pitch);
+    event(f.canvas, 'pointerleave'); f.doc.modal = true; f.controls.tick(.025);
+    f.doc.modal = false; event(f.win, 'blur'); f.controls.tick(.025); event(f.win, 'focus');
+    f.doc.hidden = true; event(f.doc, 'visibilitychange'); f.controls.tick(.025);
+    f.doc.hidden = false; event(f.doc, 'visibilitychange');
+    for (let i = 0; i < 100; i++) f.controls.tick(.025);
+    assert.equal(f.scene.yaw, yaw, 'no spring-back or drift after dragging ends');
+    assert.equal(f.scene.pitch, pitch);
+    event(f.canvas, 'keydown', { key: 'Home' });
+    assert.equal(f.scene.yaw, 0); assert.equal(f.scene.pitch, f.scene.overviewPitch);
+    f.controls.dispose();
+  }
+});
+
+test('overview resistance increases outward, reverses immediately and does not depend on event frequency', () => {
+  const center = overviewStep(0, .1), near = overviewStep(.75, .1) - .75, edge = overviewStep(.95, .1) - .95;
+  assert.ok(center > near && near > edge && edge > 0);
+  for (const sign of [-1, 1]) {
+    const limit = overviewStep(0, sign * 100);
+    assert.ok(Math.abs(limit) <= 1);
+    const reversed = overviewStep(limit, -sign * .1);
+    assert.ok(Math.abs(reversed - (limit - sign * .1)) < 1e-10, 'pushing past an edge creates no hidden reverse-drag dead zone');
+  }
+  let split = .3;
+  for (let i = 0; i < 20; i++) split = overviewStep(split, .05);
+  assert.ok(Math.abs(split - overviewStep(.3, 1)) < 1e-10);
 });
 
 test('touch and keyboard cannot rotate the overview outside its limits', () => {

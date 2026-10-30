@@ -1,9 +1,20 @@
-export const OVERVIEW_LIMITS = { yaw: .10, pitch: .055 };
+export const OVERVIEW_LIMITS = { yaw: .30, pitch: .055 };
 export const TURN_FOLLOW = { resumeDelay: 1000, duration: 1000, accelerationEnd: .6 };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const wrapAngle = value => ((value + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-// The slope decreases toward the edge, rather than hitting an abrupt stop.
-export const overviewResponse = value => Math.tanh(clamp(value, -1, 1) * 1.6) / Math.tanh(1.6);
+// Slow outward travel in the outer 35% without accumulating hidden overscroll.
+// Inward travel responds immediately, even after pushing against the limit.
+export function overviewStep(value, delta) {
+  if (!Number.isFinite(delta) || delta === 0) return value;
+  const edge = .65, direction = Math.sign(delta);
+  let position = value * direction, distance = Math.abs(delta);
+  if (position < edge) {
+    const linear = Math.min(distance, edge - position);
+    position += linear; distance -= linear;
+  }
+  if (distance > 0) position = 1 - (1 - position) * Math.exp(-distance / (1 - edge));
+  return clamp(position * direction, -1, 1);
+}
 
 export class SceneViewControls {
   constructor(scene, canvas, doc = document, win = window, now = () => performance.now()) {
@@ -17,13 +28,12 @@ export class SceneViewControls {
     listen(canvas, 'pointerup', e => this.up(e));
     listen(canvas, 'pointercancel', () => this.cancel());
     listen(canvas, 'lostpointercapture', () => this.cancel());
-    listen(canvas, 'pointerleave', () => { if (!this.drag) this.input = { x: 0, y: 0 }; });
     listen(canvas, 'keydown', e => this.key(e));
-    listen(win, 'blur', () => { this.focused = false; this.cancel(); this.pauseTurnFollow(); this.input = { x: 0, y: 0 }; });
+    listen(win, 'blur', () => { this.focused = false; this.cancel(); this.pauseTurnFollow(); });
     listen(win, 'focus', () => { this.focused = true; this.pauseTurnFollow(); });
     listen(doc, 'visibilitychange', () => {
       this.pauseTurnFollow();
-      if (doc.hidden) { this.cancel(); this.input = { x: 0, y: 0 }; }
+      if (doc.hidden) this.cancel();
     });
   }
   get blocked() { return !this.focused || this.doc.hidden || !!this.doc.querySelector('dialog[open]'); }
@@ -31,6 +41,7 @@ export class SceneViewControls {
   resumeTurnFollow() { this.followAfter = 0; this.turnFollow = null; }
   reset() {
     this.cancel(); this.input = { x: 0, y: 0 }; this.offset = { yaw: 0, pitch: 0 };
+    if (!this.scene.firstPerson) this.applyOverview();
     this.pauseTurnFollow();
   }
   down(e) {
@@ -91,7 +102,17 @@ export class SceneViewControls {
     this.scene.pitch = clamp(this.scene.pitch - dy * .0023, -1.35, 1.35);
     this.scene.applyView();
   }
-  nudgeOverview(x, y) { this.input.x = clamp(this.input.x + x, -1, 1); this.input.y = clamp(this.input.y + y, -1, 1); }
+  nudgeOverview(x, y) {
+    this.input.x = overviewStep(this.input.x, x); this.input.y = overviewStep(this.input.y, y);
+    this.applyOverview();
+  }
+  applyOverview() {
+    this.offset.yaw = -OVERVIEW_LIMITS.yaw * this.input.x || 0;
+    this.offset.pitch = -OVERVIEW_LIMITS.pitch * this.input.y || 0;
+    this.scene.yaw = this.offset.yaw;
+    this.scene.pitch = this.scene.overviewPitch + this.offset.pitch;
+    this.scene.applyView();
+  }
   key(e) {
     if (this.blocked || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(e.key)) return;
     e.preventDefault();
@@ -105,14 +126,6 @@ export class SceneViewControls {
     if (!this.blocked) this.scene.tableActions?.tick(this.now());
     if (this.scene.firstPerson) { this.followTurn(seconds); return; }
     this.turnFollow = null;
-    if (this.blocked) this.input = { x: 0, y: 0 };
-    const alpha = 1 - Math.exp(-9 * Math.min(seconds, .1));
-    const yaw = -OVERVIEW_LIMITS.yaw * overviewResponse(this.input.x), pitch = -OVERVIEW_LIMITS.pitch * overviewResponse(this.input.y);
-    this.offset.yaw += (yaw - this.offset.yaw) * alpha;
-    this.offset.pitch += (pitch - this.offset.pitch) * alpha;
-    this.scene.yaw = this.offset.yaw;
-    this.scene.pitch = this.scene.overviewPitch + this.offset.pitch;
-    this.scene.applyView();
   }
   followTurn(seconds) {
     if (this.blocked || this.drag || this.scene.peekActive || this.scene.cardPeekClosing || this.scene.viewTransition || this.now() < this.followAfter) {

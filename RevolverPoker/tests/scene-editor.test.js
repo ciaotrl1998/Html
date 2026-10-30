@@ -408,6 +408,39 @@ test('turn aiming uses the acting seat and edited world-space character position
   game.editor = false; game.seated = false; assert.equal(game.getTurnLookTarget(), null, 'spectators stay in overview');
 });
 
+test('disabling opponent follow stops an active pan but preserves own-turn and dealing returns', () => {
+  const world = new THREE.Scene(), playerCamera = createPlayerCamera(), camera = new THREE.PerspectiveCamera();
+  world.add(playerCamera, camera);
+  const model = new THREE.Group(), head = new THREE.Group(); model.position.set(3, 0, -2); head.position.y = 3.2;
+  model.userData = { seat: 1, head }; model.add(head); world.add(model);
+  const pose = playerCameraPose(playerCamera), game = Object.create(SaloonScene.prototype);
+  Object.assign(game, { scene: world, playerCamera, camera, models: [model], seated: true, viewerId: 'me',
+    yaw: .8, pitch: -.1, roll: 0, followOtherPlayers: true,
+    room: { code: 'TEST', phase: 'playing', hand: { number: 1, actor: 1, done: false, players: [{ id: 'me', seat: 0 }, { id: 'other', seat: 1 }] } } });
+  camera.position.copy(pose.position); game.applyView();
+  const doc = new EventTarget(); doc.querySelector = () => null;
+  let now = 0;
+  const controls = new SceneViewControls(game, new EventTarget(), doc, new EventTarget(), () => now);
+  const advance = count => { for (let i = 0; i < count; i++) { now += 25; controls.tick(.025); } };
+  advance(8); assert.ok(controls.turnFollow, 'opponent following is initially enabled');
+  game.setFollowOtherPlayers(false);
+  const paused = camera.quaternion.clone(); advance(8);
+  assert.equal(controls.turnFollow, null);
+  assert.ok(camera.quaternion.angleTo(paused) < 1e-7, 'disabling leaves the current view still');
+  game.room.hand.actor = 0; advance(40);
+  assert.ok(camera.quaternion.angleTo(pose.quaternion) < 1e-7, 'own turn returns to the saved initial direction with following disabled');
+  close(camera.position, pose.position);
+  game.room.hand.actor = 1; advance(8);
+  assert.ok(camera.quaternion.angleTo(pose.quaternion) < 1e-7, 'the next opponent does not pull the camera away');
+  game.room.dealing = { key: 'next-street' };
+  close(game.getTurnLookTarget().position, pose.position);
+  delete game.room.dealing;
+  game.setFollowOtherPlayers(true); advance(40);
+  const direction = head.getWorldPosition(new THREE.Vector3()); direction.y -= .35; direction.sub(camera.position).normalize();
+  close(camera.getWorldDirection(new THREE.Vector3()), direction);
+  controls.dispose();
+});
+
 test('editor HTTP saves atomically, survives server restart, detects conflicts and resets', async t => {
   const directory = await mkdtemp(path.join(tmpdir(), 'revolver-editor-'));
   const layoutFile = path.join(directory, 'scene-layout.js');

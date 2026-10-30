@@ -15,6 +15,7 @@ const streets = { preflop: '翻牌前', flop: '翻牌', turn: '转牌', river: '
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, lastHandKey = '', lastActionCount = 0, finishKey = '';
 let soundOn = localStorage.getItem('rp-sound') === 'on', lowQuality = localStorage.getItem('rp-quality') === 'low';
+let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let audio;
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 function sound(type) {
@@ -250,6 +251,16 @@ $('sound-state').textContent = soundOn ? '开启' : '关闭';
 $('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; sound('chip'); };
 $('quality-state').textContent = lowQuality ? '省电' : '标准';
 $('quality-button').onclick = () => { lowQuality = !lowQuality; localStorage.setItem('rp-quality', lowQuality ? 'low' : 'standard'); $('quality-state').textContent = lowQuality ? '省电' : '标准'; scene?.setQuality(lowQuality); };
+function renderFollowSetting() {
+  $('follow-players-state').textContent = followOtherPlayers ? '开启' : '关闭';
+  $('follow-players-button').setAttribute('aria-checked', String(followOtherPlayers));
+}
+renderFollowSetting();
+$('follow-players-button').onclick = () => {
+  followOtherPlayers = !followOtherPlayers;
+  localStorage.setItem('rp-follow-players', followOtherPlayers ? 'on' : 'off');
+  scene?.setFollowOtherPlayers(followOtherPlayers); renderFollowSetting();
+};
 function act(type, amount, expectedKey) {
   if (!connected || room?.phase !== 'playing' || room.dealing || scene?.dealing || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
   const bytes = new Uint32Array(4); crypto.getRandomValues(bytes);
@@ -282,7 +293,7 @@ if (invite && /^\d{6}$/.test(invite)) { $('join-form').hidden = false; $('room-c
 connect();
 try {
   const { SaloonScene } = await import('/client/scene.js');
-  scene = new SaloonScene($('scene')); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
+  scene = new SaloonScene($('scene'), { followOtherPlayers }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
   scene.setQuality(lowQuality);
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();

@@ -12,6 +12,8 @@
 .look-controls { display: contents; }
 .topbar { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: calc(env(safe-area-inset-top) + 7px) 22px 0; isolation: isolate; }
 .topbar::before { content: ''; position: absolute; z-index: -1; inset: 0 0 -36px; background: linear-gradient(180deg, #000b 0%, #000a calc(100% - 44px), #0000 100%); pointer-events: none; }
+#game[data-phone-frame='true'] { border: 0; outline: 1px solid #c1a37b18; outline-offset: -1px; }
+#game[data-phone-frame='true'] .topbar { gap: 0; padding-top: 2px; }
 .room-number { min-width: 0; color: #d6c39c; font-size: 12px; line-height: 1.4; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 1px 4px #000; }
 .top-right { gap: 4px; margin-left: auto; flex-shrink: 0; }
 .top-right .connection { font-size: 9px; gap: 5px; }
@@ -81,7 +83,7 @@
 .physical-cards .pot-detail { margin-top: 2px; }
 .rank-row.champion-row b { width: auto; flex-shrink: 0; }
 .rank-row.champion-row span { min-width: 0; overflow-wrap: anywhere; }
-.result-banner { top: calc(62% - 120px); padding: 0 0 8px; background: linear-gradient(90deg, transparent, #28251ce8 15%, #28251ce8 85%, transparent); border-top: 1px solid #c4a46977; border-bottom: 1px solid #c4a46977; pointer-events: none; }
+.result-banner { top: auto; bottom: 100%; padding: 0 0 8px; background: linear-gradient(90deg, transparent, #28251ce8 15%, #28251ce8 85%, transparent); border-top: 1px solid #c4a46977; border-bottom: 1px solid #c4a46977; pointer-events: none; }
 .result-summary { padding: 13px 10px 0; }
 .winner-hands { display: flex; flex-direction: column; align-items: center; gap: 9px; max-height: min(26dvh, 200px); margin-top: 0; padding: 3px 2px 7px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #b69c66 transparent; pointer-events: auto; touch-action: pan-y; }
 .winner-hand { width: min(100%, 262px); flex: none; margin: 0; }
@@ -89,5 +91,4 @@
 .winner-hand figcaption { margin-bottom: 4px; font-size: 10px; color: #e2d2ad; }
 @media (max-height: 740px) {
   .board-area { top: 48%; }
-  .result-banner { top: calc(59% - 120px); }
 }

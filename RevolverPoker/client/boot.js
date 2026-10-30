@@ -4,9 +4,24 @@
   var loading = document.getElementById('loading');
   var game = document.getElementById('game');
   var ready = false;
+  var agent = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(agent) ||
+    (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1);
+  var phoneRatio = 1200 / 2652;
   function fitViewport() {
     var height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    if (height > 0) game.style.height = Math.round(height) + 'px';
+    var width = window.visualViewport && window.visualViewport.width || window.innerWidth;
+    if (!(height > 0)) return;
+    if (!mobile && width > 0) {
+      var frameWidth = Math.min(width, 540, height * phoneRatio);
+      var frameHeight = frameWidth / phoneRatio;
+      game.style.width = frameWidth + 'px'; game.style.height = frameHeight + 'px';
+      game.style.marginTop = Math.max(0, (height - frameHeight) / 2) + 'px';
+      game.setAttribute('data-phone-frame', 'true');
+    } else {
+      game.style.width = ''; game.style.height = Math.round(height) + 'px';
+      game.style.marginTop = ''; game.setAttribute('data-phone-frame', 'false');
+    }
   }
   fitViewport();
   window.addEventListener('resize', fitViewport);
