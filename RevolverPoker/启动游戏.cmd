@@ -17,7 +17,11 @@ if not exist "node_modules\three\build\three.module.js" (
     exit /b 1
   )
 )
-call npm.cmd start
+title RevolverPoker - 游戏服务器
+echo 游戏服务将在此 CMD 窗口运行，请保持窗口开启。
+echo 启动成功后，直接双击同目录的 index.html 进入游戏。
+echo 按 Ctrl+C 或关闭此窗口可停止服务器。
+node server/index.js
 set "gameExitCode=%errorlevel%"
 pause
 exit /b %gameExitCode%

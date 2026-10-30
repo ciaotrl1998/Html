@@ -50,7 +50,7 @@ test('all hole and community animations finish inside their server phase, which 
     const duration = dealDuration(count === 0, previousBoard, count);
     assert.ok(end < duration); assert.ok(TURN_FOLLOW.duration <= duration);
     assert.ok(Math.abs(performance.now() - (cards.dealStart + 200)) < 50, 'late packets use the shared phase start');
-    if (count === 0) assert.equal(end, 7 * DEAL_TIMING.seatGap + DEAL_TIMING.opponentGap + DEAL_TIMING.card);
+    if (count === 0) assert.ok(Math.abs(end - (7 * DEAL_TIMING.seatGap + DEAL_TIMING.opponentGap + DEAL_TIMING.card)) < 1e-6);
     cards.tick(cards.dealStart + duration, new THREE.PerspectiveCamera());
     assert.equal(cards.dealing, false); previousBoard = count;
   }
