@@ -189,7 +189,7 @@ export class TableBetView {
   }
   tick(time) {
     if (this.active) {
-      this.anchors();
+      if (this.flight || this.stage.visible || !this.slider.hidden) this.anchors();
       if (this.flight) {
         const t = Math.min(1, (time - this.flight.start) / 480);
         const destination = this.saloon.potView?.target() || this.flight.to;

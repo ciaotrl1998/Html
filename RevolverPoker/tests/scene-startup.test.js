@@ -40,7 +40,7 @@ test('game and editor initialize every saved anchor before the first frame, with
     querySelector: () => element(),
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 390, height: 844 })
   });
-  let frames = 0;
+  let frames = 0, renderTicks = 0;
   const values = {
     document: { createElement: element, addEventListener() {}, removeEventListener() {}, querySelector: () => null },
     window: { addEventListener() {}, removeEventListener() {} }, devicePixelRatio: 1,
@@ -62,6 +62,9 @@ test('game and editor initialize every saved anchor before the first frame, with
   });
   for (const editor of [false, true]) {
     const scene = new SaloonScene(element(), { editor });
+    const stats = [...scene.models, ...scene.chairs].reduce((total, node) => ({ before: total.before + node.userData.meshBatching.before, after: total.after + node.userData.meshBatching.after }), { before: 0, after: 0 });
+    assert.ok(stats.after < stats.before * .6, 'batching reduces character/chair meshes without changing layout anchors');
+    if (!editor) t.diagnostic(`Character/chair meshes: ${stats.before} -> ${stats.after}`);
     for (const id of ['table-8', 'player-camera', 'board-camera', 'hand-group', 'staged-chips', 'pot-chips', 'pot-value']) {
       const entry = scene.layout.entries.get(id), expected = savedScene.objects[id];
       assert.ok(entry && expected, `${id} exists in the scene and editor save`);
@@ -71,7 +74,19 @@ test('game and editor initialize every saved anchor before the first frame, with
       if (expected.camera) assert.equal(entry.node.fov, expected.camera.fov);
     }
     assert.equal(scene.ready, undefined, 'no second asynchronous scene initialization');
+    let draws = 0, shadows = 0;
+    scene.renderer.render = () => { draws++; if (scene.renderer.shadowMap.autoUpdate || scene.renderer.shadowMap.needsUpdate) { shadows++; scene.renderer.shadowMap.needsUpdate = false; } };
+    for (let i = 0; i < 120; i++) { scene.tick(i * 1000 / 60); renderTicks++; }
+    assert.equal(draws, 120, 'default scene renders every refresh on a 60 Hz display');
+    assert.equal(shadows, editor ? 120 : 60, 'game shadows update at 30 FPS; editor views retain their own complete shadow passes');
+    scene.setFrameRate(30);
+    for (let i = 120; i < 240; i++) { scene.tick(i * 1000 / 60); renderTicks++; }
+    assert.equal(draws, 180, 'switching to 30 FPS takes effect without reconstructing the scene');
+    document.hidden = true; scene.tick(5000); renderTicks++;
+    assert.equal(draws, 180, 'hidden pages do not render');
+    document.hidden = false; scene.tick(15000); renderTicks++;
+    assert.equal(draws, 181, 'returning from the background resumes immediately');
     scene.controls?.dispose(); scene.resizeObserver.disconnect();
   }
-  assert.equal(frames, 2, 'one initial frame is scheduled for each already initialized scene');
+  assert.equal(frames, 2 + renderTicks, 'one initial frame and one following callback per RAF tick');
 });

@@ -129,6 +129,7 @@ export class TablePotView {
     this.renderBanks();
   }
   tick(now) {
+    if (!this.flights.length && !this.settlement) return;
     let changed = false;
     this.flights = this.flights.filter(flight => {
       const destination = flight.incoming ? this.root : this.playerBank(flight.id)?.pile;

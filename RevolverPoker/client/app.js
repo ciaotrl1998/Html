@@ -16,6 +16,7 @@ let ws, sessionId, room = null, scene = null, connected = false, superseded = fa
 let toastTimer, clockOffset = 0, lastHandKey = '', lastActionCount = 0, finishKey = '';
 let soundOn = localStorage.getItem('rp-sound') === 'on', lowQuality = localStorage.getItem('rp-quality') === 'low';
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
+let frameRate = localStorage.getItem('rp-frame-rate') === '30' ? 30 : 60;
 let audio;
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 function sound(type) {
@@ -251,6 +252,12 @@ $('sound-state').textContent = soundOn ? '开启' : '关闭';
 $('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; sound('chip'); };
 $('quality-state').textContent = lowQuality ? '省电' : '标准';
 $('quality-button').onclick = () => { lowQuality = !lowQuality; localStorage.setItem('rp-quality', lowQuality ? 'low' : 'standard'); $('quality-state').textContent = lowQuality ? '省电' : '标准'; scene?.setQuality(lowQuality); };
+$('frame-rate-state').textContent = `${frameRate} 帧`;
+$('frame-rate-button').onclick = () => {
+  frameRate = frameRate === 60 ? 30 : 60;
+  localStorage.setItem('rp-frame-rate', String(frameRate));
+  $('frame-rate-state').textContent = `${frameRate} 帧`; scene?.setFrameRate(frameRate);
+};
 function renderFollowSetting() {
   $('follow-players-state').textContent = followOtherPlayers ? '开启' : '关闭';
   $('follow-players-button').setAttribute('aria-checked', String(followOtherPlayers));
@@ -293,7 +300,7 @@ if (invite && /^\d{6}$/.test(invite)) { $('join-form').hidden = false; $('room-c
 connect();
 try {
   const { SaloonScene } = await import('/client/scene.js');
-  scene = new SaloonScene($('scene'), { followOtherPlayers }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
+  scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
   scene.setQuality(lowQuality);
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();

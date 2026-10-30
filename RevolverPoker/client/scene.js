@@ -1,5 +1,7 @@
 import * as THREE from '/vendor/three.js';
 import SAVED_SCENE from './scene-layout.js';
+import { FrameClock } from './frame-clock.js';
+import { batchStaticMeshes } from './mesh-batching.js';
 import { TableCards, BOARD_CENTER_Z, TABLE_POSITIONS as POSITIONS } from './cards.js';
 import { LayoutRegistry } from './layout-registry.js';
 import { createPlayerCamera, createBoardCamera, playerCameraPose } from './player-camera.js';
@@ -82,6 +84,7 @@ function makePerson(index) {
     const hand = mesh(new THREE.SphereGeometry(.14, 8, 6), skin, side * .47, 1.8, .96); hand.scale.set(1.1, .55, 1.4); root.add(hand);
   }
   root.userData.head = head;
+  root.userData.meshBatching = batchStaticMeshes(root);
   return root;
 }
 function chair(wood) {
@@ -91,13 +94,15 @@ function chair(wood) {
   for (const x of [-.46, .46]) box(g, .12, 1.6, .12, wood, x, 1.52, -.38);
   box(g, 1.1, .23, .14, wood, 0, 2.27, -.38);
   box(g, .13, .9, .12, wood, 0, 1.7, -.38);
+  g.userData.meshBatching = batchStaticMeshes(g);
   return g;
 }
 
 export class SaloonScene {
-  constructor(container, { editor = false, followOtherPlayers = true } = {}) {
+  constructor(container, { editor = false, followOtherPlayers = true, frameRate = 60 } = {}) {
     this.editor = editor;
     this.followOtherPlayers = followOtherPlayers;
+    this.frameClock = new FrameClock(frameRate); this.shadowClock = new FrameClock(30);
     this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.focus = 0; this.seated = false;
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
@@ -108,6 +113,7 @@ export class SaloonScene {
     this.camera.position.set(...OVERVIEW_EYE); this.camera.lookAt(0, 1.9, 0);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7)); this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.autoUpdate = editor; this.renderer.shadowMap.needsUpdate = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.28;
     container.appendChild(this.renderer.domElement);
     this.scene.add(new THREE.HemisphereLight(0xd7bb87, 0x3a2e22, 2.0));
@@ -178,7 +184,7 @@ export class SaloonScene {
     canvas.tabIndex = 0;
     canvas.setAttribute('aria-label', '3D 牌桌；电脑按住鼠标左键拖动转向，手机按住画面拖动转向');
     if (!editor) this.controls = new SceneViewControls(this, canvas);
-    this.lastFrame = 0; this.tick = this.tick.bind(this); this.frame = requestAnimationFrame(this.tick);
+    this.tick = this.tick.bind(this); this.frame = requestAnimationFrame(this.tick);
   }
   tagEditables(start, prefix, category) {
     this.scene.children.slice(start).forEach((node, i) => {
@@ -338,6 +344,8 @@ export class SaloonScene {
   }
   animateSeatLabel(label, time) {
     if (!label.winPulse) return;
+    if (time - (label.winPulse.lastPaint ?? -Infinity) < 1000 / 30 - .5) return;
+    label.winPulse.lastPaint = time;
     paintWinLabel(label.canvas.getContext('2d'), time - label.winPulse.start);
     label.map.needsUpdate = true;
   }
@@ -510,6 +518,7 @@ export class SaloonScene {
   resize() {
     const { width, height } = this.container.getBoundingClientRect();
     if (!width || !height) return;
+    this.viewWidth = width; this.viewHeight = height;
     this.camera.aspect = width / height;
     if (!this.editor) {
       const source = this.playerCamera;
@@ -519,12 +528,13 @@ export class SaloonScene {
     }
     this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height);
   }
-  setQuality(low) { this.renderer.setPixelRatio(low ? 1 : Math.min(devicePixelRatio, 1.7)); this.renderer.shadowMap.enabled = !low; this.resize(); }
+  setQuality(low) { this.renderer.setPixelRatio(low ? 1 : Math.min(devicePixelRatio, 1.7)); this.renderer.shadowMap.enabled = !low; this.renderer.shadowMap.needsUpdate = true; this.shadowClock.reset(); this.resize(); }
+  setFrameRate(fps) { this.frameClock.setRate(fps); }
   tick(time) {
     this.frame = requestAnimationFrame(this.tick);
-    if (document.hidden || time - this.lastFrame < 1000 / 40) return;
-    const seconds = this.lastFrame ? (time - this.lastFrame) / 1000 : 1 / 40;
-    this.lastFrame = time;
+    if (document.hidden) { this.frameClock.reset(); this.shadowClock.reset(); return; }
+    const seconds = this.frameClock.step(time);
+    if (seconds === null) return;
     this.controls?.tick(seconds);
     if (this.viewTransition) {
       const v = this.viewTransition, t = Math.min(1, (time - v.start) / (v.duration || 360)), ease = t * t * (3 - 2 * t);
@@ -556,8 +566,8 @@ export class SaloonScene {
     });
     // Keep nearby nameplates readable without letting them cover half a phone screen.
     // These remain depth-tested world-space Sprites; there is no screen-positioned UI.
-    const labelLimit = Math.min(150, this.container.clientWidth * .42);
-    const worldPerPixel = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / Math.max(1, this.container.clientHeight);
+    const labelLimit = Math.min(150, this.viewWidth * .42);
+    const worldPerPixel = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / Math.max(1, this.viewHeight);
     for (const label of this.labels) if (label.sprite.visible) {
       this.animateSeatLabel(label, time);
       label.sprite.getWorldPosition(this.labelPosition).applyMatrix4(this.camera.matrixWorldInverse);
@@ -566,6 +576,7 @@ export class SaloonScene {
     }
     if (!this.editor) this.hands.position.y = 1.79 + Math.sin(time * .001) * .003;
     this.beforeRender?.();
+    if (!this.editor && this.renderer.shadowMap.enabled && this.shadowClock.step(time) !== null) this.renderer.shadowMap.needsUpdate = true;
     this.renderer.render(this.scene, this.camera);
     this.afterRender?.();
   }

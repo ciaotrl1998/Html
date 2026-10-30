@@ -34,7 +34,7 @@ test('a copied mobile game serves its complete Three.js runtime without node_mod
   const core = await fetch(new URL(dependency[1], `${base}/vendor/three.js`));
   assert.equal(core.status, 200);
   assert.match(await core.text(), /REVISION/);
-  for (const url of ['/', '/client/boot.js', '/client/app.js', '/client/scene.js', '/client/style.css', '/vendor/three.core.js']) {
+  for (const url of ['/', '/client/boot.js', '/client/app.js', '/client/scene.js', '/client/frame-clock.js', '/client/mesh-batching.js', '/client/vendor/BufferGeometryUtils.js', '/client/style.css', '/vendor/three.core.js']) {
     assert.equal((await fetch(base + url)).status, 200, url);
   }
 });
