@@ -4,15 +4,16 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../client/boot.js', import.meta.url), 'utf8');
-function boot(protocol = 'file:', search = '', hash = '') {
+function boot(protocol = 'file:', search = '', hash = '', options = {}) {
   const elements = [], scripts = [], images = [], replaced = [], timers = new Map(); let nextTimer = 0;
-  const node = () => ({ children: [], classList: { add() {} }, append(...children) { this.children.push(...children); }, replaceChildren() { this.children = []; } });
-  const loading = node();
-  const document = { getElementById: () => loading, createElement() { const result = node(); elements.push(result); return result; }, head: { appendChild: script => scripts.push(script) } };
+  const node = () => ({ children: [], style: {}, get firstChild() { return this.children[0]; }, appendChild(child) { this.children.push(child); }, removeChild(child) { this.children.splice(this.children.indexOf(child), 1); } });
+  const loading = node(), game = node(), listeners = {};
+  const window = { innerHeight: 736, addEventListener(name, handler) { listeners[name] = handler; }, ...options.window };
+  const document = { getElementById: id => id === 'game' ? game : loading, createElement(tag) { const result = node(); if (tag === 'script' && options.modules !== false) result.noModule = false; elements.push(result); return result; }, head: { appendChild: script => scripts.push(script) } };
   const location = { protocol, search, hash, replace: url => replaced.push(url) };
-  vm.runInNewContext(source, { document, location, URL, URLSearchParams, Date, Image: class { constructor() { images.push(this); } },
+  vm.runInNewContext(source, { window, document, location, navigator: { userAgent: options.userAgent || '' }, Date, Image: class { constructor() { images.push(this); } },
     setTimeout(fn) { const id = ++nextTimer; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id) });
-  return { loading, elements, scripts, images, replaced, timers };
+  return { window, game, listeners, loading, elements, scripts, images, replaced, timers };
 }
 
 test('local index loads a classic bootstrap and uses relative local styles without loading file-origin ES modules', async () => {
@@ -54,6 +55,48 @@ test('HTTP and HTTPS pages load the normal same-origin game module directly', ()
   for (const protocol of ['http:', 'https:']) {
     const page = boot(protocol); assert.equal(page.images.length, 0); assert.equal(page.replaced.length, 0);
     assert.equal(page.scripts.length, 1); assert.equal(page.scripts[0].type, 'module'); assert.equal(page.scripts[0].src, '/client/app.js');
-    page.scripts[0].onerror(); assert.match(page.loading.textContent, /脚本加载失败/);
+    page.scripts[0].onerror(); assert.match(page.loading.children[1].textContent, /脚本加载失败/);
+  }
+});
+
+test('legacy viewport units cannot collapse the game, and viewport resizing updates its height', async () => {
+  const css = await readFile(new URL('../client/style.css', import.meta.url), 'utf8');
+  assert.match(css, /#game\{height:100vh;height:100dvh;width:100%;max-width:540px/);
+  const page = boot();
+  assert.equal(page.game.style.height, '736px');
+  page.window.innerHeight = 812; page.listeners.resize();
+  assert.equal(page.game.style.height, '812px');
+  let resize;
+  const viewport = { height: 701.4, addEventListener(name, handler) { resize = handler; } };
+  const visual = boot('http:', '', '', { window: { visualViewport: viewport } });
+  assert.equal(visual.game.style.height, '701px');
+  viewport.height = 420; resize(); assert.equal(visual.game.style.height, '420px');
+});
+
+test('old WebViews get an explicit message instead of silently ignoring module scripts', () => {
+  const page = boot('http:', '', '', { modules: false });
+  assert.equal(page.scripts.length, 0);
+  assert.match(page.loading.children[1].textContent, /WebView.*不支持/);
+  assert.equal(page.loading.hidden, false);
+});
+
+test('initialization errors before the scene try/catch remain visible, without replacing an initialized game', () => {
+  const page = boot('http:');
+  page.listeners.unhandledrejection({ reason: new Error('startup storage unavailable') });
+  assert.match(page.loading.children[1].textContent, /startup storage unavailable/);
+  page.listeners.error({ message: 'Unsupported syntax' });
+  assert.match(page.loading.children[1].textContent, /Unsupported syntax/);
+  page.window.RevolverPokerBoot.ready();
+  page.loading.hidden = true;
+  page.listeners.error({ message: 'later unrelated error' });
+  assert.equal(page.loading.hidden, true);
+});
+
+test('Android local entries explain the game box server flow, including content URLs', () => {
+  for (const protocol of ['file:', 'content:']) {
+    const page = boot(protocol, '', '', { userAgent: 'Mozilla/5.0 (Linux; Android 12)' });
+    page.images[0].onerror();
+    assert.match(page.loading.children[1].textContent, /建立服务器.*进入游戏/);
+    assert.doesNotMatch(page.loading.children[1].textContent, /\.cmd/);
   }
 });

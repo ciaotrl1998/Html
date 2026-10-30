@@ -293,4 +293,4 @@ try {
   const message = document.createElement('div'); message.className = 'scene-error';
   message.textContent = graphicsError ? '3D 场景需要 WebGL 2，请使用支持硬件加速的浏览器。' : `3D 场景加载失败：${detail.slice(0, 180)}`; $('game').appendChild(message);
   toast(graphicsError ? '3D 场景未能加载，请检查 WebGL 2 支持' : '3D 场景加载失败，桌面手势暂不可用；请刷新页面重试');
-} finally { $('loading').hidden = true; }
+} finally { window.RevolverPokerBoot?.ready(); $('loading').hidden = true; }

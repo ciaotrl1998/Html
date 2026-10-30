@@ -5,6 +5,7 @@
   "type": "module",
   "description": "西部酒馆 · 八人联机德州扑克",
   "scripts": {
+    "postinstall": "node scripts/sync-client-vendor.js",
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "editor": "node server/editor.js",

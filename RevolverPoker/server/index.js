@@ -43,8 +43,8 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       let relative = decodeURIComponent(url.pathname).replace(/^\//, '') || 'index.html';
       relative = relative.replace(/\/{2,}/g, '/');
       if (relative === 'editor' || relative === 'editor.html') relative = 'client/editor.html';
-      if (relative === 'vendor/three.js') relative = 'node_modules/three/build/three.module.js';
-      if (relative === 'vendor/three.core.js') relative = 'node_modules/three/build/three.core.js';
+      if (relative === 'vendor/three.js') relative = 'client/vendor/three.module.min.js';
+      if (relative === 'vendor/three.core.js' || relative === 'vendor/three.core.min.js') relative = 'client/vendor/three.core.min.js';
       if (relative === 'vendor/OrbitControls.js') relative = 'node_modules/three/examples/jsm/controls/OrbitControls.js';
       if (relative === 'vendor/TransformControls.js') relative = 'node_modules/three/examples/jsm/controls/TransformControls.js';
       const allowed = relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
