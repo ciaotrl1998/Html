@@ -54,6 +54,11 @@
 .pot-label strong, .rank-row b, .rank-row strong, .bet-amount, .bet-limits,
 .chip-selector-value, .chip-selector-max, .card, input[type='number'] { font-family: var(--number-font); }
 @media (max-width: 360px) { .topbar { padding-left: 16px; padding-right: 16px; } .player-strip.crowded .roster-portrait { width: 27px; height: 32px; } .player-strip.crowded .roster-status { font-size: 8px; } }
+/* Tall phones (including 20:9): keep controls near the screen edge instead of
+   reserving the entire cutout band above both rows. Keep the 44px hit areas. */
+@media (max-width: 600px) and (max-aspect-ratio: 1/2) {
+  .topbar { gap: 0; padding-top: 2px; padding-top: clamp(2px, env(safe-area-inset-top, 0px), 6px); }
+}
 .hand-area { pointer-events: none; }
 .my-cards { pointer-events: auto; width: max-content; margin: auto; }
 .board-area { top: 52%; }
