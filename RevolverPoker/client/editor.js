@@ -68,9 +68,9 @@ function updateViewControls() {
   $('camera-align').disabled = !!camera;
 }
 function select(entry) {
-  if (entry?.id.startsWith('opponent-discard-') && !$('discard-preview').checked) {
+  if ((entry?.id === 'hand-discard' || entry?.id.startsWith('opponent-discard-')) && !$('discard-preview').checked) {
     $('discard-preview').checked = true; $('showdown-preview').checked = false; updateSample();
-  } else if (entry?.id.startsWith('opponent-cards-') && $('discard-preview').checked) {
+  } else if ((entry?.id.startsWith('opponent-cards-') || entry?.id.startsWith('hand-card-') || entry?.id === 'hand-group' || entry?.id === 'staged-chips') && $('discard-preview').checked) {
     $('discard-preview').checked = false; updateSample();
   }
   selected = entry;
@@ -134,10 +134,11 @@ function filterObjects() {
   const query = $('object-search').value.trim().toLowerCase(), category = $('category').value;
   let count = 0;
   for (const entry of layout.entries.values()) {
+    const row = rows.get(entry.id); if (!row) continue;
     const visible = (!category || category === entry.category) && `${entry.label} ${entry.id}`.toLowerCase().includes(query);
-    rows.get(entry.id).hidden = !visible; if (visible) count++;
+    row.hidden = !visible; if (visible) count++;
   }
-  $('object-count').textContent = `${count} / ${layout.entries.size}`;
+  $('object-count').textContent = `${count} / ${rows.size}`;
 }
 
 try {
@@ -149,10 +150,13 @@ try {
   updateSample = () => {
     const done = $('showdown-preview').checked;
     const discard = $('discard-preview').checked;
-    const players = seats.map((seat, i) => ({ ...seat, cards: !i || done ? sampleCards[i] : [null, null], chips: 2000 - (i + 1) * 20, total: (i + 1) * 20, bet: (i + 1) * 20, folded: (discard && i > 0) || (done && i === 7), action: '' }));
+    const players = seats.map((seat, i) => ({ ...seat, cards: !i || done ? sampleCards[i] : [null, null], chips: 2000 - (i + 1) * 20, total: (i + 1) * 20, bet: (i + 1) * 20, folded: discard, action: '' }));
+    // Preview toggles can undo folds within the same sample hand.
+    scene.seatActions = null;
     scene.update({ code: 'EDITOR', name: 'RevolverPoker', hostId: 'preview-0', phase: 'playing', seats, hand: { number: 1, pot: players.reduce((sum, player) => sum + player.total, 0), board: [0, 18, 28, 49, 38], players, actor: done ? null : 1, button: 4, sbSeat: 5, bbSeat: 6, done, result: { showdown: done } } }, 'preview-0');
-    scene.cards.setPeeking(true);
-    scene.betView.setState({ pending: 100, bankroll: players[0].chips, remaining: players[0].chips - 100, enabled: false });
+    scene.cards.setPeeking(!discard);
+    const pending = discard ? 0 : 100;
+    scene.betView.setState({ pending, bankroll: players[0].chips, remaining: players[0].chips - pending, enabled: false });
   };
   updateSample();
   $('showdown-preview').onchange = () => { if ($('showdown-preview').checked) $('discard-preview').checked = false; updateSample(); };
@@ -179,6 +183,7 @@ try {
   setView('overview');
   const categories = new Set();
   for (const entry of layout.entries.values()) {
+    if (entry.node.userData.editorHidden) continue;
     categories.add(entry.category);
     const row = document.createElement('button'); row.className = 'object-row'; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', 'false'); row.dataset.object = entry.id;
     const icon = document.createElement('span'); icon.className = 'object-icon'; icon.textContent = entry.defaultsCamera ? '▣' : entry.node.isGroup ? '◇' : '▧';

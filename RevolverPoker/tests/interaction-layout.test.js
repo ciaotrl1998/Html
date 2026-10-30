@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import * as THREE from 'three';
+import { DEAL_TIMING, dealDuration } from '../shared/deal-timing.js';
+import { TURN_FOLLOW } from '../client/view-controls.js';
 
 registerHooks({ resolve(specifier, context, next) {
   if (specifier === '/vendor/three.js') return next('three', context);
@@ -30,6 +32,115 @@ function createGame(editor = false) {
   game.betView = new TableBetView(game); game.betView.setActive(true);
   return game;
 }
+
+test('all hole and community animations finish inside their server phase, which also covers camera return', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const players = Array.from({ length: 8 }, (_, seat) => ({ id: seat ? `p${seat}` : 'me', seat, folded: false, cards: seat ? [null, null] : [12, 11] }));
+  const room = { code: 'TEST', dealing: true, serverTime: Date.now(), hand: { number: 1, players, board: [], done: false } };
+  let previousBoard = 0;
+  for (const count of [0, 3, 4, 5]) {
+    room.hand.board = [0, 1, 2, 3, 4].slice(0, count);
+    room.deal = { hand: 1, boardCount: count, startedAt: room.serverTime - 200 };
+    cards.update(room, 'me', TABLE_POSITIONS, 0);
+    const animations = cards.all.flatMap(card => card.animation?.kind === 'deal' ? [card.animation] : []);
+    assert.equal(animations.length, count === 0 ? 16 : count === 3 ? 3 : 1);
+    assert.equal(cards.dealing, true);
+    const end = Math.max(...animations.map(animation => animation.start + animation.duration)) - cards.dealStart;
+    const duration = dealDuration(count === 0, previousBoard, count);
+    assert.ok(end < duration); assert.ok(TURN_FOLLOW.duration <= duration);
+    assert.ok(Math.abs(performance.now() - (cards.dealStart + 200)) < 50, 'late packets use the shared phase start');
+    if (count === 0) assert.equal(end, 7 * DEAL_TIMING.seatGap + DEAL_TIMING.opponentGap + DEAL_TIMING.card);
+    cards.tick(cards.dealStart + duration, new THREE.PerspectiveCamera());
+    assert.equal(cards.dealing, false); previousBoard = count;
+  }
+  assert.equal(dealDuration(false, 0, 5), DEAL_TIMING.flop, 'all-in runouts still include the staggered flop');
+});
+
+test('hole cards remain hidden during the initial half-second pause and reconnects retain the original start', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const serverTime = Date.now();
+  const room = { code: 'TEST', dealing: true, serverTime, deal: { hand: 1, boardCount: 0, startedAt: serverTime + 500 },
+    hand: { number: 1, board: [], done: false, players: [{ id: 'me', seat: 0, cards: [12, 11] }, { id: 'other', seat: 1, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const start = cards.dealStart;
+  assert.ok(start - performance.now() >= 490);
+  cards.tick(start - 1, new THREE.PerspectiveCamera());
+  assert.ok(cards.all.filter(card => card.animation?.kind === 'deal').every(card => !card.root.visible));
+  cards.update({ ...room, serverTime: serverTime + 200 }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.hole[0].animation.start, start, 'sync packets cannot restart an existing animation');
+  cards.tick(start + 1, new THREE.PerspectiveCamera());
+  assert.equal(cards.hole[0].root.visible, true);
+});
+
+test('holding during a deal preserves its timeline and flips each own card only after it lands', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const serverTime = Date.now(), room = { code: 'TEST', dealing: true, serverTime,
+    deal: { hand: 1, boardCount: 0, startedAt: serverTime + 500 },
+    hand: { number: 1, board: [], done: false, players: [{ id: 'me', seat: 0, cards: [12, 11] }, { id: 'other', seat: 7, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const flights = cards.hole.map(card => card.animation), firstEnd = flights[0].start + flights[0].duration + 1;
+  cards.setPeeking(true);
+  cards.hole.forEach((card, index) => assert.equal(card.animation, flights[index], 'peeking cannot replace an unfinished deal'));
+  cards.tick(flights[0].start - 1, new THREE.PerspectiveCamera());
+  assert.ok(cards.hole.every(card => !card.root.visible), 'the initial pause still hides undelivered cards');
+  cards.tick(firstEnd, new THREE.PerspectiveCamera());
+  assert.notEqual(cards.hole[0].animation, flights[0]);
+  close(cards.hole[0].root.position, flights[0].to);
+  assert.equal(cards.hole[0].animation.start, firstEnd);
+  assert.equal(cards.hole[1].animation, flights[1], 'the second card must finish its own flight');
+  const secondEnd = flights[1].start + flights[1].duration + 1;
+  cards.tick(secondEnd, new THREE.PerspectiveCamera());
+  assert.equal(cards.hole[1].animation.start, secondEnd);
+  cards.update({ ...room, dealing: false }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.peeking, true); assert.equal(cards.dealing, false);
+  cards.setPeeking(false); cards.tick(performance.now() + 500, new THREE.PerspectiveCamera());
+  cards.hole.forEach((card, index) => {
+    const covered = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, (index ? 1 : -1) * .1));
+    assert.ok(card.root.quaternion.angleTo(covered) < 1e-7);
+  });
+});
+
+test('releasing or starting a new hand cancels pending peeks without revealing cards later', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const room = { code: 'TEST', dealing: true, hand: { number: 1, board: [], done: false,
+    players: [{ id: 'me', seat: 0, cards: [12, 11] }, { id: 'other', seat: 7, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const end = Math.max(...cards.all.flatMap(card => card.animation ? [card.animation.start + card.animation.duration] : []));
+  cards.setPeeking(true); cards.setPeeking(false); cards.tick(end, new THREE.PerspectiveCamera());
+  assert.equal(cards.peeking, false);
+  cards.hole.forEach((card, index) => {
+    assert.equal(card.animation, null); assert.equal(card.peekPending, false);
+    const covered = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, (index ? 1 : -1) * .1));
+    assert.ok(card.root.quaternion.angleTo(covered) < 1e-7);
+  });
+  cards.update({ ...room, hand: { ...room.hand, number: 2 } }, 'me', TABLE_POSITIONS, 0);
+  cards.setPeeking(true);
+  cards.update({ ...room, hand: { ...room.hand, number: 3 } }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.peeking, false); assert.ok(cards.hole.every(card => !card.peekPending));
+});
+
+test('an authoritative phase end settles deal motion while preserving peek and reveal animations', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const room = { code: 'TEST', dealing: true, hand: { number: 1, board: [], done: false,
+    players: [{ id: 'me', seat: 0, cards: [12, 11] }, { id: 'other', seat: 7, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const landing = cards.opponents[7][0].animation.to.clone();
+  // Own cards can already be at rest while distant seats are still receiving.
+  cards.tick(cards.hole[1].animation.start + DEAL_TIMING.card + 1, new THREE.PerspectiveCamera());
+  cards.setPeeking(true); const peek = cards.hole[0].animation;
+  cards.update({ ...room, dealing: false }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.dealing, false); close(cards.opponents[7][0].root.position, landing);
+  assert.equal(cards.hole[0].animation, peek);
+  cards.update({ ...room, dealing: false, hand: { ...room.hand, done: true,
+    players: room.hand.players.map(p => p.id === 'other' ? { ...p, cards: [0, 1] } : p) } }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.opponents[7][0].animation.kind, 'reveal');
+  assert.equal(cards.dealing, false, 'showdown reveals do not reopen the dealing phase');
+});
 
 test('editable bankroll and staged-chip transforms survive saving, reloading, reselection and throwing', t => {
   fakeDocument(t);
@@ -100,4 +211,52 @@ test('other players discard face down from their edited hands onto independent s
   for (const player of players) player.folded = false;
   cards.update(room, 'me', TABLE_POSITIONS, focus);
   assert.ok(cards.discards.flat().every(card => !card.root.visible), 'the next deal removes all previous discarded cards');
+});
+
+test('own folded cards fly from the dragged, edited hand onto an independently saved landing point', t => {
+  fakeDocument(t);
+  const game = createGame(), cards = game.cards, focus = 5;
+  const entry = game.layout.entries.get('hand-discard'), hand = game.layout.entries.get('hand-group');
+  assert.ok(entry.label.includes('自己') && entry.label.includes('第一人称'));
+  entry.proxy.position.set(-.72, 1.6, 1.25); entry.proxy.rotation.set(0, .3, 0); entry.proxy.scale.setScalar(.9); game.layout.sync(entry);
+  hand.proxy.position.set(.3, 1.65, 3.6); hand.proxy.rotation.set(.05, .2, -.03); hand.proxy.scale.setScalar(.85); game.layout.sync(hand);
+  const single = game.layout.entries.get('hand-card-0'); single.proxy.position.x -= .12; game.layout.sync(single);
+  const me = { id: 'me', seat: focus, cards: [12, 11], folded: false };
+  const room = { code: 'OWN', hand: { number: 1, players: [me], board: [] } };
+  cards.update(room, 'me', TABLE_POSITIONS, focus); cards.setHandDrag(1); cards.tick(0, new THREE.PerspectiveCamera());
+  cards.hole.forEach(card => card.root.updateWorldMatrix(true, true));
+  const from = cards.hole.map(card => card.display.getWorldPosition(new THREE.Vector3()));
+  me.folded = true; cards.update(room, 'me', TABLE_POSITIONS, focus);
+  cards.ownDiscard.forEach((card, i) => {
+    assert.equal(cards.hole[i].root.visible, false); assert.equal(card.root.visible, true);
+    assert.equal(card.front.material, cards.factory.back); close(card.root.getWorldPosition(new THREE.Vector3()), from[i]);
+  });
+  cards.tick(performance.now() + 600, new THREE.PerspectiveCamera());
+  const landing = cards.ownDiscard.map((card, i) => {
+    const expected = cards.ownDiscardGroup.localToWorld(new THREE.Vector3(i * .13, i * .005, 0));
+    close(card.root.getWorldPosition(new THREE.Vector3()), expected); return expected;
+  });
+  cards.setPeeking(true); assert.ok(cards.hole.every(card => !card.root.visible), 'discarded cards cannot be picked up by peeking');
+  const saved = game.layout.export(), preview = createGame(true); preview.layout.apply(saved); preview.cards.update(room, 'me', TABLE_POSITIONS, focus);
+  preview.cards.ownDiscard.forEach((card, i) => { assert.equal(card.animation, null); close(card.root.getWorldPosition(new THREE.Vector3()), landing[i]); });
+  hand.proxy.position.x += 2; game.layout.sync(hand); cards.update(room, 'me', TABLE_POSITIONS, focus);
+  cards.ownDiscard.forEach((card, i) => close(card.root.getWorldPosition(new THREE.Vector3()), landing[i]));
+  me.folded = false; room.hand.number++; cards.setHandDrag(0); cards.update(room, 'me', TABLE_POSITIONS, focus);
+  assert.ok(cards.ownDiscard.every(card => !card.root.visible)); assert.ok(cards.hole.every(card => card.root.visible || card.animation));
+});
+
+test('own discard preview can be toggled, reset and reloaded without showing hidden card faces', t => {
+  fakeDocument(t);
+  const game = createGame(true), cards = game.cards, entry = game.layout.entries.get('hand-discard');
+  const me = { id: 'me', seat: 0, cards: [null, null], folded: true }, room = { code: 'PREVIEW', hand: { number: 1, players: [me], board: [] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  assert.ok(cards.ownDiscard.every(card => card.root.visible && card.front.material === cards.factory.back && !card.animation));
+  entry.proxy.position.set(-.8, 1.6, 1.2); game.layout.sync(entry); const saved = game.layout.export();
+  const point = cards.ownDiscard[0].root.getWorldPosition(new THREE.Vector3());
+  me.folded = false; me.cards = [12, 11]; cards.update(room, 'me', TABLE_POSITIONS, 0);
+  assert.ok(cards.ownDiscard.every(card => !card.root.visible)); assert.ok(cards.hole.every(card => card.root.visible));
+  me.folded = true; cards.update(room, 'me', TABLE_POSITIONS, 0); close(cards.ownDiscard[0].root.getWorldPosition(new THREE.Vector3()), point);
+  game.layout.reset(entry); close(cards.ownDiscard[0].root.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(-1, 1.573, 1.45));
+  game.layout.apply(saved); close(cards.ownDiscard[0].root.getWorldPosition(new THREE.Vector3()), point);
+  cards.update(null, 'me', TABLE_POSITIONS, 0); assert.ok(cards.ownDiscard.every(card => !card.root.visible));
 });

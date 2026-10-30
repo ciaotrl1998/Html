@@ -9,6 +9,7 @@ import { PokerHand, shuffledDeck } from '../shared/poker.js';
 import { chooseBotAction } from './bot.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
 import { EMPTY_LAYOUT, layoutModule } from '../shared/scene-layout.js';
+import { DEAL_TIMING, dealDuration } from '../shared/deal-timing.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
@@ -28,7 +29,7 @@ function config(input = {}) {
   return c;
 }
 
-export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile = path.join(ROOT, 'client/scene-layout.js') } = {}) {
+export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay = null, phaseDelay = DEAL_TIMING.pause, layoutFile = path.join(ROOT, 'client/scene-layout.js') } = {}) {
   const rooms = new Map(), sessions = new Map();
   const layouts = sceneStore(layoutFile);
   const server = http.createServer(async (req, res) => {
@@ -36,7 +37,7 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
       const url = new URL(req.url, 'http://localhost');
       if (url.pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, rooms: rooms.size, sceneEditor: true })); return;
+        res.end(JSON.stringify({ ok: true, rooms: rooms.size, sceneEditor: true, dealingPhase: true })); return;
       }
       if (url.pathname === '/api/scene-layout') { await handleSceneRequest(req, res, layouts); return; }
       let relative = decodeURIComponent(url.pathname).replace(/^\//, '') || 'index.html';
@@ -72,13 +73,29 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
     } catch { socket.destroy(); }
   });
   function view(room, session) {
+    const hand = room.hand?.snapshot(session.id) || null;
+    if (hand && room.dealing) {
+      // Blind/ante all-ins can settle inside the rules engine immediately.
+      // Keep the public pre-settlement balances until the cards have landed.
+      if (hand.done) for (const player of hand.players) {
+        const refund = hand.result.refund?.id === player.id ? hand.result.refund.amount : 0;
+        const awards = hand.result.pots.flatMap(pot => pot.awards).filter(award => award.id === player.id).reduce((sum, award) => sum + award.amount, 0);
+        player.chips -= awards + refund; player.total += refund;
+      }
+      hand.pot = hand.players.reduce((sum, player) => sum + player.total, 0);
+      hand.board = hand.board.slice(0, room.visibleBoard ?? hand.board.length);
+      hand.street = ['preflop', 'preflop', 'preflop', 'flop', 'turn', 'river'][hand.board.length];
+      hand.actor = null; hand.legal = null; hand.done = false; hand.result = null;
+      for (const player of hand.players) if (player.id !== session.id) player.cards = [null, null];
+    }
     return { type: 'state', you: session.id, room: { code: room.code, name: room.name, hostId: room.hostId,
       phase: room.phase, config: room.config, version: room.version, handNumber: room.handNumber,
-      deadline: room.deadline, serverTime: Date.now(), turnId: room.turnId, stopAfterHand: room.stopAfterHand,
+      deadline: room.deadline, turnDuration: room.turnDuration ?? null, serverTime: Date.now(), turnId: room.turnId, stopAfterHand: room.stopAfterHand,
+      dealing: !!room.dealing, settling: !!room.settling, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay,
       seats: room.seats.map((s, seat) => ({ ...s, seat, connected: s.kind === 'human' ? !!sessions.get(s.id)?.ws : true,
         chips: room.players?.find(p => p.id === s.id)?.chips ?? null })),
       members: [...room.members].map(id => { const s = sessions.get(id); return { id, name: s?.name, connected: !!s?.ws }; }),
-      hand: room.hand?.snapshot(session.id) || null,
+      hand,
       standings: room.phase === 'finished' ? standings(room) : null } };
   }
   function standings(room) {
@@ -96,12 +113,48 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
     room.touched = Date.now();
     for (const id of room.members) { const s = sessions.get(id); if (s) send(s.ws, view(room, s)); }
   }
-  function clearRoomTimer(room) { clearTimeout(room.timer); room.timer = null; room.deadline = null; }
+  function clearRoomTimer(room) { clearTimeout(room.timer); room.timer = null; room.deadline = null; room.turnDuration = null; }
   function finish(room) {
-    clearRoomTimer(room); room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
+    clearRoomTimer(room); room.dealing = false; room.finishing = false; room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
+  }
+  function beginDealing(room, initial, previousBoard = 0) {
+    clearRoomTimer(room);
+    // Run out all-ins one street at a time, with the same pauses as normal play.
+    const boardCount = initial ? 0 : Math.min(room.hand.board.length, previousBoard < 3 ? 3 : previousBoard + 1);
+    const duration = dealDelay ?? dealDuration(initial, previousBoard, boardCount), startedAt = Date.now() + phaseDelay;
+    room.deal = { hand: room.handNumber, boardCount, startedAt, endsAt: startedAt + duration };
+    room.dealing = true; room.settling = false; room.turnId = null; room.visibleBoard = previousBoard;
+    const complete = () => {
+      if (boardCount < room.hand.board.length) beginDealing(room, false, boardCount);
+      else if (room.hand.done) beforeSettlement(room);
+      else schedule(room);
+    };
+    const reveal = () => {
+      room.visibleBoard = boardCount;
+      if (duration <= 0) { complete(); return; }
+      room.timer = setTimeout(complete, duration);
+      broadcast(room);
+    };
+    if (phaseDelay <= 0) { reveal(); return; }
+    room.timer = setTimeout(reveal, phaseDelay);
+    broadcast(room);
+  }
+  function beforeSettlement(room) {
+    if (phaseDelay <= 0) { schedule(room); return; }
+    clearRoomTimer(room);
+    room.dealing = true; room.settling = true; room.turnId = null;
+    room.deal = null; room.visibleBoard = room.hand.board.length;
+    room.timer = setTimeout(() => schedule(room), phaseDelay);
+    broadcast(room);
+  }
+  function afterAction(room, previousBoard) {
+    if (room.hand.board.length > previousBoard) beginDealing(room, false, previousBoard);
+    else if (room.hand.done) beforeSettlement(room);
+    else schedule(room);
   }
   function schedule(room) {
     clearRoomTimer(room);
+    room.dealing = false; room.settling = false; room.visibleBoard = null;
     room.turnId = randomUUID();
     if (room.hand.done) {
       for (const p of room.hand.players) {
@@ -109,31 +162,52 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
         if (p.chips === 0 && !record.eliminatedAt) { record.eliminatedAt = room.handNumber; record.beforeBust = record.chips; }
         record.chips = p.chips;
       }
-      if (room.stopAfterHand || room.players.filter(p => p.chips > 0).length <= 1) { finish(room); return; }
+      room.finishing = room.stopAfterHand || room.players.filter(p => p.chips > 0).length <= 1;
       room.deadline = Date.now() + nextDelay;
-      room.timer = setTimeout(() => { deal(room); }, nextDelay);
+      room.timer = setTimeout(() => { if (room.finishing) finish(room); else deal(room); }, nextDelay);
       broadcast(room); return;
     }
     const p = room.hand.players.find(p => p.seat === room.hand.actor);
     const isBot = p.bot;
-    const seconds = room.config.actionSeconds;
-    const delay = isBot ? botDelay + (botDelay > 50 ? randomInt(500) : 0) : seconds * 1000;
-    room.deadline = delay ? Date.now() + delay : null;
-    if (delay || isBot) room.timer = setTimeout(() => {
+    const limit = room.config.actionSeconds * 1000;
+    // Compute immediately, then keep this actor visible until the minimum turn
+    // duration has elapsed so the camera can finish its one-second follow.
+    // botDelay overrides the minimum for tests; computation counts toward it.
+    const notBefore = performance.now() + (isBot ? Math.min(botDelay ?? 1500, limit || Infinity) : 0);
+    const turnId = room.turnId;
+    room.turnDuration = limit;
+    room.deadline = limit ? Date.now() + limit : null;
+    const submit = action => {
+      if (room.phase !== 'playing' || room.turnId !== turnId) return;
       try {
-        const action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
+        const previousBoard = room.hand.board.length;
         room.hand.act(p.id, action.type, action.amount);
-        schedule(room);
+        afterAction(room, previousBoard);
       } catch (error) {
         console.error('Room action:', room.code, error.message);
         const legal = room.hand.legal(p.id);
-        if (legal) { room.hand.act(p.id, legal.canCheck ? 'check' : 'fold'); schedule(room); }
+        if (legal) { const previousBoard = room.hand.board.length; room.hand.act(p.id, legal.canCheck ? 'check' : 'fold'); afterAction(room, previousBoard); }
       }
-    }, delay);
+    };
+    if (limit || isBot) room.timer = setTimeout(() => {
+      let action;
+      try {
+        action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
+      } catch (error) {
+        console.error('Room decision:', room.code, error.message);
+        const legal = room.hand.legal(p.id);
+        if (!legal) return;
+        action = { type: legal.canCheck ? 'check' : 'fold' };
+      }
+      const remaining = isBot ? Math.ceil(notBefore - performance.now()) : 0;
+      if (remaining > 0) room.timer = setTimeout(() => submit(action), remaining);
+      else submit(action);
+    }, isBot ? 0 : limit);
     broadcast(room);
   }
   function deal(room) {
     clearRoomTimer(room);
+    room.finishing = false;
     const players = room.players.filter(p => p.chips > 0);
     if (players.length < 2) { finish(room); return; }
     if (room.handNumber) {
@@ -144,7 +218,7 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
     const sb = Math.min(room.config.smallBlind * 2 ** Math.min(20, levels), 1000000);
     room.hand = new PokerHand({ players, button: room.button, smallBlind: sb, bigBlind: sb * 2,
       ante: room.config.ante, deck: shuffledDeck(randomInt), number: room.handNumber });
-    schedule(room);
+    beginDealing(room, true);
   }
   function leave(session) {
     const room = rooms.get(session.roomCode);
@@ -159,6 +233,7 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
   }
   function closeRoom(room) {
     clearRoomTimer(room);
+    room.dealing = false;
     rooms.delete(room.code);
     for (const id of room.members) {
       const member = sessions.get(id);
@@ -232,22 +307,25 @@ export function createPokerServer({ botDelay = 850, nextDelay = 6500, layoutFile
         if (msg.type === 'action') {
           if (typeof msg.requestId !== 'string' || msg.requestId.length > 80) fail('请求编号无效');
           if (session.seen.has(msg.requestId)) { send(ws, view(room, session)); return; }
+          if (room.dealing) fail(room.settling ? '等待结算，请稍候' : '正在发牌，请等待发牌结束');
           if (room.phase !== 'playing' || !room.hand || msg.hand !== room.handNumber || msg.turnId !== room.turnId) fail('牌局已更新，请按当前回合操作');
+          const previousBoard = room.hand.board.length;
           room.hand.act(session.id, msg.action, msg.amount);
           session.seen.add(msg.requestId);
           if (session.seen.size > 128) session.seen.delete(session.seen.values().next().value);
-          schedule(room); return;
+          afterAction(room, previousBoard); return;
         }
         if (msg.type === 'stop') {
           if (!host || !seated) fail('仅已入座房主可结束本场');
           if (room.phase !== 'playing') fail('当前没有进行中的比赛');
           room.stopAfterHand = true;
-          if (room.hand.done) finish(room); else broadcast(room);
+          if (room.hand.done && !room.dealing) room.finishing = true;
+          broadcast(room);
           return;
         }
         if (msg.type === 'reset') {
           if (!host || room.phase !== 'finished') fail('仅房主可在结算后重新开场');
-          room.phase = 'lobby'; room.hand = null; room.players = null; room.handNumber = 0; broadcast(room); return;
+          room.phase = 'lobby'; room.hand = null; room.players = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.deal = null; room.finishing = false; broadcast(room); return;
         }
         if (room.phase !== 'lobby') fail('比赛已开始，下一场才能调整座位与规则');
         if (msg.type === 'seat') {

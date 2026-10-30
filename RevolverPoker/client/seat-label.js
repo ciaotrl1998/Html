@@ -1,3 +1,5 @@
+import { NUMBER_FONT } from './typography.js';
+
 // The history/cache fallback also supports already-running servers which clear
 // player.action between streets. A new hand always starts with fresh labels.
 export class SeatActionLabels {
@@ -29,19 +31,19 @@ export function paintSeatNameplate(ctx, data) {
   const gap = 10;
   let nameSize = 34, seatSize, seatWidth, nameWidth;
   for (;;) {
-    seatSize = Math.round(nameSize * .65); ctx.font = `${seatSize}px Georgia, serif`; seatWidth = ctx.measureText(seat).width;
+    seatSize = Math.round(nameSize * .65); ctx.font = `${seatSize}px ${NUMBER_FONT}`; seatWidth = ctx.measureText(seat).width;
     ctx.font = `600 ${nameSize}px "Microsoft YaHei", sans-serif`; nameWidth = ctx.measureText(name).width;
     if (seatWidth + gap + nameWidth <= 460 || nameSize <= 18) break;
     nameSize--;
   }
   nameWidth = Math.min(460 - seatWidth - gap, nameWidth);
   const left = (512 - seatWidth - gap - nameWidth) / 2;
-  ctx.textAlign = 'left'; ctx.fillStyle = '#b8a173'; ctx.font = `${seatSize}px Georgia, serif`; ctx.fillText(seat, left, 56);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#b8a173'; ctx.font = `${seatSize}px ${NUMBER_FONT}`; ctx.fillText(seat, left, 56);
   ctx.fillStyle = data.folded ? '#b0a58c' : '#f1e3c6'; ctx.font = `600 ${nameSize}px "Microsoft YaHei", sans-serif`; ctx.fillText(name, left + seatWidth + gap, 56, nameWidth);
 
   const action = data.action || '等待行动';
-  let actionSize = 76; ctx.font = `600 ${actionSize}px "Microsoft YaHei", sans-serif`;
+  let actionSize = 74; ctx.font = `600 ${actionSize}px "Microsoft YaHei", sans-serif`;
   while (ctx.measureText(action).width > 460 && actionSize > 36) ctx.font = `600 ${--actionSize}px "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center'; ctx.fillStyle = data.active ? '#f0cc86' : '#eee0bd'; ctx.fillText(action, 256, 153, 460);
-  ctx.fillStyle = '#b6ab91'; ctx.font = '30px Georgia, "Microsoft YaHei", serif'; ctx.fillText(data.value, 256, 210, 460);
+  ctx.fillStyle = '#b6ab91'; ctx.font = `30px ${NUMBER_FONT}`; ctx.fillText(data.value, 256, 210, 460);
 }

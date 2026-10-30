@@ -35,6 +35,20 @@ test('one chip-bank click stages a call; only pushing the staged chips commits i
   assert.deepEqual(f.commits, [{ type: 'call', amount: 20 }]);
 });
 
+test('a dealing phase cancels staged wagers and blocks every poker gesture until unlocked', () => {
+  const input = room(), f = fixture(input);
+  f.tap({ chipRole: 'bank' }); assert.equal(f.actions.pending, 20);
+  input.dealing = true; f.actions.sync(input, 'me');
+  assert.equal(f.actions.enabled, false); assert.equal(f.actions.pending, 0);
+  for (const target of [{ chipRole: 'bank' }, { chipRole: 'staged' }, { cardRole: 'hand' }, { tableSurface: true }]) {
+    assert.equal(f.actions.begin(target, point, 0), false);
+  }
+  assert.deepEqual(f.sent, []);
+  input.dealing = false; input.turnId = 'turn-2'; f.actions.sync(input, 'me');
+  assert.equal(f.actions.enabled, true); f.tap({ chipRole: 'bank' });
+  assert.equal(f.actions.pending, 20);
+});
+
 test('a single staged-chip tap returns the entire draft without betting; sideways drags preserve it', () => {
   const f = fixture();
   for (const amount of [20, 600, 1000]) {
@@ -89,6 +103,44 @@ test('pending labels count new chips, while raise messages include the player ex
     assert.ok(amount === 10 || amount >= 30);
     assert.ok(stagedAction(f.actions.context, amount));
   }
+});
+
+test('the wager slider snaps by five through 50 and by ten above 50 without skipping the boundary', () => {
+  const input = room({ legal: { toCall: 0, callAmount: 0, canCheck: true, minTo: 4 } }); input.hand.currentBet = 0;
+  const { actions } = fixture(input), context = actions.context;
+  for (const [raw, expected] of [[5, 5], [7.4, 5], [7.6, 10], [32, 30], [33, 35], [47, 45], [49, 50], [50, 50], [51, 50], [54.9, 50], [55.1, 60], [64, 60], [66, 70], [232, 230], [236, 240]]) {
+    assert.equal(amountAtRatio(context, ratioForAmount(context, raw)), expected, `snap ${raw}`);
+  }
+  let previous = 0;
+  for (let index = 1; index <= 1000; index++) {
+    const amount = amountAtRatio(context, index / 1000);
+    assert.equal(amount % (amount <= 50 ? 5 : 10), 0);
+    assert.ok(amount >= previous); assert.ok(stagedAction(context, amount)); previous = amount;
+  }
+});
+
+test('snapping preserves exact calls and odd all-ins while rounding raises up to legal minimums', () => {
+  const input = room({ player: { chips: 1373 }, legal: { toCall: 23, callAmount: 23, minTo: 57, maxTo: 1373 } }); input.hand.currentBet = 23;
+  const { actions } = fixture(input), context = actions.context;
+  assert.equal(amountAtRatio(context, 0), 23); assert.equal(amountAtRatio(context, -1), 23);
+  assert.equal(amountAtRatio(context, .05), 60); assert.equal(amountAtRatio(context, 1), 1373); assert.equal(ratioForAmount(context, 1373), 1);
+  for (let index = 1; index <= 1000; index++) {
+    const amount = amountAtRatio(context, index / 1000);
+    assert.ok(amount >= 60 && amount <= 1373); assert.ok(stagedAction(context, amount));
+    if (amount !== 1373) assert.equal(amount % 10, 0);
+  }
+  const short = fixture(room({ player: { chips: 57 }, legal: { minTo: 58, maxTo: 57 } }));
+  assert.equal(amountAtRatio(short.actions.context, .05), 57); assert.equal(ratioForAmount(short.actions.context, 57), 1);
+});
+
+test('the thumb snaps to the selected amount and uses the displayed slider height without drift', () => {
+  const f = fixture(); f.actions.sliderTravel = () => 240;
+  f.actions.begin({ chipRole: 'bank' }, point, 0);
+  const rawRatio = ratioForAmount(f.actions.context, 232), end = { x: point.x, y: point.y - rawRatio * 240 };
+  f.actions.move(end, 400);
+  assert.equal(f.states.at(-1).selected, 230); assert.equal(f.states.at(-1).ratio, ratioForAmount(f.actions.context, 230));
+  f.actions.move(end, 450); assert.equal(f.states.at(-1).selected, 230); assert.equal(f.actions.pending, 0);
+  f.actions.release(end, 500); assert.equal(f.actions.pending, 230); assert.equal(f.sent.length, 0);
 });
 
 test('a closed raise right prevents illegal selection and ALL IN raises', () => {

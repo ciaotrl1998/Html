@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import * as THREE from 'three';
 import { PokerHand } from '../shared/poker.js';
+import savedLayout from '../client/scene-layout.js';
 
 registerHooks({ resolve(specifier, context, next) {
   if (specifier === '/vendor/three.js') return next('three', context);
@@ -12,15 +13,15 @@ registerHooks({ resolve(specifier, context, next) {
 const { LayoutRegistry } = await import('../client/layout-registry.js');
 const { TableBetView } = await import('../client/table-bet-view.js');
 const { TablePotView } = await import('../client/table-pot-view.js');
-const { TableActions } = await import('../client/table-actions.js');
-const { TABLE_POSITIONS } = await import('../client/cards.js');
+const { TableActions, TABLE_GESTURES } = await import('../client/table-actions.js');
+const { TableCards, TABLE_POSITIONS } = await import('../client/cards.js');
 const sum = group => group.children.reduce((sum, coin) => sum + (coin.userData.value || 0), 0);
 const close = (a, b) => assert.ok(a.distanceTo(b) < 1e-7, `${a.toArray()} != ${b.toArray()}`);
 const hand = (balances = [2000, 2000, 2000], extra = {}) => new PokerHand({ players: balances.map((chips, seat) => ({ id: `p${seat}`, name: `P${seat}`, seat, chips })), button: 0, smallBlind: 5, bigBlind: 10, deck: Array.from({ length: 52 }, (_, i) => i), ...extra });
 
 function fixture(t, viewerId = 'p0', focus = 0, editor = false) {
   const previous = globalThis.document;
-  const context = new Proxy({}, { get: (target, key) => key in target ? target[key] : () => {} });
+  const context = new Proxy({ createLinearGradient: () => ({ addColorStop() {} }) }, { get: (target, key) => key in target ? target[key] : () => {} });
   const element = () => ({ style: {}, setAttribute() {}, textContent: '', querySelector: () => element() });
   globalThis.document = { createElement: tag => tag === 'canvas' ? { width: 0, height: 0, getContext: () => context } : element() };
   t.after(() => { globalThis.document = previous; });
@@ -47,6 +48,48 @@ function fixture(t, viewerId = 'p0', focus = 0, editor = false) {
     + game.betView.transfers.reduce((value, transfer) => value + sum(transfer.group), 0);
   return { game, actions, messages, sync, tick, visible };
 }
+
+test('the table pot amount follows confirmed wagers and has an independent editable anchor below the ring', t => {
+  const { game, sync } = fixture(t), h = hand([2000, 2000]);
+  sync(h);
+  const pot = game.potView, entry = game.layout.entries.get('pot-value');
+  assert.equal(pot.displayAmount, h.snapshot('p0').pot);
+  assert.ok(entry.defaults.position[2] > .7, 'the amount sits outside the near edge of the pot circle');
+  entry.proxy.position.x += .2; game.layout.sync(entry);
+  const relative = pot.number.getWorldPosition(new THREE.Vector3()).sub(pot.target());
+  close(relative, new THREE.Vector3(.2, .018, .82));
+  const model = game.layout.entries.get('pot-chips'); model.proxy.position.x += .5; game.layout.sync(model);
+  game.scene.updateMatrixWorld(true);
+  close(pot.number.getWorldPosition(new THREE.Vector3()).sub(pot.target()), relative);
+  h.act('p0', 'call'); sync(h);
+  assert.equal(pot.displayAmount, 20, 'the number updates on confirmation before flying coins land');
+  sync(null); assert.equal(pot.root.visible, false);
+});
+
+test('the default amount fits between the pot circle and public cards in the saved player view', t => {
+  const { game, sync } = fixture(t), h = hand([2000, 2000]);
+  game.cards = new TableCards(game.scene, { animate: false });
+  const editables = []; game.scene.traverse(node => { if (node.userData.layout) editables.push(node); });
+  for (const node of editables) { const { id, label, category } = node.userData.layout; game.layout.register(node, id, label, category); }
+  game.layout.apply(savedLayout);
+  // User-authored label sizing is free to overlap the ring; verify the default
+  // placement independently without changing the saved editor configuration.
+  game.layout.reset(game.potView.numberEntry);
+  const cameraPose = savedLayout.objects['player-camera'];
+  game.camera.position.fromArray(cameraPose.position); game.camera.rotation.set(...cameraPose.rotation);
+  Object.assign(game.camera, cameraPose.camera); game.camera.updateProjectionMatrix();
+  h.act('p0', 'call'); h.act('p1', 'check');
+  const room = sync(h); game.cards.update(room, 'p0', TABLE_POSITIONS, 0);
+  game.scene.updateMatrixWorld(true); game.camera.updateMatrixWorld(true);
+  const amount = new THREE.Box3().setFromObject(game.potView.number);
+  const board = new THREE.Box3(); game.cards.board.slice(0, 3).forEach(card => board.expandByObject(card.root));
+  assert.ok(amount.min.z > game.potView.target().z + .7, 'the entire amount is below the pot circle');
+  assert.ok(amount.max.z < board.min.z, 'the amount leaves the public card faces unobstructed');
+  for (const x of [amount.min.x, amount.max.x]) for (const z of [amount.min.z, amount.max.z]) {
+    const point = new THREE.Vector3(x, amount.max.y, z).project(game.camera);
+    assert.ok(Math.abs(point.x) < 1 && Math.abs(point.y) < 1 && point.z < 1, 'the label fits the saved portrait view');
+  }
+});
 
 test('confirmed blinds, antes and wagers move real coins into an editable pot and survive street changes', t => {
   const { game, sync, tick, visible } = fixture(t), h = hand([2000, 2000], { ante: 2 });
@@ -105,7 +148,8 @@ test('rejected wagers restore the draft without creating pot money', t => {
 test('a wager confirmed from another client discards the old local draft instead of returning nonexistent chips', t => {
   const { game, actions, sync, tick, visible } = fixture(t), h = hand();
   sync(h); tick(performance.now() + 1000);
-  actions.begin({ chipRole: 'bank' }, { x: 0, y: 200 }, 0); actions.move({ x: 0, y: 0 }, 400); actions.release({ x: 0, y: 0 }, 410);
+  const start = { x: 0, y: TABLE_GESTURES.sliderTravel };
+  actions.begin({ chipRole: 'bank' }, start, 0); actions.move({ x: 0, y: 0 }, 400); actions.release({ x: 0, y: 0 }, 410);
   assert.equal(actions.pending, h.players[0].chips); assert.equal(visible(), 6000);
   h.act('p0', 'allin'); sync(h);
   assert.equal(actions.pending, 0); assert.equal(game.betView.transfers.length, 0); assert.equal(visible(), 6000);

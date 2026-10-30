@@ -1,4 +1,4 @@
-export const TABLE_GESTURES = { hold: 350, sliderTravel: 180, forward: 38, doubleTap: 320, tapSlop: 8 };
+export const TABLE_GESTURES = { hold: 350, sliderTravel: 320, forward: 38, doubleTap: 320, tapSlop: 8 };
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 export const tableTurnKey = room => room?.hand ? `${room.code}:${room.hand.number}:${room.turnId}` : null;
 
@@ -7,10 +7,15 @@ export function amountAtRatio(context, ratio) {
   if (!legal.canRaise) return legal.callAmount;
   const r = clamp(ratio, 0, 1), minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
   if (r <= 0) return legal.callAmount;
-  return Math.round(minimum + (player.chips - minimum) * clamp((r - .05) / .95, 0, 1));
+  if (r >= 1) return player.chips;
+  const amount = minimum + (player.chips - minimum) * clamp((r - .05) / .95, 0, 1);
+  const step = amount <= 50 ? 5 : 10;
+  const firstRaise = Math.ceil(minimum / (minimum <= 50 ? 5 : 10)) * (minimum <= 50 ? 5 : 10);
+  return Math.min(player.chips, Math.max(firstRaise, Math.round(amount / step) * step));
 }
 export function ratioForAmount(context, amount) {
   if (amount <= context.legal.callAmount) return 0;
+  if (amount >= context.player.chips) return 1;
   const minimum = Math.min(context.legal.minTo, context.legal.maxTo) - context.player.bet;
   return .05 + .95 * clamp((amount - minimum) / Math.max(1, context.player.chips - minimum), 0, 1);
 }
@@ -24,8 +29,9 @@ export function stagedAction(context, amount) {
 }
 
 export class TableActions {
-  constructor({ send = () => false, change = () => {}, commit = () => {}, forward } = {}) {
+  constructor({ send = () => false, change = () => {}, commit = () => {}, forward, sliderTravel = () => TABLE_GESTURES.sliderTravel } = {}) {
     this.send = send; this.change = change; this.commit = commit;
+    this.sliderTravel = sliderTravel;
     this.forward = forward || ((start, point) => {
       const dy = start.y - point.y, dx = Math.abs(start.x - point.x);
       return dx <= Math.max(18, dy * 1.5) ? dy / TABLE_GESTURES.forward : 0;
@@ -34,7 +40,7 @@ export class TableActions {
   }
   sync(room, you, connected = true) {
     const hand = room?.hand, player = hand?.players.find(p => p.id === you);
-    const context = connected && room?.phase === 'playing' && !hand?.done && hand?.legal && player?.seat === hand.actor
+    const context = connected && room?.phase === 'playing' && !room.dealing && !hand?.done && hand?.legal && player?.seat === hand.actor
       ? { key: tableTurnKey(room), legal: hand.legal, player, currentBet: hand.currentBet } : null;
     const signature = context ? JSON.stringify([context.key, context.legal, player.bet, player.chips]) : null;
     if (signature !== this.signature) {
@@ -73,8 +79,9 @@ export class TableActions {
     }
   }
   select(g) {
-    g.ratio = this.context.legal.canRaise ? clamp(g.initialRatio + (g.start.y - g.point.y) / TABLE_GESTURES.sliderTravel, 0, 1) : 0;
-    g.selected = amountAtRatio(this.context, g.ratio); this.emit();
+    const ratio = this.context.legal.canRaise ? clamp(g.initialRatio + (g.start.y - g.point.y) / this.sliderTravel(), 0, 1) : 0;
+    g.selected = amountAtRatio(this.context, ratio);
+    g.ratio = ratioForAmount(this.context, g.selected); this.emit();
   }
   move(point, time) {
     const g = this.gesture;

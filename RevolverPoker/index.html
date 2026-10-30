@@ -17,8 +17,13 @@
     <div class="vignette" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="RevolverPoker 首页"><img src="/client/mark.svg" alt=""><span>RevolverPoker</span></a>
-      <div class="top-right"><span id="connection" class="connection"><i></i> 连接中</span><div id="look-controls" class="look-controls" hidden><button id="reset-view" class="icon-button" title="恢复默认视角" aria-label="恢复默认视角">↺</button></div><button id="menu-button" class="icon-button" title="牌局设置" aria-label="牌局设置">☰</button></div>
+      <div class="roster-meta">
+        <span id="room-header" class="room-number" hidden>房间号：<span id="room-code-display"></span></span>
+        <div class="top-right"><span id="connection" class="connection"><i></i> 连接中</span><div id="look-controls" class="look-controls" hidden><button id="reset-view" class="icon-button" title="恢复默认视角" aria-label="恢复默认视角">↺</button></div><button id="menu-button" class="icon-button" title="牌局设置" aria-label="牌局设置">☰</button></div>
+      </div>
+      <section id="player-roster" class="player-roster" aria-label="玩家状态栏" hidden>
+        <div id="player-strip" class="player-strip" role="list" aria-label="所有玩家的头像、筹码和行动"></div>
+      </section>
     </header>
     <section id="entry" class="entry">
       <div class="hero"><h1>RevolverPoker</h1></div>
@@ -38,8 +43,6 @@
       </div>
     </section>
     <section id="table-ui" hidden>
-      <div class="room-strip"><span class="room-label"><span id="room-name">RevolverPoker</span><b id="room-code-display"></b></span><button id="invite-button" class="text-button">邀请朋友 ↗</button></div>
-      <div class="table-meta"><span id="blinds-label">盲注 10 / 20</span><span id="hand-label">等待入座</span></div>
       <div id="seat-layer" class="seat-layer"></div>
       <div id="board-area" class="board-area" hidden>
         <div class="pot-label">底池 <strong id="pot-value">0</strong><span id="street-label"></span></div>
@@ -66,7 +69,7 @@
     </div><div class="rules-footnote">无限注 · 52 张牌 · 最多 8 人 · 本场不补码<br>空座由房主直接点击，切换「开放 / AI」。</div><button id="save-rules" class="button primary full" type="submit">保存规则</button></form></dialog>
     <dialog id="menu-dialog" class="sheet"><div class="sheet-heading"><div><h2>牌桌菜单</h2></div><button class="icon-button close-dialog" aria-label="关闭">×</button></div><div class="menu-items"><button id="menu-rules">查看牌桌规则 <span>→</span></button><button id="menu-results" hidden>查看本场结果 <span>→</span></button><button id="sound-button">声音 <span id="sound-state">关闭</span></button><button id="quality-button">画质 <span id="quality-state">标准</span></button><button id="help-button">牌型与玩法 <span>→</span></button><button id="stand-button">离开座位 <span>↗</span></button><button id="stop-button">本手结束后结算本场 <span>→</span></button><button id="close-room-button" hidden>关闭房间并返回主菜单 <span>↗</span></button><button id="leave-button">离开房间 <span>↗</span></button></div></dialog>
     <dialog id="help-dialog" class="sheet"><div class="sheet-heading"><div><h2>牌型与玩法</h2></div><button class="icon-button close-dialog" aria-label="关闭">×</button></div><p class="sheet-intro">用两张底牌与五张公共牌中的任意五张组成最佳牌型。你可以使用零张、一张或两张底牌。牌大者赢得底池，或让其他人全部弃牌。</p><p class="sheet-intro">等待开局时保持俯视，开始后进入第一人称。电脑按住鼠标左键拖动转向，手机按住画面拖动转向；松开后停止转向，点击右上角 ↺ 恢复默认视角。</p><p class="sheet-intro">单击自己的筹码堆预备跟注；按下筹码堆立即显示滑杆，按住后上下拖动选择下注额，松开后放到桌前。再次长按可调整预下金额；单击桌前筹码可全部收回，向前拖出并松开才会提交。按住手牌前拖并松开弃牌，双击桌面过牌。长按手牌不前拖仍可看牌。</p><ol class="hand-ranks"><li>皇家同花顺 <span>A K Q J 10 同花</span></li><li>同花顺 <span>连续五张，同一花色</span></li><li>四条 <span>四张相同点数</span></li><li>葫芦 <span>三条 ＋ 一对</span></li><li>同花 <span>五张同花色</span></li><li>顺子 <span>连续五张；A 可作 1</span></li><li>三条 <span>三张相同点数</span></li><li>两对 <span>两组对子</span></li><li>一对 <span>两张相同点数</span></li><li>高牌 <span>比较最大单牌与踢脚</span></li></ol><p class="rules-footnote">每手依次：翻牌前 → 翻牌 → 转牌 → 河牌 → 摊牌。<br>花色不分大小；全下按投入额划分主池与边池。<br>限时结束后：可过牌时过牌，否则弃牌。</p></dialog>
-    <dialog id="finish-dialog" class="sheet"><div class="sheet-heading"><div><h2>本场结果</h2></div><button class="icon-button close-dialog" aria-label="关闭">×</button></div><div id="standings"></div><button id="again-button" class="button primary full">重新开局 →</button><p id="finish-note" class="sheet-intro"></p></dialog>
+    <dialog id="finish-dialog" class="sheet"><div class="sheet-heading"><div><h2>最终冠军</h2></div><button class="icon-button close-dialog" aria-label="关闭">×</button></div><div id="standings"></div><button id="again-button" class="button primary full">重新开局 →</button></dialog>
   </main>
 </body>
 </html>

@@ -55,5 +55,5 @@ test('nameplates use an inline small seat prefix, AI suffix, large centered acti
     }
   }
   const human = drawing(); paintSeatNameplate(human.ctx, { seat: 0, name: '玩家', value: '100', action: '大盲' });
-  assert.equal(human.calls[1].text, '玩家'); assert.equal(human.calls[2].size, 76);
+  assert.equal(human.calls[1].text, '玩家'); assert.equal(human.calls[2].size, 74);
 });

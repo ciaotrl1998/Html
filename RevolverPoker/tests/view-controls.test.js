@@ -280,6 +280,25 @@ test('prop gestures select and push chips without turning the camera; table drag
   assert.deepEqual(sent, ['raise', 'check']);
 });
 
+test('mouse and touch can peek during dealing, and a held drag never becomes a fold when actions unlock', () => {
+  for (const pointerType of ['mouse', 'touch']) {
+    const f = fixture(true), sent = [];
+    f.scene.tableActions = new TableActions({ send: type => { sent.push(type); return true; } });
+    const room = { code: 'TEST', phase: 'playing', dealing: true, turnId: null,
+      hand: { number: 1, done: false, actor: 0, currentBet: 0, players: [{ id: 'me', seat: 0, bet: 0, chips: 1000 }],
+        legal: { toCall: 0, callAmount: 0, canCheck: true, canRaise: true, minTo: 20, maxTo: 1000, canAllIn: true } } };
+    f.scene.tableActions.sync(room, 'me'); f.scene.target = { cardRole: 'hand' };
+    event(f.canvas, 'pointerdown', { pointerType });
+    assert.equal(f.scene.peekActive, true); assert.equal(f.controls.drag.tableGesture, false);
+    event(f.canvas, 'pointermove', { pointerType, clientY: 300, buttons: 1 });
+    assert.deepEqual(sent, []); assert.equal(f.looks, 0);
+    room.dealing = false; room.turnId = 'next'; f.scene.tableActions.sync(room, 'me');
+    event(f.canvas, 'pointerup', { pointerType, clientY: 300 });
+    assert.deepEqual(sent, [], 'a pre-existing peek cannot turn into an action on release');
+    assert.equal(f.scene.peekActive, false); assert.equal(f.canvas.captures.size, 0);
+  }
+});
+
 test('hand gestures preserve peeking and submit a forward fold without rotating the view', () => {
   const f = fixture(true), sent = [];
   f.scene.tableActions = new TableActions({ send: type => { sent.push(type); return true; } });

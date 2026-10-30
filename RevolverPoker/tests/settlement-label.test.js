@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { settlementLabel, settlementLabelHeight, paintSettlementLabel, winPulseScale, paintWinLabel } from '../client/settlement-label.js';
+import { settlementLabel, settlementLabelHeight, paintSettlementLabel, winPulseScale, paintWinLabel, WIN_COLOR } from '../client/settlement-label.js';
 
 const player = { id: 'winner', cards: [25, 43], folded: false };
 const hand = { done: true, board: [0, 18, 28, 49, 38], result: { showdown: true,
@@ -30,17 +30,17 @@ function drawing() {
   const calls = [], state = {};
   const ctx = new Proxy(state, { get(target, key) {
     if (key in target) return target[key];
-    return (...args) => calls.push({ method: key, args, color: key === 'stroke' ? target.strokeStyle : target.fillStyle, width: target.lineWidth });
+    return (...args) => calls.push({ method: key, args, color: key === 'stroke' ? target.strokeStyle : target.fillStyle, width: target.lineWidth, shadowColor: target.shadowColor, shadowBlur: target.shadowBlur });
   } });
   return { ctx, calls };
 }
 
-test('winner cards retain their size, gain gold outlines and place WIN above both cards without clipping', () => {
+test('winner cards retain their size, share the result-card gold glow, and leave room for WIN and the hand name', () => {
   const win = settlementLabel(hand, player), normal = settlementLabel(hand, { ...player, id: 'loser' });
   const winner = drawing(), loser = drawing();
   paintSettlementLabel(winner.ctx, win); paintSettlementLabel(loser.ctx, normal);
   const winText = winner.calls.find(call => call.method === 'fillText' && call.args[0] === 'WIN');
-  assert.ok(winText); assert.equal(winText.color, '#f6ce55');
+  assert.ok(winText); assert.equal(winText.color, WIN_COLOR);
   const winCards = winner.calls.filter(call => call.method === 'roundRect').slice(0, 2);
   const normalCards = loser.calls.filter(call => call.method === 'roundRect').slice(0, 2);
   for (let i = 0; i < 2; i++) {
@@ -49,9 +49,19 @@ test('winner cards retain their size, gain gold outlines and place WIN above bot
     assert.ok(origin.args[1] + winText.args[2] < winCards[i].args[1]);
     assert.ok(winCards[i].args[1] + winCards[i].args[3] < settlementLabelHeight(win));
   }
-  assert.equal(winner.calls.filter(call => call.method === 'stroke' && call.color === '#f6ce55' && call.width === 5).length, 2);
+  const glowing = winner.calls.filter(call => call.method === 'stroke' && call.color === WIN_COLOR && call.width === 7);
+  assert.equal(glowing.length, 2);
+  assert.ok(glowing.every(call => call.shadowColor === WIN_COLOR && call.shadowBlur === 20));
+  const margin = 20 + 7 / 2, nameBar = winner.calls.filter(call => call.method === 'roundRect')[2].args;
+  for (const card of winCards) {
+    const [x, y, width, height] = card.args;
+    assert.ok(x - margin >= 0 && x + width + margin <= 512);
+    assert.ok(y - margin >= 67, 'WIN animation must not erase the upper glow');
+    assert.ok(y + height + margin < nameBar[1], 'the hand name must not cover the lower glow');
+  }
+  assert.ok(winner.calls.filter(call => call.method === 'fillText').every(call => !call.shadowBlur), 'ranks and suits remain sharp');
   assert.ok(!loser.calls.some(call => call.method === 'fillText' && call.args[0] === 'WIN'));
-  assert.equal(settlementLabelHeight(normal), 240); assert.equal(settlementLabelHeight(win), 300);
+  assert.equal(settlementLabelHeight(normal), 240); assert.equal(settlementLabelHeight(win), 350);
   const name = winner.calls.find(call => call.method === 'fillText' && call.args[0] === win.handName);
   assert.ok(name.args[2] > winCards[0].args[1] + winCards[0].args[3]);
   assert.ok(name.args[2] < settlementLabelHeight(win));
@@ -76,7 +86,7 @@ test('WIN animation repaints and scales only its title band, leaving the card ou
   paintWinLabel(ctx, 500);
   assert.deepEqual(calls.find(call => call.method === 'scale').args, [1.2, 1.2]);
   const clear = calls.find(call => call.method === 'clearRect').args;
-  assert.ok(clear[1] + clear[3] < 70 - 2.5, 'animation cannot erase the top gold card outline');
+  assert.ok(clear[1] + clear[3] < 94 - 23.5, 'animation cannot erase the top gold card glow');
   assert.ok(!calls.some(call => call.method === 'roundRect'));
   const text = calls.filter(call => call.method === 'fillText');
   assert.deepEqual(text.map(call => call.args[0]), ['WIN']);

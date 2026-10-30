@@ -20,6 +20,7 @@ const { SaloonScene } = await import('../client/scene.js');
 const { EditorCameraPreview } = await import('../client/editor-camera.js');
 const { settlementLabel } = await import('../client/settlement-label.js');
 const { BoardPresentation } = await import('../client/board-presentation.js');
+const { SceneViewControls } = await import('../client/view-controls.js');
 const close = (a, b) => assert.ok(a.distanceTo(b) < 1e-7, `${a.toArray()} != ${b.toArray()}`);
 const transform = (position = [1, 2, 3], rotation = [0, 0, 0], scale = [1, 1, 1]) => ({ position, rotation, scale });
 
@@ -236,7 +237,7 @@ test('winner nameplates replace GPU textures on resize and restore normal labels
   const normal = { name: '玩家', seat: 0, value: '2000', action: '', badges: '' };
   game.paintSeatLabel(label, normal); assert.equal(label.map, initialMap);
   game.paintSeatLabel(label, winner);
-  assert.equal(canvas.height, 300); assert.ok(label.map.version > 0); assert.equal(label.sprite.material.opacity, 1);
+  assert.equal(canvas.height, 350); assert.ok(label.map.version > 0); assert.equal(label.sprite.material.opacity, 1);
   assert.notEqual(label.map, initialMap, 'a taller WIN label needs a new GPU texture');
   assert.notEqual(label.map.source, initialMap.source, 'the resized image needs fresh texture storage');
   assert.equal(label.sprite.material.map, label.map); assert.equal(label.map.colorSpace, THREE.SRGBColorSpace);
@@ -247,7 +248,7 @@ test('winner nameplates replace GPU textures on resize and restore normal labels
   const winningScale = label.sprite.scale.clone(), animationStart = label.winPulse.start;
   game.animateSeatLabel(label, animationStart + 500);
   assert.equal(label.map, winningMap); assert.ok(label.map.version > winningVersion);
-  assert.equal(canvas.height, 300); close(label.sprite.scale, winningScale, 'only WIN text pulses, not the entire label');
+  assert.equal(canvas.height, 350); close(label.sprite.scale, winningScale, 'only WIN text pulses, not the entire label');
   assert.equal(label.winPulse.start, animationStart);
   let winningDisposed = 0; winningMap.addEventListener('dispose', () => winningDisposed++);
   game.paintSeatLabel(label, normal);
@@ -293,17 +294,21 @@ test('game reset and viewport resize use the edited player camera; releasing hol
   close(game.camera.position, position); assert.ok(game.camera.quaternion.angleTo(quaternion) < 1e-7);
 });
 
-test('taking a lobby seat keeps the overview and own avatar; starting enters first person and reset restores overview', () => {
+function stateScene() {
   const game = Object.create(SaloonScene.prototype), world = new THREE.Scene();
   const models = Array.from({ length: 8 }, () => { const model = new THREE.Group(); model.userData.head = new THREE.Group(); model.add(model.userData.head); return model; });
-  let cardFocus;
   Object.assign(game, { scene: world, playerCamera: createPlayerCamera(), camera: new THREE.PerspectiveCamera(),
     seated: false, focus: 0, room: null, overviewPitch: -.58, editor: false, models,
     chairs: Array.from({ length: 8 }, () => new THREE.Group()), piles: Array.from({ length: 8 }, () => new THREE.Group()),
     markers: Array.from({ length: 8 }, () => new THREE.Group()), labels: Array.from({ length: 8 }, () => ({ sprite: new THREE.Sprite() })),
     hands: new THREE.Group(), dealer: new THREE.Group(), paintSeatLabel() {},
-    cards: { setPeeking() {}, setBoardPeeking() {}, update(room, you, positions, focus) { cardFocus = focus; } },
+    cards: { setPeeking() {}, setBoardPeeking() {}, update(room, you, positions, focus) { game.cardFocus = focus; } },
     container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) }, renderer: { setSize() {}, domElement: { setAttribute() {} } } });
+  return game;
+}
+
+test('taking a lobby seat keeps the overview and own avatar; starting enters first person and reset restores overview', () => {
+  const game = stateScene();
   const seats = Array.from({ length: 8 }, (_, seat) => ({ seat, kind: 'open' }));
   let room = { code: '123456', hostId: 'me', seats, phase: 'lobby', hand: null };
   game.resetView(); game.update(room, 'me');
@@ -311,12 +316,12 @@ test('taking a lobby seat keeps the overview and own avatar; starting enters fir
   // Join a nonzero seat: neither the camera nor the table should rotate.
   room = { ...room, seats: seats.map(s => s.seat === 3 ? { ...s, kind: 'human', id: 'me', name: '玩家' } : s) };
   game.update(room, 'me');
-  assert.equal(game.seated, true); assert.equal(game.firstPerson, false); assert.equal(game.focus, 0); assert.equal(cardFocus, 0);
+  assert.equal(game.seated, true); assert.equal(game.firstPerson, false); assert.equal(game.focus, 0); assert.equal(game.cardFocus, 0);
   close(game.camera.position, before); assert.ok(game.camera.quaternion.angleTo(rotation) < 1e-7); assert.equal(game.camera.fov, fov);
   assert.equal(game.models[3].visible, true); assert.equal(game.hands.visible, false); assert.equal(game.labels[3].sprite.visible, true);
   game.resize(); assert.equal(game.camera.fov, fov);
   game.update({ ...room, phase: 'playing' }, 'me');
-  assert.equal(game.firstPerson, true); assert.equal(game.focus, 3); assert.equal(cardFocus, 3);
+  assert.equal(game.firstPerson, true); assert.equal(game.focus, 3); assert.equal(game.cardFocus, 3);
   close(game.camera.position, playerCameraPose(game.playerCamera).position);
   assert.equal(game.models[0].visible, false); assert.equal(game.hands.visible, true);
   // Ordinary state updates do not reset the player's look direction.
@@ -327,6 +332,79 @@ test('taking a lobby seat keeps the overview and own avatar; starting enters fir
   assert.equal(game.firstPerson, false); assert.equal(game.focus, 0); assert.equal(game.models[3].visible, true);
   assert.equal(game.hands.visible, false); close(game.camera.position, before);
   game.update(null, 'me'); assert.equal(game.firstPerson, false);
+});
+
+test('own-card viewing is allowed during dealing and persists across street reveals, but folded hands cannot be viewed', () => {
+  const game = stateScene(); let flipped = false;
+  game.cards.setPeeking = value => { flipped = value; };
+  const seats = Array.from({ length: 8 }, (_, seat) => ({ seat, id: seat ? `p${seat}` : 'me', name: `玩家${seat}`, kind: seat < 2 ? 'human' : 'open' }));
+  const players = seats.slice(0, 2).map(seat => ({ ...seat, chips: 1000, folded: false, cards: seat.seat ? [null, null] : [12, 11] }));
+  const room = { code: 'TEST', phase: 'playing', hostId: 'me', seats, dealing: true,
+    hand: { number: 1, board: [0, 1, 2], players, actor: null, done: false } };
+  game.update(room, 'me');
+  assert.equal(game.beginCardPeek('board'), false, 'public-card inspection stays locked during its deal');
+  assert.equal(game.beginCardPeek('hand'), true); assert.equal(flipped, true);
+  const view = game.camera.quaternion.clone();
+  const turn = { ...room, hand: { ...room.hand, board: [0, 1, 2, 3] } };
+  game.update(turn, 'me');
+  assert.equal(game.peekActive, true); assert.equal(flipped, true, 'a street reveal cannot close a held private hand');
+  assert.ok(game.camera.quaternion.angleTo(view) < 1e-7);
+  game.update({ ...turn, dealing: false }, 'me'); assert.equal(game.peekActive, true);
+  game.endCardPeek(); assert.equal(game.peekActive, false); assert.equal(flipped, false);
+  game.update(turn, 'me'); assert.equal(game.beginCardPeek('hand'), true);
+  const folded = { ...turn, hand: { ...turn.hand, players: players.map(player => ({ ...player, folded: player.id === 'me' })) } };
+  game.update(folded, 'me'); assert.equal(game.peekActive, false); assert.equal(flipped, false);
+  assert.equal(game.beginCardPeek('hand'), false);
+  game.update(turn, 'me'); assert.equal(game.beginCardPeek('hand'), true);
+  game.update({ ...turn, hand: { ...turn.hand, number: 2 } }, 'me');
+  assert.equal(game.peekActive, false); assert.equal(flipped, false, 'a new hand clears the old hold');
+});
+
+test('initial and subsequent deals smoothly return to the edited default pose using the normal one-second follow', () => {
+  const game = stateScene();
+  game.playerCamera.position.set(.3, 3.6, 5.2); game.playerCamera.rotation.set(-.38, .24, .12, 'YXZ');
+  const pose = playerCameraPose(game.playerCamera);
+  let time = 0;
+  const doc = new EventTarget(); Object.assign(doc, { hidden: false, querySelector: () => null });
+  game.controls = new SceneViewControls(game, new EventTarget(), doc, new EventTarget(), () => time);
+  const seats = Array.from({ length: 8 }, (_, seat) => ({ seat, kind: seat === 3 || seat === 0 ? 'human' : 'open',
+    id: seat === 3 ? 'me' : `p${seat}`, name: `玩家${seat}` }));
+  const players = [0, 3].map(seat => ({ ...seats[seat], chips: 2000, cards: seat === 3 ? [12, 11] : [null, null] }));
+  const lobby = { code: '123456', hostId: 'me', seats, phase: 'lobby', hand: null };
+  game.update(lobby, 'me'); game.resetView();
+  const overview = game.camera.position.clone(), rotation = game.camera.quaternion.clone();
+  const room = { ...lobby, phase: 'playing', dealing: true, hand: { number: 1, board: [], players, actor: null, done: false } };
+  game.update(room, 'me');
+  close(game.camera.position, overview); assert.ok(game.camera.quaternion.angleTo(rotation) < 1e-7, 'entering the deal never snaps the camera');
+  const target = game.getTurnLookTarget(); close(target.position, pose.position);
+  assert.equal(target.yaw, pose.yaw); assert.equal(target.pitch, pose.pitch); assert.equal(target.roll, pose.roll);
+  assert.equal(game.beginCardPeek('board'), false);
+  let previousStep = 0;
+  for (let i = 0; i < 40; i++) {
+    const position = game.camera.position.clone(); time += 25; game.controls.tick(.025);
+    const step = position.distanceTo(game.camera.position);
+    if (i < 24) assert.ok(step > previousStep); else assert.ok(step < previousStep);
+    previousStep = step;
+  }
+  close(game.camera.position, pose.position); assert.ok(game.camera.quaternion.angleTo(pose.quaternion) < 1e-7);
+  game.update({ ...room, dealing: false, hand: { ...room.hand, actor: 0 } }, 'me');
+  for (let i = 0; i < 40; i++) { time += 25; game.controls.tick(.025); }
+  assert.ok(Math.abs(game.yaw - pose.yaw) > .01, 'the next actor can be followed after dealing ends');
+  const opponent = game.camera.quaternion.clone();
+  game.peekActive = true; game.inspectMode = 'hand';
+  const nextHand = { ...room, hand: { ...room.hand, number: 2 } };
+  game.update(nextHand, 'me');
+  assert.ok(game.camera.quaternion.angleTo(opponent) < 1e-7, 'the next hand also starts from the current direction');
+  assert.equal(game.cardPeekClosing, null, 'closing old cards cannot delay the return');
+  assert.notEqual(game.getTurnLookTarget().key, target.key);
+  for (let i = 0; i < 40; i++) { time += 25; game.controls.tick(.025); }
+  assert.ok(game.camera.quaternion.angleTo(pose.quaternion) < 1e-7);
+  game.yaw += .5; game.applyView(); const turned = game.camera.quaternion.clone();
+  game.update({ ...nextHand, hand: { ...nextHand.hand, board: [0, 1, 2] } }, 'me');
+  assert.ok(game.camera.quaternion.angleTo(turned) < 1e-7, 'community dealing does not snap either');
+  for (let i = 0; i < 40; i++) { time += 25; game.controls.tick(.025); }
+  assert.ok(game.camera.quaternion.angleTo(pose.quaternion) < 1e-7);
+  game.controls.dispose();
 });
 
 test('turn aiming uses the acting seat and edited world-space character position without moving the camera', () => {

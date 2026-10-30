@@ -1,5 +1,7 @@
 import * as THREE from '/vendor/three.js';
 import { BoardPresentation } from './board-presentation.js';
+import { DEAL_TIMING } from '../shared/deal-timing.js';
+import { NUMBER_FONT } from './typography.js';
 
 const WIDTH = .5, HEIGHT = .73, THICKNESS = .014;
 const SUITS = ['♣', '♦', '♥', '♠'];
@@ -53,7 +55,7 @@ function drawFront(ctx, card) {
   for (let i = 0; i < 1600; i++) ctx.fillRect((i * 137.17) % 512, (i * 79.37) % 744, 2, i % 3 ? 2 : 4);
   ctx.strokeStyle = '#bba77a66'; ctx.lineWidth = 2; ctx.strokeRect(17, 17, 478, 710);
   const corner = () => {
-    ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.font = `bold ${rank === '10' ? 112 : 130}px Georgia, serif`;
+    ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.font = `bold ${rank === '10' ? 112 : 130}px ${NUMBER_FONT}`;
     ctx.fillText(rank, 78, 137); ctx.font = '87px Georgia, serif'; ctx.fillText(suit, 78, 216);
   };
   corner(); ctx.save(); ctx.translate(512, 744); ctx.rotate(Math.PI); corner(); ctx.restore();
@@ -70,7 +72,7 @@ function drawFront(ctx, card) {
     for (let side = 0; side < 2; side++) {
       ctx.save(); if (side) ctx.rotate(Math.PI);
       ctx.fillStyle = '#ba985a'; ctx.beginPath(); ctx.moveTo(-64, -38); ctx.lineTo(-83, -109); ctx.lineTo(-32, -82); ctx.lineTo(0, -129); ctx.lineTo(32, -82); ctx.lineTo(83, -109); ctx.lineTo(64, -38); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = ink; ctx.font = 'bold 110px Georgia, serif'; ctx.fillText(rank, 0, 29);
+      ctx.fillStyle = ink; ctx.font = `bold 110px ${NUMBER_FONT}`; ctx.fillText(rank, 0, 29);
       ctx.restore();
     }
     ctx.restore();
@@ -123,13 +125,14 @@ function rotation(x, y = 0, z = 0) { return new THREE.Quaternion().setFromEuler(
 export class TableCards {
   constructor(scene, { animate = true } = {}) {
     this.animate = animate;
-    this.factory = new CardFactory(); this.handKey = null; this.seenState = false; this.peeking = false; this.folded = false;
+    this.factory = new CardFactory(); this.handKey = null; this.dealStart = null; this.seenState = false; this.peeking = false; this.folded = false;
     this.board = Array.from({ length: 5 }, () => this.factory.create('board'));
     this.boardPresentation = new BoardPresentation(this.board);
     this.hole = Array.from({ length: 2 }, () => this.factory.create('hand'));
+    this.ownDiscard = Array.from({ length: 2 }, () => this.factory.create('discard'));
     this.opponents = Array.from({ length: 8 }, () => Array.from({ length: 2 }, () => this.factory.create('opponent')));
     this.discards = Array.from({ length: 8 }, () => Array.from({ length: 2 }, () => this.factory.create('discard')));
-    this.all = [...this.board, ...this.hole, ...this.opponents.flat(), ...this.discards.flat()];
+    this.all = [...this.board, ...this.hole, ...this.ownDiscard, ...this.opponents.flat(), ...this.discards.flat()];
     this.boardGroup = new THREE.Group(); this.handGroup = new THREE.Group();
     this.boardGroup.userData.layout = { id: 'board-group', label: '公共牌（整排）', category: '筹码与扑克' };
     this.boardGroup.userData.layoutBase = { position: [0, TABLE_Y, BOARD_CENTER_Z], rotation: [0, 0, 0], scale: [1, 1, 1] };
@@ -148,6 +151,9 @@ export class TableCards {
       card.root.userData.layout = { id: `hand-card-${i}`, label: `自己的底牌 ${i + 1}`, category: '筹码与扑克' };
       card.root.userData.layoutBase = { position: [(i ? 1 : -1) * .145, TABLE_Y + i * .004, 3.95 + i * .005], rotation: [Math.PI / 2, 0, (i ? 1 : -1) * .1], scale: [.65, .65, .65] };
     });
+    this.ownDiscardGroup = new THREE.Group(); this.ownDiscardGroup.position.set(-1, TABLE_Y, 1.45);
+    this.ownDiscardGroup.userData.layout = { id: 'hand-discard', label: '自己 · 弃牌位置（第一人称）', category: '筹码与扑克' };
+    scene.add(this.ownDiscardGroup); for (const card of this.ownDiscard) this.ownDiscardGroup.add(card.root);
     this.opponents.forEach((cards, i) => {
       const group = new THREE.Group(); group.userData.layout = { id: `opponent-cards-${i}`, label: `座位 ${i + 1} · 底牌`, category: '筹码与扑克' };
       group.userData.layoutBase = { position: [0, TABLE_Y, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
@@ -164,7 +170,7 @@ export class TableCards {
     deckCard.root.userData.layout = { id: 'deck-top', label: '牌堆 · 顶牌', category: '筹码与扑克' };
     deckCard.root.quaternion.copy(rotation(Math.PI / 2)); deckCard.root.visible = true; scene.add(deckCard.root);
   }
-  place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true } = {}) {
+  place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true, dealing = false } = {}) {
     const changed = card.identity !== identity;
     card.front.material = this.factory.front(value); card.root.scale.setScalar(scale);
     if (changed) {
@@ -173,8 +179,23 @@ export class TableCards {
         card.root.position.copy(DECK);
         card.root.quaternion.copy(quaternion);
         if (flip) card.root.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(X_AXIS, Math.PI));
-        card.animation = { start: performance.now() + delay, duration: 660, from: card.root.position.clone(), to: position.clone(), fromQ: card.root.quaternion.clone(), toQ: quaternion.clone(), lift: .35 };
+        card.animation = { kind: dealing ? 'deal' : 'reveal', start: (dealing && this.dealStart !== null ? this.dealStart : performance.now()) + delay, duration: DEAL_TIMING.card, from: card.root.position.clone(), to: position.clone(), fromQ: card.root.quaternion.clone(), toQ: quaternion.clone(), lift: .35 };
       } else { card.animation = null; card.root.position.copy(position); card.root.quaternion.copy(quaternion); }
+    }
+    card.root.visible = true;
+  }
+  placeDiscard(card, source, group, identity, position, quaternion, animate) {
+    if (card.identity !== identity) {
+      let from = null;
+      if (source.root.visible && animate) { source.root.updateWorldMatrix(true, true); from = source.display.matrixWorld.clone(); }
+      this.place(card, null, identity, position, quaternion, { scale: .65, flip: false });
+      if (from) {
+        group.updateWorldMatrix(true, false);
+        const fromPosition = new THREE.Vector3(), fromQ = new THREE.Quaternion(), fromScale = new THREE.Vector3();
+        from.premultiply(group.matrixWorld.clone().invert()).decompose(fromPosition, fromQ, fromScale);
+        card.root.position.copy(fromPosition); card.root.quaternion.copy(fromQ); card.root.scale.copy(fromScale);
+        card.animation = { start: performance.now(), duration: 440, from: fromPosition, to: position, fromQ, toQ: quaternion, fromScale, toScale: new THREE.Vector3(.65, .65, .65), lift: .12 };
+      }
     }
     card.root.visible = true;
   }
@@ -183,26 +204,29 @@ export class TableCards {
     const freshHand = newKey !== this.handKey;
     if (freshHand || !hand) { this.peeking = false; this.boardPresentation.reset(); }
     const allowAnimation = this.seenState && this.animate;
-    if (freshHand || !hand) for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; }
+    if (freshHand || !hand) for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; card.peekPending = false; }
     this.handKey = newKey; this.seenState = true;
     if (!hand) return;
+    this.dealStart = room.deal?.hand === hand.number && room.deal.boardCount === hand.board.length && Number.isFinite(room.serverTime)
+      ? performance.now() - (room.serverTime - room.deal.startedAt) : null;
     for (let i = 0; i < 5; i++) {
       if (i >= hand.board.length) { this.board[i].root.visible = false; continue; }
-      this.place(this.board[i], hand.board[i], `${newKey}:board:${i}`, new THREE.Vector3((i - 2) * .56, TABLE_Y, BOARD_CENTER_Z), rotation(-Math.PI / 2, 0, (i % 2 ? 1 : -1) * .006), { animate: allowAnimation, delay: (i < 3 ? i : 0) * 130 });
+      this.place(this.board[i], hand.board[i], `${newKey}:board:${i}`, new THREE.Vector3((i - 2) * .56, TABLE_Y, BOARD_CENTER_Z), rotation(-Math.PI / 2, 0, (i % 2 ? 1 : -1) * .006), { animate: allowAnimation, delay: (i < 3 ? i : 0) * DEAL_TIMING.flopGap, dealing: !hand.done });
     }
     const me = hand.players.find(p => p.id === viewerId);
     this.folded = !me || me.folded;
+    if (this.folded) this.peeking = false;
     for (let i = 0; i < 2; i++) {
+      if (me?.folded) {
+        this.placeDiscard(this.ownDiscard[i], this.hole[i], this.ownDiscardGroup, `${newKey}:own-discard:${me.id}:${i}`,
+          new THREE.Vector3(i * .13, i * .005, 0), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .1), allowAnimation && !freshHand);
+        this.hole[i].root.visible = false; this.hole[i].animation = null; this.hole[i].identity = ''; continue;
+      }
+      this.ownDiscard[i].root.visible = false; this.ownDiscard[i].animation = null;
       if (!me || me.cards[i] === null) { this.hole[i].root.visible = false; continue; }
       const side = i ? 1 : -1;
-      const position = me.folded ? new THREE.Vector3(-1.0 + i * .13, TABLE_Y + i * .005, 1.45) : new THREE.Vector3(side * .145, TABLE_Y + i * .004, 3.95 + i * .005);
-      const quaternion = rotation(!me.folded && this.peeking ? -Math.PI / 2 : Math.PI / 2, 0, side * .1);
-      const card = this.hole[i], identity = `${newKey}:own:${i}:${me.folded}`;
-      const wasHeld = card.identity && card.identity !== identity && !freshHand;
-      if (wasHeld && me.folded) {
-        card.animation = { start: performance.now(), duration: 440, from: card.root.position.clone(), to: position.clone(), fromQ: card.root.quaternion.clone(), toQ: quaternion.clone(), lift: .12 };
-        card.identity = identity;
-      } else this.place(card, me.cards[i], identity, position, quaternion, { animate: allowAnimation && !me.folded, delay: i * 160, scale: .65, flip: false });
+      const position = new THREE.Vector3(side * .145, TABLE_Y + i * .004, 3.95 + i * .005);
+      this.place(this.hole[i], me.cards[i], `${newKey}:own:${i}:false`, position, rotation(this.peeking ? -Math.PI / 2 : Math.PI / 2, 0, side * .1), { animate: allowAnimation, delay: i * DEAL_TIMING.holeGap, scale: .65, flip: false, dealing: !hand.done });
     }
     for (let local = 0; local < 8; local++) {
       const seat = (local + focus) % 8, player = hand.players.find(p => p.seat === seat);
@@ -213,31 +237,38 @@ export class TableCards {
         const card = this.opponents[local][i];
         const discarded = this.discards[local][i];
         if (player && player.id !== viewerId && player.folded) {
-          const identity = `${newKey}:discard:${player.id}:${i}`;
-          if (discarded.identity !== identity) {
-            const position = new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025);
-            const quaternion = rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18);
-            const from = card.root.visible && allowAnimation && !freshHand ? card.root.matrixWorld.clone() : null;
-            if (from) { card.root.updateWorldMatrix(true, false); from.copy(card.root.matrixWorld); }
-            this.place(discarded, null, identity, position, quaternion, { scale: .65, flip: false });
-            if (from) {
-              const group = this.discardGroups[local]; group.updateWorldMatrix(true, false);
-              const fromPosition = new THREE.Vector3(), fromQ = new THREE.Quaternion(), fromScale = new THREE.Vector3();
-              from.premultiply(group.matrixWorld.clone().invert()).decompose(fromPosition, fromQ, fromScale);
-              discarded.root.position.copy(fromPosition); discarded.root.quaternion.copy(fromQ); discarded.root.scale.copy(fromScale);
-              discarded.animation = { start: performance.now(), duration: 440, from: fromPosition, to: position, fromQ, toQ: quaternion, fromScale, toScale: new THREE.Vector3(.65, .65, .65), lift: .12 };
-            }
-          }
-          discarded.root.visible = true;
+          this.placeDiscard(discarded, card, this.discardGroups[local], `${newKey}:discard:${player.id}:${i}`,
+            new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18), allowAnimation && !freshHand);
         } else { discarded.root.visible = false; discarded.animation = null; }
         if (!player || player.id === viewerId || player.folded) { card.root.visible = false; card.animation = null; continue; }
         const known = player.cards[i] !== null;
         const position = new THREE.Vector3(x * .59, TABLE_Y + i * .003, z * .59).addScaledVector(sideways, (i ? 1 : -1) * .14);
         const q = new THREE.Quaternion().setFromAxisAngle(Y_AXIS, yaw).multiply(rotation(known ? -Math.PI / 2 : Math.PI / 2, 0, i ? .08 : -.08));
         card.root.userData.seat = seat;
-        this.place(card, player.cards[i], `${newKey}:other:${player.id}:${i}:${known}`, position, q, { animate: allowAnimation, delay: local * 35 + i * 70, scale: .65 });
+        this.place(card, player.cards[i], `${newKey}:other:${player.id}:${i}:${known}`, position, q, { animate: allowAnimation, delay: local * DEAL_TIMING.seatGap + i * DEAL_TIMING.opponentGap, scale: .65, dealing: !hand.done });
       }
     }
+    if (room.dealing === false) this.finishDealing();
+  }
+  get dealing() { return this.all.some(card => card.animation?.kind === 'deal'); }
+  finishDealing() {
+    for (const card of this.all) if (card.animation?.kind === 'deal') {
+      card.root.position.copy(card.animation.to); card.root.quaternion.copy(card.animation.toQ); card.root.visible = true; card.animation = null;
+    }
+    this.resolvePendingPeeks(performance.now());
+  }
+  flipHoleCard(card, index, now = performance.now()) {
+    card.root.visible = true;
+    card.animation = { start: now, duration: 240,
+      from: card.root.position.clone(), to: new THREE.Vector3((index ? 1 : -1) * .145, TABLE_Y + index * .004, 3.95 + index * .005),
+      fromQ: card.root.quaternion.clone(), toQ: rotation(this.peeking ? -Math.PI / 2 : Math.PI / 2, 0, (index ? 1 : -1) * .1), lift: .27 };
+  }
+  resolvePendingPeeks(now) {
+    this.hole.forEach((card, index) => {
+      if (!card.peekPending || card.animation?.kind === 'deal') return;
+      card.peekPending = false;
+      if (this.peeking && card.identity) this.flipHoleCard(card, index, now);
+    });
   }
   setPeeking(peeking) {
     peeking = !!peeking && !this.folded;
@@ -245,10 +276,9 @@ export class TableCards {
     this.peeking = peeking;
     for (let i = 0; i < 2; i++) {
       const card = this.hole[i]; if (!card.identity) continue;
-      card.root.visible = true;
-      card.animation = { start: performance.now(), duration: 240,
-        from: card.root.position.clone(), to: new THREE.Vector3((i ? 1 : -1) * .145, TABLE_Y + i * .004, 3.95 + i * .005),
-        fromQ: card.root.quaternion.clone(), toQ: rotation(peeking ? -Math.PI / 2 : Math.PI / 2, 0, (i ? 1 : -1) * .1), lift: .27 };
+      // Holding a card must not skip its deal or reveal an undelivered card.
+      if (card.animation?.kind === 'deal') { card.peekPending = true; continue; }
+      this.flipHoleCard(card, i);
     }
   }
   setBoardPeeking(peeking) { this.boardPresentation.setRaised(peeking); }
@@ -267,6 +297,7 @@ export class TableCards {
       if (a.fromScale) card.root.scale.lerpVectors(a.fromScale, a.toScale, ease);
       if (t === 1) card.animation = null;
     }
+    this.resolvePendingPeeks(now);
     this.boardPresentation.tick(now, camera);
     for (const card of this.hole) {
       card.display.matrix.identity();

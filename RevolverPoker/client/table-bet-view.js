@@ -1,4 +1,6 @@
 import * as THREE from '/vendor/three.js';
+import { TABLE_GESTURES } from './table-actions.js';
+import { NUMBER_FONT } from './typography.js';
 
 const VALUES = [1000000, 100000, 10000, 1000, 100, 25, 5, 1];
 export function chipParts(amount) {
@@ -25,16 +27,23 @@ export class TableBetView {
   constructor(saloon) {
     this.saloon = saloon; this.bank = saloon.piles[0]; this.decorations = [...this.bank.children];
     this.geometry = new THREE.CylinderGeometry(.105, .105, .045, 18);
-    this.materials = [0x463752, 0x5b4338, 0x947752, 0x444d69, 0x4d6757, 0x8e4336, 0xb5985d, 0xd4c2a1].map(color => new THREE.MeshStandardMaterial({ color, roughness: .85 }));
+    this.materials = [0x463752, 0x5b4338, 0x947752, 0x444d69, 0x4d6757, 0x8e4336, 0xb5985d, 0xd4c2a1].map(color => new THREE.MeshPhysicalMaterial({ color: new THREE.Color(color).multiplyScalar(.6), roughness: 1, metalness: 0, specularIntensity: .03 }));
     this.faceGeometry = new THREE.CircleGeometry(.087, 18);
-    this.faces = VALUES.map(value => {
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128;
-      const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#efdfb9cc'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(64, 64, 57, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#fff0c9'; ctx.font = 'bold 31px Arial, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(value >= 1000000 ? `${value / 1000000}M` : value >= 1000 ? `${value / 1000}K` : String(value), 64, 75, 108);
+    const faceColors = ['#352a40', '#473327', '#baa47c', '#343c50', '#3b5141', '#73382e', '#bca36d', '#cdbf9f'];
+    this.faces = VALUES.map((value, index) => {
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+      const ctx = canvas.getContext('2d'), ink = [2, 6, 7].includes(index) ? '#17150f' : '#fff0cf';
+      ctx.fillStyle = faceColors[index]; ctx.fillRect(0, 0, 256, 256);
+      ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.globalAlpha = .65;
+      ctx.beginPath(); ctx.arc(128, 128, 116, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      const text = value >= 1000000 ? `${value / 1000000}M` : value >= 1000 ? `${value / 1000}K` : String(value);
+      ctx.fillStyle = ink; ctx.font = `bold ${text.length > 3 ? 64 : 84}px ${NUMBER_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 132, 220);
       const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
-      return new THREE.MeshStandardMaterial({ map, transparent: true, roughness: .9, depthWrite: false });
+      map.anisotropy = Math.min(8, saloon.renderer?.capabilities?.getMaxAnisotropy?.() || 1);
+      // Printed faces retain their contrast under the bright overhead lamps.
+      // An opaque disc also prevents lower-stack labels bleeding through.
+      return new THREE.MeshBasicMaterial({ map, toneMapped: false, fog: false });
     });
     this.bankCoins = new THREE.Group(); this.bankCoins.userData.chipRole = 'bank'; this.bank.add(this.bankCoins);
     this.plate = new THREE.Mesh(new THREE.CylinderGeometry(.43, .43, .016, 32), new THREE.MeshStandardMaterial({ color: 0x876a3a, transparent: true, opacity: .65 }));
@@ -46,7 +55,7 @@ export class TableBetView {
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 104;
     this.numberCanvas = canvas; this.numberMap = new THREE.CanvasTexture(canvas); this.numberMap.colorSpace = THREE.SRGBColorSpace;
     this.number = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.numberMap, depthTest: true, depthWrite: false, transparent: true, toneMapped: false }));
-    this.number.scale.set(1.45, .295, 1); this.number.position.y = .64; this.stage.add(this.number);
+    this.number.scale.set(.9, .183, 1); this.number.position.y = .64; this.stage.add(this.number);
     this.home = new THREE.Vector3(); this.forward = new THREE.Vector3(0, 0, -1); this.transfers = [];
     this.anchors();
     this.stageEntry = saloon.layout?.register(this.stageAnchor, 'staged-chips', '自己 · 预下注筹码', '筹码与扑克');
@@ -57,6 +66,7 @@ export class TableBetView {
     saloon.container.appendChild(this.slider);
     this.sliderValue = this.slider.querySelector('.chip-selector-value'); this.sliderFill = this.slider.querySelector('i');
     this.sliderThumb = this.slider.querySelector('b'); this.sliderMax = this.slider.querySelector('.chip-selector-max');
+    this.sliderTrack = this.slider.querySelector('.chip-selector-track');
     this.setActive(false);
   }
   setActive(active) {
@@ -125,7 +135,7 @@ export class TableBetView {
       this.lastNumber = state.pending;
       const ctx = this.numberCanvas.getContext('2d'); ctx.clearRect(0, 0, 512, 104);
       ctx.fillStyle = '#17160fdd'; ctx.beginPath(); ctx.roundRect(12, 12, 488, 80, 12); ctx.fill();
-      ctx.textAlign = 'center'; ctx.font = 'bold 46px Georgia, "Microsoft YaHei", serif'; ctx.fillStyle = '#f2d18b';
+      ctx.textAlign = 'center'; ctx.font = `bold 46px ${NUMBER_FONT}`; ctx.fillStyle = '#f2d18b';
       ctx.fillText(`${state.pending.toLocaleString('zh-CN')}${state.pending && state.pending === state.bankroll ? ' · ALL IN' : ''}`, 256, 68, 470);
       this.numberMap.needsUpdate = true;
     }
@@ -156,11 +166,13 @@ export class TableBetView {
     this.cancelFlight(); this.stage.visible = false; return adopted;
   }
   cancelFlight() { this.flight = null; this.committedAmount = 0; this.lastStage = -1; }
+  sliderHeight(height = this.saloon.container.getBoundingClientRect().height) { return Math.min(TABLE_GESTURES.sliderTravel, Math.max(120, height - 90)); }
   positionSlider() {
     const point = this.bank.getWorldPosition(new THREE.Vector3()); point.y += .25; point.project(this.saloon.camera);
     const { width, height } = this.saloon.container.getBoundingClientRect();
+    const travel = this.sliderHeight(height); this.sliderTrack.style.height = `${travel}px`;
     this.slider.style.left = `${Math.max(8, Math.min(width - 130, (point.x + 1) * width / 2 + 18))}px`;
-    this.slider.style.top = `${Math.max(12, Math.min(height - 245, (1 - point.y) * height / 2 - 215))}px`;
+    this.slider.style.top = `${Math.max(12, Math.min(height - travel - 65, (1 - point.y) * height / 2 - travel - 35))}px`;
   }
   measureForward(start, point) {
     this.anchors();

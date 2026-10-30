@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.js';
+import { NUMBER_FONT } from './typography.js';
 
 const money = value => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
@@ -17,6 +18,20 @@ export class TablePotView {
     ring.rotation.x = -Math.PI / 2; ring.position.y = -.005; this.root.add(ring);
     this.coins = new THREE.Group(); this.root.add(this.coins); saloon.scene.add(this.root); this.root.visible = false;
     this.entry = saloon.layout?.register(this.root, 'pot-chips', '底池 · 筹码模型', '筹码与扑克');
+    this.numberCanvas = document.createElement('canvas'); this.numberCanvas.width = 512; this.numberCanvas.height = 104;
+    this.numberMap = new THREE.CanvasTexture(this.numberCanvas); this.numberMap.colorSpace = THREE.SRGBColorSpace;
+    this.number = new THREE.Mesh(new THREE.PlaneGeometry(1.25, .20), new THREE.MeshBasicMaterial({ map: this.numberMap, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+    this.number.name = '底池金额'; this.number.rotation.x = -Math.PI / 2; this.number.position.set(0, .018, .82);
+    this.root.add(this.number);
+    this.numberEntry = saloon.layout?.register(this.number, 'pot-value', '底池 · 金额', '筹码与扑克');
+  }
+  setNumber(amount) {
+    if (this.displayAmount === amount) return;
+    this.displayAmount = amount;
+    const ctx = this.numberCanvas.getContext('2d'); ctx.clearRect(0, 0, 512, 104);
+    ctx.textAlign = 'center'; ctx.font = `bold 54px ${NUMBER_FONT}`; ctx.fillStyle = '#f2d18b';
+    ctx.fillText(`底池 ${amount.toLocaleString('zh-CN')}`, 256, 68, 470);
+    this.numberMap.needsUpdate = true;
   }
   target() { return this.root.getWorldPosition(new THREE.Vector3()); }
   heldFor(id) { return this.holds.get(id) || 0; }
@@ -82,6 +97,7 @@ export class TablePotView {
       this.clear(); this.key = key;
     }
     this.active = true; this.root.visible = true; this.you = you; this.focus = focus; this.players = hand.players.map(player => ({ ...player }));
+    this.setNumber(money(hand.pot));
     if (this.saloon.editor) {
       this.amount = money(hand.pot); this.chips.fill(this.coins, this.amount, true); this.arrange(); this.renderBanks(); return;
     }

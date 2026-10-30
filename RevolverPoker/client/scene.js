@@ -8,6 +8,9 @@ import { TableActions } from './table-actions.js';
 import { TableBetView } from './table-bet-view.js';
 import { TablePotView } from './table-pot-view.js';
 import { SeatActionLabels, paintSeatNameplate } from './seat-label.js';
+import { DealerButtons } from './dealer-buttons.js';
+import { dealKey } from '../shared/deal-timing.js';
+import { createPlayerPortraits } from './player-portraits.js';
 
 const COLORS = [0x4a4437, 0x5f3e2c, 0x3a4540, 0x57453c, 0x383c3e, 0x60503c, 0x434e42, 0x563b32];
 const OVERVIEW_EYE = [0, 8.8, 10.5];
@@ -118,6 +121,7 @@ export class SaloonScene {
     this.buildRoom(); this.tagEditables(start, 'room', '酒馆');
     start = this.scene.children.length;
     this.buildTable(); this.tagEditables(start, 'table', '牌桌与道具');
+    this.dealerButtons = new DealerButtons(this, this.dealer);
     this.buildHands(); this.hands.userData.layout = { id: 'player-hands', label: '自己的双臂', category: '玩家与座位' };
     this.cards = new TableCards(this.scene, { animate: !editor });
     for (let i = 0; i < 8; i++) {
@@ -141,6 +145,7 @@ export class SaloonScene {
     for (const node of editables) { const { id, label, category } = node.userData.layout; this.layout.register(node, id, label, category); }
     let cameraState = '';
     this.layout.onApply = () => {
+      this.dealerButtons.applyLayout(this.layout.current, this.layout);
       const pose = playerCameraPose(this.playerCamera);
       const state = JSON.stringify([pose.position.toArray(), pose.quaternion.toArray(), pose.fov, pose.near, pose.far]);
       if (cameraState && cameraState !== state && !this.editor && this.firstPerson) this.resetView();
@@ -154,10 +159,15 @@ export class SaloonScene {
       this.tableActions = new TableActions({
         send: (type, amount, key) => this.onPokerAction?.(type, amount, key) ?? false,
         change: state => this.betView.setState(state), commit: action => this.betView.commit(action),
-        forward: (start, point) => this.betView.measureForward(start, point)
+        forward: (start, point) => this.betView.measureForward(start, point),
+        sliderTravel: () => this.betView.sliderHeight()
       });
     }
     this.ready = editor ? Promise.resolve(true) : this.layout.watch();
+    if (!editor) {
+      try { this.portraits = createPlayerPortraits(this.renderer, makePerson); }
+      catch (error) { console.warn('Player portraits:', error); this.portraits = []; }
+    }
     this.showPreview();
     this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(container); this.resize();
     this.resetView();
@@ -329,15 +339,18 @@ export class SaloonScene {
     label.map.needsUpdate = true;
   }
   get firstPerson() { return this.seated && (this.room?.phase === 'playing' || this.room?.phase === 'finished'); }
+  get dealing() { return !this.editor && (!!this.room?.dealing || !!this.cards?.dealing); }
   getTurnLookTarget() {
     const hand = this.room?.hand;
-    if (this.editor || !this.firstPerson || this.room.phase !== 'playing' || !hand || hand.done || !Number.isInteger(hand.actor)) return null;
+    if (this.editor || !this.firstPerson || this.room.phase !== 'playing' || !hand) return null;
+    const pose = playerCameraPose(this.playerCamera);
+    if (this.dealing) return { key: `deal:${dealKey(this.room)}`, ...pose };
+    if (hand.done || !Number.isInteger(hand.actor)) return null;
     const actor = hand.players.find(player => player.seat === hand.actor);
     if (!actor) return null;
     const key = `${this.room.code}:${hand.number}:${hand.actor}`;
     if (actor.id === this.viewerId) {
-      const pose = playerCameraPose(this.playerCamera);
-      return { key, yaw: pose.yaw, pitch: pose.pitch };
+      return { key, ...pose };
     }
     // Models are arranged relative to the viewer's seat. Use their live world
     // positions so edited characters and seats stay correctly aligned.
@@ -348,12 +361,12 @@ export class SaloonScene {
     target.sub(this.camera.getWorldPosition(new THREE.Vector3()));
     const horizontal = Math.hypot(target.x, target.z);
     if (horizontal < .001) return null;
-    return { key, yaw: Math.atan2(-target.x, -target.z), pitch: Math.atan2(target.y, horizontal) };
+    return { key, position: pose.position, roll: pose.roll, yaw: Math.atan2(-target.x, -target.z), pitch: Math.atan2(target.y, horizontal) };
   }
   cancelViewInput() { this.controls?.cancel(); }
   setActionConnection(connected) {
     this.actionConnected = connected;
-    this.tableActions?.sync(this.room, this.viewerId, connected);
+    this.tableActions?.sync(this.room, this.viewerId, connected && !this.dealing);
   }
   rejectTableAction() { this.betView?.cancelFlight(); this.tableActions?.reject(); }
   resetView() {
@@ -377,7 +390,7 @@ export class SaloonScene {
     this.renderer.domElement.setAttribute('aria-description', this.firstPerson ? '第一人称视角' : '俯视视角');
   }
   beginCardPeek(kind) {
-    if (this.peekActive || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand) return false;
+    if (this.peekActive || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand || (this.dealing && kind !== 'hand')) return false;
     const me = this.room.hand.players.find(p => p.id === this.viewerId);
     if (kind === 'hand' && (!me || me.folded)) return false;
     if (kind === 'board' && !this.room.hand.board.length) return false;
@@ -422,6 +435,7 @@ export class SaloonScene {
     if (Number.isInteger(target?.seat)) this.onSeatSelect?.(target.seat);
   }
   showPreview() {
+    this.dealerButtons?.update(null, 0);
     this.models.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
     this.piles.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
     this.labels.forEach(label => { label.sprite.visible = false; });
@@ -429,6 +443,7 @@ export class SaloonScene {
   }
   update(room, you) {
     const wasFirstPerson = this.firstPerson;
+    const freshDeal = !!dealKey(room) && dealKey(room) !== dealKey(this.room);
     this.room = room; this.viewerId = you;
     this.seatActions ||= new SeatActionLabels(); this.seatActions.update(room);
     if (this.peekActive && (!room?.hand || this.peekHandKey !== `${room.code}:${room.hand.number}` ||
@@ -447,7 +462,17 @@ export class SaloonScene {
     const focus = this.firstPerson ? mine.seat : 0;
     const changed = this.focus !== focus || wasFirstPerson !== this.firstPerson;
     this.focus = focus; this.hands.visible = this.firstPerson;
-    if (changed) this.resetView();
+    if (freshDeal && !this.editor && !(this.peekActive && this.inspectMode === 'hand')) {
+      this.peekActive = false; this.cardPeekClosing = null; this.inspectMode = null; this.viewTransition = null;
+      this.cards.setPeeking(false); this.cards.setBoardPeeking(false);
+    }
+    if (changed) {
+      if (freshDeal && room.dealing && this.firstPerson && !this.editor) {
+        // Enter the seat through the same eased follow as subsequent deals.
+        this.controls?.resumeTurnFollow();
+        this.resize(); this.renderer.domElement.setAttribute('aria-description', '第一人称视角');
+      } else this.resetView();
+    }
     this.cards.update(room, you, POSITIONS, this.focus);
     for (let i = 0; i < 8; i++) {
       const seat = room.seats[(i + this.focus) % 8];
@@ -458,7 +483,7 @@ export class SaloonScene {
       this.models[i].userData.folded = !!p?.folded;
       this.piles[i].visible = seat.kind !== 'open' && (own || (p ? p.chips > 0 : true));
       this.piles[i].position.set(own ? -1.05 : POSITIONS[i][0] * .7, 1.56, own ? 3.75 : POSITIONS[i][1] * .7);
-      this.markers[i].visible = !!p && room.hand.actor === p.seat && !room.hand.done;
+      this.markers[i].visible = !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing;
       const label = this.labels[i], lobby = room.phase === 'lobby';
       label.sprite.userData.seat = seat.seat;
       label.sprite.visible = !own && (lobby || seat.kind !== 'open') && (!room.hand?.done || !!p);
@@ -470,12 +495,12 @@ export class SaloonScene {
         value: lobby ? seat.kind === 'open' ? canConfigure ? '切换为 AI' : '点击入座' : seat.kind === 'ai' ? canConfigure ? 'AI · 点击切换' : 'AI · 电脑对手' : room.hostId === seat.id ? '房主' : '已入座' : Number(p?.chips ?? seat.chips ?? 0).toLocaleString('zh-CN'),
         action: lobby ? seat.kind === 'human' && !seat.connected ? '暂时断线' : seat.id === you ? '点击起身' : seat.kind === 'open' ? '＋' : '等待开场' : p ? this.seatActions.get(p.id) : '已出局',
         settlement: settlementLabel(room.hand, p),
-        folded: !!p?.folded, active: !!p && room.hand.actor === p.seat && !room.hand.done });
-      if (room.hand?.button === seat.seat) this.dealer.position.set(POSITIONS[i][0] * .7 + .3, 1.65, POSITIONS[i][1] * .7);
+        folded: !!p?.folded, active: !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing });
     }
+    this.dealerButtons?.update(room.hand?.button, this.focus);
     this.betView?.setActive(this.firstPerson);
     this.potView?.sync(room, you, this.focus);
-    this.tableActions?.sync(room, you, this.actionConnected !== false);
+    this.tableActions?.sync(room, you, this.actionConnected !== false && !this.dealing);
   }
   resize() {
     const { width, height } = this.container.getBoundingClientRect();
@@ -506,7 +531,11 @@ export class SaloonScene {
         this.renderer.domElement.setAttribute('aria-description', this.peekActive ? this.inspectMode === 'hand' ? '底牌已翻开，松开盖住' : '正在查看公共牌，松开返回' : '正常坐姿视角');
       }
     }
+    const wasDealing = this.dealing;
     this.cards.tick(time, this.camera);
+    if (wasDealing && !this.dealing) {
+      this.tableActions?.sync(this.room, this.viewerId, this.actionConnected !== false); this.onDealFinished?.();
+    }
     this.potView?.tick(time);
     this.betView?.tick(time);
     if (this.peekActive) {

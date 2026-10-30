@@ -62,7 +62,7 @@ test('dragging the hand previews a forward fold through edited transforms and ca
 test('3D chip staging, returns, slider placement and forward dragging respect edited scene positions', () => {
   const previousDocument = globalThis.document;
   const node = () => ({ style: {}, hidden: false, setAttribute() {}, textContent: '' });
-  const nodes = Object.fromEntries(['.chip-selector-value', 'i', 'b', '.chip-selector-max'].map(key => [key, node()]));
+  const nodes = Object.fromEntries(['.chip-selector-value', 'i', 'b', '.chip-selector-max', '.chip-selector-track'].map(key => [key, node()]));
   const ctx = new Proxy({}, { get: (target, key) => key in target ? target[key] : () => {} });
   globalThis.document = { createElement(tag) { return tag === 'canvas' ? { width: 0, height: 0, getContext: () => ctx }
     : { ...node(), querySelector: key => nodes[key] }; } };
@@ -99,6 +99,12 @@ test('3D chip staging, returns, slider placement and forward dragging respect ed
     view.setState({ ...state, selecting: true, selected: 1000, ratio: 1 }); view.tick(performance.now());
     assert.equal(view.slider.hidden, false); assert.ok(nodes['.chip-selector-value'].textContent.includes('ALL IN'));
     assert.ok(Number.parseFloat(view.slider.style.left) >= 8); assert.equal(nodes.i.style.height, '100%');
+    assert.equal(nodes['.chip-selector-track'].style.height, '320px');
+    rect.height = 360; view.positionSlider();
+    assert.equal(nodes['.chip-selector-track'].style.height, '270px');
+    assert.ok(Number.parseFloat(view.slider.style.top) >= 12);
+    assert.ok(Number.parseFloat(view.slider.style.top) + 270 + 52 <= rect.height);
+    rect.height = 844; view.positionSlider();
     const map = view.numberMap; view.commit({ type: 'call', amount: 20 }); view.setState({ ...state, pending: 0, remaining: 1000, inFlight: true });
     view.tick(view.flight.start + 500); assert.ok(view.flight); assert.equal(view.stage.visible, true); assert.equal(view.numberMap, map);
     const adopted = view.takeCommitted(20, view.flight.start + 501);

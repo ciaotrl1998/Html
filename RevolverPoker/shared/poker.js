@@ -30,19 +30,20 @@ function five(cards) {
   if (groups[0][1] === 2) return [1, groups[0][0], ...groups.slice(1).map(g => g[0])];
   return [0, ...ranks];
 }
-export function evaluate(cards) {
+export function bestFive(cards) {
   if (cards.length < 5 || cards.length > 7) throw new Error('需要 5–7 张牌');
-  let best = null;
+  let best = null, selected = null;
   for (let a = 0; a < cards.length - 4; a++)
     for (let b = a + 1; b < cards.length - 3; b++)
       for (let c = b + 1; c < cards.length - 2; c++)
         for (let d = c + 1; d < cards.length - 1; d++)
           for (let e = d + 1; e < cards.length; e++) {
-            const score = five([cards[a], cards[b], cards[c], cards[d], cards[e]]);
-            if (!best || compareHands(score, best) > 0) best = score;
+            const combination = [cards[a], cards[b], cards[c], cards[d], cards[e]], score = five(combination);
+            if (!best || compareHands(score, best) > 0) { best = score; selected = combination; }
           }
-  return best;
+  return { cards: selected, score: best };
 }
+export function evaluate(cards) { return bestFive(cards).score; }
 export function shuffledDeck(randomInt) {
   const deck = Array.from({ length: 52 }, (_, i) => i);
   for (let i = deck.length - 1; i > 0; i--) {

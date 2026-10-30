@@ -28,6 +28,7 @@ export class SceneViewControls {
   }
   get blocked() { return !this.focused || this.doc.hidden || !!this.doc.querySelector('dialog[open]'); }
   pauseTurnFollow() { this.followAfter = this.now() + TURN_FOLLOW.resumeDelay; this.turnFollow = null; }
+  resumeTurnFollow() { this.followAfter = 0; this.turnFollow = null; }
   reset() {
     this.cancel(); this.input = { x: 0, y: 0 }; this.offset = { yaw: 0, pitch: 0 };
     this.pauseTurnFollow();
@@ -121,7 +122,8 @@ export class SceneViewControls {
     if (!target || !Number.isFinite(target.yaw) || !Number.isFinite(target.pitch)) { this.turnFollow = null; return; }
     const now = this.now(), key = target.key ?? target;
     if (!this.turnFollow || this.turnFollow.key !== key) {
-      this.turnFollow = { key, start: now - clamp(seconds, 0, .1) * 1000, yaw: this.scene.yaw, pitch: this.scene.pitch };
+      this.turnFollow = { key, start: now - clamp(seconds, 0, .1) * 1000, yaw: this.scene.yaw, pitch: this.scene.pitch,
+        position: target.position && this.scene.camera?.position.clone(), roll: this.scene.roll ?? 0 };
     }
     const follow = this.turnFollow, progress = clamp((now - follow.start) / TURN_FOLLOW.duration, 0, 1);
     // Accelerate until 60%, then brake to rest at the one-second deadline.
@@ -130,6 +132,8 @@ export class SceneViewControls {
     const ease = progress < peak ? progress * progress / peak : 1 - (1 - progress) ** 2 / (1 - peak);
     this.scene.yaw = wrapAngle(follow.yaw + wrapAngle(target.yaw - follow.yaw) * ease);
     this.scene.pitch = clamp(follow.pitch + (clamp(target.pitch, -1.35, 1.35) - follow.pitch) * ease, -1.35, 1.35);
+    if (follow.position && target.position) this.scene.camera.position.lerpVectors(follow.position, target.position, ease);
+    if (Number.isFinite(target.roll)) this.scene.roll = follow.roll + wrapAngle(target.roll - follow.roll) * ease;
     this.scene.applyView();
   }
   dispose() { this.cancel(); this.listeners.forEach(remove => remove()); }

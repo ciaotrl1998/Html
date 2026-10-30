@@ -1,7 +1,10 @@
 import { evaluate, handName } from '/shared/poker.js';
 import { tableTurnKey } from './table-actions.js';
+import { renderWinnerResult } from './winner-display.js';
+import { PlayerRoster } from './player-roster.js';
 
 const $ = id => document.getElementById(id);
+const playerRoster = new PlayerRoster($('player-strip'));
 $('game').addEventListener('dragstart', event => {
   if (!event.target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
 });
@@ -152,15 +155,17 @@ function renderSeats() {
 }
 function render() {
   $('entry').hidden = !!room; $('table-ui').hidden = !room;
+  $('room-header').hidden = !room;
+  $('player-roster').hidden = !room;
+  playerRoster.render(room, sessionId);
   $('game').classList.toggle('physical-cards', !!scene);
   $('look-controls').hidden = !scene || !room;
   $('game').classList.toggle('table-ui-small', $('game').clientWidth < 380);
   scene?.update(room, sessionId);
-  if (!room) { lastHandKey = ''; return; }
-  $('room-name').textContent = room.name; $('room-code-display').textContent = room.code;
-  const h = room.hand, c = room.config;
-  $('blinds-label').textContent = `盲注 ${money(h?.smallBlind || c.smallBlind)} / ${money(h?.bigBlind || c.smallBlind * 2)}${c.ante ? ` · 前注 ${money(c.ante)}` : ''}`;
-  $('hand-label').textContent = room.phase === 'lobby' ? '等待开始 · 最多 8 人' : `第 ${room.handNumber} 手${room.phase === 'finished' ? ' · 已结算' : ''}`;
+  if (!room) { renderWinnerResult($('result-banner'), null); lastHandKey = ''; return; }
+  $('room-code-display').textContent = room.code;
+  const h = room.hand;
+  renderWinnerResult($('result-banner'), h, { nextHand: room.phase === 'playing' && !room.finishing });
   renderSeats(); renderControls();
   $('board-area').hidden = !h;
   const mine = h?.players.find(p => p.id === sessionId);
@@ -178,13 +183,7 @@ function render() {
       $('my-cards').style.opacity = mine.folded ? '.55' : '1';
       $('my-hand-name').textContent = mine.folded ? '已弃牌' : h.board.length >= 3 ? handName(evaluate([...mine.cards, ...h.board])) : '你的底牌';
     }
-    $('result-banner').hidden = !h.done;
-    if (h.done) {
-      const awards = new Map();
-      for (const pot of h.result.pots) for (const a of pot.awards) { const current = awards.get(a.id) || { ...a, amount: 0 }; current.amount += a.amount; awards.set(a.id, current); }
-      $('result-banner').innerHTML = [...awards.values()].map(a => `${esc(a.name)} +${money(a.amount)}`).join(' · ') + `<small>${[...awards.values()].map(a => esc(a.hand)).filter((x, i, arr) => arr.indexOf(x) === i).join(' / ')}${room.phase === 'playing' ? ' · 即将开始下一手' : ''}</small>`;
-    }
-  } else $('result-banner').hidden = true;
+  }
 }
 function renderControls() {
   if (!room) return;
@@ -202,13 +201,14 @@ function renderControls() {
     $('rule-summary').textContent = `每人 ${money(room.config.startingChips)} · ${room.config.raiseEvery ? `每 ${room.config.raiseEvery} 手升盲` : '固定盲注'} · 无限注`;
   } else {
     const legal = h?.legal, actor = h?.players.find(p => p.seat === h.actor);
-    const mineTurn = !!legal && connected && room.phase === 'playing';
-    $('turn-label').textContent = room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : room.stopAfterHand ? '本手结束后结算本场' : h?.done ? '本手已结算 · 等待下一手' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
+    const dealing = !!room.dealing || !!scene?.dealing;
+    const mineTurn = !!legal && connected && room.phase === 'playing' && !dealing;
+    $('turn-label').textContent = dealing ? room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
     $('action-prompt').hidden = !mineTurn;
     $('action-prompt').textContent = mineTurn ? legal.toCall ? `需跟注 ${money(legal.callAmount)}` : '可以过牌或下注' : '';
   }
   $('stand-button').hidden = !lobby || !me;
-  $('stop-button').hidden = !host || !me || room.phase !== 'playing';
+  $('stop-button').hidden = !host || !me || room.phase !== 'playing' || room.finishing;
   $('close-room-button').hidden = !host;
   $('close-room-button').disabled = !connected;
   $('leave-button').hidden = host || (room.phase === 'playing' && !!p);
@@ -225,12 +225,6 @@ $('reset-view').onclick = () => scene?.resetView();
 function releaseCardHolds() { scene?.endCardPeek(); }
 window.addEventListener('blur', releaseCardHolds);
 document.addEventListener('visibilitychange', () => { if (document.hidden) releaseCardHolds(); });
-$('invite-button').onclick = async () => {
-  if (!room) return;
-  const url = new URL(location.href); url.search = ''; url.searchParams.set('room', room.code);
-  try { await navigator.clipboard.writeText(`${room.name} · 房间 ${room.code}\n${url.href}`); toast(`邀请链接已复制 · 房间 ${room.code}`); }
-  catch { toast(`房间码：${room.code}，朋友访问同一游戏地址后输入即可`); }
-};
 function showRules() {
   if (!room) { toast('请先创建或加入房间'); return; }
   const editable = room.hostId === sessionId && room.phase === 'lobby';
@@ -245,7 +239,7 @@ $('rules-form').onsubmit = e => {
   if (c.startingChips < c.ante + c.smallBlind * 2) { toast('初始筹码需至少覆盖前注与大盲'); return; }
   if (send('configure', { config: c })) { $('rules-dialog').close(); }
 };
-$('menu-button').onclick = () => { $('menu-rules').hidden = !room; $('menu-results').hidden = room?.phase !== 'finished'; $('stand-button').hidden = !room || room.phase !== 'lobby' || !room.seats.some(s => s.id === sessionId); $('stop-button').hidden = !room || room.hostId !== sessionId || room.phase !== 'playing'; $('close-room-button').hidden = !room || room.hostId !== sessionId; $('close-room-button').disabled = !connected; $('leave-button').hidden = !room || room.hostId === sessionId || (room.phase === 'playing' && room.hand?.players.some(p => p.id === sessionId)); showDialog('menu-dialog'); };
+$('menu-button').onclick = () => { $('menu-rules').hidden = !room; $('menu-results').hidden = room?.phase !== 'finished'; $('stand-button').hidden = !room || room.phase !== 'lobby' || !room.seats.some(s => s.id === sessionId); $('stop-button').hidden = !room || room.hostId !== sessionId || room.phase !== 'playing' || room.finishing; $('close-room-button').hidden = !room || room.hostId !== sessionId; $('close-room-button').disabled = !connected; $('leave-button').hidden = !room || room.hostId === sessionId || (room.phase === 'playing' && room.hand?.players.some(p => p.id === sessionId)); showDialog('menu-dialog'); };
 $('menu-results').onclick = showFinish;
 $('stand-button').onclick = () => { send('stand'); closeDialogs(); };
 $('leave-button').onclick = () => { send('leave'); closeDialogs(); };
@@ -257,23 +251,29 @@ $('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp
 $('quality-state').textContent = lowQuality ? '省电' : '标准';
 $('quality-button').onclick = () => { lowQuality = !lowQuality; localStorage.setItem('rp-quality', lowQuality ? 'low' : 'standard'); $('quality-state').textContent = lowQuality ? '省电' : '标准'; scene?.setQuality(lowQuality); };
 function act(type, amount, expectedKey) {
-  if (!connected || room?.phase !== 'playing' || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
+  if (!connected || room?.phase !== 'playing' || room.dealing || scene?.dealing || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
   const bytes = new Uint32Array(4); crypto.getRandomValues(bytes);
   return send('action', { hand: room.handNumber, turnId: room.turnId, requestId: [...bytes].map(n => n.toString(16)).join('-'), action: type, amount });
 }
 $('my-cards').onclick = () => $('my-cards').classList.toggle('zoom');
 function showFinish() {
-  $('standings').innerHTML = (room.standings || []).map((p, i) => `<div class="rank-row"><b>${p.rank || i + 1}</b><span>${esc(p.name)}${p.id === sessionId ? ' · 你' : ''}</span><strong>${money(p.chips)}</strong></div>`).join('');
+  if (room?.phase !== 'finished') return;
+  $('standings').innerHTML = (room.standings || []).filter(p => p.rank === 1).map(p => `<div class="rank-row champion-row"><b>冠军</b><span>${esc(p.name)}${p.id === sessionId ? ' · 你' : ''}</span><strong>${money(p.chips)}</strong></div>`).join('');
   $('again-button').hidden = room.hostId !== sessionId;
-  $('finish-note').textContent = room.hostId === sessionId ? '重新开局将保留座位与 AI 设置，可重新设置规则。' : '等待房主重新开局。';
   showDialog('finish-dialog');
 }
 $('again-button').onclick = () => { send('reset'); closeDialogs(); };
 setInterval(() => {
   if (!room?.hand) return;
+  if (room.phase === 'finished') { $('countdown').textContent = ''; $('timer-fill').style.width = '0%'; return; }
+  if (room.dealing || scene?.dealing) {
+    $('countdown').textContent = room.settling ? '结算前稍候' : '发牌中';
+    const deal = room.deal, remaining = deal ? Math.max(0, deal.endsAt - Date.now() - clockOffset) / Math.max(1, deal.endsAt - deal.startedAt) : 1;
+    $('timer-fill').style.width = `${Math.min(100, remaining * 100)}%`; return;
+  }
   const remaining = room.deadline ? Math.max(0, (room.deadline - Date.now() - clockOffset) / 1000) : null;
   $('countdown').textContent = remaining === null ? '不限时' : `${Math.ceil(remaining)}s`;
-  const max = room.hand.done ? 6.5 : room.config.actionSeconds || 30;
+  const max = (room.hand.done ? room.resultDuration ?? 6500 : room.config.actionSeconds * 1000) / 1000 || 30;
   $('timer-fill').style.width = remaining === null ? '100%' : `${Math.min(100, remaining / max * 100)}%`;
 }, 100);
 window.addEventListener('resize', () => { $('game').classList.toggle('table-ui-small', $('game').clientWidth < 380); if (!scene) positionFallbackSeats(); });
@@ -282,7 +282,8 @@ if (invite && /^\d{6}$/.test(invite)) { $('join-form').hidden = false; $('room-c
 connect();
 try {
   const { SaloonScene } = await import('/client/scene.js');
-  scene = new SaloonScene($('scene')); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.setActionConnection(connected);
+  scene = new SaloonScene($('scene')); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
+  playerRoster.setPortraits(scene.portraits);
   const layoutLoaded = await scene.ready; scene.setQuality(lowQuality);
   if (!layoutLoaded) toast('暂未读取到已保存布局，已使用默认场景');
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();
