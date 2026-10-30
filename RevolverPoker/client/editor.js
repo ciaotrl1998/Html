@@ -34,7 +34,7 @@ function serialize() { return JSON.stringify(layout.export()); }
 function remember(before) { if (before !== serialize()) { undo.push(before); if (undo.length > 80) undo.shift(); redo.length = 0; } refresh(); }
 function refresh() {
   const dirty = serialize() !== saved;
-  $('save-status').textContent = busy ? '正在保存…' : dirty ? '● 有未保存的调整' : '已保存 · 游戏会自动应用';
+  $('save-status').textContent = busy ? '正在保存…' : dirty ? '● 有未保存的调整' : '已保存 · 游戏启动直接使用';
   $('save-layout').disabled = busy; $('reload-layout').disabled = busy; $('reset-all').disabled = busy;
   $('undo').disabled = !undo.length; $('redo').disabled = !redo.length;
   $('reset-object').disabled = !selected;
@@ -122,7 +122,7 @@ async function load({ initial = false } = {}) {
 async function save() {
   if (busy || !revision) return;
   busy = true; refresh();
-  try { const result = await request({ revision, layout: layout.export() }); revision = result.revision; saved = JSON.stringify(result.layout); message('已保存到项目，游戏将在约 3 秒内自动应用'); }
+  try { const result = await request({ revision, layout: layout.export() }); revision = result.revision; saved = JSON.stringify(result.layout); message('已保存为游戏场景，重新打开游戏即可使用；手机端请同步更新游戏包'); }
   catch (error) { message(error.message, true); }
   finally { busy = false; refresh(); }
 }
@@ -278,7 +278,7 @@ try {
   $('focus-object').onclick = focus; $('object-search').oninput = filterObjects; $('category').onchange = filterObjects;
   $('undo').onclick = () => history(true); $('redo').onclick = () => history(false);
   $('save-layout').onclick = save; $('reload-layout').onclick = load;
-  $('reset-all').onclick = () => { const before = serialize(); layout.apply(EMPTY_LAYOUT); remember(before); message('已恢复默认场景。点击“保存并应用”使游戏同步；也可撤销。'); };
+  $('reset-all').onclick = () => { const before = serialize(); layout.apply(EMPTY_LAYOUT); remember(before); message('已恢复默认场景。点击“保存到游戏”保存；也可撤销。'); };
   $('reset-object').onclick = () => { if (!selected) return; const before = serialize(); layout.reset(selected); remember(before); };
   window.addEventListener('keydown', event => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);

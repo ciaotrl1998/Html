@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
-import http from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { registerHooks } from 'node:module';
@@ -14,7 +13,7 @@ registerHooks({ resolve(specifier, context, next) {
   if (specifier === '/shared/scene-layout.js') return next(new URL('../shared/scene-layout.js', import.meta.url).href, context);
   return next(specifier, context);
 } });
-const { LayoutRegistry, readSceneLayout } = await import('../client/layout-registry.js');
+const { LayoutRegistry } = await import('../client/layout-registry.js');
 const { createPlayerCamera, createBoardCamera, playerCameraPose, copyPlayerCamera } = await import('../client/player-camera.js');
 const { SaloonScene } = await import('../client/scene.js');
 const { EditorCameraPreview } = await import('../client/editor-camera.js');
@@ -23,35 +22,6 @@ const { BoardPresentation } = await import('../client/board-presentation.js');
 const { SceneViewControls } = await import('../client/view-controls.js');
 const close = (a, b) => assert.ok(a.distanceTo(b) < 1e-7, `${a.toArray()} != ${b.toArray()}`);
 const transform = (position = [1, 2, 3], rotation = [0, 0, 0], scale = [1, 1, 1]) => ({ position, rotation, scale });
-
-test('scene loads through a running legacy server whose canonical layout route returns 404', async t => {
-  const layout = { version: 1, objects: { 'board-camera': { ...transform([0, 3.3, 1.2], [-1.49, 0, 0]), camera: { fov: 120, near: .1, far: 80 } } } };
-  const server = http.createServer((req, res) => {
-    if (req.url === '/client//scene-layout.js') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(`export default ${JSON.stringify(layout)};`); }
-    else { res.writeHead(404); res.end('Not found'); }
-  });
-  await new Promise(r => server.listen(0, '127.0.0.1', r)); t.after(() => new Promise(r => server.close(r)));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  assert.equal((await fetch(`${base}/client/scene-layout.js`)).status, 404);
-  const loaded = await readSceneLayout((url, options) => fetch(`${base}${url}`, options));
-  assert.deepEqual(loaded, layout);
-});
-
-test('missing or invalid layout retains a usable scene instead of failing module initialization', async () => {
-  const originalFetch = globalThis.fetch;
-  const registry = new LayoutRegistry(), world = new THREE.Scene(), prop = new THREE.Object3D(); world.add(prop); registry.register(prop, 'prop-1', '道具', '道具');
-  const saved = { version: 1, objects: { 'prop-1': transform([2, 3, 4]) } }; registry.apply(saved);
-  try {
-    globalThis.fetch = async () => new Response('Not found', { status: 404 });
-    assert.equal(await registry.watch(), false); clearInterval(registry.timer);
-    assert.deepEqual(registry.export(), saved); assert.match(registry.loadError.message, /404/);
-    globalThis.fetch = async () => new Response('export default { broken data };', { status: 200 });
-    assert.equal(await registry.watch(), false); clearInterval(registry.timer);
-    assert.deepEqual(registry.export(), saved);
-    globalThis.fetch = async () => new Response(`export default ${JSON.stringify(EMPTY_LAYOUT)};`, { status: 200 });
-    assert.equal(await registry.watch(), true); assert.equal(registry.loadError, null); assert.deepEqual(registry.export(), EMPTY_LAYOUT);
-  } finally { clearInterval(registry.timer); globalThis.fetch = originalFetch; }
-});
 
 test('static layout delivery does not depend on the running server understanding future configuration fields', async t => {
   const directory = await mkdtemp(path.join(tmpdir(), 'revolver-layout-static-')), layoutFile = path.join(directory, 'scene-layout.js');
@@ -63,6 +33,8 @@ test('static layout delivery does not depend on the running server understanding
   for (const route of ['/client/scene-layout.js', '/client//scene-layout.js']) {
     const response = await fetch(`${base}${route}`); assert.equal(response.status, 200); assert.equal(await response.text(), source);
   }
+  await rm(layoutFile);
+  assert.equal((await fetch(`${base}/client/scene-layout.js`)).status, 404, 'a missing scene cannot silently become the prototype layout');
 });
 
 test('saved transforms survive animation and state updates, with nested edits and true default reset', () => {

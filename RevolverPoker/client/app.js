@@ -284,8 +284,7 @@ try {
   const { SaloonScene } = await import('/client/scene.js');
   scene = new SaloonScene($('scene')); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
-  const layoutLoaded = await scene.ready; scene.setQuality(lowQuality);
-  if (!layoutLoaded) toast('暂未读取到已保存布局，已使用默认场景');
+  scene.setQuality(lowQuality);
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();
 } catch (error) {
   console.error('3D scene:', error);

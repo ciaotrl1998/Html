@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.js';
+import SAVED_SCENE from './scene-layout.js';
 import { TableCards, BOARD_CENTER_Z, TABLE_POSITIONS as POSITIONS } from './cards.js';
 import { LayoutRegistry } from './layout-registry.js';
 import { createPlayerCamera, createBoardCamera, playerCameraPose } from './player-camera.js';
@@ -151,9 +152,11 @@ export class SaloonScene {
       if (cameraState && cameraState !== state && !this.editor && this.firstPerson) this.resetView();
       cameraState = state;
     };
-    this.layout.apply(this.layout.current);
     this.betView = new TableBetView(this);
     this.potView = new TablePotView(this, this.betView);
+    // Register every anchor, including chips and pot labels, before applying
+    // the saved scene synchronously. No frame or layout request precedes it.
+    this.layout.apply(SAVED_SCENE);
     if (!editor) {
       this.actionConnected = true;
       this.tableActions = new TableActions({
@@ -163,7 +166,6 @@ export class SaloonScene {
         sliderTravel: () => this.betView.sliderHeight()
       });
     }
-    this.ready = editor ? Promise.resolve(true) : this.layout.watch();
     if (!editor) {
       try { this.portraits = createPlayerPortraits(this.renderer, makePerson); }
       catch (error) { console.warn('Player portraits:', error); this.portraits = []; }

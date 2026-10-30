@@ -9,6 +9,7 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "editor": "node server/editor.js",
+    "package:mobile": "pwsh -NoProfile -File scripts/package-mobile.ps1",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

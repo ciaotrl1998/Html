@@ -8,7 +8,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
 import { chooseBotAction } from './bot.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
-import { EMPTY_LAYOUT, layoutModule } from '../shared/scene-layout.js';
 import { DEAL_TIMING, dealDuration } from '../shared/deal-timing.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -52,10 +51,9 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       if (!allowed || !full.startsWith(ROOT) || relative.includes('..')) { res.writeHead(404); res.end('Not found'); return; }
       let file;
       if (relative === 'client/scene-layout.js') {
-        // Serve configuration as data; cached server validators must not make
-        // newer scene formats disappear. Clients validate before applying it.
-        try { file = await readFile(layoutFile); }
-        catch (error) { if (error.code !== 'ENOENT') throw error; file = Buffer.from(layoutModule(EMPTY_LAYOUT)); }
+        // This is a required scene module. A missing save must fail visibly,
+        // instead of silently replacing the edited scene with prototype values.
+        file = await readFile(layoutFile);
       } else file = await readFile(full);
       if (relative.startsWith('node_modules/three/examples/')) file = file.toString().replace("from 'three'", "from '/vendor/three.js'");
       res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream',
