@@ -1,0 +1,31 @@
+#game, #game * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#game input, #game textarea, #game [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+#game a, #game img { -webkit-user-drag: none; }
+#scene canvas { touch-action: none; cursor: grab; outline: none; }
+#scene canvas:active { cursor: grabbing; }
+#scene canvas:focus-visible { outline: 1px solid #c5aa6d55; outline-offset: -2px; }
+.look-controls { display: contents; }
+.look-controls > button { font-size: 20px; width: 32px; height: 32px; }
+.top-right { gap: 8px; }
+.hand-area { pointer-events: none; }
+.my-cards { pointer-events: auto; width: max-content; margin: auto; }
+.board-area { top: 52%; }
+.seat { min-height: 44px; }
+.dock button, .dock input, .dock select { pointer-events: auto; }
+.dock.in-game { bottom: clamp(56px, 8dvh, 76px); }
+.timer-track { position: relative; }
+.action-prompt { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); font-size: 18px; font-weight: 600; line-height: 1.4; white-space: nowrap; color: #f0d8a6; text-shadow: 0 0 3px #000, 0 1px 6px #000; pointer-events: none; }
+.chip-selector { position: absolute; z-index: 14; width: 112px; color: #f2d18b; pointer-events: none; text-align: center; text-shadow: 0 1px 4px #000; }
+.chip-selector-value { min-height: 29px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.chip-selector-track { position: relative; width: 9px; height: 180px; margin: 0 auto 8px; border: 1px solid #d4b77888; border-radius: 6px; background: #17160fcc; box-shadow: 0 2px 12px #0008; }
+.chip-selector-track i { position: absolute; bottom: 0; left: 0; right: 0; background: #d5b778; border-radius: 5px; }
+.chip-selector-track b { position: absolute; left: 50%; width: 27px; height: 12px; transform: translate(-50%, 50%); border-radius: 4px; border: 1px solid #f4ddaa; background: #b18a4b; box-shadow: 0 1px 5px #0008; }
+.chip-selector-max { font-size: 10px; color: #dfc99d; white-space: nowrap; }
+.my-status, .turn-line, .dock-message, .rule-summary { text-shadow: 0 1px 4px #000; }
+.physical-cards .board-area { top: auto; bottom: calc(env(safe-area-inset-bottom) + 12px); pointer-events: none; }
+.physical-cards .pot-label { font-size: 9px; margin-bottom: 4px; }
+.physical-cards .pot-label strong { font-size: 20px; }
+.physical-cards .pot-detail { margin-top: 2px; }
+@media (max-height: 740px) {
+  .board-area { top: 48%; }
+}

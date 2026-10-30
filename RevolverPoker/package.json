@@ -1,0 +1,18 @@
+{
+  "name": "revolver-poker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "西部酒馆 · 八人联机德州扑克",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "editor": "node server/editor.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "three": "^0.185.0",
+    "ws": "^8.18.0"
+  },
+  "engines": { "node": ">=22" }
+}
