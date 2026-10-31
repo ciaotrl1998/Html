@@ -57,15 +57,15 @@ def face(card):
         x, y = rng.randrange(512), rng.randrange(744)
         draw.point((x, y), fill=tuple(max(0, c - 5) for c in image.getpixel((x, y))))
     draw.rectangle((17, 17, 494, 726), outline='#c7b58e', width=2)
-    corner = Image.new('RGBA', (156, 220))
+    corner = Image.new('RGBA', (156, 230))
     glyph(corner, rank, (78, 86), (112 if rank == '10' else 102, 110), RANK_FONT, ink)
-    glyph(corner, suit, (78, 179), (67, 67), SUIT_FONT, ink)
+    glyph(corner, suit, (78, 184), (80, 80), SUIT_FONT, ink)
     image.paste(corner, (0, 0), corner)
     corner = corner.transpose(Image.Transpose.ROTATE_180)
-    image.paste(corner, (356, 524), corner)
+    image.paste(corner, (356, 514), corner)
     n = card % 13 + 2
     if n == 14:
-        glyph(image, suit, (256, 372), (182, 202), SUIT_FONT, ink)
+        glyph(image, suit, (256, 372), (220, 244), SUIT_FONT, ink)
     elif n >= 11:
         draw.rectangle((150, 220, 362, 524), outline=ink, width=4)
         panel = Image.new('RGBA', (200, 152))
@@ -75,12 +75,12 @@ def face(card):
         image.paste(panel, (156, 220), panel)
         panel = panel.transpose(Image.Transpose.ROTATE_180)
         image.paste(panel, (156, 372), panel)
-        glyph(image, suit, (256, 192), (40, 43), SUIT_FONT, ink)
-        glyph(image, suit, (256, 552), (40, 43), SUIT_FONT, ink, True)
+        glyph(image, suit, (256, 192), (48, 52), SUIT_FONT, ink)
+        glyph(image, suit, (256, 552), (48, 52), SUIT_FONT, ink, True)
     else:
-        size = 73 if n >= 8 else 86
+        size = 88 if n >= 8 else 104
         for x, y in PATTERNS[n]:
-            glyph(image, suit, (256 + x * 240, 372 + y * 400), (size, size), SUIT_FONT, ink, y > 0)
+            glyph(image, suit, (256 + x * 280, 372 + y * 400), (size, size), SUIT_FONT, ink, y > 0)
     return image.resize(SIZE, Image.Resampling.LANCZOS)
 
 
@@ -108,7 +108,7 @@ def display_tile(card):
         rank = RANKS[card % 13].replace('T', '10')
         ink = '#9c3034' if 13 <= card < 39 else '#171a18'
         glyph(image, rank, (66, 53), (114, 76), RANK_FONT, ink)
-        glyph(image, SUITS[card // 13], (66, 120), (60, 63), SUIT_FONT, ink)
+        glyph(image, SUITS[card // 13], (66, 130), (72, 76), SUIT_FONT, ink)
     return image
 
 
