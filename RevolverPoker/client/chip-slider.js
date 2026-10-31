@@ -24,7 +24,7 @@ export class ChipSlider {
     this.stops = this.stopKinds.map(name => query(`.chip-stop-${name}`));
     this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { this.bounds = null; if (!this.root.hidden) this.layout(); }) : null;
     this.resizeObserver?.observe(container); if (this.header) this.resizeObserver?.observe(this.header);
-    this.shownAmount = this.shownPreset = this.shownMaximum = null;
+    this.shownAmount = this.shownPreset = this.shownMinimum = this.shownMaximum = null;
     this.stopDefinitions = null; this.visibleStops = [];
   }
   render(state, active) {
@@ -42,9 +42,11 @@ export class ChipSlider {
     if (amountChanged || presetChanged) this.root.setAttribute('aria-valuetext', `${preset} ${this.value.textContent}`.trim());
     if (state.maximum !== this.shownMaximum) {
       this.maximum.textContent = `最大 ${chipNumber.format(state.maximum)}`;
-      this.root.setAttribute('aria-valuemin', '0'); this.root.setAttribute('aria-valuemax', String(state.maximum));
+      this.root.setAttribute('aria-valuemax', String(state.maximum));
       this.shownMaximum = state.maximum;
     }
+    const minimum = state.minimum || 0;
+    if (minimum !== this.shownMinimum) { this.root.setAttribute('aria-valuemin', String(minimum)); this.shownMinimum = minimum; }
     if (state.stops !== this.stopDefinitions) {
       this.stopDefinitions = state.stops; this.visibleStops = [];
       for (let i = 0; i < this.stops.length; i++) {

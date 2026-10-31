@@ -1,4 +1,4 @@
-import { amountAtRatio, ratioForAmount, stagedAction, selectionAtRatio, sliderStops, maximumBet } from './bet-sizing.js';
+import { amountAtRatio, ratioForAmount, stagedAction, selectionAtRatio, sliderStops, minimumBet, maximumBet } from './bet-sizing.js';
 export { amountAtRatio, ratioForAmount, stagedAction } from './bet-sizing.js';
 export const TABLE_GESTURES = { hold: 350, sliderTravel: 320, forward: 38, doubleTap: 320, tapSlop: 8 };
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -31,7 +31,7 @@ export class TableActions {
     this.change({ pending: this.pending, bankroll: this.bankroll, remaining: this.bankroll - this.pending,
       enabled: this.enabled, inFlight: this.inFlight, selecting: this.selecting,
       selected: g?.selected ?? this.pending, ratio: g?.ratio ?? ratioForAmount(this.context, this.pending), preset: g?.preset ?? stops.find(stop => stop.amount === this.pending)?.label ?? '', stops,
-      hint: g?.hint || '', maximum: this.context ? maximumBet(this.context) : 0,
+      hint: g?.hint || '', minimum: minimumBet(this.context), maximum: this.context ? maximumBet(this.context) : 0,
       progress: g?.progress || 0, dragging: g?.kind === 'staged' ? 'chips' : g?.kind === 'hand' ? 'hand' : null });
   }
   begin(target, point, time) {
@@ -42,7 +42,7 @@ export class TableActions {
     if (kind !== 'table') this.lastTap = null;
     this.gesture = { kind, start: { ...point }, point: { ...point }, time, key: this.context.key, moved: 0, progress: 0 };
     if (kind === 'bank') {
-      const initial = this.pending || this.context.legal.callAmount || Math.min(this.context.legal.minTo, this.context.legal.maxTo) - this.context.player.bet;
+      const initial = this.pending || minimumBet(this.context);
       this.gesture.initialRatio = ratioForAmount(this.context, initial);
       this.gesture.rawRatio = this.gesture.initialRatio; this.gesture.lastY = point.y;
       this.select(this.gesture);

@@ -122,7 +122,7 @@ test('the wager slider snaps by five through 50 and by ten above 50 without skip
 test('snapping preserves exact calls and odd all-ins while rounding raises up to legal minimums', () => {
   const input = room({ player: { chips: 1373 }, legal: { toCall: 23, callAmount: 23, minTo: 57, maxTo: 1373 } }); input.hand.currentBet = 23;
   const { actions } = fixture(input), context = actions.context;
-  assert.equal(amountAtRatio(context, 0), 0); assert.equal(amountAtRatio(context, -1), 0);
+  assert.equal(amountAtRatio(context, 0), 23); assert.equal(amountAtRatio(context, -1), 23);
   assert.equal(amountAtRatio(context, ratioForAmount(context, 23)), 23);
   assert.equal(amountAtRatio(context, ratioForAmount(context, 57)), 60); assert.equal(amountAtRatio(context, 1), 1373); assert.equal(ratioForAmount(context, 1373), 1);
   for (let index = 1; index <= 1000; index++) {
@@ -131,7 +131,8 @@ test('snapping preserves exact calls and odd all-ins while rounding raises up to
     if (amount !== 1373 && amount !== 23) assert.equal(amount % 10, 0);
   }
   const short = fixture(room({ player: { chips: 57 }, legal: { minTo: 58, maxTo: 57 } }));
-  assert.equal(amountAtRatio(short.actions.context, .05), 20); assert.equal(ratioForAmount(short.actions.context, 57), 1);
+  assert.equal(amountAtRatio(short.actions.context, 0), 20); assert.equal(amountAtRatio(short.actions.context, .05), 57);
+  assert.equal(ratioForAmount(short.actions.context, 57), 1);
 });
 
 test('the thumb follows the drag while chip rounding uses the displayed slider height without drift', () => {

@@ -16,18 +16,27 @@ function sizingFor(context) {
   return cached;
 }
 export const maximumBet = context => context.legal.canRaise ? context.player.chips : context.legal.callAmount;
+export const minimumBet = context => context ? Math.max(0, Math.min(maximumBet(context), context.legal.callAmount > 0
+  ? context.legal.callAmount : Math.min(context.legal.minTo, context.legal.maxTo) - context.player.bet)) : 0;
 const hasPotMidpoint = (pot, maximum) => pot > 0 && pot <= maximum / 2;
+function rangeFor(context) {
+  const cached = sizingFor(context);
+  if (cached.range) return cached.range;
+  const minimum = minimumBet(context), maximum = maximumBet(context), pot = context.pot || 0;
+  const anchor = pot <= minimum ? 0 : hasPotMidpoint(pot, maximum) ? .5 : (pot - minimum) / Math.max(1, maximum - minimum);
+  return cached.range = { minimum, maximum, pot, anchor };
+}
 const amountStep = (context, amount) => context.pot > 0
   ? amount <= context.pot && amount <= 100 ? 1 : 10
   : amount <= 50 ? 5 : 10;
 const bandBounds = (context, amount) => {
-  if (!(context.pot > 0)) return [0, maximumBet(context)];
-  const maximum = maximumBet(context);
+  const minimum = minimumBet(context), maximum = maximumBet(context);
+  if (!(context.pot > 0)) return [minimum, maximum];
   // Rounding must not cross a neighbouring exact preset and reverse the drag.
   const cached = sizingFor(context);
   const boundaries = cached.boundaries ||= [Math.min(context.pot, 100), context.pot, ...sliderStops(context).map(stop => stop.amount)]
-    .filter(value => value > 0 && value <= maximum).sort((a, b) => a - b);
-  let low = 0;
+    .filter(value => value >= minimum && value <= maximum).sort((a, b) => a - b);
+  let low = minimum;
   for (const high of boundaries) {
     if (amount <= high) return [low, high];
     low = high;
@@ -35,25 +44,25 @@ const bandBounds = (context, amount) => {
   return [low, maximum];
 };
 const rawAmount = (context, ratio) => {
-  const maximum = maximumBet(context), pot = context.pot || 0;
-  const midpoint = hasPotMidpoint(pot, maximum), anchor = midpoint ? .5 : pot / maximum;
-  if (pot > 0 && pot < maximum && ratio > anchor) {
+  const { minimum, maximum, pot, anchor } = rangeFor(context);
+  if (maximum <= minimum) return minimum;
+  if (pot >= minimum && pot > 0 && pot < maximum && ratio > anchor) {
     return pot * (maximum / pot) ** ((ratio - anchor) / (1 - anchor));
   }
-  return midpoint ? pot * ratio * 2 : maximum * ratio;
+  return pot > minimum && pot < maximum ? minimum + (pot - minimum) * ratio / anchor
+    : minimum + (maximum - minimum) * ratio;
 };
 
 export function ratioForAmount(context, amount) {
   if (!context) return 0;
-  const maximum = maximumBet(context), pot = context.pot || 0;
-  const value = clamp(amount, 0, maximum);
-  if (!maximum) return 0;
-  const midpoint = hasPotMidpoint(pot, maximum), anchor = midpoint ? .5 : pot / maximum;
-  if (pot > 0 && pot < maximum && value > pot) {
+  const { minimum, maximum, pot, anchor } = rangeFor(context);
+  const value = clamp(amount, minimum, maximum);
+  if (maximum <= minimum) return 0;
+  if (pot >= minimum && pot > 0 && pot < maximum && value > pot) {
     return anchor + Math.log(value / pot) / Math.log(maximum / pot) * (1 - anchor);
   }
-  if (midpoint) return value / pot * .5;
-  return value / maximum;
+  if (pot > minimum && pot < maximum) return (value - minimum) / (pot - minimum) * anchor;
+  return (value - minimum) / (maximum - minimum);
 }
 
 export function stagedAction(context, amount) {
@@ -97,7 +106,8 @@ const limitsLabel = (amount, label) => amount > 0 ? `${label} ${amount.toLocaleS
 
 export function amountAtRatio(context, ratio, preview = false) {
   const { legal, player } = context, r = clamp(ratio, 0, 1), maximum = maximumBet(context);
-  if (r <= 0 || maximum <= 0) return 0;
+  if (maximum <= 0) return 0;
+  if (r <= 0) return minimumBet(context);
   if (!legal.canRaise) return legal.callAmount;
   if (r >= 1) return player.chips;
   const raw = rawAmount(context, r);
@@ -117,7 +127,7 @@ export function selectionAtRatio(context, ratio, travel = 320) {
   const nearest = stops.reduce((found, stop) => Math.abs(stop.ratio - r) < Math.abs((found?.ratio ?? Infinity) - r) ? stop : found, null);
   const raw = rawAmount(context, r);
   // All legal limits and pot presets share the same physical snap radius.
-  const snapped = r > 0 && r < 1 && nearest && Math.abs(nearest.ratio - r) <= BET_SNAP_PIXELS / Math.max(1, travel);
+  const snapped = r < 1 && nearest && (r > 0 || nearest.amount === minimumBet(context)) && Math.abs(nearest.ratio - r) <= BET_SNAP_PIXELS / Math.max(1, travel);
   // Show the actual scale during a hold; legal raise sizing is applied when staging.
   const amount = snapped ? nearest.amount : amountAtRatio(context, r, true);
   const { legal, player } = context, minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
@@ -126,7 +136,7 @@ export function selectionAtRatio(context, ratio, travel = 320) {
   const hint = amount <= 0 ? '' : legal.callAmount > 0
     ? value <= legal.callAmount + 1e-7 ? cached.callHint
       : legal.canRaise && value <= minimum + 1e-7 ? cached.raiseHint : ''
-    : raw < minimum ? '最低下注' : '';
+    : raw <= minimum + 1e-7 ? '最低下注' : '';
   // Legal minimums and integer rounding constrain the wager, not the drag position.
   return { amount, ratio: snapped ? nearest.ratio : r, preset: snapped ? nearest.label : '', hint };
 }

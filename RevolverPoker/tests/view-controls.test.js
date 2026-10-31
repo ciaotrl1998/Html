@@ -316,9 +316,9 @@ test('a held chip bank captures dragging anywhere on screen and immediately reve
     event(f.canvas, 'pointermove', { pointerType, clientX: 0, clientY: 40, buttons: 1 });
     assert.equal(states.at(-1).selected, amount, 'horizontal position cannot change the amount');
     event(f.canvas, 'pointermove', { pointerType, clientX: 390, clientY: 844, buttons: 1 });
-    assert.equal(states.at(-1).selected, 0);
+    assert.equal(states.at(-1).selected, 1);
     event(f.canvas, 'pointermove', { pointerType, clientX: 0, clientY: 804, buttons: 1 });
-    assert.ok(states.at(-1).selected > 0, 'upward motion immediately increases after reaching zero');
+    assert.ok(states.at(-1).selected > 1, 'upward motion immediately increases after reaching the minimum');
     event(f.canvas, 'pointerup', { pointerType, clientX: 0, clientY: 804 });
     assert.equal(states.at(-1).selecting, false); assert.equal(f.canvas.captures.size, 0);
     assert.equal(f.looks, 0); assert.deepEqual(sent, []);

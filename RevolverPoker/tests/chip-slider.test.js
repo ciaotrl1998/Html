@@ -2,15 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ChipSlider, chipSliderBounds } from '../client/chip-slider.js';
 import { TableActions } from '../client/table-actions.js';
-import { amountAtRatio, ratioForAmount, potStops, sliderStops, selectionAtRatio, stagedAction } from '../client/bet-sizing.js';
+import { amountAtRatio, ratioForAmount, potStops, sliderStops, minimumBet, selectionAtRatio, stagedAction } from '../client/bet-sizing.js';
 
 const translatedY = element => Number(element.style.transform.match(/,\s*([-\d.]+)px/)[1]);
 const context = (pot = 200, chips = 1000) => ({ pot, currentBet: 20, player: { id: 'me', seat: 0, bet: 0, chips }, legal: { toCall: 20, callAmount: 20, canRaise: true, minTo: 40, maxTo: chips, canAllIn: true } });
 
 test('the lower range retains its linear pot scale and exact quarter/half/pot magnets', () => {
   const c = context();
-  for (const [ratio, amount] of [[0, 0], [.125, 50], [.25, 100], [.375, 150], [.5, 200], [1, 1000]]) {
-    assert.equal(amountAtRatio(c, ratio), amount); assert.equal(ratioForAmount(c, amount), ratio);
+  for (const [ratio, amount] of [[0, 20], [1 / 12, 50], [2 / 9, 100], [13 / 36, 150], [.5, 200], [1, 1000]]) {
+    assert.equal(amountAtRatio(c, ratio), amount); assert.ok(Math.abs(ratioForAmount(c, amount) - ratio) < 1e-12);
   }
   for (const stop of potStops(c)) {
     for (const offset of [-.1, 0, .1]) {
@@ -37,8 +37,9 @@ test('the pot-to-all-in range retains geometric growth while rounding upper amou
     assert.equal(amountAtRatio(phone, ratioForAmount(phone, amount)), expected);
   }
   const largePot = context(600, 1000);
-  assert.equal(ratioForAmount(largePot, 600), .6);
-  assert.equal(amountAtRatio(largePot, .8), 770);
+  const anchor = (600 - 20) / (1000 - 20);
+  assert.equal(ratioForAmount(largePot, 600), anchor);
+  assert.equal(amountAtRatio(largePot, (anchor + 1) / 2), 770);
   assert.equal(amountAtRatio(largePot, 1), 1000);
 });
 
@@ -79,37 +80,37 @@ test('all pot presets attract within eight CSS pixels and release outside that r
   }
   const nearAllIn = context(999, 1000);
   assert.equal(selectionAtRatio(nearAllIn, 1, 500).amount, 1000, 'a nearby full-pot stop cannot replace ALL IN at the endpoint');
-  assert.equal(selectionAtRatio(nearAllIn, 0, 500).amount, 0);
+  assert.equal(selectionAtRatio(nearAllIn, 0, 500).amount, 20);
 });
 
-test('minimum bets, calls and closed raising rights never pin the thumb or masquerade as a pot magnet', () => {
+test('the bottom is the exact minimum call or opening bet, including short all-ins and single-value ranges', () => {
   const call = context(40), check = context(40), closed = context(40);
   check.currentBet = 0;
   Object.assign(check.legal, { toCall: 0, callAmount: 0, minTo: 20, canCheck: true });
   Object.assign(closed.legal, { canRaise: false, canAllIn: false });
   for (const [c, hint] of [[call, '跟注至少 20'], [check, '最低下注'], [closed, '跟注至少 20']]) {
-    const start = ratioForAmount(c, 20) / 2;
-    for (const offset of [-.01, 0, .01]) {
-      const ratio = start + offset, selection = selectionAtRatio(c, ratio, 500);
-      assert.equal(selection.ratio, ratio, 'the thumb follows even when the legal amount is unchanged');
-      assert.equal(selection.amount, 20); assert.ok(stagedAction(c, selection.amount));
-      assert.equal(selection.preset, '', 'a legal floor equal to half pot is not a half-pot snap');
-      assert.equal(selection.hint, hint);
-    }
-    const zero = selectionAtRatio(c, 0, 500);
-    assert.equal(zero.amount, 0); assert.equal(zero.ratio, 0); assert.equal(zero.hint, '');
+    const bottom = selectionAtRatio(c, 0, 500);
+    assert.equal(minimumBet(c), 20); assert.equal(ratioForAmount(c, 20), 0);
+    assert.equal(bottom.amount, 20); assert.equal(bottom.ratio, 0); assert.equal(bottom.hint, hint);
+    assert.ok(stagedAction(c, bottom.amount));
   }
+  const short = context(200, 12);
+  Object.assign(short.legal, { callAmount: 12, canRaise: false });
+  for (const ratio of [0, .25, .5, 1]) assert.equal(selectionAtRatio(short, ratio, 500).amount, 12);
+  const sameAsPot = context(20, 1000);
+  assert.equal(ratioForAmount(sameAsPot, 20), 0);
+  assert.equal(amountAtRatio(sameAsPot, 0), 20); assert.equal(amountAtRatio(sameAsPot, 1), 1000);
 });
 
-test('a thirty-chip pot only locks to a ten-chip call in the bottom third of its zero-to-pot segment', () => {
+test('a thirty-chip pot rescales its lower segment from the ten-chip minimum to thirty', () => {
   const c = context(30, 1945);
   c.player.bet = 10;
   Object.assign(c.legal, { toCall: 10, callAmount: 10, minTo: 40, maxTo: 1955 });
-  assert.equal(ratioForAmount(c, 10), ratioForAmount(c, 30) / 3);
+  assert.equal(ratioForAmount(c, 10), 0); assert.equal(ratioForAmount(c, 20), .25); assert.equal(ratioForAmount(c, 30), .5);
   for (const raw of [0, 5, 9, 10, 11, 16, 24, 28, 29, 30]) {
     const ratio = ratioForAmount(c, raw), selected = selectionAtRatio(c, ratio, 900);
-    assert.equal(selected.amount, raw === 0 ? 0 : Math.max(10, raw), `drag scale at ${raw}`);
-    assert.equal(selected.hint, raw > 0 && raw <= 10 ? '跟注至少 10' : raw > 10 && raw <= 30 ? '加注至少 30' : '', `limit hint at ${raw}`);
+    assert.equal(selected.amount, Math.max(10, raw), `drag scale at ${raw}`);
+    assert.equal(selected.hint, raw <= 10 ? '跟注至少 10' : raw <= 30 ? '加注至少 30' : '', `limit hint at ${raw}`);
     assert.ok(Math.abs(selected.ratio - ratio) < 1e-12);
   }
   const sent = [], states = [], start = { x: 300, y: 700 };
@@ -137,7 +138,9 @@ test('call and minimum-raise nodes use the same eight-pixel attraction as pot no
   for (const travel of [180, 500, 900]) {
     for (const stop of limits) {
       for (const offset of [-8.1, -7.9, 0, 7.9, 8.1]) {
-        const ratio = stop.ratio + offset / travel, selected = selectionAtRatio(c, ratio, travel);
+        const ratio = stop.ratio + offset / travel;
+        if (ratio < 0 || ratio > 1) continue;
+        const selected = selectionAtRatio(c, ratio, travel);
         if (Math.abs(offset) < 8) {
           assert.equal(selected.amount, stop.amount); assert.equal(selected.ratio, stop.ratio);
           assert.equal(selected.hint, stop.label); assert.equal(selected.preset, stop.label);
@@ -147,7 +150,7 @@ test('call and minimum-raise nodes use the same eight-pixel attraction as pot no
       }
     }
   }
-  assert.equal(selectionAtRatio(c, 0, 500).amount, 0);
+  assert.equal(selectionAtRatio(c, 0, 500).amount, 10);
   assert.equal(selectionAtRatio(c, 1, 500).amount, 1945);
 });
 
@@ -192,8 +195,8 @@ test('the pot uses the midpoint only when at most half the available stack', () 
   for (const pot of [200, 500]) assert.equal(ratioForAmount(context(pot), pot), .5);
   for (const pot of [501, 600, 800, 1000]) {
     const c = context(pot);
-    assert.equal(ratioForAmount(c, pot), pot / 1000);
-    assert.equal(amountAtRatio(c, .5), 500);
+    assert.equal(ratioForAmount(c, pot), (pot - 20) / (1000 - 20));
+    assert.equal(amountAtRatio(c, .5), 510);
     assert.equal(amountAtRatio(c, 1), 1000);
   }
 });
@@ -224,7 +227,7 @@ test('short stacks, odd pots and minimum raises keep presets reachable and relea
   for (const c of [context(), short, smallPot, context(501), context(0), context(1000, 1000)]) {
     for (let i = 0; i <= 500; i++) {
       const preview = selectionAtRatio(c, i / 500, 450).amount;
-      assert.ok(Number.isSafeInteger(preview) && preview >= 0 && preview <= c.player.chips);
+      assert.ok(Number.isSafeInteger(preview) && preview >= minimumBet(c) && preview <= c.player.chips);
       const amount = amountAtRatio(c, ratioForAmount(c, preview));
       assert.ok(amount === 0 || stagedAction(c, amount), `pot=${c.pot}, stack=${c.player.chips}, amount=${amount}`);
     }
@@ -281,14 +284,15 @@ test('the fixed UI track appears only during a chip-bank hold and hides on relea
   assert.equal(slider.root.hidden, false);
   assert.equal(slider.bounds.top, 106); assert.equal(slider.root.parentElement, host);
   const y = ratio => start.y - (ratio - actions.gesture.initialRatio) * slider.bounds.travel;
-  actions.move({ x: -1000, y: y(.025) }, 380);
+  actions.move({ x: -1000, y: y(0) }, 380);
   assert.equal(slider.value.textContent, '20'); assert.equal(slider.preset.textContent, '跟注至少 20');
-  assert.ok(Math.abs(translatedY(slider.thumb) + slider.bounds.travel * .025) < 1e-8, 'legal clamping cannot move the thumb back to the minimum');
-  assert.ok(slider.stops.every(stop => !stop.className?.includes('snapped')));
-  actions.move({ x: -1000, y: y(.075) }, 390);
+  assert.equal(translatedY(slider.thumb), 0); assert.equal(slider.root.attributes['aria-valuemin'], '20');
+  assert.ok(slider.stops[3].className.includes('snapped'));
+  actions.move({ x: -1000, y: y(ratioForAmount(c, 30)) }, 390);
   assert.equal(slider.value.textContent, '30'); assert.equal(slider.preset.textContent, '加注至少 40');
   assert.equal(slider.stops[3].hidden, false); assert.equal(slider.stops[4].hidden, false);
-  assert.equal(slider.stops[3].style.bottom, '5%'); assert.equal(slider.stops[4].style.bottom, '10%');
+  assert.equal(slider.stops[3].style.bottom, '0%');
+  assert.ok(Math.abs(parseFloat(slider.stops[4].style.bottom) - ratioForAmount(c, 40) * 100) < 1e-8);
   actions.move({ x: -1000, y: y(.5) }, 400);
   assert.equal(slider.value.textContent, '200'); assert.equal(slider.preset.textContent, '满池'); assert.equal(actions.pending, 0);
   const middleLabel = translatedY(slider.label);
