@@ -173,7 +173,7 @@ test('game and editor initialize every saved anchor before the first frame, with
       assert.equal(scene.pixelRatio, highRatio * .9);
       assert.equal(scene.cards.factory.front(12), cardMaterial);
       assert.equal(cardMaterial.map, cardMap);
-      assert.equal(cardMap.image.width, 512); assert.equal(cardMap.image.height, 744);
+      assert.equal(cardMap.image.width, 384); assert.equal(cardMap.image.height, 558);
       assert.equal(cardMap.anisotropy, 4, 'medium retains card filtering for oblique table views');
       assert.equal(scene.keyLight.shadow.mapSize.x, 512);
       scene.cards.handDrag = .1; before = shadows;

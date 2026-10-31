@@ -1,11 +1,9 @@
 import * as THREE from '/vendor/three.js';
 import { BoardPresentation } from './board-presentation.js';
 import { DEAL_TIMING } from '../shared/deal-timing.js';
-import { NUMBER_FONT } from './typography.js';
+import { cardArtImage } from './card-artwork.js';
 
 const WIDTH = .5, HEIGHT = .73, THICKNESS = .014;
-const SUITS = ['♣', '♦', '♥', '♠'];
-const RANKS = '23456789TJQKA';
 const DECK = new THREE.Vector3(-1.65, 1.80, -.25);
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
@@ -21,75 +19,10 @@ function roundedShape(width, height, radius) {
     .quadraticCurveTo(x, y + height, x, y + height - radius).lineTo(x, y + radius)
     .quadraticCurveTo(x, y, x + radius, y);
 }
-function canvasMap(paint) {
-  const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 744;
-  const ctx = canvas.getContext('2d'); paint(ctx);
-  const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 4;
+function cardMap(card) {
+  const map = new THREE.Texture(cardArtImage(card));
+  map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; map.needsUpdate = true;
   return map;
-}
-function drawBack(ctx) {
-  ctx.fillStyle = '#efe3c9'; ctx.fillRect(0, 0, 512, 744);
-  ctx.fillStyle = '#473a2c'; ctx.fillRect(22, 22, 468, 700);
-  ctx.strokeStyle = '#c5a76b'; ctx.lineWidth = 3;
-  ctx.strokeRect(35, 35, 442, 674); ctx.strokeRect(46, 46, 420, 652);
-  ctx.save(); ctx.beginPath(); ctx.rect(50, 50, 412, 644); ctx.clip();
-  ctx.strokeStyle = '#9b805233'; ctx.lineWidth = 2;
-  for (let x = -744; x < 1256; x += 24) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 744, 744); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - 744, 744); ctx.stroke();
-  }
-  ctx.restore();
-  ctx.fillStyle = '#302a20'; ctx.beginPath(); ctx.ellipse(256, 372, 124, 155, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#bda16a'; ctx.lineWidth = 5; ctx.stroke();
-  ctx.textAlign = 'center'; ctx.fillStyle = '#d6bc84'; ctx.font = '172px Georgia, serif'; ctx.fillText('♠', 256, 407);
-  ctx.font = 'bold 25px Georgia, serif'; ctx.fillText('RevolverPoker', 256, 466);
-}
-function drawFront(ctx, card) {
-  const suit = SUITS[Math.floor(card / 13)], rank = RANKS[card % 13].replace('T', '10');
-  const ink = card >= 13 && card < 39 ? '#922e2b' : '#202b27';
-  const paper = ctx.createLinearGradient(0, 0, 512, 744); paper.addColorStop(0, '#f5ead4'); paper.addColorStop(1, '#e2d4b9');
-  ctx.fillStyle = paper; ctx.fillRect(0, 0, 512, 744);
-  // Subtle fixed paper fibres sit beneath the ink, so symbols stay crisp.
-  ctx.fillStyle = '#71573509';
-  for (let i = 0; i < 1600; i++) ctx.fillRect((i * 137.17) % 512, (i * 79.37) % 744, 2, i % 3 ? 2 : 4);
-  ctx.strokeStyle = '#bba77a66'; ctx.lineWidth = 2; ctx.strokeRect(17, 17, 478, 710);
-  const corner = () => {
-    ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.font = `bold ${rank === '10' ? 112 : 130}px ${NUMBER_FONT}`;
-    ctx.fillText(rank, 78, 137); ctx.font = '87px Georgia, serif'; ctx.fillText(suit, 78, 216);
-  };
-  corner(); ctx.save(); ctx.translate(512, 744); ctx.rotate(Math.PI); corner(); ctx.restore();
-  ctx.fillStyle = ink; ctx.textAlign = 'center';
-  const pip = (x, y, invert = false, size = 86) => {
-    ctx.save(); ctx.translate(256 + x * 240, 372 + y * 400); if (invert) ctx.rotate(Math.PI);
-    ctx.font = `${size}px Georgia, serif`; ctx.textBaseline = 'middle'; ctx.fillText(suit, 0, 0); ctx.restore();
-  };
-  const n = card % 13 + 2;
-  if (n === 14) pip(0, 0, false, 202);
-  else if (n >= 11) {
-    ctx.strokeStyle = ink; ctx.lineWidth = 4; ctx.strokeRect(150, 220, 212, 304);
-    ctx.save(); ctx.translate(256, 372);
-    for (let side = 0; side < 2; side++) {
-      ctx.save(); if (side) ctx.rotate(Math.PI);
-      ctx.fillStyle = '#ba985a'; ctx.beginPath(); ctx.moveTo(-64, -38); ctx.lineTo(-83, -109); ctx.lineTo(-32, -82); ctx.lineTo(0, -129); ctx.lineTo(32, -82); ctx.lineTo(83, -109); ctx.lineTo(64, -38); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = ink; ctx.font = `bold 110px ${NUMBER_FONT}`; ctx.fillText(rank, 0, 29);
-      ctx.restore();
-    }
-    ctx.restore();
-    pip(0, .35, false, 53); pip(0, -.35, true, 53);
-  } else {
-    const patterns = {
-      2: [[0, -.4], [0, .4]], 3: [[0, -.4], [0, 0], [0, .4]],
-      4: [[-.3, -.4], [.3, -.4], [-.3, .4], [.3, .4]],
-      5: [[-.3, -.4], [.3, -.4], [0, 0], [-.3, .4], [.3, .4]],
-      6: [[-.3, -.4], [.3, -.4], [-.3, 0], [.3, 0], [-.3, .4], [.3, .4]],
-      7: [[-.3, -.4], [.3, -.4], [0, -.2], [-.3, 0], [.3, 0], [-.3, .4], [.3, .4]],
-      8: [[-.3, -.4], [.3, -.4], [0, -.2], [-.3, 0], [.3, 0], [0, .2], [-.3, .4], [.3, .4]],
-      9: [[-.3, -.42], [.3, -.42], [-.3, -.14], [.3, -.14], [0, 0], [-.3, .14], [.3, .14], [-.3, .42], [.3, .42]],
-      10: [[-.3, -.42], [.3, -.42], [0, -.28], [-.3, -.14], [.3, -.14], [-.3, .14], [.3, .14], [0, .28], [-.3, .42], [.3, .42]]
-    };
-    for (const [x, y] of patterns[n]) pip(x, y, y > 0, n >= 8 ? 73 : 86);
-  }
 }
 
 class CardFactory {
@@ -101,7 +34,7 @@ class CardFactory {
     const pos = this.faceGeometry.attributes.position, uv = this.faceGeometry.attributes.uv;
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / WIDTH + .5, pos.getY(i) / HEIGHT + .5);
     this.paper = new THREE.MeshStandardMaterial({ color: 0xd6c9ae, roughness: 1 });
-    this.back = new THREE.MeshStandardMaterial({ map: canvasMap(drawBack), roughness: .73, metalness: 0 });
+    this.back = new THREE.MeshStandardMaterial({ map: cardMap(null), roughness: .73, metalness: 0 });
     this.fronts = new Map(); this.flatFronts = new Map(); this.lowQuality = false;
   }
   get backMaterial() {
@@ -111,7 +44,7 @@ class CardFactory {
   front(card) {
     if (card === null) return this.backMaterial;
     // Matte paper still responds to warm saloon lights, with less highlight washout.
-    if (!this.fronts.has(card)) this.fronts.set(card, new THREE.MeshPhysicalMaterial({ color: 0x8a8a8a, map: canvasMap(ctx => drawFront(ctx, card)), roughness: 1, metalness: 0, specularIntensity: .12 }));
+    if (!this.fronts.has(card)) this.fronts.set(card, new THREE.MeshPhysicalMaterial({ color: 0x8a8a8a, map: cardMap(card), roughness: 1, metalness: 0, specularIntensity: .12 }));
     const lit = this.fronts.get(card);
     if (!this.lowQuality) return lit;
     // Low quality has no shadows; direct lamps can wash out the printed ink.

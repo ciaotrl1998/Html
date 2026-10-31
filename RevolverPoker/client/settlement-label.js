@@ -1,5 +1,5 @@
 import { evaluate, handName } from '../shared/poker.js';
-import { NUMBER_FONT } from './typography.js';
+import { cardDisplayImage, CARD_DISPLAY_TILE } from './card-artwork.js';
 
 const validCard = card => Number.isInteger(card) && card >= 0 && card < 52;
 export const WIN_COLOR = '#cba66b'; // Same yellow as the RevolverPoker mark.
@@ -36,15 +36,12 @@ export function paintSettlementCard(ctx, card, x, y, gold = false, { scale = 1, 
   ctx.shadowColor = gold && glow ? WIN_COLOR : 'transparent'; ctx.shadowBlur = gold && glow ? 20 : 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.beginPath(); ctx.roundRect(x, y, width, height, 10 * scale); ctx.fill(); ctx.stroke();
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  if (card === null) {
-    ctx.strokeStyle = '#b79a6388'; ctx.lineWidth = 2 * scale; ctx.strokeRect(x + 10 * scale, y + 10 * scale, width - 20 * scale, height - 20 * scale);
-    ctx.fillStyle = '#d8be86'; ctx.font = `${72 * scale}px Georgia, serif`; ctx.fillText('♠', x + width / 2, y + 111 * scale);
-  } else {
-    const rank = '23456789TJQKA'[card % 13].replace('T', '10'), suit = ['♣', '♦', '♥', '♠'][Math.floor(card / 13)];
-    ctx.fillStyle = card >= 13 && card < 39 ? '#9c3034' : '#171a18';
-    ctx.font = `bold ${(rank === '10' ? 68 : 83) * scale}px ${NUMBER_FONT}`; ctx.fillText(rank, x + width / 2, y + 81 * scale);
-    ctx.font = `${65 * scale}px Georgia, serif`; ctx.fillText(suit, x + width / 2, y + 149 * scale);
+  const sheet = cardDisplayImage();
+  if (sheet) {
+    const tile = card === null ? 52 : card;
+    ctx.drawImage(sheet, tile % CARD_DISPLAY_TILE.columns * CARD_DISPLAY_TILE.width,
+      Math.floor(tile / CARD_DISPLAY_TILE.columns) * CARD_DISPLAY_TILE.height,
+      CARD_DISPLAY_TILE.width, CARD_DISPLAY_TILE.height, x, y, width, height);
   }
 }
 

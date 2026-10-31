@@ -5,6 +5,7 @@ import { SaloonScene } from './scene.js';
 import { EMPTY_LAYOUT, validateLayout } from '/shared/scene-layout.js';
 import { EditorCameraPreview } from './editor-camera.js';
 import { copyPlayerCamera } from './player-camera.js';
+import { loadCardArtwork } from './card-artwork.js';
 
 const $ = id => document.getElementById(id);
 if (location.port === '3090') document.querySelector('.header-actions a').href = 'http://localhost:3088/';
@@ -142,6 +143,7 @@ function filterObjects() {
 }
 
 try {
+  await loadCardArtwork();
   scene = new SaloonScene($('editor-scene'), { editor: true }); layout = scene.layout;
   // Static, fully occupied sample: editing never joins or changes a real poker room.
   const names = ['自己', '沃尔特', '艾达', '亨利', '玛吉', '查理', '比利', '罗斯'];

@@ -171,7 +171,7 @@ test('saved game layout allows actual ray hits on own chip bank, staged chips, h
     game.betView.stage.position.x += .9; world.updateMatrixWorld(true);
     assert.ok(game.betView.hitArea.getWorldPosition(new THREE.Vector3()).distanceTo(center) < 1e-8);
     assert.equal(targetAt(circlePoint)?.chipRole, 'staged', 'the touch circle stays put when the chip model moves');
-    assert.notEqual(hit(game.betView.stageCoins.children[0])?.chipRole, 'staged', 'touching the moved model outside the circle is not a staging hit');
+    assert.equal(hit(game.betView.stageCoins.children[0])?.chipRole, 'staged', 'the chip model remains draggable outside the fixed circle');
     const blocker = new THREE.Mesh(new THREE.BoxGeometry(.22, .22, .22), new THREE.MeshBasicMaterial());
     blocker.position.copy(circlePoint).lerp(game.camera.position, .15); world.add(blocker);
     assert.notEqual(targetAt(circlePoint)?.chipRole, 'staged', 'foreground furniture still occludes the fixed circle');

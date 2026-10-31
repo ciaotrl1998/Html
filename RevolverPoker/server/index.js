@@ -12,7 +12,7 @@ import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png' };
 const cleanName = (value, fallback) => String(value || '').replace(/[\x00-\x1f<>]/g, '').trim().slice(0, 20) || fallback;
 const fail = message => { throw new Error(message); };
 const send = (ws, data) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); };
@@ -46,7 +46,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       if (relative === 'vendor/three.core.js' || relative === 'vendor/three.core.min.js') relative = 'client/vendor/three.core.min.js';
       if (relative === 'vendor/OrbitControls.js') relative = 'node_modules/three/examples/jsm/controls/OrbitControls.js';
       if (relative === 'vendor/TransformControls.js') relative = 'node_modules/three/examples/jsm/controls/TransformControls.js';
-      const allowed = relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
+      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
       const full = path.resolve(ROOT, relative);
       if (!allowed || !full.startsWith(ROOT) || relative.includes('..')) { res.writeHead(404); res.end('Not found'); return; }
       let file;

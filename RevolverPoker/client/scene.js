@@ -444,7 +444,7 @@ export class SaloonScene {
     this.scene.updateMatrixWorld(true); this.raycaster.setFromCamera(this.pointer, this.camera);
     // Include furniture as occluders: chairs cannot be clicked through the table or a wall.
     const hit = this.raycaster.intersectObjects(this.scene.children, true).find(({ object }) => {
-      for (let o = object; o; o = o.parent) if (!o.visible || o.userData.chipRole === 'staged') return false;
+      for (let o = object; o; o = o.parent) if (!o.visible || (object.isSprite && o.userData.chipRole === 'staged')) return false;
       return true;
     });
     let target = null;

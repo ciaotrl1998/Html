@@ -37,4 +37,10 @@ test('a copied mobile game serves its complete Three.js runtime without node_mod
   for (const url of ['/', '/client/boot.js', '/client/app.js', '/client/scene.js', '/client/frame-clock.js', '/client/render-budget.js', '/client/mesh-batching.js', '/client/chip-slider.js', '/client/bet-sizing.js', '/client/vendor/BufferGeometryUtils.js', '/client/style.css', '/vendor/three.core.js']) {
     assert.equal((await fetch(base + url)).status, 200, url);
   }
+  for (const name of [...Array.from({ length: 52 }, (_, card) => String(card).padStart(2, '0')), 'back', 'display']) {
+    const response = await fetch(`${base}/client/assets/cards/${name}.png`);
+    assert.equal(response.status, 200, name); assert.equal(response.headers.get('content-type'), 'image/png');
+    const bytes = Buffer.from(await response.arrayBuffer()); assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  }
+  assert.equal((await fetch(`${base}/client/card-artwork.js`)).status, 200);
 });

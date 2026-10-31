@@ -47,7 +47,7 @@ test('low-quality printed cards bypass lights and tone mapping, retain full text
     assert.equal(card.front.material.isMeshBasicMaterial, true);
     assert.equal(card.front.material.toneMapped, false); assert.equal(card.front.material.fog, false);
     assert.equal(card.front.material.map, maps[index]);
-    assert.equal(maps[index].image.width, 512); assert.equal(maps[index].image.height, 744);
+    assert.equal(maps[index].image.width, 384); assert.equal(maps[index].image.height, 558);
     assert.equal(maps[index].anisotropy, 4);
   });
   assert.equal(cards.hole[0].animation, motion); assert.equal(cards.peeking, true);

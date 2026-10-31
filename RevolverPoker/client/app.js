@@ -3,6 +3,7 @@ import { tableTurnKey } from './table-actions.js';
 import { renderWinnerResult } from './winner-display.js';
 import { PlayerRoster } from './player-roster.js';
 import { normalizeQuality } from './render-budget.js';
+import { loadCardArtwork, cardArtURL } from './card-artwork.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -85,9 +86,8 @@ setInterval(() => { if (connected) send('ping'); }, 20000);
 window.addEventListener('online', () => { if (ws?.readyState === WebSocket.CLOSED && !superseded) connect(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && connected && room) send('sync'); });
 function cardHTML(card) {
-  if (card === null) return '<span class="card back" aria-label="未公开底牌"></span>';
-  const suit = Math.floor(card / 13), rank = ranks[card % 13].replace('T', '10');
-  return `<span class="card ${suit === 1 || suit === 2 ? 'red' : ''}" role="img" aria-label="${suits[suit]}${rank}"><span>${rank}</span><span class="corner-suit">${suits[suit]}</span><span class="center-suit">${suits[suit]}</span></span>`;
+  const label = card === null ? '未公开底牌' : `${suits[Math.floor(card / 13)]}${ranks[card % 13].replace('T', '10')}`;
+  return `<span class="card bitmap"><img src="${cardArtURL(card)}" alt="${label}" draggable="false"></span>`;
 }
 function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); }
 function returnToMenu() {
@@ -301,8 +301,9 @@ setInterval(() => {
 window.addEventListener('resize', () => { $('game').classList.toggle('table-ui-small', $('game').clientWidth < 380); if (!scene) positionFallbackSeats(); });
 const invite = new URLSearchParams(location.search).get('room');
 if (invite && /^\d{6}$/.test(invite)) { $('join-form').hidden = false; $('room-code').value = invite; }
-connect();
 try {
+  await loadCardArtwork();
+  connect();
   const { SaloonScene } = await import('/client/scene.js');
   scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
