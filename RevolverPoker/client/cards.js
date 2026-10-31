@@ -102,22 +102,31 @@ class CardFactory {
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / WIDTH + .5, pos.getY(i) / HEIGHT + .5);
     this.paper = new THREE.MeshStandardMaterial({ color: 0xd6c9ae, roughness: 1 });
     this.back = new THREE.MeshStandardMaterial({ map: canvasMap(drawBack), roughness: .73, metalness: 0 });
-    this.fronts = new Map();
+    this.fronts = new Map(); this.flatFronts = new Map(); this.lowQuality = false;
+  }
+  get backMaterial() {
+    if (!this.lowQuality) return this.back;
+    return this.flatBack ||= new THREE.MeshBasicMaterial({ map: this.back.map, toneMapped: false, fog: false });
   }
   front(card) {
-    if (card === null) return this.back;
+    if (card === null) return this.backMaterial;
     // Matte paper still responds to warm saloon lights, with less highlight washout.
     if (!this.fronts.has(card)) this.fronts.set(card, new THREE.MeshPhysicalMaterial({ color: 0x8a8a8a, map: canvasMap(ctx => drawFront(ctx, card)), roughness: 1, metalness: 0, specularIntensity: .12 }));
-    return this.fronts.get(card);
+    const lit = this.fronts.get(card);
+    if (!this.lowQuality) return lit;
+    // Low quality has no shadows; direct lamps can wash out the printed ink.
+    // Reuse the full-size artwork without lighting or exposure amplification.
+    if (!this.flatFronts.has(card)) this.flatFronts.set(card, new THREE.MeshBasicMaterial({ map: lit.map, color: 0xe6ddc6, toneMapped: false, fog: false }));
+    return this.flatFronts.get(card);
   }
   create(role) {
     const root = new THREE.Group(); root.userData.cardRole = role;
     const body = new THREE.Mesh(this.bodyGeometry, this.paper); body.castShadow = true; body.receiveShadow = true;
-    const front = new THREE.Mesh(this.faceGeometry, this.back); front.position.z = THICKNESS / 2 + .003; front.receiveShadow = true;
-    const back = new THREE.Mesh(this.faceGeometry, this.back); back.position.z = -THICKNESS / 2 - .003; back.rotation.y = Math.PI;
+    const front = new THREE.Mesh(this.faceGeometry, this.backMaterial); front.position.z = THICKNESS / 2 + .003; front.receiveShadow = true;
+    const back = new THREE.Mesh(this.faceGeometry, this.backMaterial); back.position.z = -THICKNESS / 2 - .003; back.rotation.y = Math.PI;
     const display = new THREE.Group(); display.matrixAutoUpdate = false;
     display.add(body, front, back); root.add(display); root.visible = false;
-    return { root, display, front, identity: '', animation: null };
+    return { root, display, front, back, value: null, identity: '', animation: null };
   }
 }
 function rotation(x, y = 0, z = 0) { return new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)); }
@@ -169,10 +178,20 @@ export class TableCards {
     const deckCard = this.factory.create('deck'); deckCard.root.position.set(-1.65, 1.785, -.25);
     deckCard.root.userData.layout = { id: 'deck-top', label: '牌堆 · 顶牌', category: '筹码与扑克' };
     deckCard.root.quaternion.copy(rotation(Math.PI / 2)); deckCard.root.visible = true; scene.add(deckCard.root);
+    this.deckCard = deckCard;
+  }
+  setQuality(quality) {
+    const low = quality === 'low';
+    if (this.factory.lowQuality === low) return;
+    this.factory.lowQuality = low;
+    for (const card of [...this.all, this.deckCard]) {
+      card.front.material = this.factory.front(card.value);
+      card.back.material = this.factory.backMaterial;
+    }
   }
   place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true, dealing = false } = {}) {
     const changed = card.identity !== identity;
-    card.front.material = this.factory.front(value); card.root.scale.setScalar(scale);
+    card.value = value; card.front.material = this.factory.front(value); card.root.scale.setScalar(scale);
     if (changed) {
       card.identity = identity;
       if (animate) {

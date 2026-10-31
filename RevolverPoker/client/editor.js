@@ -167,7 +167,7 @@ try {
   box = new THREE.Box3(); helper = new THREE.Box3Helper(box, 0xd8bd87); helper.visible = false; helper.material.depthTest = false; helper.material.transparent = true; helper.material.opacity = .65; scene.scene.add(helper);
   grid = new THREE.GridHelper(26, 52, 0x7b6542, 0x3a3832); grid.position.y = .015; grid.material.transparent = true; grid.material.opacity = .45; scene.scene.add(grid);
   cameraPreview = new EditorCameraPreview(scene, $('camera-preview'), $('camera-preview-frame'));
-  cameraPreview.editorHelpers = [transform.getHelper(), helper, grid];
+  cameraPreview.editorHelpers = [transform.getHelper(), helper, grid, scene.betView.hitOutline];
   scene.beforeRender = () => {
     if (viewCamera()) copyPlayerCamera(scene.camera, viewCamera()); else orbit.update();
     if (selected) box.setFromObject(selected.node);
@@ -264,7 +264,7 @@ try {
     const rect = canvas.getBoundingClientRect(); scene.scene.updateMatrixWorld(true);
     const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2), scene.camera);
     const hit = ray.intersectObjects([...layout.entries.values()].map(entry => entry.node), true).find(({ object }) => {
-      if (!object.isMesh && !object.isSprite) return false;
+      if (!object.isMesh && !object.isSprite && !object.userData.interactionArea) return false;
       for (let node = object; node; node = node.parent) if (!node.visible) return false;
       return true;
     });

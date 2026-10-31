@@ -7,6 +7,18 @@ import { amountAtRatio, ratioForAmount, potStops, sliderStops, minimumBet, selec
 const translatedY = element => Number(element.style.transform.match(/,\s*([-\d.]+)px/)[1]);
 const context = (pot = 200, chips = 1000) => ({ pot, currentBet: 20, player: { id: 'me', seat: 0, bet: 0, chips }, legal: { toCall: 20, callAmount: 20, canRaise: true, minTo: 40, maxTo: chips, canAllIn: true } });
 
+test('shortening the slider lowers only its top and preserves the bottom on tall phones and short windows', () => {
+  for (const [height, header] of [[884, 140], [1500, 210], [600, 120], [300, 190]]) {
+    const bounds = chipSliderBounds(height, header);
+    const oldBottom = Math.max(80, Math.min(height - 70, height * .68));
+    const oldTop = Math.max(10, Math.min(header + 10, Math.max(10, oldBottom - 60)));
+    assert.equal(bounds.bottom, oldBottom);
+    assert.ok(bounds.top >= oldTop);
+    if (oldBottom - header - 10 >= 60) assert.ok(bounds.top >= header + 10);
+    assert.ok(Math.abs(bounds.travel - Math.max(60, (oldBottom - oldTop) * .8)) < 1e-8);
+  }
+});
+
 test('the lower range retains its linear pot scale and exact quarter/half/pot magnets', () => {
   const c = context();
   for (const [ratio, amount] of [[0, 20], [1 / 12, 50], [2 / 9, 100], [13 / 36, 150], [.5, 200], [1, 1000]]) {
@@ -282,7 +294,8 @@ test('the fixed UI track appears only during a chip-bank hold and hides on relea
   assert.equal(actions.begin({ chipRole: 'slider', ratio: .5 }, start, 0), false, 'the UI cannot initiate an independent wager gesture');
   actions.begin({ chipRole: 'bank' }, start, 0);
   assert.equal(slider.root.hidden, false);
-  assert.equal(slider.bounds.top, 106); assert.equal(slider.root.parentElement, host);
+  assert.ok(Math.abs(slider.bounds.top - (106 + (844 * .68 - 106) * .2)) < 1e-8);
+  assert.equal(slider.bounds.bottom, 844 * .68); assert.equal(slider.root.parentElement, host);
   const y = ratio => start.y - (ratio - actions.gesture.initialRatio) * slider.bounds.travel;
   actions.move({ x: -1000, y: y(0) }, 380);
   assert.equal(slider.value.textContent, '20'); assert.equal(slider.preset.textContent, '跟注至少 20');
@@ -304,7 +317,8 @@ test('the fixed UI track appears only during a chip-bank hold and hides on relea
   actions.begin({ chipRole: 'bank' }, start, 600); actions.tick(1000);
   assert.equal(slider.root.hidden, false); actions.cancel();
   assert.equal(slider.root.hidden, true); assert.equal(actions.pending, 450);
-  headerBottom += 40; slider.layout(); assert.equal(slider.bounds.top, 146, 'roster height determines the track start plus 10px');
+  headerBottom += 40; slider.layout();
+  assert.ok(Math.abs(slider.bounds.top - (146 + (844 * .68 - 146) * .2)) < 1e-8, 'the shortened top continues to adapt below the roster');
   rect.height = 600; slider.layout(); assert.ok(slider.bounds.bottom <= rect.height - 70);
   assert.deepEqual(slider.bounds, chipSliderBounds(600, 136));
   room.hand.actor = 1; actions.sync(room, 'me'); assert.equal(slider.root.hidden, true);

@@ -3,7 +3,8 @@ const chipNumber = new Intl.NumberFormat('zh-CN');
 
 export function chipSliderBounds(height, headerBottom = height * .12) {
   const bottom = Math.max(80, Math.min(height - 70, height * .68));
-  const top = clamp(headerBottom + 10, 10, Math.max(10, bottom - 60));
+  const start = clamp(headerBottom + 10, 10, Math.max(10, bottom - 60));
+  const top = Math.min(bottom - 60, start + (bottom - start) * .2);
   return { top, bottom, travel: Math.max(1, bottom - top) };
 }
 

@@ -163,6 +163,8 @@ test('game and editor initialize every saved anchor before the first frame, with
       assert.equal(shadows, before, 'holding the UI slider reuses shadows');
       scene.tableActions.gesture = null; scene.tableActions.context = null;
       scene.setQuality(true); before = shadows;
+      assert.equal(scene.cards.factory.lowQuality, true, 'the scene quality setting also switches printed card materials');
+      assert.equal(scene.cards.deckCard.back.material.isMeshBasicMaterial, true);
       for (let i = 0; i < 60; i++) { scene.tick(24000 + i * 1000 / 60); renderTicks++; }
       assert.equal(shadows, before, 'low quality performs no shadow passes');
       scene.setQuality('high'); const highRatio = scene.pixelRatio;

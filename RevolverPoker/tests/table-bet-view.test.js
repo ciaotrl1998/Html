@@ -161,6 +161,21 @@ test('saved game layout allows actual ray hits on own chip bank, staged chips, h
     };
     assert.ok(game.betView.reserveCoins.children.some(coin => hit(coin)?.chipRole === 'bank'), 'own bankroll must be reachable through raycasting');
     assert.equal(hit(game.betView.stageCoins.children[0])?.chipRole, 'staged');
+    const circlePoint = game.betView.hitArea.localToWorld(new THREE.Vector3(0, 0, -.21));
+    const targetAt = point => {
+      const p = point.clone().project(game.camera);
+      return game.hitTarget((p.x + 1) * rect.width / 2, (1 - p.y) * rect.height / 2);
+    };
+    assert.equal(targetAt(circlePoint)?.chipRole, 'staged', 'blank felt inside the fixed circle starts a chip drag');
+    const center = game.betView.hitArea.getWorldPosition(new THREE.Vector3());
+    game.betView.stage.position.x += .9; world.updateMatrixWorld(true);
+    assert.ok(game.betView.hitArea.getWorldPosition(new THREE.Vector3()).distanceTo(center) < 1e-8);
+    assert.equal(targetAt(circlePoint)?.chipRole, 'staged', 'the touch circle stays put when the chip model moves');
+    assert.notEqual(hit(game.betView.stageCoins.children[0])?.chipRole, 'staged', 'touching the moved model outside the circle is not a staging hit');
+    const blocker = new THREE.Mesh(new THREE.BoxGeometry(.22, .22, .22), new THREE.MeshBasicMaterial());
+    blocker.position.copy(circlePoint).lerp(game.camera.position, .15); world.add(blocker);
+    assert.notEqual(targetAt(circlePoint)?.chipRole, 'staged', 'foreground furniture still occludes the fixed circle');
+    world.remove(blocker); blocker.geometry.dispose(); blocker.material.dispose();
     assert.ok(game.cards.hole.some(card => hit(card.root)?.cardRole === 'hand'));
     const empty = new THREE.Vector3(-.8, 1.573, 2.1).project(game.camera);
     assert.equal(game.hitTarget((empty.x + 1) * rect.width / 2, (1 - empty.y) * rect.height / 2)?.tableSurface, true);

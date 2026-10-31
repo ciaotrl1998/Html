@@ -3,6 +3,7 @@ import { ChipSlider } from './chip-slider.js';
 import { NUMBER_FONT } from './typography.js';
 
 const VALUES = [1000000, 100000, 10000, 1000, 100, 25, 5, 1];
+export const STAGED_TOUCH_RADIUS = .25;
 export function chipParts(amount) {
   const parts = [];
   for (const value of VALUES) { const count = Math.floor(amount / value); amount %= value; if (count) parts.push({ value, count }); }
@@ -59,12 +60,44 @@ export class TableBetView {
     this.home = new THREE.Vector3(); this.forward = new THREE.Vector3(0, 0, -1); this.transfers = [];
     this.anchors();
     this.stageEntry = saloon.layout?.register(this.stageAnchor, 'staged-chips', '自己 · 预下注筹码', '筹码与扑克');
+    this.hitArea = new THREE.Group(); this.hitArea.name = '预下注筹码 · 触碰范围';
+    this.hitArea.userData.interactionArea = 'staged'; this.stageAnchor.add(this.hitArea);
+    const points = Array.from({ length: 97 }, (_, i) => {
+      const angle = i / 96 * Math.PI * 2;
+      return new THREE.Vector3(Math.cos(angle) * STAGED_TOUCH_RADIUS, .008, Math.sin(angle) * STAGED_TOUCH_RADIUS);
+    });
+    this.hitOutline = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineDashedMaterial({ color: 0xe6c27c, dashSize: .055, gapSize: .035, depthTest: false, depthWrite: false, toneMapped: false }));
+    this.hitOutline.computeLineDistances(); this.hitOutline.renderOrder = 1000;
+    this.hitOutline.visible = !!saloon.editor; this.hitArea.add(this.hitOutline);
+    // The outline is an editor guide. Picking uses the exact filled circle,
+    // independent of line thickness, chip count, labels or the moving chip mesh.
+    this.hitOutline.raycast = () => {};
+    this.hitArea.raycast = (raycaster, intersections) => {
+      if (!saloon.editor) return;
+      const hit = this.areaIntersection(raycaster.ray);
+      if (hit && hit.distance >= raycaster.near && hit.distance <= raycaster.far) intersections.push({ ...hit, object: this.hitArea });
+    };
+    this.hitAreaEntry = saloon.layout?.register(this.hitArea, 'staged-chip-hit-area', '预下注筹码 · 触碰范围（虚线圈）', '操作范围');
     this.state = { pending: 0, bankroll: 0, remaining: 0 }; this.lastBank = -1; this.lastStage = -1;
     this.selector = new ChipSlider(saloon.container);
     this.slider = this.selector.root; this.sliderTrack = this.selector.track;
     this.sliderValue = this.selector.value; this.sliderFill = this.selector.fill;
     this.sliderThumb = this.selector.thumb; this.sliderMax = this.selector.maximum;
     this.setActive(false);
+  }
+  areaIntersection(ray) {
+    this.hitArea.updateWorldMatrix(true, false);
+    const inverse = this.hitArea.matrixWorld.clone().invert();
+    const localRay = ray.clone().applyMatrix4(inverse);
+    const point = localRay.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
+    if (!point || point.x * point.x + point.z * point.z > STAGED_TOUCH_RADIUS ** 2 + 1e-9) return null;
+    point.applyMatrix4(this.hitArea.matrixWorld);
+    return { point, distance: ray.origin.distanceTo(point) };
+  }
+  hitStagedArea(ray) {
+    if (!this.active || !this.state.enabled || !(this.state.pending > 0) || this.state.inFlight || this.flight) return null;
+    return this.areaIntersection(ray);
   }
   setActive(active) {
     this.active = active;

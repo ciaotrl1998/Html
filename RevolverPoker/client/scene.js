@@ -444,16 +444,19 @@ export class SaloonScene {
     this.scene.updateMatrixWorld(true); this.raycaster.setFromCamera(this.pointer, this.camera);
     // Include furniture as occluders: chairs cannot be clicked through the table or a wall.
     const hit = this.raycaster.intersectObjects(this.scene.children, true).find(({ object }) => {
-      for (let o = object; o; o = o.parent) if (!o.visible) return false;
+      for (let o = object; o; o = o.parent) if (!o.visible || o.userData.chipRole === 'staged') return false;
       return true;
     });
+    let target = null;
     for (let o = hit?.object; o; o = o.parent) {
-      if (o.userData.chipRole) return { chipRole: o.userData.chipRole };
-      if (o.userData.cardRole === 'hand' || o.userData.cardRole === 'board') return { cardRole: o.userData.cardRole };
-      if (o.userData.tableSurface) return { tableSurface: true };
-      if (Number.isInteger(o.userData.seat)) return { seat: o.userData.seat };
+      if (o.userData.chipRole) { target = { chipRole: o.userData.chipRole }; break; }
+      if (o.userData.cardRole === 'hand' || o.userData.cardRole === 'board') { target = { cardRole: o.userData.cardRole }; break; }
+      if (o.userData.tableSurface) { target = { tableSurface: true }; break; }
+      if (Number.isInteger(o.userData.seat)) { target = { seat: o.userData.seat }; break; }
     }
-    return null;
+    const staged = this.betView?.hitStagedArea?.(this.raycaster.ray);
+    if (staged && !target?.cardRole && target?.chipRole !== 'bank' && (!hit || staged.distance <= hit.distance + .01)) return { chipRole: 'staged' };
+    return target;
   }
   pickSeat(clientX, clientY) {
     const target = this.hitTarget(clientX, clientY);
@@ -547,6 +550,7 @@ export class SaloonScene {
   }
   setQuality(quality) {
     this.renderBudget.setQuality(quality);
+    this.cards?.setQuality?.(this.renderBudget.quality);
     const enabled = this.renderBudget.quality !== 'low', settings = this.renderBudget.settings;
     const shadow = this.keyLight?.shadow;
     if (shadow && (shadow.mapSize.x !== settings.shadowSize || !enabled)) {

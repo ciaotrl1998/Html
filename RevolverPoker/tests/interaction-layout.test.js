@@ -33,6 +33,38 @@ function createGame(editor = false) {
   return game;
 }
 
+test('low-quality printed cards bypass lights and tone mapping, retain full textures, and restore lit materials without resetting a peek', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.animate = false;
+  const room = { code: 'TEST', phase: 'playing', hand: { number: 1, board: [12, 25, 38], done: false,
+    players: [{ id: 'me', seat: 0, cards: [0, 13], folded: false }, { id: 'other', seat: 1, cards: [null, null], folded: false }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const known = [...cards.board.slice(0, 3), ...cards.hole];
+  const lit = known.map(card => card.front.material), maps = lit.map(material => material.map);
+  cards.setPeeking(true); const motion = cards.hole[0].animation;
+  cards.setQuality('low');
+  known.forEach((card, index) => {
+    assert.equal(card.front.material.isMeshBasicMaterial, true);
+    assert.equal(card.front.material.toneMapped, false); assert.equal(card.front.material.fog, false);
+    assert.equal(card.front.material.map, maps[index]);
+    assert.equal(maps[index].image.width, 512); assert.equal(maps[index].image.height, 744);
+    assert.equal(maps[index].anisotropy, 4);
+  });
+  assert.equal(cards.hole[0].animation, motion); assert.equal(cards.peeking, true);
+  assert.equal(cards.opponents[1][0].value, null);
+  assert.equal(cards.opponents[1][0].front.material.map, cards.factory.back.map, 'unknown opponents still show the card back');
+  assert.equal(cards.deckCard.back.material.isMeshBasicMaterial, true);
+  const low = known.map(card => card.front.material);
+  cards.update({ ...room, hand: { ...room.hand, board: [...room.hand.board, 39] } }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.board[3].front.material.isMeshBasicMaterial, true, 'cards revealed later also use the low-quality material');
+  cards.setQuality('medium');
+  known.forEach((card, index) => assert.equal(card.front.material, lit[index], 'medium restores the original lit material'));
+  cards.setQuality('low');
+  known.forEach((card, index) => assert.equal(card.front.material, low[index], 'repeated switches reuse materials and textures'));
+  cards.setQuality('high');
+  known.forEach((card, index) => assert.equal(card.front.material, lit[index]));
+});
+
 test('all hole and community animations finish inside their server phase, which also covers camera return', t => {
   fakeDocument(t);
   const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
@@ -196,6 +228,45 @@ test('editable bankroll and staged-chip transforms survive saving, reloading, re
   const automatic = game.piles[0].getWorldPosition(new THREE.Vector3());
   const direction = game.cards.boardAnchor.getWorldPosition(new THREE.Vector3()).sub(automatic); direction.y = 0; direction.normalize();
   automatic.addScaledVector(direction, .72); automatic.y += .025; close(gameView.home, automatic);
+});
+
+test('a saved circular staging hit area stays fixed while chips move and exposes only an editor dashed guide', t => {
+  fakeDocument(t);
+  const editor = createGame(true), view = editor.betView;
+  const stage = editor.layout.entries.get('staged-chips'), area = editor.layout.entries.get('staged-chip-hit-area');
+  stage.proxy.position.set(.3, 1.64, 2.5); stage.proxy.rotation.y = .3; stage.proxy.scale.setScalar(.9); editor.layout.sync(stage);
+  area.proxy.position.set(.15, 0, -.1); area.proxy.rotation.y = -.2; area.proxy.scale.setScalar(1.3); editor.layout.sync(area);
+  view.setState({ pending: 100, bankroll: 2000, remaining: 1900, enabled: true }); view.tick(0);
+  const center = view.hitArea.getWorldPosition(new THREE.Vector3());
+  assert.equal(view.hitOutline.visible, true); assert.equal(view.hitOutline.material.isLineDashedMaterial, true);
+  assert.ok(view.hitOutline.geometry.getAttribute('lineDistance'), 'the dashed circumference has measured segment lengths');
+  const rayAt = (node, x, z) => {
+    const point = node.localToWorld(new THREE.Vector3(x, 0, z));
+    return new THREE.Ray(point.clone().add(new THREE.Vector3(0, 2, 0)), new THREE.Vector3(0, -1, 0));
+  };
+  assert.ok(view.hitStagedArea(rayAt(view.hitArea, .245, 0)));
+  assert.equal(view.hitStagedArea(rayAt(view.hitArea, .255, 0)), null);
+  assert.equal(view.hitStagedArea(rayAt(view.hitArea, .2, .2)), null, 'the hit area is circular rather than a square bounding box');
+  const editorRay = rayAt(view.hitArea, 0, -.2);
+  assert.ok(new THREE.Raycaster(editorRay.origin, editorRay.direction).intersectObject(view.hitArea, true).some(hit => hit.object === view.hitArea), 'the area can be selected directly in the editor');
+  const saved = editor.layout.export(); assert.ok(saved.objects['staged-chip-hit-area']);
+  const game = createGame(), actual = game.betView; game.layout.apply(saved);
+  actual.setState({ pending: 100, bankroll: 2000, remaining: 1900, enabled: true }); actual.tick(performance.now() + 400);
+  close(actual.hitArea.getWorldPosition(new THREE.Vector3()), center);
+  assert.equal(actual.hitOutline.visible, false, 'the guide is hidden during play');
+  actual.setState({ ...actual.state, dragging: 'chips', progress: 1 }); actual.tick(performance.now() + 500);
+  close(actual.hitArea.getWorldPosition(new THREE.Vector3()), center);
+  assert.ok(actual.stage.getWorldPosition(new THREE.Vector3()).distanceTo(actual.home) > .4);
+  assert.ok(actual.hitStagedArea(rayAt(actual.hitArea, 0, -.2)), 'blank space in the fixed area remains usable while the mesh moves');
+  const gameRay = rayAt(actual.hitArea, 0, 0);
+  assert.equal(new THREE.Raycaster(gameRay.origin, gameRay.direction).intersectObject(actual.hitArea, true).length, 0, 'no helper geometry participates in runtime mesh picking');
+  actual.setState({ ...actual.state, pending: 700, remaining: 1300, dragging: null, progress: 0 }); actual.tick(performance.now() + 1000);
+  close(actual.hitArea.getWorldPosition(new THREE.Vector3()), center);
+  for (const state of [{ pending: 0 }, { enabled: false }, { inFlight: true }]) {
+    const previous = actual.state; actual.setState({ ...previous, ...state });
+    assert.equal(actual.hitStagedArea(gameRay), null, 'empty, disabled or submitted drafts cannot start a staging drag');
+    actual.setState(previous);
+  }
 });
 
 test('other players discard face down from their edited hands onto independent saved landing points', t => {
