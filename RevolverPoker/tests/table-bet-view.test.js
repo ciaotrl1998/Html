@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
+import { RenderBudget } from '../client/render-budget.js';
 registerHooks({ resolve(specifier, context, next) {
   if (specifier === '/vendor/three.js') return next('three', context);
   if (specifier === '/shared/scene-layout.js') return next(new URL('../shared/scene-layout.js', import.meta.url).href, context);
@@ -147,7 +148,8 @@ test('saved game layout allows actual ray hits on own chip bank, staged chips, h
     game.layout.apply(saved);
     const rect = { left: 0, top: 0, width: 390, height: 844 };
     game.container = { appendChild() {}, getBoundingClientRect: () => rect };
-    game.renderer = { setSize() {}, domElement: { getBoundingClientRect: () => rect, setAttribute() {} } };
+    game.renderBudget = new RenderBudget(); game.pixelRatio = game.renderBudget.ratio;
+    game.renderer = { setSize() {}, setPixelRatio() {}, domElement: { getBoundingClientRect: () => rect, setAttribute() {} } };
     game.room = { code: '123456', phase: 'playing', hand: { number: 1, players: [{ id: 'me', seat: 0, chips: 2000, folded: false, cards: [0, 13] }], board: [], done: false } };
     game.resetView();
     game.cards.update(game.room, 'me', [[0, 5.5], [-3.15, 3.7], [-3.7, .4], [-2.65, -3.55], [0, -5.1], [2.65, -3.55], [3.7, .4], [3.15, 3.7]], 0);

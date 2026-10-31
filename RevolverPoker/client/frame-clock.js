@@ -2,7 +2,7 @@
 // would turn small RAF timing differences into repeated skipped frames.
 export class FrameClock {
   constructor(fps = 60) { this.setRate(fps); }
-  setRate(fps) { this.fps = fps === 30 ? 30 : 60; this.interval = 1000 / this.fps; this.reset(); }
+  setRate(fps) { this.fps = [30, 45, 60].includes(fps) ? fps : 60; this.interval = 1000 / this.fps; this.reset(); }
   reset() { this.last = null; this.next = null; }
   step(time) {
     if (this.next === null) { this.last = time; this.next = time + this.interval; return this.interval / 1000; }

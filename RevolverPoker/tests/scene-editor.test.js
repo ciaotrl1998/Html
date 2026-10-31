@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { registerHooks } from 'node:module';
 import * as THREE from 'three';
+import { RenderBudget } from '../client/render-budget.js';
 import { createPokerServer } from '../server/index.js';
 import { EMPTY_LAYOUT, validateLayout, parseLayoutModule } from '../shared/scene-layout.js';
 
@@ -118,12 +119,12 @@ test('board reference camera remains editable while both hold actions leave the 
   registry.apply({ version: 1, objects: { 'board-group': transform([0, 1.573, 1.65]), 'board-camera': { ...transform([.2, 5.2, 3.5], [-1, .15, .1]), camera: { fov: 63, near: .05, far: 140 } } } });
   close(playerCameraPose(board).position, new THREE.Vector3(.2, 5.2, 4.5)); assert.equal(player.fov, 70);
   assert.equal(registry.export().objects['board-camera'].camera.fov, 63);
-  const game = Object.create(SaloonScene.prototype);
+  const game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 });
   const eye = new THREE.PerspectiveCamera(61, .5, .07, 135); eye.position.set(.5, 3.8, 5.1); eye.rotation.set(-.4, .2, .1); eye.updateProjectionMatrix();
   let raised = false, flipped = false;
   Object.assign(game, { scene: world, camera: eye, playerCamera: player, boardCamera: board, yaw: .2, pitch: -.4, roll: .1, seated: true, editor: false, viewerId: 'me',
     room: { code: '123456', phase: 'playing', hand: { number: 1, board: [0, 18, 28], players: [{ id: 'me', folded: false }] } }, cards: { setPeeking(value) { flipped = value; }, setBoardPeeking(value) { raised = value; } },
-    container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) }, renderer: { setSize() {}, domElement: { setAttribute() {} } } });
+    container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) }, renderer: { setSize() {}, setPixelRatio() {}, domElement: { setAttribute() {} } } });
   const view = () => JSON.stringify([eye.position.toArray(), eye.quaternion.toArray(), eye.projectionMatrix.toArray(), eye.fov, eye.near, eye.far, game.yaw, game.pitch, game.roll]);
   const before = view();
   assert.equal(game.beginCardPeek('board'), true);
@@ -204,7 +205,7 @@ test('winner nameplates replace GPU textures on resize and restore normal labels
   const initialMap = new THREE.CanvasTexture(canvas); initialMap.colorSpace = THREE.SRGBColorSpace;
   const label = { canvas, map: initialMap, sprite: new THREE.Sprite(new THREE.SpriteMaterial({ map: initialMap, opacity: .5 })), key: '' };
   let initialDisposed = 0; initialMap.addEventListener('dispose', () => initialDisposed++);
-  const game = Object.create(SaloonScene.prototype);
+  const game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 });
   const winner = { settlement: { cards: [25, 43], handName: '一对', winner: true } };
   const normal = { name: '玩家', seat: 0, value: '2000', action: '', badges: '' };
   game.paintSeatLabel(label, normal); assert.equal(label.map, initialMap);
@@ -251,10 +252,10 @@ test('game reset and viewport resize use the edited player camera; releasing hol
   registry.register(source, 'player-camera', '摄像机', '摄像机');
   registry.apply({ version: 1, objects: { 'player-camera': { ...transform([.3, 3.6, 5.2], [-.25, .3, .15]), camera: { fov: 61, near: .05, far: 160 } } } });
   let covered = false;
-  const game = Object.create(SaloonScene.prototype);
+  const game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 });
   Object.assign(game, { playerCamera: source, camera: new THREE.PerspectiveCamera(), seated: true, editor: false, room: { phase: 'playing' },
     cards: { setPeeking(value) { covered = !value; }, setBoardPeeking() {} }, container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) },
-    renderer: { setSize() {}, domElement: { setAttribute() {} } } });
+    renderer: { setSize() {}, setPixelRatio() {}, domElement: { setAttribute() {} } } });
   game.resetView(); const expected = playerCameraPose(source);
   close(game.camera.position, expected.position); assert.ok(game.camera.quaternion.angleTo(expected.quaternion) < 1e-7);
   assert.equal(game.camera.fov, 61); assert.equal(game.camera.near, .05); assert.equal(game.camera.far, 160);
@@ -267,7 +268,7 @@ test('game reset and viewport resize use the edited player camera; releasing hol
 });
 
 function stateScene() {
-  const game = Object.create(SaloonScene.prototype), world = new THREE.Scene();
+  const game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 }), world = new THREE.Scene();
   const models = Array.from({ length: 8 }, () => { const model = new THREE.Group(); model.userData.head = new THREE.Group(); model.add(model.userData.head); return model; });
   Object.assign(game, { scene: world, playerCamera: createPlayerCamera(), camera: new THREE.PerspectiveCamera(),
     seated: false, focus: 0, room: null, overviewPitch: -.58, editor: false, models,
@@ -275,7 +276,7 @@ function stateScene() {
     markers: Array.from({ length: 8 }, () => new THREE.Group()), labels: Array.from({ length: 8 }, () => ({ sprite: new THREE.Sprite() })),
     hands: new THREE.Group(), dealer: new THREE.Group(), paintSeatLabel() {},
     cards: { setPeeking() {}, setBoardPeeking() {}, update(room, you, positions, focus) { game.cardFocus = focus; } },
-    container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) }, renderer: { setSize() {}, domElement: { setAttribute() {} } } });
+    container: { getBoundingClientRect: () => ({ width: 390, height: 844 }) }, renderer: { setSize() {}, setPixelRatio() {}, domElement: { setAttribute() {} } } });
   return game;
 }
 
@@ -386,7 +387,7 @@ test('turn aiming uses the acting seat and edited world-space character position
   parent.position.set(2, 0, -2); parent.rotation.y = .3; parent.scale.setScalar(1.2);
   model.position.set(.5, .1, -1); head.position.set(0, 3.17, 0);
   model.userData = { seat: 6, head }; model.add(head); parent.add(model); world.add(parent, camera);
-  const game = Object.create(SaloonScene.prototype);
+  const game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 });
   Object.assign(game, { scene: world, camera, playerCamera, models: [model], seated: true, viewerId: 'me', editor: false,
     room: { phase: 'playing', hand: { actor: 6, done: false, players: [{ id: 'other', seat: 6 }, { id: 'me', seat: 3 }] } } });
   const position = camera.position.clone(), orientation = camera.quaternion.clone();
@@ -413,7 +414,7 @@ test('disabling opponent follow stops an active pan but preserves own-turn and d
   world.add(playerCamera, camera);
   const model = new THREE.Group(), head = new THREE.Group(); model.position.set(3, 0, -2); head.position.y = 3.2;
   model.userData = { seat: 1, head }; model.add(head); world.add(model);
-  const pose = playerCameraPose(playerCamera), game = Object.create(SaloonScene.prototype);
+  const pose = playerCameraPose(playerCamera), game = Object.assign(Object.create(SaloonScene.prototype), { renderBudget: new RenderBudget(), pixelRatio: 1 });
   Object.assign(game, { scene: world, playerCamera, camera, models: [model], seated: true, viewerId: 'me',
     yaw: .8, pitch: -.1, roll: 0, followOtherPlayers: true,
     room: { code: 'TEST', phase: 'playing', hand: { number: 1, actor: 1, done: false, players: [{ id: 'me', seat: 0 }, { id: 'other', seat: 1 }] } } });

@@ -21,7 +21,7 @@ try {
     # Validate the actual ZIP, including an exact match with the editor save.
     $pokerZip = [System.IO.Compression.ZipFile]::OpenRead($pokerTemporaryZip)
     try {
-        foreach ($pokerRequired in @('index.html', 'client/scene.js', 'client/scene-layout.js', 'client/boot.js', 'client/frame-clock.js', 'client/mesh-batching.js', 'client/chip-slider.js', 'client/bet-sizing.js', 'client/vendor/BufferGeometryUtils.js', 'client/vendor/three.module.min.js', 'client/vendor/three.core.min.js', 'client/vendor/THREE-LICENSE.txt', 'server/index.js', 'node_modules/ws/package.json')) {
+        foreach ($pokerRequired in @('index.html', 'client/scene.js', 'client/scene-layout.js', 'client/boot.js', 'client/frame-clock.js', 'client/render-budget.js', 'client/mesh-batching.js', 'client/chip-slider.js', 'client/bet-sizing.js', 'client/vendor/BufferGeometryUtils.js', 'client/vendor/three.module.min.js', 'client/vendor/three.core.min.js', 'client/vendor/THREE-LICENSE.txt', 'server/index.js', 'node_modules/ws/package.json')) {
             if (-not $pokerZip.GetEntry('RevolverPoker/' + $pokerRequired)) { throw ('游戏包缺少文件：' + $pokerRequired) }
         }
         $pokerLayoutStream = $pokerZip.GetEntry('RevolverPoker/client/scene-layout.js').Open()

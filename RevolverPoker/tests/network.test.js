@@ -281,7 +281,10 @@ test('a later opening with antes and short blind all-ins keeps all seven chips a
   assert.equal(markers.hand.pot, 0); assert.equal(markers.hand.players.reduce((sum, player) => sum + player.chips, 0), 7);
   await host.until(c => c.state.opening?.stage === 'smallBlind');
   const small = host.state;
-  assert.equal(small.hand.pot, 6, 'both antes and the short small blind are posted before the big blind');
+  // The first dealer is random, so either the 3-chip or 4-chip player can post SB.
+  const smallStarting = markers.hand.players.find(player => player.seat === small.hand.sbSeat).chips;
+  const expectedSmall = 2 * markers.config.ante + Math.min(markers.config.smallBlind, smallStarting - markers.config.ante);
+  assert.equal(small.hand.pot, expectedSmall, 'both antes and the actual short small blind are posted before the big blind');
   await host.until(c => c.state.opening?.stage === 'bigBlind');
   assert.equal(host.state.hand.pot, 7);
   assert.equal(internal.hand.done, true, 'the engine may already have resolved the forced all-in');

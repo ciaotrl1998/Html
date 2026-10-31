@@ -186,11 +186,12 @@ export class TableBetView {
         this.stage.position.copy(this.stageAnchor.worldToLocal(position));
         // Keep the submitted chips visible here until a confirmed state moves
         // these same meshes into the pot, or a rejection restores the draft.
-      } else {
+      } else if (this.stage.visible) {
         const position = this.home.clone().addScaledVector(this.forward, this.state.dragging === 'chips' ? Math.min(1.5, this.state.progress) * .45 : 0);
         this.stage.position.copy(this.stageAnchor.worldToLocal(position));
       }
     }
+    if (!this.transfers.length) return;
     let completed = false;
     this.transfers = this.transfers.filter(transfer => {
       const t = Math.max(0, Math.min(1, (time - transfer.start) / 300));

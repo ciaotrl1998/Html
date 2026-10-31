@@ -1,6 +1,7 @@
 import * as THREE from '/vendor/three.js';
 import SAVED_SCENE from './scene-layout.js';
 import { FrameClock } from './frame-clock.js';
+import { RenderBudget } from './render-budget.js';
 import { batchStaticMeshes } from './mesh-batching.js';
 import { TableCards, BOARD_CENTER_Z, TABLE_POSITIONS as POSITIONS } from './cards.js';
 import { LayoutRegistry } from './layout-registry.js';
@@ -103,6 +104,8 @@ export class SaloonScene {
     this.editor = editor;
     this.followOtherPlayers = followOtherPlayers;
     this.frameClock = new FrameClock(frameRate); this.shadowClock = new FrameClock(30);
+    this.renderBudget = new RenderBudget({ pixelRatio: devicePixelRatio, mobile: !!window.matchMedia?.('(pointer: coarse)').matches, editor });
+    this.shadowDirty = true; this.lastShadowUpdate = -Infinity;
     this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.focus = 0; this.seated = false;
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
@@ -112,12 +115,14 @@ export class SaloonScene {
     this.camera = new THREE.PerspectiveCamera(53, 1, .1, 80);
     this.camera.position.set(...OVERVIEW_EYE); this.camera.lookAt(0, 1.9, 0);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7)); this.renderer.shadowMap.enabled = true;
+    this.pixelRatio = this.renderBudget.ratio;
+    this.renderer.setPixelRatio(this.pixelRatio); this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.autoUpdate = editor; this.renderer.shadowMap.needsUpdate = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.28;
     container.appendChild(this.renderer.domElement);
     this.scene.add(new THREE.HemisphereLight(0xd7bb87, 0x3a2e22, 2.0));
     const key = new THREE.SpotLight(0xffd294, 340, 35, Math.PI / 3, .65, 1.8);
+    this.keyLight = key;
     key.position.set(1, 10, 3); key.target.position.set(0, 1, 0); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -.002;
     this.scene.add(key, key.target);
     const fill = new THREE.PointLight(0xd3a464, 65, 25, 1.6); fill.position.set(-7, 5, -4); this.scene.add(fill);
@@ -153,6 +158,7 @@ export class SaloonScene {
     for (const node of editables) { const { id, label, category } = node.userData.layout; this.layout.register(node, id, label, category); }
     let cameraState = '';
     this.layout.onApply = () => {
+      this.shadowDirty = true;
       this.dealerButtons.applyLayout(this.layout.current, this.layout);
       const pose = playerCameraPose(this.playerCamera);
       const state = JSON.stringify([pose.position.toArray(), pose.quaternion.toArray(), pose.fov, pose.near, pose.far]);
@@ -168,7 +174,11 @@ export class SaloonScene {
       this.actionConnected = true;
       this.tableActions = new TableActions({
         send: (type, amount, key) => this.onPokerAction?.(type, amount, key) ?? false,
-        change: state => this.betView.setState(state), commit: action => this.betView.commit(action),
+        change: state => {
+          const previous = this.betView.state;
+          this.betView.setState(state);
+          if (['pending', 'remaining', 'inFlight'].some(key => state[key] !== previous[key])) this.shadowDirty = true;
+        }, commit: action => this.betView.commit(action),
         forward: (start, point) => this.betView.measureForward(start, point),
         sliderTravel: () => this.betView.sliderHeight()
       });
@@ -291,6 +301,7 @@ export class SaloonScene {
       cylinder(g, .105, .105, .045, mats[stack], (stack - 1) * .24, j * .048, 0, 16);
       if (j % 2 === 0) for (let k = 0; k < 4; k++) { const t = k * Math.PI / 2; box(g, .035, .025, .04, mats[0], (stack - 1) * .24 + Math.cos(t) * .087, j * .048, Math.sin(t) * .087); }
     }
+    g.userData.meshBatching = batchStaticMeshes(g);
     return g;
   }
   buildHands() {
@@ -306,6 +317,7 @@ export class SaloonScene {
       this.hands.add(g);
     }
     this.hands.visible = false;
+    this.hands.userData.meshBatching = batchStaticMeshes(this.hands);
   }
   makeSeatLabel() {
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 240;
@@ -448,6 +460,7 @@ export class SaloonScene {
     if (Number.isInteger(target?.seat)) this.onSeatSelect?.(target.seat);
   }
   showPreview() {
+    this.shadowDirty = true;
     this.dealerButtons?.update(null, 0);
     this.models.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
     this.piles.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
@@ -455,6 +468,7 @@ export class SaloonScene {
     this.markers.forEach(marker => { marker.visible = false; });
   }
   update(room, you) {
+    this.shadowDirty = true;
     const wasFirstPerson = this.firstPerson;
     const freshDeal = !!dealKey(room) && dealKey(room) !== dealKey(this.room);
     this.room = room; this.viewerId = you;
@@ -519,6 +533,9 @@ export class SaloonScene {
     const { width, height } = this.container.getBoundingClientRect();
     if (!width || !height) return;
     this.viewWidth = width; this.viewHeight = height;
+    this.renderBudget.resize(width, height);
+    const ratio = this.renderBudget.ratio;
+    if (Math.abs(ratio - this.pixelRatio) > .001) { this.pixelRatio = ratio; this.renderer.setPixelRatio(ratio); }
     this.camera.aspect = width / height;
     if (!this.editor) {
       const source = this.playerCamera;
@@ -528,13 +545,39 @@ export class SaloonScene {
     }
     this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height);
   }
-  setQuality(low) { this.renderer.setPixelRatio(low ? 1 : Math.min(devicePixelRatio, 1.7)); this.renderer.shadowMap.enabled = !low; this.renderer.shadowMap.needsUpdate = true; this.shadowClock.reset(); this.resize(); }
-  setFrameRate(fps) { this.frameClock.setRate(fps); }
+  setQuality(quality) {
+    this.renderBudget.setQuality(quality);
+    const enabled = this.renderBudget.quality !== 'low', settings = this.renderBudget.settings;
+    const shadow = this.keyLight?.shadow;
+    if (shadow && (shadow.mapSize.x !== settings.shadowSize || !enabled)) {
+      shadow.map?.dispose(); shadow.map = null;
+      shadow.mapPass?.dispose(); shadow.mapPass = null;
+      shadow.mapSize.set(settings.shadowSize, settings.shadowSize); shadow.needsUpdate = true;
+    }
+    if (this.renderer.shadowMap.enabled !== enabled) {
+      this.renderer.shadowMap.enabled = enabled;
+      // Disabling shadow passes alone leaves materials using their last shadow shader.
+      // Include hidden objects and shared/multi-slot materials for later seat/card changes.
+      const materials = new Set();
+      this.scene.traverse(node => {
+        if (node.material) for (const mat of Array.isArray(node.material) ? node.material : [node.material]) materials.add(mat);
+      });
+      for (const mat of materials) mat.needsUpdate = true;
+    }
+    this.renderer.shadowMap.needsUpdate = enabled; this.shadowDirty = true; this.shadowClock.reset(); this.resize();
+  }
+  setFrameRate(fps) { this.frameClock.setRate(fps); this.renderBudget.reset(); }
+  get shadowMotion() {
+    return !!(this.cards.all.some(card => card.animation) || this.cards.boardPresentation.motion || this.cards.boardPresentation.progress > 0 || this.cards.handDrag > 0 ||
+      this.dealerButtons?.placement || this.potView?.flights.length || this.potView?.settlement || this.betView?.flight || this.betView?.transfers.length || this.betView?.state.dragging);
+  }
   tick(time) {
     this.frame = requestAnimationFrame(this.tick);
-    if (document.hidden) { this.frameClock.reset(); this.shadowClock.reset(); return; }
+    if (document.hidden) { this.frameClock.reset(); this.shadowClock.reset(); this.renderBudget.reset(); this.shadowDirty = true; return; }
     const seconds = this.frameClock.step(time);
     if (seconds === null) return;
+    if (this.renderBudget.sample(time, this.frameClock.fps)) this.resize();
+    const shadowMotionBefore = !this.editor && this.shadowMotion;
     this.controls?.tick(seconds);
     if (this.viewTransition) {
       const v = this.viewTransition, t = Math.min(1, (time - v.start) / (v.duration || 360)), ease = t * t * (3 - 2 * t);
@@ -562,6 +605,7 @@ export class SaloonScene {
       this.cardPeekClosing = null;
     }
     if (!this.editor) this.models.forEach((model, i) => {
+      if (!model.visible) return;
       model.position.y = Math.sin(time * .0011 + i * 1.3) * .012;
       model.userData.head.rotation.x = model.userData.folded ? .18 : Math.sin(time * .0004 + i) * .025;
     });
@@ -575,10 +619,21 @@ export class SaloonScene {
       const width = Math.min(2.1, Math.max(.04, -this.labelPosition.z * worldPerPixel * labelLimit));
       label.sprite.scale.set(width, width * label.canvas.height / label.canvas.width, 1);
     }
-    if (!this.editor) this.hands.position.y = 1.79 + Math.sin(time * .001) * .003;
+    if (!this.editor && this.hands.visible) this.hands.position.y = 1.79 + Math.sin(time * .001) * .003;
     this.beforeRender?.();
-    // The chip selector is an independent UI layer; reuse scene shadows during a hold.
-    if (!this.editor && !this.tableActions?.selecting && this.renderer.shadowMap.enabled && this.shadowClock.step(time) !== null) this.renderer.shadowMap.needsUpdate = true;
+    // Quality changes affect shadow cost independently of card textures/resolution.
+    // Changes and the final animation pose invalidate the cached map immediately.
+    const shadowMotion = !this.editor && this.shadowMotion;
+    if ((shadowMotionBefore || this.shadowMotionActive) && !shadowMotion) this.shadowDirty = true;
+    this.shadowMotionActive = shadowMotion;
+    const settings = this.renderBudget.settings, moving = shadowMotionBefore || shadowMotion;
+    const shadowDue = moving ? settings.shadowFps === 30 || time - this.lastShadowUpdate >= 1000 / settings.shadowFps - .5
+      : time - this.lastShadowUpdate >= 1000 / settings.idleShadowFps - .5;
+    if (!this.editor && !this.tableActions?.selecting && this.renderer.shadowMap.enabled &&
+        (this.shadowDirty || (shadowDue && this.shadowClock.step(time) !== null))) {
+      if (this.shadowDirty) { this.shadowClock.reset(); this.shadowClock.step(time); }
+      this.renderer.shadowMap.needsUpdate = true; this.shadowDirty = false; this.lastShadowUpdate = time;
+    }
     this.renderer.render(this.scene, this.camera);
     this.afterRender?.();
   }

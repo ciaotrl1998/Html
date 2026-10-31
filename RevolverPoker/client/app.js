@@ -2,6 +2,7 @@ import { evaluate, handName } from '/shared/poker.js';
 import { tableTurnKey } from './table-actions.js';
 import { renderWinnerResult } from './winner-display.js';
 import { PlayerRoster } from './player-roster.js';
+import { normalizeQuality } from './render-budget.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -13,9 +14,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, lastHandKey = '', lastActionCount = 0, finishKey = '';
-let soundOn = localStorage.getItem('rp-sound') === 'on', lowQuality = localStorage.getItem('rp-quality') === 'low';
+let soundOn = localStorage.getItem('rp-sound') === 'on';
+let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
-let frameRate = localStorage.getItem('rp-frame-rate') === '30' ? 30 : 60;
+let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
 let audio;
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 function sound(type) {
@@ -248,11 +250,15 @@ $('stop-button').onclick = () => { send('stop'); closeDialogs(); toast('将在�
 $('help-button').onclick = () => showDialog('help-dialog');
 $('sound-state').textContent = soundOn ? '开启' : '关闭';
 $('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; sound('chip'); };
-$('quality-state').textContent = lowQuality ? '省电' : '标准';
-$('quality-button').onclick = () => { lowQuality = !lowQuality; localStorage.setItem('rp-quality', lowQuality ? 'low' : 'standard'); $('quality-state').textContent = lowQuality ? '省电' : '标准'; scene?.setQuality(lowQuality); };
+const qualityLabels = { high: '高', medium: '中', low: '低' };
+$('quality-state').textContent = qualityLabels[quality];
+$('quality-button').onclick = () => {
+  quality = quality === 'high' ? 'medium' : quality === 'medium' ? 'low' : 'high';
+  localStorage.setItem('rp-quality', quality); $('quality-state').textContent = qualityLabels[quality]; scene?.setQuality(quality);
+};
 $('frame-rate-state').textContent = `${frameRate} 帧`;
 $('frame-rate-button').onclick = () => {
-  frameRate = frameRate === 60 ? 30 : 60;
+  frameRate = frameRate === 60 ? 45 : frameRate === 45 ? 30 : 60;
   localStorage.setItem('rp-frame-rate', String(frameRate));
   $('frame-rate-state').textContent = `${frameRate} 帧`; scene?.setFrameRate(frameRate);
 };
@@ -300,7 +306,7 @@ try {
   const { SaloonScene } = await import('/client/scene.js');
   scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
-  scene.setQuality(lowQuality);
+  scene.setQuality(quality);
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();
 } catch (error) {
   console.error('3D scene:', error);
