@@ -39,13 +39,84 @@ function costlyView() {
 }
 
 function actionCounts(state, profile, difficulty, analysis, seed = 71, count = 4000) {
-  const rng = random(seed), counts = { call: 0, fold: 0, raise: 0, check: 0, amount: 0 };
+  const rng = random(seed), counts = { call: 0, fold: 0, raise: 0, check: 0, amount: 0, allIn: 0 };
   for (let i = 0; i < count; i++) {
     const action = decideBotAction(state, 'me', difficulty, analysis, profile, rng);
     counts[action.type]++; counts.amount += action.amount || 0;
+    if (action.type === 'raise' && action.amount === state.legal.maxTo) counts.allIn++;
   }
   return counts;
 }
+
+function openingView(cards, count = 8) {
+  const state = view(cards, [], count);
+  state.currentBet = 20; state.pot = count * 20;
+  state.players.forEach(player => { player.bet = 20; player.total = 20; player.chips = 1980; });
+  state.legal = { ...state.legal, minTo: 40, maxTo: 2000 };
+  return state;
+}
+
+test('weak multiway preflop equity cannot trigger value raises, while personalities still open premium hands', () => {
+  const weak = openingView([card(7), card(2, 1)]), strong = openingView([card(14), card(14, 1)]);
+  const analysis = { equity: .25, callEquity: .25, eligiblePot: 160 };
+  for (const difficulty of ['easy', 'normal', 'hard']) for (const style of ['tight', 'balanced', 'caller', 'aggressive', 'tricky']) {
+    const profile = createBotPersonality(random(12), style);
+    assert.equal(actionCounts(weak, profile, difficulty, analysis, 71, 400).raise, 0, `${difficulty} ${style} must not raise 7-2 solely on noisy multiway equity`);
+  }
+  const pressure = createBotPersonality(random(12), 'aggressive'), tight = createBotPersonality(random(12), 'tight');
+  const premium = { ...analysis, equity: .4, callEquity: .4 };
+  const active = actionCounts(strong, pressure, 'normal', premium), cautious = actionCounts(strong, tight, 'normal', premium);
+  assert.ok(active.raise > 2500 && active.raise < 3800);
+  assert.ok(active.raise > cautious.raise + 500); assert.equal(active.allIn, 0);
+});
+
+test('preflop re-raises tighten as public raises escalate instead of multiplying any favorable equity into an all-in', () => {
+  const state = openingView([card(14), card(13, 1)]);
+  state.currentBet = 400; state.pot = 1200;
+  state.players[0].bet = 100; state.players[0].chips = 1900;
+  state.players.slice(1).forEach(player => { player.bet = 400; player.chips = 1600; });
+  state.legal = { ...state.legal, canCheck: false, callAmount: 300, minTo: 700 };
+  state.history = [{ street: 'preflop', action: '加注至 100' }, { street: 'preflop', action: '加注至 400' }];
+  const profile = createBotPersonality(random(12), 'aggressive');
+  for (const difficulty of ['easy', 'normal', 'hard']) {
+    assert.equal(actionCounts(state, profile, difficulty, { equity: .4, callEquity: .4, eligiblePot: 1500 }).raise, 0);
+  }
+});
+
+test('even loose easy AI rarely call off their stack at a bad preflop price', () => {
+  const state = costlyView(); state.board = []; state.street = 'preflop';
+  state.players[1].bet = 1100; state.players[1].total = 1100; state.currentBet = 1100;
+  state.legal = { ...state.legal, toCall: 1000, callAmount: 1000 };
+  const caller = createBotPersonality(random(12), 'caller'), analysis = { equity: .12, callEquity: .12, eligiblePot: 2200 };
+  const simple = actionCounts(state, caller, 'easy', analysis);
+  assert.ok(simple.call > 0 && simple.call < 500, 'occasional low-level mistakes remain possible without habitual preflop stack-offs');
+  assert.equal(actionCounts(state, caller, 'hard', analysis).call, 0);
+});
+
+test('preflop deep-stack shoves are rare and need premium cards; short-stack value shoves remain possible', t => {
+  const state = view(); state.currentBet = 700; state.pot = 1400;
+  state.players[0].chips = 900; state.players[1].bet = 700; state.players[1].chips = 300;
+  state.legal = { ...state.legal, canCheck: false, callAmount: 600, minTo: 1000, maxTo: 1000 };
+  state.history = [{ street: 'preflop', action: '加注至 700' }];
+  const profile = createBotPersonality(random(12), 'aggressive'), analysis = { equity: .85, callEquity: .85, eligiblePot: 2000 };
+  const aces = actionCounts(state, profile, 'normal', analysis);
+  assert.ok(aces.allIn > 0 && aces.allIn < 600, 'deep-stack aces do not automatically shove as soon as the pot grows');
+  state.players[0].cards = [card(12), card(12, 1)];
+  assert.equal(actionCounts(state, profile, 'normal', analysis).allIn, 0, 'a lucky estimate cannot bypass the deep-stack hand gate');
+  state.players[0].cards = [card(10), card(10, 1)]; state.players[0].bet = 20; state.players[0].chips = 180;
+  state.players[1].bet = 80; state.players[1].chips = 120; state.currentBet = 80; state.pot = 100;
+  state.legal = { ...state.legal, callAmount: 60, minTo: 140, maxTo: 200 }; state.history = [];
+  const short = actionCounts(state, profile, 'normal', { equity: .72, callEquity: .72, eligiblePot: 160 });
+  assert.ok(short.allIn > 0 && short.allIn < 1000);
+  t.diagnostic(`Seeded aggressive preflop shove rates: deep AA ${(aces.allIn / 40).toFixed(1)}%, short TT ${(short.allIn / 40).toFixed(1)}%`);
+});
+
+test('postflop value shoves retain their original pot/equity behavior', () => {
+  const state = view([card(14), card(14, 1)], [card(14, 2), card(13), card(2)]);
+  state.players[0].chips = 200; state.legal = { ...state.legal, maxTo: 300 };
+  const profile = createBotPersonality(random(12), 'aggressive');
+  assert.equal(actionCounts(state, profile, 'hard', { equity: .95, callEquity: .95, eligiblePot: 400 }, 71, 400).allIn, 400);
+});
 
 test('easy callers sometimes pay most of their stack with low equity; stronger difficulty bounds bad-price calls', t => {
   const state = costlyView(), caller = createBotPersonality(random(12), 'caller'), tight = createBotPersonality(random(12), 'tight');

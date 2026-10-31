@@ -24,6 +24,10 @@ function cardMap(card) {
   map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; map.needsUpdate = true;
   return map;
 }
+function printedMaterial(map, color = 0xe6ddc6) {
+  return new THREE.MeshBasicMaterial({ map, color, toneMapped: false, fog: false,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+}
 
 class CardFactory {
   constructor() {
@@ -34,29 +38,24 @@ class CardFactory {
     const pos = this.faceGeometry.attributes.position, uv = this.faceGeometry.attributes.uv;
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / WIDTH + .5, pos.getY(i) / HEIGHT + .5);
     this.paper = new THREE.MeshStandardMaterial({ color: 0xd6c9ae, roughness: 1 });
-    this.back = new THREE.MeshStandardMaterial({ map: cardMap(null), roughness: .73, metalness: 0 });
-    this.fronts = new Map(); this.flatFronts = new Map(); this.lowQuality = false;
+    this.back = printedMaterial(cardMap(null), 0xffffff);
+    this.fronts = new Map(); this.lowQuality = false;
   }
   get backMaterial() {
-    if (!this.lowQuality) return this.back;
-    return this.flatBack ||= new THREE.MeshBasicMaterial({ map: this.back.map, toneMapped: false, fog: false });
+    return this.back;
   }
   front(card) {
     if (card === null) return this.backMaterial;
-    // Matte paper still responds to warm saloon lights, with less highlight washout.
-    if (!this.fronts.has(card)) this.fronts.set(card, new THREE.MeshPhysicalMaterial({ color: 0x8a8a8a, map: cardMap(card), roughness: 1, metalness: 0, specularIntensity: .12 }));
-    const lit = this.fronts.get(card);
-    if (!this.lowQuality) return lit;
-    // Low quality has no shadows; direct lamps can wash out the printed ink.
-    // Reuse the full-size artwork without lighting or exposure amplification.
-    if (!this.flatFronts.has(card)) this.flatFronts.set(card, new THREE.MeshBasicMaterial({ map: lit.map, color: 0xe6ddc6, toneMapped: false, fog: false }));
-    return this.flatFronts.get(card);
+    // Printed ink keeps the same brightness while cards rotate and across all
+    // qualities. Only the paper edge/body responds to the room's illumination.
+    if (!this.fronts.has(card)) this.fronts.set(card, printedMaterial(cardMap(card)));
+    return this.fronts.get(card);
   }
   create(role) {
     const root = new THREE.Group(); root.userData.cardRole = role;
     const body = new THREE.Mesh(this.bodyGeometry, this.paper); body.castShadow = true; body.receiveShadow = true;
-    const front = new THREE.Mesh(this.faceGeometry, this.backMaterial); front.position.z = THICKNESS / 2 + .003; front.receiveShadow = true;
-    const back = new THREE.Mesh(this.faceGeometry, this.backMaterial); back.position.z = -THICKNESS / 2 - .003; back.rotation.y = Math.PI;
+    const front = new THREE.Mesh(this.faceGeometry, this.backMaterial); front.position.z = THICKNESS / 2 + .006;
+    const back = new THREE.Mesh(this.faceGeometry, this.backMaterial); back.position.z = -THICKNESS / 2 - .006; back.rotation.y = Math.PI;
     const display = new THREE.Group(); display.matrixAutoUpdate = false;
     display.add(body, front, back); root.add(display); root.visible = false;
     return { root, display, front, back, value: null, identity: '', animation: null };
@@ -112,6 +111,12 @@ export class TableCards {
     deckCard.root.userData.layout = { id: 'deck-top', label: '牌堆 · 顶牌', category: '筹码与扑克' };
     deckCard.root.quaternion.copy(rotation(Math.PI / 2)); deckCard.root.visible = true; scene.add(deckCard.root);
     this.deckCard = deckCard;
+  }
+  prepareTextures(renderer) {
+    if (!renderer.initTexture || this.preparedRenderer === renderer) return;
+    renderer.initTexture(this.factory.back.map);
+    for (let card = 0; card < 52; card++) renderer.initTexture(this.factory.front(card).map);
+    this.preparedRenderer = renderer;
   }
   setQuality(quality) {
     const low = quality === 'low';

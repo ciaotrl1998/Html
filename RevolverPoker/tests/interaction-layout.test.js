@@ -33,7 +33,7 @@ function createGame(editor = false) {
   return game;
 }
 
-test('low-quality printed cards bypass lights and tone mapping, retain full textures, and restore lit materials without resetting a peek', t => {
+test('printed cards retain fixed brightness, full textures and materials across qualities without resetting a peek', t => {
   fakeDocument(t);
   const { cards } = createGame(); cards.animate = false;
   const room = { code: 'TEST', phase: 'playing', hand: { number: 1, board: [12, 25, 38], done: false,
@@ -58,11 +58,32 @@ test('low-quality printed cards bypass lights and tone mapping, retain full text
   cards.update({ ...room, hand: { ...room.hand, board: [...room.hand.board, 39] } }, 'me', TABLE_POSITIONS, 0);
   assert.equal(cards.board[3].front.material.isMeshBasicMaterial, true, 'cards revealed later also use the low-quality material');
   cards.setQuality('medium');
-  known.forEach((card, index) => assert.equal(card.front.material, lit[index], 'medium restores the original lit material'));
+  known.forEach((card, index) => assert.equal(card.front.material, lit[index], 'medium keeps the original printed material'));
   cards.setQuality('low');
   known.forEach((card, index) => assert.equal(card.front.material, low[index], 'repeated switches reuse materials and textures'));
   cards.setQuality('high');
   known.forEach((card, index) => assert.equal(card.front.material, lit[index]));
+});
+
+test('every printed texture is prepared once before dealing and both faces stay safely outside the white paper body', t => {
+  fakeDocument(t);
+  const { cards } = createGame(), uploaded = [];
+  const renderer = { initTexture: texture => uploaded.push(texture) };
+  cards.prepareTextures(renderer);
+  assert.equal(uploaded.length, 53); assert.equal(new Set(uploaded).size, 53);
+  const front = cards.factory.front(25), back = cards.factory.backMaterial;
+  for (const material of [front, back]) {
+    assert.equal(material.isMeshBasicMaterial, true); assert.equal(material.toneMapped, false);
+    assert.equal(material.polygonOffset, true); assert.ok(material.polygonOffsetFactor < 0 && material.polygonOffsetUnits < 0);
+  }
+  const body = cards.hole[0].display.children[0]; body.geometry.computeBoundingBox();
+  assert.ok(cards.hole[0].front.position.z - body.geometry.boundingBox.max.z > .003);
+  assert.ok(body.geometry.boundingBox.min.z - cards.hole[0].back.position.z > .003);
+  for (const quality of ['low', 'medium', 'high']) {
+    cards.setQuality(quality); cards.prepareTextures(renderer);
+    assert.equal(cards.factory.front(25), front); assert.equal(cards.factory.backMaterial, back);
+  }
+  assert.equal(uploaded.length, 53, 'new deals and quality changes reuse uploaded GPU images');
 });
 
 test('all hole and community animations finish inside their server phase, which also covers camera return', t => {

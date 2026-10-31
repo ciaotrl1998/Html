@@ -128,6 +128,7 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
   if (!me || !legal) return null;
   const level = LEVELS[difficulty] || LEVELS.normal;
   const profile = { ...DEFAULT_PERSONALITY, ...personality };
+  const preflop = view.board.length === 0;
   const reason = botRationality(difficulty, profile), impulse = 1 - reason;
   const opponents = view.players.filter(player => player.id !== id && !player.folded);
   const noise = (roll(random) - .5) * level.noise * (1 + profile.volatility * impulse);
@@ -138,10 +139,14 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
   const requiredEdge = level.margin + risk + (.5 - profile.looseness) * .22 * impulse;
   const expectedCallValue = analysis.callEquity * analysis.eligiblePot - legal.callAmount;
   const trueEdge = expectedCallValue / Math.max(1, analysis.eligiblePot);
-  if (!legal.canCheck && callEquity - odds < requiredEdge) {
+  // Do not let sampling noise alone justify committing most of a stack before
+  // the flop. Loose personalities may still make mistakes, at a reduced rate.
+  const pricedEquity = preflop && cost >= .5 ? analysis.callEquity : callEquity;
+  if (!legal.canCheck && pricedEquity - odds < requiredEdge) {
     const errorBudget = Math.min(level.lossLimit, impulse * (.5 + .6 * profile.calling));
     const chaseChance = level.mistake * impulse * (.2 + .8 * profile.calling) *
-      (.4 + .6 * profile.riskTolerance) * (1 - .35 * Math.min(1, cost) * reason);
+      (.4 + .6 * profile.riskTolerance) * (1 - .35 * Math.min(1, cost) * reason) *
+      (preflop ? cost >= .8 ? .15 : cost >= .25 ? .4 : 1 : 1);
     // Low discipline can pay a bad price to chase a weak hand. Stronger AI
     // caps the size of this error instead of randomly ignoring huge losses.
     if (trueEdge >= -errorBudget && roll(random) < chaseChance) return { type: 'call' };
@@ -153,13 +158,20 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
   const fair = 1 / (opponents.length + 1);
   const threshold = Math.max(fair + .025, Math.max(fair * 1.35, fair + (opponents.length === 1 ? .12 : .08)) +
     (.5 - profile.aggression) * (.1 + .12 * impulse));
-  const preflop = view.board.length === 0, quality = preflop ? preflopQuality(me.cards) : 0;
+  const quality = preflop ? preflopQuality(me.cards) : 0;
+  const facingRaise = preflop && view.currentBet > view.bigBlind;
+  const preflopRaises = (view.history || []).filter(action => action.street === 'preflop' && /^(加注|全下)/.test(action.action)).length;
+  // Multiway equity alone is not a license to repeatedly raise before seeing
+  // the board. Re-raises need stronger hole cards, especially in an escalated pot.
+  const raiseQuality = facingRaise ? preflopRaises >= 2 || view.currentBet >= view.bigBlind * 10 ? .90 : .76 : .58 - position * .08;
   const premium = preflop && quality >= .81 && equity > fair + .04;
   const opening = preflop && view.currentBet <= view.bigBlind && quality > .70 - position * .12 - (profile.looseness - .5) * .18 * impulse && equity > fair;
   const bluff = opponents.length <= 2 && opponents.every(player => player.chips > 0) &&
     (legal.canCheck || preflop && view.currentBet <= view.bigBlind) &&
-    roll(random) < level.bluff * (.2 + 2 * profile.bluffing) * (position > .5 ? 1 : .5);
-  if (legal.canRaise && (equity > threshold || premium || opening || bluff)) {
+    roll(random) < level.bluff * (.2 + 2 * profile.bluffing) * (position > .5 ? 1 : .5) * (preflop ? .2 : 1);
+  const valueRaise = preflop ? quality >= raiseQuality && (equity > threshold || !facingRaise && (premium || opening)) : equity > threshold;
+  const raiseChance = facingRaise ? .20 + .35 * profile.aggression : .55 + .35 * profile.aggression;
+  if (legal.canRaise && (valueRaise || bluff) && (!preflop || roll(random) < raiseChance)) {
     let target;
     if (preflop) {
       const limpers = new Set((view.history || []).filter(action => action.street === 'preflop' && /^跟注/.test(action.action)).map(action => action.seat)).size;
@@ -173,7 +185,24 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
     const cover = Math.max(legal.minTo, ...opponents.map(player => player.bet + player.chips));
     const maximum = Math.min(legal.maxTo, cover), step = target <= 50 ? 5 : 10;
     target = clamp(Math.ceil(target / step) * step, legal.minTo, maximum);
-    if (maximum === legal.maxTo && me.chips - legal.callAmount < analysis.eligiblePot * 1.2 && equity > Math.max(.65, threshold + .1)) target = maximum;
+    const potCommitted = maximum === legal.maxTo && me.chips - legal.callAmount < analysis.eligiblePot * 1.2 && equity > Math.max(.65, threshold + .1);
+    if (preflop) {
+      const effectiveChips = Math.max(1, Math.min(me.chips, cover - me.bet));
+      const short = effectiveChips <= view.bigBlind * 25;
+      const large = target - me.bet > effectiveChips * .25 || target > view.bigBlind * 12;
+      const largeQuality = effectiveChips <= view.bigBlind * 10 ? .72 : short ? .76 : .86;
+      if (large && (bluff || quality < largeQuality || analysis.equity < Math.max(fair + .08, threshold + .03) ||
+        roll(random) >= .18 + .35 * profile.aggression)) return { type: legal.canCheck ? 'check' : 'call' };
+      const jamQuality = effectiveChips <= view.bigBlind * 10 ? .72 : short ? .81 : .93;
+      const jamEquity = Math.max(fair + (short ? .08 : .18), fair * (short ? 1.15 : 1.5));
+      const canJam = !bluff && quality >= jamQuality && analysis.equity >= jamEquity;
+      if ((target === legal.maxTo || potCommitted) && canJam && roll(random) < .08 + .18 * profile.aggression + (short ? .15 : 0)) target = maximum;
+      else if (target === legal.maxTo) {
+        // Declining a shove must not turn into a nearly identical 99%-stack bet.
+        target = Math.min(target, me.bet + Math.floor(me.chips * .4 / step) * step);
+        if (target < legal.minTo) return { type: legal.canCheck ? 'check' : 'call' };
+      }
+    } else if (potCommitted) target = maximum;
     if (target >= legal.minTo || target === legal.maxTo && !bluff) return { type: 'raise', amount: target };
   }
   return { type: legal.canCheck ? 'check' : 'call' };

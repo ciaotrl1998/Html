@@ -145,6 +145,7 @@ function filterObjects() {
 try {
   await loadCardArtwork();
   scene = new SaloonScene($('editor-scene'), { editor: true }); layout = scene.layout;
+  scene.cards.prepareTextures(scene.renderer);
   // Static, fully occupied sample: editing never joins or changes a real poker room.
   const names = ['自己', '沃尔特', '艾达', '亨利', '玛吉', '查理', '比利', '罗斯'];
   const seats = names.map((name, seat) => ({ id: `preview-${seat}`, name, seat, kind: seat ? 'ai' : 'human', connected: true, chips: 2000 }));

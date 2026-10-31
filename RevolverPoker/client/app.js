@@ -312,6 +312,7 @@ try {
   scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
   scene.setQuality(quality);
+  scene.cards.prepareTextures(scene.renderer);
   $('seat-layer').hidden = true; $('look-controls').hidden = !room; render();
 } catch (error) {
   console.error('3D scene:', error);
