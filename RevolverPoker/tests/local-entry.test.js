@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../client/boot.js', import.meta.url), 'utf8');
 function boot(protocol = 'file:', search = '', hash = '', options = {}) {
   const elements = [], scripts = [], images = [], replaced = [], timers = new Map(); let nextTimer = 0;
-  const node = () => ({ children: [], style: {}, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, get firstChild() { return this.children[0]; }, appendChild(child) { this.children.push(child); }, removeChild(child) { this.children.splice(this.children.indexOf(child), 1); } });
+  const node = () => ({ children: [], style: { setProperty(key, value) { this[key] = value; } }, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; }, get firstChild() { return this.children[0]; }, appendChild(child) { this.children.push(child); }, removeChild(child) { this.children.splice(this.children.indexOf(child), 1); } });
   const loading = node(), game = node(), listeners = {}, documentListeners = {}, scrolls = [];
   const window = { innerHeight: 736, scrollTo(x, y) { scrolls.push([x, y]); }, addEventListener(name, handler) { listeners[name] = handler; }, ...options.window };
   const document = { activeElement: null, addEventListener(name, handler) { documentListeners[name] = handler; }, getElementById: id => id === 'game' ? game : loading, createElement(tag) { const result = node(); if (tag === 'script' && options.modules !== false) result.noModule = false; elements.push(result); return result; }, head: { appendChild: script => scripts.push(script) } };
@@ -91,6 +91,19 @@ test('mobile screens retain their own full viewport instead of receiving the des
     assert.equal(page.game.style.width, ''); assert.equal(page.game.style.height, '844px');
     assert.equal(page.game.attributes['data-phone-frame'], 'false');
   }
+});
+
+test('the bottom HUD uses a bounded pixel offset throughout mobile resizing and keyboard recovery', () => {
+  const page = boot('http:', '', '', { userAgent: 'Mozilla/5.0 (Linux; Android 10)', window: { innerWidth: 390, innerHeight: 844 } });
+  assert.equal(page.game.style['--dock-bottom'], '40px');
+  page.window.innerHeight = 400; page.listeners.resize();
+  assert.equal(page.game.style['--dock-bottom'], '28px');
+  page.window.innerHeight = 1500; page.listeners.resize();
+  assert.equal(page.game.style['--dock-bottom'], '48px');
+  page.window.innerHeight = 844; page.listeners.resize();
+  assert.equal(page.game.style['--dock-bottom'], '40px');
+  const desktop = boot('http:', '', '', { window: { innerWidth: 300, innerHeight: 1500 } });
+  assert.equal(desktop.game.style['--dock-bottom'], '28px', 'use the fitted game height rather than the surrounding desktop window');
 });
 
 test('iPhone keyboard recovery restores layout after delayed viewport updates and cancels when another field is focused', () => {

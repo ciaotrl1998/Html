@@ -25,6 +25,11 @@
       game.style.width = ''; game.style.height = Math.round(height) + 'px';
       game.style.marginTop = ''; game.setAttribute('data-phone-frame', 'false');
     }
+    // Keep HUD anchoring in pixels: env() mixed with unsupported dvh units can
+    // invalidate bottom at computed-value time in older mobile WebViews.
+    var gameHeight = parseFloat(game.style.height) || height;
+    var dockBottom = Math.max(28, Math.min(48, gameHeight * .08 - 28));
+    game.style.setProperty('--dock-bottom', Math.round(dockBottom) + 'px');
   }
   fitViewport();
   window.addEventListener('resize', fitViewport);
