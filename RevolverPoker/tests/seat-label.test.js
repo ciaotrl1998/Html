@@ -44,7 +44,7 @@ test('nameplates use an inline small seat prefix, AI suffix, large centered acti
   for (const name of ['沃尔特', '这是一个长度达到二十个字的玩家自定义名称']) {
     const { ctx, calls } = drawing();
     paintSeatNameplate(ctx, { seat: 6, name, bot: true, action: '加注至 1000000', value: '2,655', badges: 'BB' });
-    assert.deepEqual(calls.map(call => call.text), ['SEAT07', `${name}（AI）`, '加注至 1000000', '2,655']);
+    assert.deepEqual(calls.map(call => call.text), ['07', `${name}（AI）`, '加注至 1000000', '2,655']);
     const [seat, title, action, chips] = calls;
     assert.ok(seat.size < title.size); assert.equal(seat.y, title.y); assert.ok(seat.x < title.x);
     assert.ok(action.size > title.size && action.size > chips.size); assert.equal(action.align, 'center'); assert.equal(action.x, 256);

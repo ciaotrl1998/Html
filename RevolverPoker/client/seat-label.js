@@ -27,11 +27,11 @@ export function paintSeatNameplate(ctx, data) {
   ctx.setLineDash(data.open ? [12, 9] : []);
   ctx.beginPath(); ctx.roundRect(7, 7, 498, 226, 12); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
 
-  const seat = `SEAT${String(data.seat + 1).padStart(2, '0')}`, name = `${data.name}${data.bot ? '（AI）' : ''}`;
+  const seat = String(data.seat + 1).padStart(2, '0'), name = `${data.name}${data.bot ? '（AI）' : ''}`;
   const gap = 10;
   let nameSize = 34, seatSize, seatWidth, nameWidth;
   for (;;) {
-    seatSize = Math.round(nameSize * .65); ctx.font = `${seatSize}px ${NUMBER_FONT}`; seatWidth = ctx.measureText(seat).width;
+    seatSize = Math.round(nameSize * .8); ctx.font = `${seatSize}px ${NUMBER_FONT}`; seatWidth = ctx.measureText(seat).width;
     ctx.font = `600 ${nameSize}px "Microsoft YaHei", sans-serif`; nameWidth = ctx.measureText(name).width;
     if (seatWidth + gap + nameWidth <= 460 || nameSize <= 18) break;
     nameSize--;
