@@ -44,5 +44,4 @@ test('a copied mobile game serves its complete Three.js runtime without node_mod
   }
   assert.equal((await fetch(`${base}/client/card-artwork.js`)).status, 200);
   assert.equal((await fetch(`${base}/client/fullscreen.js`)).status, 200);
-  assert.equal((await fetch(`${base}/client/world-labels.js`)).status, 200);
 });

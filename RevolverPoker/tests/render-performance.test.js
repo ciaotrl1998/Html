@@ -36,33 +36,40 @@ test('rate changes and background recovery start cleanly without catch-up bursts
   clock.setRate(144); assert.equal(clock.fps, 60, 'invalid settings use the default');
 });
 
-test('mobile 3D resolution is bounded by pixel count while editor resolution remains unchanged', () => {
+test('high quality matches native screen density while medium/low and editor retain their bounded resolution', () => {
   const phone = new RenderBudget({ pixelRatio: 3, mobile: true });
-  phone.resize(400, 884); assert.equal(phone.ratio, 1.5);
-  phone.resize(600, 1300); assert.ok(600 * 1300 * phone.ratio ** 2 <= 900001);
+  phone.resize(400, 884); assert.equal(phone.ratio, 3);
+  assert.equal(400 * phone.ratio, 1200); assert.equal(884 * phone.ratio, 2652);
+  phone.resize(600, 1300); assert.equal(phone.ratio, 3);
+  phone.setQuality('medium'); assert.ok(600 * 1300 * phone.ratio ** 2 <= 900000 * .81 + 1);
+  phone.setQuality('low'); assert.ok(phone.ratio <= 1);
+  phone.setQuality('high'); assert.equal(phone.ratio, 3);
   const desktop = new RenderBudget({ pixelRatio: 2 }); desktop.resize(1920, 1080);
-  assert.ok(1920 * 1080 * desktop.ratio ** 2 <= 1400001);
+  assert.equal(desktop.ratio, 2);
+  desktop.setQuality('medium'); assert.ok(1920 * 1080 * desktop.ratio ** 2 <= 1400000 * .81 + 1);
   const editor = new RenderBudget({ pixelRatio: 2, editor: true }); editor.resize(1920, 1080);
   assert.equal(editor.ratio, 1.7);
 });
 
-test('sustained frame loss reduces only the render scale, stable pacing recovers slowly, and background resets discard pauses', () => {
+test('medium adapts to sustained frame loss, recovers slowly, and discards background pauses', () => {
   const budget = new RenderBudget({ pixelRatio: 3, mobile: true }); budget.resize(400, 884);
+  budget.setQuality('medium'); const maximum = budget.ratio;
   let now = 0;
   const run = (hz, seconds, target = 60) => { let changes = 0; for (let i = 0; i < hz * seconds; i++) { if (budget.sample(now, target)) changes++; now += 1000 / hz; } return changes; };
-  assert.equal(run(60, 3), 0); assert.equal(budget.ratio, 1.5);
-  assert.ok(run(40, 3) > 0); const reduced = budget.ratio; assert.ok(reduced < 1.5);
+  assert.equal(run(60, 3), 0); assert.equal(budget.ratio, maximum);
+  assert.ok(run(40, 3) > 0); const reduced = budget.ratio; assert.ok(reduced < maximum);
   budget.reset(); now += 60000;
   assert.equal(budget.sample(now, 60), false); assert.equal(budget.ratio, reduced);
   now += 60000;
   assert.equal(budget.sample(now, 60), false, 'a browser-suspended RAF gap is not mistaken for sustained GPU overload');
   assert.equal(budget.ratio, reduced);
-  run(60, 9); assert.ok(budget.ratio > reduced && budget.ratio <= 1.5);
+  run(60, 9); assert.ok(budget.ratio > reduced && budget.ratio <= maximum);
   for (let i = 0; i < 20; i++) run(20, 3);
   assert.ok(budget.ratio >= .75, 'resolution is bounded even on a device that cannot reach the requested FPS');
   budget.setQuality(true); const low = budget.ratio;
   assert.equal(run(20, 9), 0); assert.equal(budget.ratio, low);
-  budget.setQuality(false); assert.equal(budget.ratio, 1.5);
+  budget.setQuality(false); assert.equal(budget.ratio, 3);
+  assert.equal(run(20, 9), 0); assert.equal(budget.ratio, 3, 'high quality does not silently soften the screen under load');
 });
 
 test('stable 45 FPS does not trigger resolution reductions', () => {
@@ -70,16 +77,16 @@ test('stable 45 FPS does not trigger resolution reductions', () => {
     const clock = new FrameClock(45), budget = new RenderBudget({ pixelRatio: 3, mobile: true });
     budget.resize(400, 884);
     for (let i = 0; i < hz * 12; i++) { const now = i * 1000 / hz; if (clock.step(now) !== null) assert.equal(budget.sample(now, 45), false); }
-    assert.equal(budget.ratio, 1.5);
+    assert.equal(budget.ratio, 3);
   }
 });
 
-test('medium quality retains high-resolution cards and limits adaptive softening while reducing shadow cost', () => {
+test('medium quality keeps its previous resolution budget, textures and shadow cost independently of native high quality', () => {
   const budget = new RenderBudget({ pixelRatio: 3, mobile: true }); budget.resize(400, 884);
   const highRatio = budget.ratio;
-  budget.setQuality('medium'); const mediumRatio = highRatio * .9;
+  budget.setQuality('medium'); const mediumRatio = 1.5 * .9;
   assert.equal(budget.ratio, mediumRatio);
-  assert.ok(Math.abs((budget.ratio / highRatio) ** 2 - .81) < 1e-9, 'medium reduces 3D pixels by 19 percent');
+  assert.ok(Math.abs((budget.ratio / 1.5) ** 2 - .81) < 1e-9, 'medium retains the previous 19 percent reduction from its bounded budget');
   assert.equal(budget.settings.shadowSize, 512); assert.equal(budget.settings.shadowFps, 15);
   assert.equal(budget.settings.idleShadowFps, 2);
   for (let i = 0; i < 20 * 30; i++) budget.sample(i * 50, 60);

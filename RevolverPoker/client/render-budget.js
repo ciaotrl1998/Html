@@ -1,7 +1,7 @@
 // Keep the 3D buffer bounded independently of the native-resolution HTML UI.
 export const normalizeQuality = value => value === 'low' || value === true ? 'low' : value === 'medium' ? 'medium' : 'high';
 export const QUALITY_PRESETS = {
-  high: { shadowSize: 1024, shadowFps: 30, idleShadowFps: 4, resolutionScale: 1, minimumScale: .65 },
+  high: { shadowSize: 1024, shadowFps: 30, idleShadowFps: 4, resolutionScale: 1, minimumScale: 1 },
   medium: { shadowSize: 512, shadowFps: 15, idleShadowFps: 2, resolutionScale: .9, minimumScale: .95 },
   low: { shadowSize: 512, shadowFps: 0, idleShadowFps: 0, resolutionScale: 1, minimumScale: 1 }
 };
@@ -15,7 +15,12 @@ export class RenderBudget {
     const cap = this.editor ? Infinity : this.mobile ? 900000 : 1400000;
     this.baseRatio = Math.min(this.deviceRatio, this.editor ? 1.7 : this.mobile ? 1.5 : 1.7, Math.sqrt(cap / Math.max(1, width * height)));
   }
-  get maximumRatio() { return this.baseRatio * (this.editor ? 1 : this.settings.resolutionScale); }
+  get maximumRatio() {
+    // High quality uses the screen's native pixel density for the existing 3D
+    // pass. Medium/low retain their bounded buffers; editor precision is unchanged.
+    if (!this.editor && this.quality === 'high') return this.deviceRatio;
+    return this.baseRatio * (this.editor ? 1 : this.settings.resolutionScale);
+  }
   get ratio() {
     if (this.quality === 'low') return Math.min(1, this.baseRatio);
     const maximum = this.maximumRatio;
@@ -29,7 +34,7 @@ export class RenderBudget {
   }
   reset() { this.start = null; this.last = null; this.frames = 0; this.stable = 0; }
   sample(time, fps) {
-    if (this.editor || this.quality === 'low') return false;
+    if (this.editor || this.quality !== 'medium') return false;
     // Some mobile browsers suspend RAF before a hidden-page tick is delivered.
     if (this.last !== null && time - this.last > 1000) this.reset();
     this.last = time;

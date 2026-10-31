@@ -59,7 +59,7 @@ test('quality changes invalidate cached shadow shaders, including hidden and sha
   assert.equal(scene.renderer.shadowMap.enabled, true);
   assert.equal(scene.renderer.shadowMap.needsUpdate, true, 'standard quality requests a fresh shadow map');
   assert.equal(scene.renderer.shadowMap.autoUpdate, false, 'the 30 FPS shadow budget is preserved');
-  assert.equal(ratio, 1.7);
+  assert.equal(ratio, 2, 'high quality uses native screen density');
   assert.deepEqual([felt.version, hiddenMaterial.version], versions.map(v => v + 2));
   assert.equal(table.receiveShadow, true);
   assert.equal(resets, 3); assert.equal(resizes, 3);
@@ -117,6 +117,13 @@ test('game and editor initialize every saved anchor before the first frame, with
   });
   for (const editor of [false, true]) {
     const scene = new SaloonScene(element(), { editor });
+    assert.ok(scene.container.children.every(child => child === scene.renderer.domElement || child.className === 'chip-selector'), 'rendering labels requires no additional DOM overlays beyond the existing chip selector');
+    for (const label of scene.labels) {
+      assert.equal(scene.camera.layers.test(label.sprite.layers), true, 'head labels render in the normal 3D camera pass');
+      assert.equal(scene.raycaster.layers.test(label.sprite.layers), true, 'head label touch targets remain in the normal picking layer');
+      assert.equal(label.canvas.hidden, undefined);
+      label.sprite.visible = true;
+    }
     const stats = [...scene.models, ...scene.chairs].reduce((total, node) => ({ before: total.before + node.userData.meshBatching.before, after: total.after + node.userData.meshBatching.after }), { before: 0, after: 0 });
     assert.ok(stats.after < stats.before * .6, 'batching reduces character/chair meshes without changing layout anchors');
     if (!editor) t.diagnostic(`Character/chair meshes: ${stats.before} -> ${stats.after}`);

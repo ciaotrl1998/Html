@@ -2,7 +2,6 @@ import * as THREE from '/vendor/three.js';
 import SAVED_SCENE from './scene-layout.js';
 import { FrameClock } from './frame-clock.js';
 import { RenderBudget } from './render-budget.js';
-import { WorldLabelLayer } from './world-labels.js';
 import { batchStaticMeshes } from './mesh-batching.js';
 import { TableCards, BOARD_CENTER_Z, TABLE_POSITIONS as POSITIONS } from './cards.js';
 import { LayoutRegistry } from './layout-registry.js';
@@ -111,7 +110,6 @@ export class SaloonScene {
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
-    this.raycaster.layers.enable(1);
     this.labelPosition = new THREE.Vector3();
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x211a11); this.scene.fog = new THREE.FogExp2(0x261d11, .027);
     this.camera = new THREE.PerspectiveCamera(53, 1, .1, 80);
@@ -122,7 +120,6 @@ export class SaloonScene {
     this.renderer.shadowMap.autoUpdate = editor; this.renderer.shadowMap.needsUpdate = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.28;
     container.appendChild(this.renderer.domElement);
-    this.labelLayer = editor ? null : new WorldLabelLayer(container, this.scene, this.camera, devicePixelRatio);
     this.scene.add(new THREE.HemisphereLight(0xd7bb87, 0x3a2e22, 2.0));
     const key = new THREE.SpotLight(0xffd294, 340, 35, Math.PI / 3, .65, 1.8);
     this.keyLight = key;
@@ -162,7 +159,6 @@ export class SaloonScene {
     let cameraState = '';
     this.layout.onApply = () => {
       this.shadowDirty = true;
-      this.labelLayer?.invalidate();
       this.dealerButtons.applyLayout(this.layout.current, this.layout);
       const pose = playerCameraPose(this.playerCamera);
       const state = JSON.stringify([pose.position.toArray(), pose.quaternion.toArray(), pose.fov, pose.near, pose.far]);
@@ -328,10 +324,7 @@ export class SaloonScene {
     const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest: true, depthWrite: false, toneMapped: false, fog: false }));
     sprite.center.set(.5, 0); sprite.scale.set(2.1, .984, 1); sprite.visible = false;
-    map.generateMipmaps = false; map.minFilter = THREE.LinearFilter; map.magFilter = THREE.LinearFilter;
-    const label = { canvas, map, sprite, key: '' };
-    this.labelLayer?.register(label);
-    return label;
+    return { canvas, map, sprite, key: '' };
   }
   paintSeatLabel(label, data) {
     const key = JSON.stringify(data);
@@ -344,7 +337,6 @@ export class SaloonScene {
       label.canvas.height = height;
       label.map = new THREE.CanvasTexture(label.canvas);
       label.map.colorSpace = THREE.SRGBColorSpace;
-      label.map.generateMipmaps = false; label.map.minFilter = THREE.LinearFilter; label.map.magFilter = THREE.LinearFilter;
       label.sprite.material.map = label.map;
       label.sprite.material.needsUpdate = true;
       previousMap.dispose();
@@ -480,7 +472,6 @@ export class SaloonScene {
   }
   update(room, you) {
     this.shadowDirty = true;
-    this.labelLayer?.invalidate();
     const wasFirstPerson = this.firstPerson;
     const freshDeal = !!dealKey(room) && dealKey(room) !== dealKey(this.room);
     this.room = room; this.viewerId = you;
@@ -623,7 +614,7 @@ export class SaloonScene {
       model.userData.head.rotation.x = model.userData.folded ? .18 : Math.sin(time * .0004 + i) * .025;
     });
     // Keep nearby nameplates readable without letting them cover half a phone screen.
-    // The same world-space anchors drive native-resolution canvases and touch sprites.
+    // These remain depth-tested world-space Sprites; there is no screen-positioned UI.
     const labelLimit = Math.min(150, this.viewWidth * .42);
     const worldPerPixel = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / Math.max(1, this.viewHeight);
     for (const label of this.labels) if (label.sprite.visible) {
@@ -634,7 +625,6 @@ export class SaloonScene {
     }
     if (!this.editor && this.hands.visible) this.hands.position.y = 1.79 + Math.sin(time * .001) * .003;
     this.beforeRender?.();
-    this.labelLayer?.update(time, this.viewWidth, this.viewHeight);
     // Quality changes affect shadow cost independently of card textures/resolution.
     // Changes and the final animation pose invalidate the cached map immediately.
     const shadowMotion = !this.editor && this.shadowMotion;
