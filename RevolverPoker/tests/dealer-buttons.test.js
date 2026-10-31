@@ -11,7 +11,7 @@ registerHooks({ resolve(specifier, context, next) {
   return next(specifier, context);
 } });
 const { LayoutRegistry } = await import('../client/layout-registry.js');
-const { DealerButtons } = await import('../client/dealer-buttons.js');
+const { DealerButtons, POSITION_MARKERS } = await import('../client/dealer-buttons.js');
 const { SaloonScene } = await import('../client/scene.js');
 const { TableCards, TABLE_POSITIONS } = await import('../client/cards.js');
 const { createPlayerCamera, copyPlayerCamera } = await import('../client/player-camera.js');
@@ -24,10 +24,12 @@ function registerScene(game) {
   game.layout.onApply = () => game.dealerButtons.applyLayout(game.layout.current, game.layout);
   game.layout.apply(EMPTY_LAYOUT);
 }
-function fixture(editor = false) {
+function fixture(editor = false, text = []) {
   const scene = new THREE.Scene(), original = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .06, 24), new THREE.MeshStandardMaterial());
   original.position.set(1.4, 1.65, 1); original.userData.layout = { id: 'table-9', label: '庄家按钮', category: '牌桌与道具' }; scene.add(original);
-  const game = { scene, editor }; game.dealerButtons = new DealerButtons(game, original); registerScene(game);
+  const ctx = new Proxy({ fillText: value => text.push(value) }, { get: (target, key) => key in target ? target[key] : () => {} });
+  const doc = { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) };
+  const game = { scene, editor }; game.dealerButtons = new DealerButtons(game, original, doc); registerScene(game);
   return game;
 }
 
@@ -51,6 +53,70 @@ test('each dealer position is editable, including own first-person view; only th
   game.dealerButtons.update(null, 0); assert.ok(buttons.every(button => !button.visible));
   game.scene.updateMatrixWorld(true); closeMatrix(buttons[0].matrixWorld, own.proxy.matrix);
   assert.deepEqual(game.layout.export(), saved);
+});
+
+test('smaller BTN, SB and BB markers have distinct faces and share every saved seat anchor', () => {
+  const text = [], game = fixture(false, text), markers = game.dealerButtons;
+  assert.deepEqual(text, ['BTN', 'SB', 'BB']);
+  assert.equal(new Set(POSITION_MARKERS.map(marker => marker.face)).size, 3);
+  assert.equal(new Set(POSITION_MARKERS.map(marker => marker.side)).size, 3);
+  assert.equal(markers.geometry.parameters.radiusTop, .12);
+  assert.equal(markers.geometry.parameters.height, .045);
+  const own = game.layout.entries.get('dealer-button-0');
+  own.proxy.position.set(-.4, 1.63, 3.1); own.proxy.rotation.y = .3; game.layout.sync(own);
+  const saved = game.layout.export();
+  markers.update(6, 6, 0, 3); game.scene.updateMatrixWorld(true);
+  const shown = markers.buttons.flatMap((group, local) => group.visible
+    ? group.children.filter(model => model.visible).map(model => ({ local, role: model.userData.positionRole })) : []);
+  assert.deepEqual(shown, [{ local: 0, role: 'BTN' }, { local: 2, role: 'SB' }, { local: 5, role: 'BB' }]);
+  for (const role of ['BTN', 'SB', 'BB']) {
+    markers.update(role === 'BTN' ? 6 : 2, 6, role === 'SB' ? 6 : 3, role === 'BB' ? 6 : 4);
+    game.scene.updateMatrixWorld(true);
+    const model = markers.buttons[0].children.find(node => node.visible);
+    assert.equal(model.userData.positionRole, role);
+    assert.equal(model.position.x, 0); closeMatrix(markers.buttons[0].matrixWorld, own.proxy.matrix);
+  }
+  assert.deepEqual(game.layout.export(), saved, 'changing the role does not move its edited anchor');
+  markers.update(null, 0); assert.ok(markers.buttons.every(group => !group.visible));
+});
+
+test('heads-up shows only SB and BB at their shared anchors, and BTN returns for a multi-player hand', () => {
+  const { dealerButtons: markers } = fixture();
+  markers.update(7, 7, 7, 2);
+  const own = markers.buttons[0].children.filter(model => model.visible);
+  assert.deepEqual(own.map(model => model.userData.positionRole), ['SB']);
+  assert.equal(own[0].position.x, 0);
+  assert.ok(markers.buttons.every(group => !group.children.find(model => model.userData.positionRole === 'BTN').visible));
+  assert.equal(markers.buttons[3].children.find(model => model.visible).userData.positionRole, 'BB');
+  markers.update(2, 7, 2, 7);
+  assert.equal(markers.buttons[0].children.find(model => model.visible).userData.positionRole, 'BB');
+  assert.equal(markers.buttons[3].children.find(model => model.visible).userData.positionRole, 'SB');
+  assert.ok(markers.buttons.every(group => !group.children.find(model => model.userData.positionRole === 'BTN').visible));
+  markers.update(7, 7, 0, 1);
+  assert.equal(markers.buttons[0].children.filter(model => model.visible).length, 1);
+  assert.equal(markers.buttons[0].children[0].visible, true);
+  assert.equal(markers.buttons[0].children[0].position.x, 0);
+});
+
+test('opening places BTN, SB and BB in order without restarting on stage updates or reconnection', () => {
+  const game = fixture(), markers = game.dealerButtons;
+  const opening = { hand: 1, stage: 'markers', startedAt: 10000, smallBlindAt: 11000, bigBlindAt: 12000, endsAt: 13000 };
+  markers.update(0, 0, 2, 5, opening, 10000, 0);
+  const find = (seat, role) => markers.buttons[seat].children.find(model => model.userData.positionRole === role);
+  assert.equal(find(0, 'BTN').visible, true); assert.ok(find(0, 'BTN').position.y > 0);
+  assert.equal(find(2, 'SB').visible, false); assert.equal(find(5, 'BB').visible, false);
+  markers.tick(400);
+  assert.equal(find(0, 'BTN').position.y, 0); assert.equal(find(2, 'SB').visible, true); assert.equal(find(5, 'BB').visible, false);
+  markers.tick(1000);
+  for (const model of [find(0, 'BTN'), find(2, 'SB'), find(5, 'BB')]) {
+    assert.equal(model.visible, true); assert.equal(model.position.y, 0); assert.equal(model.scale.x, 1);
+  }
+  markers.update(0, 0, 2, 5, { ...opening, stage: 'smallBlind' }, 11500, 1500);
+  assert.equal(markers.placement, null); assert.equal(find(0, 'BTN').position.y, 0);
+  const reconnect = fixture().dealerButtons;
+  reconnect.update(0, 0, 2, 5, { ...opening, stage: 'bigBlind' }, 12500, 0);
+  assert.equal(reconnect.placement, null);
+  assert.ok(reconnect.buttons.flatMap(group => group.children).filter(model => model.visible).every(model => model.position.y === 0));
 });
 
 test('legacy dealer edits are preserved without double offsets, while individual edits, reloads and resets remain independent', () => {

@@ -207,6 +207,10 @@ export class TableCards {
     if (freshHand || !hand) for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; card.peekPending = false; }
     this.handKey = newKey; this.seenState = true;
     if (!hand) return;
+    if (room.opening) {
+      for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; card.peekPending = false; }
+      return;
+    }
     this.dealStart = room.deal?.hand === hand.number && room.deal.boardCount === hand.board.length && Number.isFinite(room.serverTime)
       ? performance.now() - (room.serverTime - room.deal.startedAt) : null;
     for (let i = 0; i < 5; i++) {

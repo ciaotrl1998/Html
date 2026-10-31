@@ -25,10 +25,11 @@ export class TableActions {
     this.context = context; this.bankroll = player?.chips || 0; this.emit();
   }
   get enabled() { return !!this.context && !this.inFlight; }
+  get selecting() { return this.enabled && (this.gesture?.kind === 'bank' || this.gesture?.kind === 'select'); }
   emit() {
     const g = this.gesture, stops = sliderStops(this.context);
     this.change({ pending: this.pending, bankroll: this.bankroll, remaining: this.bankroll - this.pending,
-      enabled: this.enabled, inFlight: this.inFlight, selecting: g?.kind === 'bank' || g?.kind === 'select',
+      enabled: this.enabled, inFlight: this.inFlight, selecting: this.selecting,
       selected: g?.selected ?? this.pending, ratio: g?.ratio ?? ratioForAmount(this.context, this.pending), preset: g?.preset ?? stops.find(stop => stop.amount === this.pending)?.label ?? '', stops,
       hint: g?.hint || '', maximum: this.context ? maximumBet(this.context) : 0,
       progress: g?.progress || 0, dragging: g?.kind === 'staged' ? 'chips' : g?.kind === 'hand' ? 'hand' : null });
@@ -56,9 +57,10 @@ export class TableActions {
     }
   }
   select(g) {
-    const ratio = clamp(g.rawRatio + (g.lastY - g.point.y) / this.sliderTravel(), 0, 1);
+    const travel = this.sliderTravel();
+    const ratio = clamp(g.rawRatio + (g.lastY - g.point.y) / travel, 0, 1);
     g.rawRatio = ratio; g.lastY = g.point.y;
-    const selected = selectionAtRatio(this.context, ratio, this.sliderTravel());
+    const selected = selectionAtRatio(this.context, ratio, travel);
     g.selected = selected.amount; g.ratio = selected.ratio; g.preset = selected.preset; g.hint = selected.hint; this.emit();
   }
   move(point, time) {
@@ -66,9 +68,9 @@ export class TableActions {
     if (!g) return false;
     g.point = { ...point }; g.moved = Math.max(g.moved, Math.hypot(point.x - g.start.x, point.y - g.start.y));
     if (!this.enabled || g.key !== this.context.key) return true;
-    if (g.kind === 'bank' && g.moved > TABLE_GESTURES.tapSlop) g.kind = 'select';
-    this.tick(time);
-    if (g.kind === 'select') this.select(g);
+    if (g.kind === 'bank' && (g.moved > TABLE_GESTURES.tapSlop || time - g.time >= TABLE_GESTURES.hold)) g.kind = 'select';
+    // Preview from the first pixel; keep tap slop only for deciding how release behaves.
+    if (g.kind === 'bank' || g.kind === 'select') this.select(g);
     else if (g.kind === 'staged' || g.kind === 'hand') {
       g.progress = Math.max(0, this.forward(g.start, point)); this.emit();
     } else if (g.kind === 'table' && g.moved > TABLE_GESTURES.tapSlop) this.lastTap = null;

@@ -65,9 +65,11 @@ export class SceneViewControls {
     const drag = this.drag?.id === e.pointerId ? this.drag : null;
     if (!drag) return;
     if (e.pointerType === 'mouse' && e.buttons === 0) { this.cancel(); return; }
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    this.trackDrag(dx, dy); drag.x = e.clientX; drag.y = e.clientY;
-    if (drag.tableGesture && this.scene.tableActions.move({ x: e.clientX, y: e.clientY }, this.now())) return;
+    const samples = e.getCoalescedEvents?.();
+    const point = samples?.length ? samples[samples.length - 1] : e;
+    const dx = point.clientX - drag.x, dy = point.clientY - drag.y;
+    this.trackDrag(dx, dy); drag.x = point.clientX; drag.y = point.clientY;
+    if (drag.tableGesture && this.scene.tableActions.move({ x: point.clientX, y: point.clientY }, this.now())) return;
     if (this.scene.peekActive || drag.peek || !drag.moved) return;
     if (this.scene.firstPerson) this.turn(dx, dy);
     else this.nudgeOverview(dx / 250, dy / 250);

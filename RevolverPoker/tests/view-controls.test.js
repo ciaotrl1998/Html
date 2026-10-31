@@ -325,6 +325,25 @@ test('a held chip bank captures dragging anywhere on screen and immediately reve
   }
 });
 
+test('touch chip preview follows the first pixel and latest coalesced sample before any scene frame', () => {
+  const f = fixture(true), states = [];
+  f.scene.tableActions = new TableActions({ change: state => states.push(state) });
+  f.scene.tableActions.sync({ code: 'TEST', phase: 'playing', turnId: 1, hand: { number: 1, actor: 0, pot: 200, currentBet: 0,
+    players: [{ id: 'me', seat: 0, bet: 0, chips: 1000 }], legal: { toCall: 0, callAmount: 0, canCheck: true, canRaise: true, minTo: 1, maxTo: 1000, canAllIn: true } } }, 'me');
+  f.scene.target = { chipRole: 'bank' };
+  event(f.canvas, 'pointerdown', { pointerType: 'touch' });
+  const initial = states.at(-1).ratio;
+  event(f.canvas, 'pointermove', { pointerType: 'touch', clientY: 419 });
+  assert.ok(Math.abs(states.at(-1).ratio - initial - 1 / 320) < 1e-12);
+  assert.equal(states.at(-1).selected, 2); assert.equal(f.scene.tableActions.pending, 0);
+  event(f.canvas, 'pointermove', { pointerType: 'touch', clientY: 415,
+    getCoalescedEvents: () => [{ clientX: 210, clientY: 412 }, { clientX: 210, clientY: 400 }] });
+  assert.ok(Math.abs(states.at(-1).ratio - initial - 20 / 320) < 1e-12);
+  assert.equal(f.scene.tableActions.pending, 0); assert.equal(f.looks, 0);
+  event(f.canvas, 'pointercancel', { pointerType: 'touch' });
+  assert.equal(states.at(-1).selecting, false);
+});
+
 test('mouse and touch can peek during dealing, and a held drag never becomes a fold when actions unlock', () => {
   for (const pointerType of ['mouse', 'touch']) {
     const f = fixture(true), sent = [];

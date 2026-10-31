@@ -30,7 +30,7 @@ async function client(url, name, token) {
   return c;
 }
 test('real WebSockets: eight seats, authority, races, hidden cards, duplicate action and reconnection', async t => {
-  const app = createPokerServer({ phaseDelay: 0, botDelay: 10, nextDelay: 50, dealDelay: 0 });
+  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, botDelay: 10, nextDelay: 50, dealDelay: 0 });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   t.after(() => app.close());
   const port = app.server.address().port, url = `ws://127.0.0.1:${port}/ws`;
@@ -89,7 +89,7 @@ test('real WebSockets: eight seats, authority, races, hidden cards, duplicate ac
 });
 
 test('one human + seven AI can finish a hand, stop and retain seat setup for a new match', async t => {
-  const app = createPokerServer({ phaseDelay: 0, botDelay: 2, nextDelay: 20, dealDelay: 0 });
+  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, botDelay: 2, nextDelay: 20, dealDelay: 0 });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   t.after(() => app.close());
   const h = await client(`ws://127.0.0.1:${app.server.address().port}/ws`, '旅客');
@@ -117,7 +117,7 @@ test('one human + seven AI can finish a hand, stop and retain seat setup for a n
 });
 
 test('physical chip gestures stage locally, then submit exactly one valid call over a real socket', async t => {
-  const app = createPokerServer({ phaseDelay: 0, dealDelay: 0 });
+  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, dealDelay: 0 });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve)); t.after(() => app.close());
   const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
   const host = await client(url, '房主'), guest = await client(url, '朋友');
@@ -154,7 +154,7 @@ test('physical chip gestures stage locally, then submit exactly one valid call o
 
 for (const phase of ['lobby', 'dealing', 'playing', 'between-hands', 'final-result', 'finished']) {
   test(`host closes room immediately during ${phase}; members can return and create or join again`, async t => {
-    const app = createPokerServer({ phaseDelay: 0, nextDelay: phase === 'finished' ? 40 : 10000, dealDelay: phase === 'dealing' ? 10000 : 0 });
+    const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, nextDelay: phase === 'finished' ? 40 : 10000, dealDelay: phase === 'dealing' ? 10000 : 0 });
     await new Promise(r => app.server.listen(0, '127.0.0.1', r));
     t.after(() => app.close());
     const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
@@ -216,13 +216,13 @@ for (const phase of ['lobby', 'dealing', 'playing', 'between-hands', 'final-resu
   });
 }
 
-async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15) {
-  const app = createPokerServer({ phaseDelay: 0, nextDelay: 10000, ...options });
+async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15, gameConfig = {}) {
+  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, nextDelay: 10000, ...options });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   t.after(() => app.close());
   const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
   const host = await client(url, '房主');
-  host.send('create', { config: { actionSeconds } }); await host.until(c => !!c.state);
+  host.send('create', { config: { actionSeconds, ...gameConfig } }); await host.until(c => !!c.state);
   host.send('seat', { seat: 0 }); await host.until(c => c.state.seats[0].kind === 'human');
   let guest;
   if (bot) { host.send('seat', { seat: 1 }); await host.until(c => c.state.seats[1].kind === 'ai'); }
@@ -233,6 +233,66 @@ async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15) {
   host.send('start'); await host.until(c => c.state.dealing);
   return { app, host, guest, url };
 }
+
+test('the default three-second opening posts small and big blinds in order, blocks play and preserves progress on reconnect', async t => {
+  const { app, host, guest, url } = await dealingRoom(t, { openingDelay: undefined, dealDelay: 100 });
+  const first = host.state, timeline = first.opening;
+  assert.equal(timeline.endsAt - timeline.startedAt, 3000);
+  assert.equal(timeline.smallBlindAt - timeline.startedAt, 1000);
+  assert.equal(timeline.bigBlindAt - timeline.startedAt, 2000);
+  assert.equal(timeline.stage, 'markers'); assert.equal(first.hand.pot, 0);
+  assert.ok(first.hand.players.every(player => player.chips === 2000 && player.bet === 0 && player.total === 0 && player.cards.every(card => card === null)));
+  assert.equal(first.deal, null); assert.equal(first.deadline, null); assert.equal(first.hand.legal, null);
+  host.send('action', { hand: first.handNumber, turnId: null, requestId: 'opening', action: 'call' });
+  await host.until(c => c.errors.length > 0);
+  assert.match(host.errors.at(-1), /盲注/); assert.equal(app.rooms.get(first.code).hand.history.length, 0);
+  await host.until(c => c.state.opening?.stage === 'smallBlind');
+  const small = host.state;
+  assert.equal(small.hand.pot, 10);
+  assert.equal(small.hand.players.find(player => player.seat === small.hand.sbSeat).bet, 10);
+  assert.equal(small.hand.players.find(player => player.seat === small.hand.bbSeat).bet, 0);
+  const reconnect = await client(url, '朋友', guest.session.token);
+  await reconnect.until(c => !!c.state);
+  assert.deepEqual(reconnect.state.opening, small.opening); assert.equal(reconnect.state.hand.pot, 10);
+  await host.until(c => c.state.opening?.stage === 'bigBlind');
+  assert.equal(host.state.hand.pot, 30);
+  assert.equal(host.state.hand.players.find(player => player.seat === host.state.hand.bbSeat).bet, 20);
+  for (const state of [first, small, host.state]) {
+    assert.equal(state.hand.players.reduce((sum, player) => sum + player.chips + player.total, 0), 4000);
+    assert.equal(state.turnId, null); assert.equal(state.deadline, null); assert.equal(state.hand.actor, null);
+  }
+  await host.until(c => !c.state.opening && c.state.dealing);
+  assert.ok(host.state.deal.startedAt >= timeline.endsAt - 2);
+  await host.until(c => !c.state.dealing);
+  assert.ok(host.state.deadline - host.state.serverTime >= 14900);
+});
+
+test('a later opening with antes and short blind all-ins keeps all seven chips accounted for before revealing results', async t => {
+  const { app, host, guest } = await dealingRoom(t, { openingDelay: 300, dealDelay: 20, nextDelay: 200 }, false, 15, { ante: 2 });
+  await host.until(c => !c.state.dealing);
+  const state = host.state, actor = state.hand.actor === 0 ? host : guest;
+  await actor.until(c => c.state.turnId === state.turnId);
+  actor.send('action', { hand: state.handNumber, turnId: state.turnId, requestId: 'first-fold', action: 'fold' });
+  await host.until(c => c.state.hand.done);
+  const internal = app.rooms.get(state.code);
+  internal.players[0].chips = 3; internal.players[1].chips = 4;
+  await host.until(c => c.state.handNumber === 2 && c.state.opening?.stage === 'markers');
+  const markers = host.state;
+  assert.equal(markers.hand.pot, 0); assert.equal(markers.hand.players.reduce((sum, player) => sum + player.chips, 0), 7);
+  await host.until(c => c.state.opening?.stage === 'smallBlind');
+  const small = host.state;
+  assert.equal(small.hand.pot, 6, 'both antes and the short small blind are posted before the big blind');
+  await host.until(c => c.state.opening?.stage === 'bigBlind');
+  assert.equal(host.state.hand.pot, 7);
+  assert.equal(internal.hand.done, true, 'the engine may already have resolved the forced all-in');
+  for (const snapshot of [markers, small, host.state]) {
+    assert.equal(snapshot.hand.done, false); assert.equal(snapshot.hand.result, null);
+    assert.equal(snapshot.hand.players.reduce((sum, player) => sum + player.chips + player.total, 0), 7);
+    assert.ok(snapshot.hand.players.every(player => player.cards.every(card => card === null)));
+  }
+  await host.until(c => c.state.hand.done);
+  assert.equal(host.state.hand.players.reduce((sum, player) => sum + player.chips, 0), 7);
+});
 
 test('half-second pauses withhold new streets and results, including all-in runouts and reconnection', async t => {
   const { host, guest, url } = await dealingRoom(t, { phaseDelay: undefined, dealDelay: 25 });

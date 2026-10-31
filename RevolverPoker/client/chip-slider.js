@@ -1,4 +1,5 @@
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+const chipNumber = new Intl.NumberFormat('zh-CN');
 
 export function chipSliderBounds(height, headerBottom = height * .12) {
   const bottom = Math.max(80, Math.min(height - 70, height * .68));
@@ -23,7 +24,8 @@ export class ChipSlider {
     this.stops = this.stopKinds.map(name => query(`.chip-stop-${name}`));
     this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { this.bounds = null; if (!this.root.hidden) this.layout(); }) : null;
     this.resizeObserver?.observe(container); if (this.header) this.resizeObserver?.observe(this.header);
-
+    this.shownAmount = this.shownPreset = this.shownMaximum = null;
+    this.stopDefinitions = null; this.visibleStops = [];
   }
   render(state, active) {
     this.state = state;
@@ -31,17 +33,33 @@ export class ChipSlider {
     if (this.root.hidden) return;
     const selected = state.selecting ? state.selected : state.pending, ratio = state.ratio || 0;
     const preset = selected > 0 && selected === state.bankroll ? 'ALL IN' : state.hint || state.preset || '';
-    this.value.textContent = Number(selected || 0).toLocaleString('zh-CN');
-    this.preset.textContent = preset; this.preset.hidden = !preset;
-    this.fill.style.height = `${ratio * 100}%`; this.thumb.style.bottom = `${ratio * 100}%`;
-    this.maximum.textContent = `最大 ${state.maximum.toLocaleString('zh-CN')}`;
-    this.root.setAttribute('aria-valuemin', '0'); this.root.setAttribute('aria-valuemax', String(state.maximum));
-    this.root.setAttribute('aria-valuenow', String(selected || 0)); this.root.setAttribute('aria-valuetext', `${preset} ${this.value.textContent}`.trim());
-    for (let i = 0; i < this.stops.length; i++) {
-      const kind = this.stopKinds[i];
-      const stop = (state.stops || []).find(item => item.kind === kind || item.label === ['1/4池', '半池', '满池'][i]), node = this.stops[i];
-      node.hidden = !stop;
-      if (stop) { node.style.bottom = `${stop.ratio * 100}%`; node.className = `chip-selector-stop chip-stop-${kind}${selected === stop.amount && Math.abs(ratio - stop.ratio) < 1e-9 ? ' snapped' : ''}`; }
+    const amountChanged = selected !== this.shownAmount, presetChanged = preset !== this.shownPreset;
+    if (amountChanged) {
+      this.value.textContent = chipNumber.format(selected || 0);
+      this.root.setAttribute('aria-valuenow', String(selected || 0)); this.shownAmount = selected;
+    }
+    if (presetChanged) { this.preset.textContent = preset; this.preset.hidden = !preset; this.shownPreset = preset; }
+    if (amountChanged || presetChanged) this.root.setAttribute('aria-valuetext', `${preset} ${this.value.textContent}`.trim());
+    if (state.maximum !== this.shownMaximum) {
+      this.maximum.textContent = `最大 ${chipNumber.format(state.maximum)}`;
+      this.root.setAttribute('aria-valuemin', '0'); this.root.setAttribute('aria-valuemax', String(state.maximum));
+      this.shownMaximum = state.maximum;
+    }
+    if (state.stops !== this.stopDefinitions) {
+      this.stopDefinitions = state.stops; this.visibleStops = [];
+      for (let i = 0; i < this.stops.length; i++) {
+        const kind = this.stopKinds[i];
+        const stop = (state.stops || []).find(item => item.kind === kind || item.label === ['1/4池', '半池', '满池'][i]), node = this.stops[i];
+        node.hidden = !stop;
+        if (stop) {
+          node.style.bottom = `${stop.ratio * 100}%`;
+          this.visibleStops.push({ stop, node, base: `chip-selector-stop chip-stop-${kind}` });
+        }
+      }
+    }
+    for (const { stop, node, base } of this.visibleStops) {
+      const className = `${base}${selected === stop.amount && Math.abs(ratio - stop.ratio) < 1e-9 ? ' snapped' : ''}`;
+      if (node.className !== className) node.className = className;
     }
     this.layout(false);
   }
@@ -52,8 +70,11 @@ export class ChipSlider {
       this.root.style.top = `${this.bounds.top}px`; this.root.style.height = `${this.bounds.travel}px`;
       this.track.style.height = `${this.bounds.travel}px`;
     }
-    const height = this.preset.hidden ? 28 : 44;
-    this.label.style.top = `${clamp((1 - (this.state?.ratio || 0)) * this.bounds.travel - 14 - (this.preset.hidden ? 0 : 16), 0, Math.max(0, this.bounds.travel - height))}px`;
+    const ratio = this.state?.ratio || 0, travel = this.bounds.travel, height = this.preset.hidden ? 28 : 44;
+    // Transforms update the compositor without relaying out the track and label.
+    this.fill.style.transform = `scaleY(${ratio})`;
+    this.thumb.style.transform = `translate3d(-50%, ${-ratio * travel}px, 0) translateY(50%)`;
+    this.label.style.transform = `translate3d(0, ${clamp((1 - ratio) * travel - 14 - (this.preset.hidden ? 0 : 16), 0, Math.max(0, travel - height))}px, 0)`;
     return this.bounds.travel;
   }
 }

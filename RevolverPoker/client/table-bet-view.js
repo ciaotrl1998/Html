@@ -117,9 +117,14 @@ export class TableBetView {
   }
   finishTransfers() { for (const transfer of this.transfers) this.saloon.scene.remove(transfer.group); this.transfers = []; }
   resetDraft() { this.finishTransfers(); this.cancelFlight(); this.state = { ...this.state, pending: 0, inFlight: false }; this.stage.visible = false; }
-  setState(state) {
-    const previous = this.state.pending;
+  setState(state, force = false) {
+    const previousState = this.state, previous = previousState.pending;
     this.state = state;
+    if (!force && state.selecting && previousState.selecting && !this.flight && !this.transfers.length &&
+        ['pending', 'remaining', 'bankroll', 'inFlight', 'enabled', 'dragging', 'progress'].every(key => state[key] === previousState[key])) {
+      this.selector.render(state, this.active);
+      return;
+    }
     if (this.flight && !state.inFlight) this.cancelFlight();
     if (this.active && state.pending !== previous && !state.inFlight && !this.flight) this.transfer(Math.abs(state.pending - previous), state.pending < previous);
     const returning = this.transfers.filter(transfer => transfer.returning).reduce((sum, transfer) => sum + transfer.amount, 0);
@@ -142,7 +147,7 @@ export class TableBetView {
     this.number.visible = !this.flight;
   }
   commit({ type, amount }) {
-    this.finishTransfers(); this.setState(this.state);
+    this.finishTransfers(); this.setState(this.state, true);
     if (['fold', 'check'].includes(type)) { this.transfer(amount, true); this.cancelFlight(); return; }
     if (!['call', 'raise', 'allin'].includes(type) || !amount) return;
     this.anchors(); this.committedAmount = amount;
@@ -156,7 +161,7 @@ export class TableBetView {
     this.cancelFlight(); this.stage.visible = false; return adopted;
   }
   cancelFlight() { this.flight = null; this.committedAmount = 0; this.lastStage = -1; }
-  sliderHeight() { return this.selector.layout(false); }
+  sliderHeight() { return this.selector.bounds?.travel ?? this.selector.layout(false); }
   positionSlider() { return this.selector.layout(); }
   measureForward(start, point) {
     this.anchors();
@@ -173,7 +178,7 @@ export class TableBetView {
   }
   tick(time) {
     if (this.active) {
-      if (this.flight || this.stage.visible || !this.slider.hidden) this.anchors();
+      if (this.flight || this.stage.visible) this.anchors();
       if (this.flight) {
         const t = Math.min(1, (time - this.flight.start) / 480);
         const destination = this.saloon.potView?.target() || this.flight.to;
@@ -192,6 +197,6 @@ export class TableBetView {
       transfer.group.position.lerpVectors(transfer.from, transfer.to, 1 - (1 - t) ** 3); transfer.group.position.y += Math.sin(Math.PI * t) * .3;
       if (t >= 1 || !this.active) { this.saloon.scene.remove(transfer.group); completed = true; return false; } return true;
     });
-    if (completed) this.setState(this.state);
+    if (completed) this.setState(this.state, true);
   }
 }

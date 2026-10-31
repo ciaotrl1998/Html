@@ -103,7 +103,7 @@ export class TablePotView {
     }
     // A settled snapshot on initial connection has already paid the winners.
     if (fresh && hand.done) this.paid = true;
-    const animate = !fresh || (hand.street === 'preflop' && hand.history?.length === 0);
+    const animate = !fresh || (!room.opening && !room.deal && hand.street === 'preflop' && hand.history?.length === 0);
     if (!this.paid) for (const player of hand.players) {
       const refund = hand.done && hand.result?.refund?.id === player.id ? money(hand.result.refund.amount) : 0;
       const paid = money(player.total) + refund, previous = this.records.get(player.id) || 0;

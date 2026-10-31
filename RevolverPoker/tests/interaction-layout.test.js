@@ -74,6 +74,24 @@ test('hole cards remain hidden during the initial half-second pause and reconnec
   assert.equal(cards.hole[0].root.visible, true);
 });
 
+test('opening keeps every card hidden until the following shared deal timeline begins', t => {
+  fakeDocument(t);
+  const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);
+  const serverTime = Date.now();
+  const room = { code: 'TEST', dealing: true, serverTime, opening: { hand: 1, stage: 'markers' },
+    hand: { number: 1, board: [], done: false, players: [{ id: 'me', seat: 0, cards: [12, 11] }, { id: 'other', seat: 1, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0); cards.tick(performance.now() + 2000, new THREE.PerspectiveCamera());
+  assert.ok(cards.all.every(card => !card.root.visible && !card.animation));
+  cards.update({ ...room, opening: null, serverTime: serverTime + 3000,
+    deal: { hand: 1, boardCount: 0, startedAt: serverTime + 3500 } }, 'me', TABLE_POSITIONS, 0);
+  assert.equal(cards.hole[0].animation.kind, 'deal');
+  assert.ok(cards.hole[0].animation.start - performance.now() >= 490);
+  cards.tick(cards.dealStart - 1, new THREE.PerspectiveCamera());
+  assert.ok(cards.all.every(card => !card.root.visible));
+  cards.tick(cards.dealStart + 1, new THREE.PerspectiveCamera());
+  assert.equal(cards.hole[0].root.visible, true);
+});
+
 test('holding during a deal preserves its timeline and flips each own card only after it lands', t => {
   fakeDocument(t);
   const { cards } = createGame(); cards.update(null, 'me', TABLE_POSITIONS, 0);

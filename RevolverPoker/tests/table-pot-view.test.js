@@ -116,6 +116,40 @@ test('confirmed blinds, antes and wagers move real coins into an editable pot an
   close(game.potView.target(), entry.proxy.position);
 });
 
+test('opening snapshots animate the small blind before the big blind without creating or losing coins', t => {
+  const { game, actions, tick, visible } = fixture(t), h = hand(), initial = h.snapshot('p0'), now = performance.now();
+  const syncStage = (stage, time) => {
+    const players = initial.players.map(player => {
+      const paid = stage === 'markers' ? 0 : player.seat === initial.sbSeat ? 5 : stage === 'bigBlind' && player.seat === initial.bbSeat ? 10 : 0;
+      return { ...player, chips: 2000 - paid, bet: paid, total: paid };
+    });
+    const room = { code: 'OPEN', phase: 'playing', dealing: true, opening: { hand: 1, stage },
+      hand: { ...initial, players, actor: null, legal: null, pot: players.reduce((sum, player) => sum + player.total, 0) } };
+    game.potView.sync(room, 'p0', 0, time); actions.sync(room, 'p0');
+  };
+  syncStage('markers', now);
+  assert.equal(game.potView.flights.length, 0); assert.equal(game.potView.displayAmount, 0); assert.equal(visible(), 6000);
+  syncStage('smallBlind', now + 1000);
+  assert.deepEqual(game.potView.flights.map(flight => [flight.id, flight.amount]), [['p1', 5]]);
+  assert.equal(visible(), 6000); tick(now + 1700);
+  assert.equal(sum(game.potView.coins), 5);
+  syncStage('bigBlind', now + 2000);
+  assert.deepEqual(game.potView.flights.map(flight => [flight.id, flight.amount]), [['p2', 10]]);
+  assert.equal(visible(), 6000); tick(now + 2700);
+  assert.equal(sum(game.potView.coins), 15); assert.equal(visible(), 6000);
+  syncStage('bigBlind', now + 2800);
+  assert.equal(game.potView.flights.length, 0); assert.equal(sum(game.potView.coins), 15);
+});
+
+test('joining during posted blinds or the subsequent deal restores the pot without replaying the opening wagers', t => {
+  const { game, actions, visible } = fixture(t), h = hand();
+  for (const [index, metadata] of [{ opening: { hand: 1, stage: 'bigBlind' } }, { deal: { hand: 1, boardCount: 0, startedAt: Date.now() } }].entries()) {
+    const room = { code: `JOIN${index}`, phase: 'playing', dealing: true, ...metadata, hand: h.snapshot('p0') };
+    game.potView.sync(room, 'p0', 0); actions.sync(room, 'p0');
+    assert.equal(game.potView.flights.length, 0); assert.equal(sum(game.potView.coins), 15); assert.equal(visible(), 6000);
+  }
+});
+
 test('draft transfers and delayed confirmations conserve chips; the same submitted meshes land exactly once', t => {
   const { game, actions, messages, sync, tick, visible } = fixture(t), h = hand();
   sync(h); tick(performance.now() + 1000); assert.equal(visible(), 6000);

@@ -96,9 +96,17 @@ test('3D chip staging, returns, slider placement and forward dragging respect ed
     const screen = worldPoint => { const p = worldPoint.clone().project(camera); return { x: (p.x + 1) * rect.width / 2, y: (1 - p.y) * rect.height / 2 }; };
     const start = screen(view.home), ahead = screen(view.home.clone().addScaledVector(view.forward, .55));
     assert.ok(view.measureForward(start, ahead) > 1); assert.ok(view.measureForward(ahead, start) < 0);
+    const preview = { ...state, selecting: true, selected: 60, ratio: .2, dragging: null, progress: 0 };
+    view.setState(preview); view.tick(performance.now() + 400);
+    const originalFill = view.fill, originalHandDrag = saloon.cards.setHandDrag;
+    view.fill = () => { throw new Error('drag preview must not rebuild 3D coins'); };
+    saloon.cards.setHandDrag = () => { throw new Error('chip preview must not update the hand'); };
+    view.setState({ ...preview, selected: 70, ratio: .3 });
+    assert.equal(nodes['.chip-selector-value'].textContent, '70');
+    view.fill = originalFill; saloon.cards.setHandDrag = originalHandDrag;
     view.setState({ ...state, selecting: true, selected: 1000, ratio: 1 }); view.tick(performance.now());
     assert.equal(view.slider.hidden, false); assert.equal(nodes['.chip-selector-preset'].textContent, 'ALL IN');
-    assert.equal(nodes.i.style.height, '100%');
+    assert.equal(nodes.i.style.transform, 'scaleY(1)');
     const originalTop = view.slider.style.top, originalHeight = nodes['.chip-selector-track'].style.height;
     assert.ok(Number.parseFloat(originalHeight) > 320);
     camera.rotation.y += .8; view.positionSlider();

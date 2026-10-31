@@ -403,7 +403,7 @@ export class SaloonScene {
     this.renderer.domElement.setAttribute('aria-description', this.firstPerson ? '第一人称视角' : '俯视视角');
   }
   beginCardPeek(kind) {
-    if (this.peekActive || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand || (this.dealing && kind !== 'hand')) return false;
+    if (this.peekActive || this.room?.opening || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand || (this.dealing && kind !== 'hand')) return false;
     const me = this.room.hand.players.find(p => p.id === this.viewerId);
     if (kind === 'hand' && (!me || me.folded)) return false;
     if (kind === 'board' && !this.room.hand.board.length) return false;
@@ -510,7 +510,7 @@ export class SaloonScene {
         settlement: settlementLabel(room.hand, p),
         folded: !!p?.folded, active: !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing });
     }
-    this.dealerButtons?.update(room.hand?.button, this.focus);
+    this.dealerButtons?.update(room.hand?.button, this.focus, room.hand?.sbSeat, room.hand?.bbSeat, room.opening, room.serverTime);
     this.betView?.setActive(this.firstPerson);
     this.potView?.sync(room, you, this.focus);
     this.tableActions?.sync(room, you, this.actionConnected !== false && !this.dealing);
@@ -548,6 +548,7 @@ export class SaloonScene {
     }
     const wasDealing = this.dealing;
     this.cards.tick(time, this.camera);
+    this.dealerButtons?.tick(time);
     if (wasDealing && !this.dealing) {
       this.tableActions?.sync(this.room, this.viewerId, this.actionConnected !== false); this.onDealFinished?.();
     }
@@ -576,7 +577,8 @@ export class SaloonScene {
     }
     if (!this.editor) this.hands.position.y = 1.79 + Math.sin(time * .001) * .003;
     this.beforeRender?.();
-    if (!this.editor && this.renderer.shadowMap.enabled && this.shadowClock.step(time) !== null) this.renderer.shadowMap.needsUpdate = true;
+    // The chip selector is an independent UI layer; reuse scene shadows during a hold.
+    if (!this.editor && !this.tableActions?.selecting && this.renderer.shadowMap.enabled && this.shadowClock.step(time) !== null) this.renderer.shadowMap.needsUpdate = true;
     this.renderer.render(this.scene, this.camera);
     this.afterRender?.();
   }

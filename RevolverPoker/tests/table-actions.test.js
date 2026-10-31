@@ -97,7 +97,7 @@ test('a full slider selects ALL IN and a short stack can still stage a partial c
 
 test('pending labels count new chips, while raise messages include the player existing street bet', () => {
   const f = fixture(room({ player: { bet: 10, chips: 990 }, legal: { toCall: 10, callAmount: 10 } }));
-  f.select(50); assert.equal(f.actions.pending, 50); f.push(); assert.equal(f.sent[0].amount, 60);
+  f.select(80); assert.equal(f.actions.pending, 80); f.push(); assert.equal(f.sent[0].amount, 90);
   for (let ratio = 0; ratio <= 1; ratio += .01) {
     const amount = amountAtRatio(f.actions.context, ratio);
     assert.ok(amount === 0 || amount === 10 || amount >= 30);

@@ -4,11 +4,12 @@ import { ChipSlider, chipSliderBounds } from '../client/chip-slider.js';
 import { TableActions } from '../client/table-actions.js';
 import { amountAtRatio, ratioForAmount, potStops, sliderStops, selectionAtRatio, stagedAction } from '../client/bet-sizing.js';
 
+const translatedY = element => Number(element.style.transform.match(/,\s*([-\d.]+)px/)[1]);
 const context = (pot = 200, chips = 1000) => ({ pot, currentBet: 20, player: { id: 'me', seat: 0, bet: 0, chips }, legal: { toCall: 20, callAmount: 20, canRaise: true, minTo: 40, maxTo: chips, canAllIn: true } });
 
-test('the pot is at the exact midpoint with linear lower/upper ranges and exact quarter/half/pot magnets', () => {
+test('the lower range retains its linear pot scale and exact quarter/half/pot magnets', () => {
   const c = context();
-  for (const [ratio, amount] of [[0, 0], [.125, 50], [.25, 100], [.375, 150], [.5, 200], [.75, 600], [1, 1000]]) {
+  for (const [ratio, amount] of [[0, 0], [.125, 50], [.25, 100], [.375, 150], [.5, 200], [1, 1000]]) {
     assert.equal(amountAtRatio(c, ratio), amount); assert.equal(ratioForAmount(c, amount), ratio);
   }
   for (const stop of potStops(c)) {
@@ -17,33 +18,58 @@ test('the pot is at the exact midpoint with linear lower/upper ranges and exact 
       assert.equal(selection.amount, stop.amount); assert.equal(selection.ratio, stop.ratio); assert.equal(selection.preset, stop.label);
     }
   }
-  assert.notEqual(selectionAtRatio(c, .5 + 15 / 500, 500).amount, 200, 'leaving the magnetic zone resumes linear selection');
+  assert.notEqual(selectionAtRatio(c, .5 + 15 / 500, 500).amount, 200, 'leaving the magnetic zone resumes continuous selection');
 });
 
-test('unsnapped sizing retains one-chip precision through the full pot', () => {
+test('the pot-to-all-in range retains geometric growth while rounding upper amounts to tens', () => {
+  const geometric = context(40, 2560);
+  for (let i = 0; i <= 6; i++) {
+    const ratio = .5 + i / 12, amount = 40 * 2 ** i;
+    assert.equal(amountAtRatio(geometric, ratio), amount);
+    assert.ok(Math.abs(ratioForAmount(geometric, amount) - ratio) < 1e-12);
+  }
+  const phone = context(40, 1980);
+  phone.currentBet = 0;
+  Object.assign(phone.legal, { toCall: 0, callAmount: 0, minTo: 20, canCheck: true });
+  assert.equal(selectionAtRatio(phone, .5, 700).amount, 40);
+  assert.equal(selectionAtRatio(phone, .5 + 8.1 / 700, 700).amount, 40, 'leaving the pot magnet still does not jump straight to eighty');
+  for (const [amount, expected] of [[43, 40], [44, 40], [46, 50], [51, 50], [79, 80], [80, 80], [81, 80], [321, 320], [1001, 1000], [1979, 1980], [1980, 1980]]) {
+    assert.equal(amountAtRatio(phone, ratioForAmount(phone, amount)), expected);
+  }
+  const largePot = context(600, 1000);
+  assert.equal(ratioForAmount(largePot, 600), .6);
+  assert.equal(amountAtRatio(largePot, .8), 770);
+  assert.equal(amountAtRatio(largePot, 1), 1000);
+});
+
+test('one-chip precision ends at either the pot or one hundred, whichever is lower', () => {
   const c = context(1000, 5000);
-  for (const [raw, expected] of [[41, 41], [123, 123], [249, 249], [250, 250], [276, 276], [284, 284], [499, 499], [506, 506], [999, 999], [1000, 1000], [1016, 1020]]) {
+  for (const [raw, expected] of [[41, 41], [99, 99], [100, 100], [101, 100], [106, 110], [123, 120], [249, 250], [250, 250], [276, 280], [284, 280], [499, 500], [506, 510], [999, 1000], [1000, 1000], [1016, 1020]]) {
     assert.equal(amountAtRatio(c, ratioForAmount(c, raw)), expected);
   }
   for (const pot of [40, 80, 200, 203, 1000]) {
     const small = context(pot, 5000); small.currentBet = 0;
     Object.assign(small.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
     for (const travel of [180, 500, 900]) {
-      for (let amount = 1; amount <= pot; amount++) {
+      for (let amount = 1; amount <= Math.min(pot, 100); amount++) {
         assert.equal(amountAtRatio(small, ratioForAmount(small, amount)), amount, `pot=${pot}, travel=${travel}, chip=${amount}`);
       }
     }
   }
+  for (const [pot, raw, expected] of [[40, 46, 50], [1000, 46, 46], [1000, 126, 130], [100, 106, 110]]) {
+    const c = context(pot);
+    assert.equal(amountAtRatio(c, ratioForAmount(c, raw)), expected);
+  }
 });
 
-test('all pot presets attract within four CSS pixels and release outside that range at different track heights', () => {
+test('all pot presets attract within eight CSS pixels and release outside that range at different track heights', () => {
   const c = context(1000, 5000); c.currentBet = 0;
   Object.assign(c.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
   for (const travel of [180, 500, 900]) {
     for (const stop of potStops(c)) {
-      for (const offset of [-4.1, -3.9, 0, 3.9, 4.1]) {
+      for (const offset of [-8.1, -7.9, 0, 7.9, 8.1]) {
         const ratio = stop.ratio + offset / travel, selected = selectionAtRatio(c, ratio, travel);
-        if (Math.abs(offset) < 4) {
+        if (Math.abs(offset) < 8) {
           assert.equal(selected.amount, stop.amount); assert.equal(selected.ratio, stop.ratio); assert.equal(selected.preset, stop.label);
         } else {
           assert.equal(selected.amount, amountAtRatio(c, ratio)); assert.equal(selected.ratio, ratio); assert.equal(selected.preset, '');
@@ -102,7 +128,7 @@ test('a thirty-chip pot only locks to a ten-chip call in the bottom third of its
   assert.deepEqual(sent, [['raise', 40, 'TEST:1:1']], 'only the subsequent forward push submits a legal total');
 });
 
-test('call and minimum-raise nodes use the same four-pixel attraction as pot nodes, including shared positions', () => {
+test('call and minimum-raise nodes use the same eight-pixel attraction as pot nodes, including shared positions', () => {
   const c = context(30, 1945);
   c.player.bet = 10;
   Object.assign(c.legal, { toCall: 10, callAmount: 10, minTo: 40, maxTo: 1955 });
@@ -110,9 +136,9 @@ test('call and minimum-raise nodes use the same four-pixel attraction as pot nod
   assert.deepEqual(limits.map(stop => stop.amount), [10, 30]);
   for (const travel of [180, 500, 900]) {
     for (const stop of limits) {
-      for (const offset of [-4.1, -3.9, 0, 3.9, 4.1]) {
+      for (const offset of [-8.1, -7.9, 0, 7.9, 8.1]) {
         const ratio = stop.ratio + offset / travel, selected = selectionAtRatio(c, ratio, travel);
-        if (Math.abs(offset) < 4) {
+        if (Math.abs(offset) < 8) {
           assert.equal(selected.amount, stop.amount); assert.equal(selected.ratio, stop.ratio);
           assert.equal(selected.hint, stop.label); assert.equal(selected.preset, stop.label);
         } else {
@@ -125,7 +151,24 @@ test('call and minimum-raise nodes use the same four-pixel attraction as pot nod
   assert.equal(selectionAtRatio(c, 1, 500).amount, 1945);
 });
 
-test('a held chip drag retains fine selection outside the four-pixel pot magnets in both directions', () => {
+test('cached sizing follows pot, legal-action and existing-bet changes without reusing stale nodes', () => {
+  const c = context();
+  const initial = sliderStops(c);
+  assert.equal(sliderStops(c), initial, 'unchanged turns reuse their node definitions');
+  c.pot = 400;
+  const changed = sliderStops(c);
+  assert.notEqual(changed, initial);
+  assert.equal(changed.find(stop => stop.kind === 'full').amount, 400);
+  c.legal.callAmount = c.legal.toCall = 30; c.legal.minTo = 70; c.currentBet = 30;
+  assert.equal(sliderStops(c).find(stop => stop.kind === 'call').amount, 30);
+  assert.equal(sliderStops(c).find(stop => stop.kind === 'raise').amount, 70);
+  c.player.bet = 10;
+  assert.equal(sliderStops(c).find(stop => stop.kind === 'raise').amount, 60);
+  c.legal.canRaise = false;
+  assert.ok(sliderStops(c).every(stop => stop.kind === 'call'));
+});
+
+test('a held chip drag retains fine selection outside the eight-pixel pot magnets in both directions', () => {
   const c = context(80, 2000), sent = [], states = [];
   c.currentBet = 0;
   Object.assign(c.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
@@ -133,7 +176,7 @@ test('a held chip drag retains fine selection outside the four-pixel pot magnets
   actions.sync({ code: 'TEST', turnId: 1, phase: 'playing', hand: { number: 1, actor: 0, players: [c.player], legal: c.legal, pot: c.pot, currentBet: 0 } }, 'me');
   const start = { x: 300, y: 700 };
   actions.begin({ chipRole: 'bank' }, start, 0); actions.tick(400);
-  const amounts = Array.from({ length: 80 }, (_, i) => i + 1).filter(amount => ![19, 21, 39, 41, 79].includes(amount));
+  const amounts = Array.from({ length: 80 }, (_, i) => i + 1).filter(amount => ![18, 19, 21, 22, 38, 39, 41, 42, 78, 79].includes(amount));
   for (const direction of [amounts, [...amounts].reverse()]) {
     for (const amount of direction) {
       actions.move({ x: -300, y: start.y - (ratioForAmount(c, amount) - actions.gesture.initialRatio) * 500 }, 500);
@@ -159,11 +202,13 @@ test('rounding never reverses an upward drag when an odd pot crosses the quarter
   for (const pot of [101, 203, 253, 501, 508, 510, 518, 524, 799]) {
     const c = context(pot, 2000); c.currentBet = 0;
     Object.assign(c.legal, { toCall: 0, callAmount: 0, canCheck: true, minTo: 1 });
-    let previous = 0;
-    for (let i = 0; i <= 5000; i++) {
-      const selected = selectionAtRatio(c, i / 5000, 500).amount;
-      assert.ok(selected >= previous, `pot=${pot}, ratio=${i / 5000}: ${previous} -> ${selected}`);
-      previous = selected;
+    for (const travel of [180, 500, 900]) {
+      let previous = 0;
+      for (let i = 0; i <= 5000; i++) {
+        const selected = selectionAtRatio(c, i / 5000, travel).amount;
+        assert.ok(selected >= previous, `pot=${pot}, travel=${travel}, ratio=${i / 5000}: ${previous} -> ${selected}`);
+        previous = selected;
+      }
     }
   }
 });
@@ -194,6 +239,28 @@ class Element extends EventTarget {
   focus() {} setPointerCapture(id) { this.captures.add(id); }
   hasPointerCapture(id) { return this.captures.has(id); } releasePointerCapture(id) { this.captures.delete(id); }
 }
+
+test('repeated drag updates follow immediately without remeasuring geometry or rewriting unchanged numbers', t => {
+  const previous = globalThis.document; globalThis.document = { createElement: () => new Element() };
+  t.after(() => { globalThis.document = previous; });
+  let measurements = 0, numberWrites = 0, maximumWrites = 0;
+  const container = new Element();
+  container.querySelector = () => null;
+  container.getBoundingClientRect = () => { measurements++; return { top: 0, height: 844, width: 390 }; };
+  const slider = new ChipSlider(container);
+  for (const [node, count] of [[slider.value, () => numberWrites++], [slider.maximum, () => maximumWrites++]]) {
+    let text = '';
+    Object.defineProperty(node, 'textContent', { get: () => text, set: value => { text = value; count(); } });
+  }
+  const state = { enabled: true, selecting: true, pending: 0, selected: 20, bankroll: 1000, maximum: 1000,
+    hint: '跟注至少 20', ratio: .01, stops: sliderStops(context()) };
+  slider.render(state, true);
+  for (let i = 1; i <= 100; i++) slider.render({ ...state, ratio: .01 + i * .0001 }, true);
+  assert.equal(measurements, 1); assert.equal(numberWrites, 1); assert.equal(maximumWrites, 1);
+  assert.ok(Math.abs(translatedY(slider.thumb) + .02 * slider.bounds.travel) < 1e-8);
+  assert.equal(slider.thumb.style.bottom, undefined, 'dragging changes a transform rather than the layout position');
+  assert.equal(slider.fill.style.height, undefined, 'dragging scales the fill rather than resizing its layout');
+});
 test('the fixed UI track appears only during a chip-bank hold and hides on release or cancellation', t => {
   const previous = globalThis.document; globalThis.document = { createElement: () => new Element() };
   t.after(() => { globalThis.document = previous; });
@@ -216,7 +283,7 @@ test('the fixed UI track appears only during a chip-bank hold and hides on relea
   const y = ratio => start.y - (ratio - actions.gesture.initialRatio) * slider.bounds.travel;
   actions.move({ x: -1000, y: y(.025) }, 380);
   assert.equal(slider.value.textContent, '20'); assert.equal(slider.preset.textContent, '跟注至少 20');
-  assert.ok(Math.abs(parseFloat(slider.thumb.style.bottom) - 2.5) < 1e-8, 'legal clamping cannot move the thumb back to the minimum');
+  assert.ok(Math.abs(translatedY(slider.thumb) + slider.bounds.travel * .025) < 1e-8, 'legal clamping cannot move the thumb back to the minimum');
   assert.ok(slider.stops.every(stop => !stop.className?.includes('snapped')));
   actions.move({ x: -1000, y: y(.075) }, 390);
   assert.equal(slider.value.textContent, '30'); assert.equal(slider.preset.textContent, '加注至少 40');
@@ -224,15 +291,15 @@ test('the fixed UI track appears only during a chip-bank hold and hides on relea
   assert.equal(slider.stops[3].style.bottom, '5%'); assert.equal(slider.stops[4].style.bottom, '10%');
   actions.move({ x: -1000, y: y(.5) }, 400);
   assert.equal(slider.value.textContent, '200'); assert.equal(slider.preset.textContent, '满池'); assert.equal(actions.pending, 0);
-  const middleLabel = parseFloat(slider.label.style.top);
+  const middleLabel = translatedY(slider.label);
   actions.move({ x: 5000, y: y(.75) }, 450);
-  assert.equal(slider.value.textContent, '600'); assert.ok(parseFloat(slider.label.style.top) < middleLabel);
+  assert.equal(slider.value.textContent, '450'); assert.ok(translatedY(slider.label) < middleLabel);
   actions.release({ x: 5000, y: y(.75) }, 500);
-  assert.equal(actions.pending, 600); assert.equal(slider.thumb.style.bottom, '75%'); assert.equal(sent.length, 0);
+  assert.equal(actions.pending, 450); assert.ok(Math.abs(translatedY(slider.thumb) + slider.bounds.travel * .75) < 1e-8); assert.equal(sent.length, 0);
   assert.equal(slider.root.hidden, true);
   actions.begin({ chipRole: 'bank' }, start, 600); actions.tick(1000);
   assert.equal(slider.root.hidden, false); actions.cancel();
-  assert.equal(slider.root.hidden, true); assert.equal(actions.pending, 600);
+  assert.equal(slider.root.hidden, true); assert.equal(actions.pending, 450);
   headerBottom += 40; slider.layout(); assert.equal(slider.bounds.top, 146, 'roster height determines the track start plus 10px');
   rect.height = 600; slider.layout(); assert.ok(slider.bounds.bottom <= rect.height - 70);
   assert.deepEqual(slider.bounds, chipSliderBounds(600, 136));

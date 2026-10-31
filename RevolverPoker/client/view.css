@@ -69,16 +69,16 @@
 .board-area { top: 52%; }
 .seat { min-height: 44px; }
 .dock button, .dock input, .dock select { pointer-events: auto; }
-.dock.in-game { bottom: clamp(56px, 8dvh, 76px); }
+.dock.in-game { bottom: max(calc(env(safe-area-inset-bottom, 0px) + 12px), calc(clamp(56px, 8dvh, 76px) - 28px)); }
 .timer-track { position: relative; }
 .action-prompt { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); font-size: 18px; font-weight: 600; line-height: 1.4; white-space: nowrap; color: #f0d8a6; text-shadow: 0 0 3px #000, 0 1px 6px #000; pointer-events: none; }
-.chip-selector { position: absolute; z-index: 14; right: 8%; width: 44px; color: #f2d18b; pointer-events: none; text-shadow: 0 1px 4px #000; }
-.chip-selector-label { position: absolute; right: calc(100% + 10px); display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; text-align: right; }
+.chip-selector { position: absolute; z-index: 14; right: 8%; width: 44px; color: #f2d18b; pointer-events: none; text-shadow: 0 1px 4px #000; contain: layout style; }
+.chip-selector-label { position: absolute; top: 0; right: calc(100% + 10px); display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; text-align: right; will-change: transform; transition: none; }
 .chip-selector-value { color: #f4dfb5; font: 700 22px/28px var(--number-font); letter-spacing: .3px; text-shadow: 0 2px 5px #000, 0 0 10px #100b05; }
 .chip-selector-preset { color: #d7b672; font: 600 11px/16px 'Microsoft YaHei', sans-serif; letter-spacing: 1px; }
 .chip-selector-track { position: relative; width: 18px; margin: 0 auto; border: 1px solid #b89a5e99; border-radius: 5px; background: linear-gradient(90deg, #0c0c08e8, #2c281bee 55%, #12120df5); box-shadow: inset 0 0 5px #000a, 0 2px 8px #0007; pointer-events: none; }
-.chip-selector-track i { position: absolute; bottom: 0; left: 3px; right: 3px; background: linear-gradient(90deg, #8b6b35, #c4a15f, #a18249); border-radius: 3px; opacity: .8; pointer-events: none; }
-.chip-selector-track b { position: absolute; z-index: 2; left: 50%; width: 34px; height: 14px; transform: translate(-50%, 50%); border-radius: 3px; border: 1px solid #eed29c; background: linear-gradient(#dac08b, #b28b4d 50%, #89652f); box-shadow: inset 0 1px #fff4, 0 2px 6px #000a; pointer-events: none; }
+.chip-selector-track i { position: absolute; bottom: 0; height: 100%; left: 3px; right: 3px; background: linear-gradient(90deg, #8b6b35, #c4a15f, #a18249); border-radius: 3px; opacity: .8; pointer-events: none; transform-origin: center bottom; will-change: transform; transition: none; }
+.chip-selector-track b { position: absolute; z-index: 2; bottom: 0; left: 50%; width: 34px; height: 14px; transform: translate(-50%, 50%); border-radius: 3px; border: 1px solid #eed29c; background: linear-gradient(#dac08b, #b28b4d 50%, #89652f); box-shadow: inset 0 1px #fff4, 0 2px 6px #000a; pointer-events: none; will-change: transform; transition: none; }
 .chip-selector-stop { position: absolute; z-index: 1; left: -4px; right: -4px; height: 1px; background: #c6a56b80; pointer-events: none; }
 .chip-selector-stop.snapped { background: #ffe1a3; box-shadow: 0 0 7px #e7b95c; }
 .chip-stop-full { height: 2px; left: -7px; right: -7px; }
@@ -87,7 +87,6 @@
 .physical-cards .board-area { top: auto; bottom: calc(env(safe-area-inset-bottom) + 12px); pointer-events: none; }
 .physical-cards .pot-label { font-size: 0; gap: 0; letter-spacing: 0; margin-bottom: 4px; }
 .physical-cards .pot-label strong { display: none; }
-.physical-cards .pot-label > span { margin-left: 0; }
 .physical-cards .pot-detail { margin-top: 2px; }
 .rank-row.champion-row b { width: auto; flex-shrink: 0; }
 .rank-row.champion-row span { min-width: 0; overflow-wrap: anywhere; }

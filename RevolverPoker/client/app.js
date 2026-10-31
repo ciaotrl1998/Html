@@ -11,7 +11,6 @@ $('game').addEventListener('dragstart', event => {
 const money = n => Number(n || 0).toLocaleString('zh-CN');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
-const streets = { preflop: '翻牌前', flop: '翻牌', turn: '转牌', river: '河牌' };
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, lastHandKey = '', lastActionCount = 0, finishKey = '';
 let soundOn = localStorage.getItem('rp-sound') === 'on', lowQuality = localStorage.getItem('rp-quality') === 'low';
@@ -174,7 +173,6 @@ function render() {
   $('hand-area').hidden = !mine;
   if (h) {
     $('pot-value').textContent = money(h.pot);
-    $('street-label').textContent = h.done ? '本手结束' : streets[h.street];
     $('community').hidden = !!scene;
     if (!scene) $('community').innerHTML = [...h.board.map(cardHTML), ...Array(5 - h.board.length).fill('<span class="card ghost"></span>')].join('');
     const allInCount = h.players.filter(p => !p.folded && !p.chips).length;
@@ -205,7 +203,7 @@ function renderControls() {
     const legal = h?.legal, actor = h?.players.find(p => p.seat === h.actor);
     const dealing = !!room.dealing || !!scene?.dealing;
     const mineTurn = !!legal && connected && room.phase === 'playing' && !dealing;
-    $('turn-label').textContent = dealing ? room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
+    $('turn-label').textContent = dealing ? room.opening ? ({ markers: '放置庄家与盲位标记', smallBlind: '小盲下注', bigBlind: '大盲下注' }[room.opening.stage] || '准备开局') : room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
     $('action-prompt').hidden = !mineTurn;
     $('action-prompt').textContent = mineTurn ? legal.toCall ? `需跟注 ${money(legal.callAmount)}` : '可以过牌或下注' : '';
   }

@@ -8,7 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
 import { chooseBotAction } from './bot.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
-import { DEAL_TIMING, dealDuration } from '../shared/deal-timing.js';
+import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
@@ -28,7 +28,7 @@ function config(input = {}) {
   return c;
 }
 
-export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay = null, phaseDelay = DEAL_TIMING.pause, layoutFile = path.join(ROOT, 'client/scene-layout.js') } = {}) {
+export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay = null, openingDelay = OPENING_TIMING.duration, phaseDelay = DEAL_TIMING.pause, layoutFile = path.join(ROOT, 'client/scene-layout.js') } = {}) {
   const rooms = new Map(), sessions = new Map();
   const layouts = sceneStore(layoutFile);
   const server = http.createServer(async (req, res) => {
@@ -86,10 +86,24 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       hand.actor = null; hand.legal = null; hand.done = false; hand.result = null;
       for (const player of hand.players) if (player.id !== session.id) player.cards = [null, null];
     }
+    if (hand && room.opening) {
+      const { stage } = room.opening;
+      for (const player of hand.players) {
+        const initial = room.openingPlayers.find(entry => entry.id === player.id);
+        const ante = stage === 'markers' ? 0 : initial.ante;
+        const blind = stage === 'bigBlind' || stage === 'smallBlind' && player.seat === hand.sbSeat ? initial.blind : 0;
+        player.chips = initial.chips - ante - blind; player.total = ante + blind; player.bet = blind;
+        player.action = player.chips === 0 ? '全下' : blind ? player.seat === hand.sbSeat ? '小盲' : '大盲' : '';
+        player.cards = [null, null];
+      }
+      hand.board = []; hand.street = 'preflop';
+      hand.pot = hand.players.reduce((sum, player) => sum + player.total, 0);
+      hand.currentBet = Math.max(0, ...hand.players.map(player => player.bet));
+    }
     return { type: 'state', you: session.id, room: { code: room.code, name: room.name, hostId: room.hostId,
       phase: room.phase, config: room.config, version: room.version, handNumber: room.handNumber,
       deadline: room.deadline, turnDuration: room.turnDuration ?? null, serverTime: Date.now(), turnId: room.turnId, stopAfterHand: room.stopAfterHand,
-      dealing: !!room.dealing, settling: !!room.settling, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay,
+      dealing: !!room.dealing, settling: !!room.settling, opening: room.opening || null, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay,
       seats: room.seats.map((s, seat) => ({ ...s, seat, connected: s.kind === 'human' ? !!sessions.get(s.id)?.ws : true,
         chips: room.players?.find(p => p.id === s.id)?.chips ?? null })),
       members: [...room.members].map(id => { const s = sessions.get(id); return { id, name: s?.name, connected: !!s?.ws }; }),
@@ -113,10 +127,36 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
   }
   function clearRoomTimer(room) { clearTimeout(room.timer); room.timer = null; room.deadline = null; room.turnDuration = null; }
   function finish(room) {
-    clearRoomTimer(room); room.dealing = false; room.finishing = false; room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
+    clearRoomTimer(room); room.opening = null; room.openingPlayers = null; room.dealing = false; room.finishing = false; room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
+  }
+  function beginOpening(room) {
+    if (openingDelay <= 0) { beginDealing(room, true); return; }
+    clearRoomTimer(room);
+    const startedAt = Date.now(), third = openingDelay / 3;
+    room.opening = { hand: room.handNumber, stage: 'markers', startedAt,
+      smallBlindAt: startedAt + third, bigBlindAt: startedAt + third * 2, endsAt: startedAt + openingDelay };
+    room.openingPlayers = room.players.filter(player => player.chips > 0).map(player => {
+      const ante = Math.min(room.config.ante, player.chips);
+      const blind = player.seat === room.hand.sbSeat ? room.hand.smallBlind : player.seat === room.hand.bbSeat ? room.hand.bigBlind : 0;
+      return { id: player.id, chips: player.chips, ante, blind: Math.min(blind, player.chips - ante) };
+    });
+    room.dealing = true; room.settling = false; room.deal = null; room.turnId = null; room.visibleBoard = 0;
+    const bigBlind = () => {
+      room.opening.stage = 'bigBlind';
+      room.timer = setTimeout(() => beginDealing(room, true), Math.max(0, room.opening.endsAt - Date.now()));
+      broadcast(room);
+    };
+    const smallBlind = () => {
+      room.opening.stage = 'smallBlind';
+      room.timer = setTimeout(bigBlind, Math.max(0, room.opening.bigBlindAt - Date.now()));
+      broadcast(room);
+    };
+    room.timer = setTimeout(smallBlind, Math.max(0, room.opening.smallBlindAt - Date.now()));
+    broadcast(room);
   }
   function beginDealing(room, initial, previousBoard = 0) {
     clearRoomTimer(room);
+    room.opening = null; room.openingPlayers = null;
     // Run out all-ins one street at a time, with the same pauses as normal play.
     const boardCount = initial ? 0 : Math.min(room.hand.board.length, previousBoard < 3 ? 3 : previousBoard + 1);
     const duration = dealDelay ?? dealDuration(initial, previousBoard, boardCount), startedAt = Date.now() + phaseDelay;
@@ -216,7 +256,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     const sb = Math.min(room.config.smallBlind * 2 ** Math.min(20, levels), 1000000);
     room.hand = new PokerHand({ players, button: room.button, smallBlind: sb, bigBlind: sb * 2,
       ante: room.config.ante, deck: shuffledDeck(randomInt), number: room.handNumber });
-    beginDealing(room, true);
+    beginOpening(room);
   }
   function leave(session) {
     const room = rooms.get(session.roomCode);
@@ -305,7 +345,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         if (msg.type === 'action') {
           if (typeof msg.requestId !== 'string' || msg.requestId.length > 80) fail('请求编号无效');
           if (session.seen.has(msg.requestId)) { send(ws, view(room, session)); return; }
-          if (room.dealing) fail(room.settling ? '等待结算，请稍候' : '正在发牌，请等待发牌结束');
+          if (room.dealing) fail(room.opening ? '正在放置盲注，请等待开局准备结束' : room.settling ? '等待结算，请稍候' : '正在发牌，请等待发牌结束');
           if (room.phase !== 'playing' || !room.hand || msg.hand !== room.handNumber || msg.turnId !== room.turnId) fail('牌局已更新，请按当前回合操作');
           const previousBoard = room.hand.board.length;
           room.hand.act(session.id, msg.action, msg.amount);
@@ -323,7 +363,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         }
         if (msg.type === 'reset') {
           if (!host || room.phase !== 'finished') fail('仅房主可在结算后重新开场');
-          room.phase = 'lobby'; room.hand = null; room.players = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.deal = null; room.finishing = false; broadcast(room); return;
+          room.phase = 'lobby'; room.hand = null; room.players = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.opening = null; room.openingPlayers = null; room.deal = null; room.finishing = false; broadcast(room); return;
         }
         if (room.phase !== 'lobby') fail('比赛已开始，下一场才能调整座位与规则');
         if (msg.type === 'seat') {
