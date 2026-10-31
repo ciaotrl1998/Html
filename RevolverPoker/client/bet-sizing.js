@@ -2,12 +2,11 @@ const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 export const maximumBet = context => context.legal.canRaise ? context.player.chips : context.legal.callAmount;
 const hasPotMidpoint = (pot, maximum) => pot > 0 && pot <= maximum / 2;
 const amountStep = (context, amount) => context.pot > 0
-  ? amount <= Math.round(context.pot / 4) ? 1 : amount <= Math.round(context.pot / 2) ? 5 : 10
+  ? amount <= context.pot ? 1 : 10
   : amount <= 50 ? 5 : 10;
 const bandBounds = (context, amount) => {
   if (!(context.pot > 0)) return [0, maximumBet(context)];
-  const quarter = Math.round(context.pot / 4), half = Math.round(context.pot / 2);
-  return amount <= quarter ? [0, quarter] : amount <= half ? [quarter, half] : [half, maximumBet(context)];
+  return amount <= context.pot ? [0, context.pot] : [context.pot, maximumBet(context)];
 };
 const rawAmount = (context, ratio) => {
   const maximum = maximumBet(context), pot = context.pot || 0;
@@ -60,9 +59,9 @@ export function selectionAtRatio(context, ratio, travel = 320) {
   const r = clamp(ratio, 0, 1), stops = potStops(context);
   const nearest = stops.reduce((found, stop) => Math.abs(stop.ratio - r) < Math.abs((found?.ratio ?? Infinity) - r) ? stop : found, null);
   const raw = rawAmount(context, r);
-  // Magnets must not swallow independently selectable small-chip amounts.
-  const snapped = nearest && Math.abs(nearest.ratio - r) <= Math.min(.025, 4 / Math.max(1, travel)) &&
-    Math.abs(nearest.amount - raw) <= amountStep(context, raw) * .49;
+  // Keep magnets within one CSS pixel and less than half a chip, including above the pot.
+  const snapped = nearest && Math.abs(nearest.ratio - r) <= 1 / Math.max(1, travel) &&
+    Math.abs(nearest.amount - raw) <= .49;
   const amount = snapped ? nearest.amount : amountAtRatio(context, r);
   return { amount, ratio: ratioForAmount(context, amount), preset: stops.find(stop => stop.amount === amount)?.label || '' };
 }

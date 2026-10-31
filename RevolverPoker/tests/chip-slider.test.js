@@ -20,15 +20,58 @@ test('the pot is at the exact midpoint with linear lower/upper ranges and exact 
   assert.notEqual(selectionAtRatio(c, .5 + 15 / 500, 500).amount, 200, 'leaving the magnetic zone resumes linear selection');
 });
 
-test('small bets use single chips below a quarter pot, five below half, and ten above half without oversized magnets', () => {
+test('every legal chip remains selectable through the full pot, including next to each preset', () => {
   const c = context(1000, 5000);
-  for (const [raw, expected] of [[41, 41], [123, 123], [249, 249], [250, 250], [276, 275], [284, 285], [499, 500], [506, 510]]) {
+  for (const [raw, expected] of [[41, 41], [123, 123], [249, 249], [250, 250], [276, 276], [284, 284], [499, 499], [506, 506], [999, 999], [1000, 1000], [1016, 1020]]) {
     assert.equal(amountAtRatio(c, ratioForAmount(c, raw)), expected);
   }
-  const small = context();
-  for (const amount of [41, 42, 47, 48, 49]) {
-    assert.equal(selectionAtRatio(small, ratioForAmount(small, amount), 500).amount, amount, 'quarter-pot magnet does not swallow individual chips');
+  for (const pot of [40, 80, 200, 203, 1000]) {
+    const small = context(pot, 5000); small.currentBet = 0;
+    Object.assign(small.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
+    for (const travel of [180, 500, 900]) {
+      for (let amount = 1; amount <= pot; amount++) {
+        assert.equal(selectionAtRatio(small, ratioForAmount(small, amount), travel).amount, amount, `pot=${pot}, travel=${travel}, chip=${amount}`);
+      }
+    }
   }
+});
+
+test('presets release when dragging away without swallowing neighbouring chip amounts', () => {
+  const c = context(100); c.currentBet = 0;
+  Object.assign(c.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
+  for (const travel of [180, 500, 900]) {
+    for (const stop of potStops(c)) {
+      for (const direction of [-1, 1]) {
+        const close = selectionAtRatio(c, stop.ratio + direction * .2 / travel, travel);
+        assert.equal(close.amount, stop.amount);
+        const amount = stop.amount + direction * 2;
+        const away = selectionAtRatio(c, ratioForAmount(c, amount), travel);
+        if (amount <= c.pot) assert.equal(away.amount, amount);
+      }
+    }
+  }
+  // The former ten-chip magnet pulled this raise back to the odd full-pot amount.
+  const odd = context(203, 2000);
+  assert.equal(selectionAtRatio(odd, ratioForAmount(odd, 206), 180).amount, 210);
+});
+
+test('a held chip drag can choose every chip between quarter, half and full pot in both directions', () => {
+  const c = context(80, 2000), sent = [], states = [];
+  c.currentBet = 0;
+  Object.assign(c.legal, { toCall: 0, callAmount: 0, minTo: 1, canCheck: true });
+  const actions = new TableActions({ sliderTravel: () => 500, change: state => states.push(state), send: (...args) => sent.push(args) });
+  actions.sync({ code: 'TEST', turnId: 1, phase: 'playing', hand: { number: 1, actor: 0, players: [c.player], legal: c.legal, pot: c.pot, currentBet: 0 } }, 'me');
+  const start = { x: 300, y: 700 };
+  actions.begin({ chipRole: 'bank' }, start, 0); actions.tick(400);
+  for (const amounts of [Array.from({ length: 80 }, (_, i) => i + 1), Array.from({ length: 79 }, (_, i) => 79 - i)]) {
+    for (const amount of amounts) {
+      actions.move({ x: -300, y: start.y - (ratioForAmount(c, amount) - actions.gesture.initialRatio) * 500 }, 500);
+      assert.equal(states.at(-1).selected, amount, `drag to ${amount}`);
+      assert.equal(actions.pending, 0);
+    }
+  }
+  actions.release(actions.gesture.point, 600);
+  assert.equal(actions.pending, 1); assert.deepEqual(sent, []);
 });
 
 test('the pot uses the midpoint only when at most half the available stack', () => {
@@ -60,7 +103,8 @@ test('short stacks, odd pots and minimum raises never produce unreachable preset
   assert.deepEqual(potStops(short).map(stop => stop.label), ['1/4池']);
   const smallPot = context(40);
   assert.deepEqual(potStops(smallPot).map(stop => stop.label), ['半池', '满池']);
-  assert.equal(selectionAtRatio(context(501), .5).amount, 501);
+  assert.equal(selectionAtRatio(context(501), .5).amount, 500);
+  assert.equal(selectionAtRatio(context(501), .501).amount, 501);
   for (const c of [context(), short, smallPot, context(501), context(0), context(1000, 1000)]) {
     for (let i = 0; i <= 500; i++) {
       const amount = selectionAtRatio(c, i / 500, 450).amount;
