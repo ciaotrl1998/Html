@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
-import { estimateBotEquity, chooseBotAction } from '../server/bot.js';
+import { estimateBotEquity, chooseBotAction, decideBotAction, createBotPersonality, createBotPersonalities, botRationality } from '../server/bot.js';
 
 const card = (rank, suit = 0) => suit * 13 + rank - 2;
 function random(seed = 123) {
@@ -14,6 +14,68 @@ function view(cards = [card(14), card(14, 1)], board = [], count = 2) {
     legal: { toCall: 0, callAmount: 0, canCheck: true, canRaise: true, minTo: 120, maxTo: 1100, canAllIn: true } };
 }
 const royal = [10, 11, 12, 13, 14].map(rank => card(rank, 3));
+
+test('match profiles are random, immutable and varied, with strictly higher rationality ranges at higher difficulty', () => {
+  const ids = Array.from({ length: 7 }, (_, i) => `ai-${i}`);
+  const profiles = createBotPersonalities(ids, random(24)), replay = createBotPersonalities(ids, random(24));
+  assert.deepEqual(profiles, replay);
+  assert.equal(new Set([...profiles.values()].slice(0, 5).map(p => p.style)).size, 5);
+  assert.notDeepEqual(profiles, createBotPersonalities(ids, random(25)));
+  for (const p of profiles.values()) {
+    assert.equal(Object.isFrozen(p), true);
+    for (const [key, value] of Object.entries(p)) if (key !== 'style') assert.ok(Number.isFinite(value) && value >= 0 && value <= (key === 'betScale' ? 1.5 : 1));
+    assert.ok(botRationality('easy', p) >= .25 && botRationality('easy', p) <= .55);
+    assert.ok(botRationality('normal', p) >= .65 && botRationality('normal', p) <= .82);
+    assert.ok(botRationality('hard', p) >= .92 && botRationality('hard', p) <= .99);
+  }
+});
+
+function costlyView() {
+  const state = view([card(3), card(7, 3)], [card(2), card(5, 1), card(9, 2), card(11, 1), card(12, 3)]);
+  state.currentBet = 900; state.pot = 1000;
+  state.players[1].bet = 900; state.players[1].total = 900;
+  state.legal = { ...state.legal, canCheck: false, canRaise: false, toCall: 800, callAmount: 800 };
+  return state;
+}
+
+function actionCounts(state, profile, difficulty, analysis, seed = 71, count = 4000) {
+  const rng = random(seed), counts = { call: 0, fold: 0, raise: 0, check: 0, amount: 0 };
+  for (let i = 0; i < count; i++) {
+    const action = decideBotAction(state, 'me', difficulty, analysis, profile, rng);
+    counts[action.type]++; counts.amount += action.amount || 0;
+  }
+  return counts;
+}
+
+test('easy callers sometimes pay most of their stack with low equity; stronger difficulty bounds bad-price calls', t => {
+  const state = costlyView(), caller = createBotPersonality(random(12), 'caller'), tight = createBotPersonality(random(12), 'tight');
+  const expensive = { equity: .12, callEquity: .12, eligiblePot: 1800 };
+  const loose = actionCounts(state, caller, 'easy', expensive), cautious = actionCounts(state, tight, 'easy', expensive);
+  assert.ok(loose.call > 600, 'a loose low-level AI can overcall an 800-chip cost with 12% equity');
+  assert.ok(loose.call > cautious.call * 2 + 100);
+  assert.equal(actionCounts(state, caller, 'hard', expensive).call, 0);
+  const near = { ...expensive, equity: .39, callEquity: .39 };
+  const rates = ['easy', 'normal', 'hard'].map(level => actionCounts(state, caller, level, near).call / 4000);
+  assert.ok(rates[0] > rates[1] && rates[1] > rates[2]); assert.equal(rates[2], 0);
+  t.diagnostic(`Bad-price call rates at the same equity/cost: ${rates.map(rate => (rate * 100).toFixed(1) + '%').join(' / ')}`);
+});
+
+test('aggression, bluff preference and habitual bet size differ even with the same cards, equity and legal actions', () => {
+  const state = view([card(14), card(13, 1)], [card(2), card(5, 1), card(9, 2), card(11, 1), card(12, 3)]);
+  const caller = createBotPersonality(random(12), 'caller'), pressure = createBotPersonality(random(12), 'aggressive');
+  const tricky = createBotPersonality(random(12), 'tricky'), tight = createBotPersonality(random(12), 'tight');
+  const fair = { equity: .66, callEquity: .66, eligiblePot: 200 };
+  assert.ok(actionCounts(state, pressure, 'normal', fair).raise > 3000);
+  assert.ok(actionCounts(state, caller, 'normal', fair).raise < 400);
+  const weak = { ...fair, equity: .15, callEquity: .15 };
+  assert.ok(actionCounts(state, tricky, 'hard', weak).raise > actionCounts(state, tight, 'hard', weak).raise * 2);
+  const strong = { ...fair, equity: .9, callEquity: .9 };
+  const small = actionCounts(state, caller, 'hard', strong), large = actionCounts(state, pressure, 'hard', strong);
+  assert.equal(small.raise, 4000); assert.equal(large.raise, 4000);
+  assert.ok(large.amount / large.raise > small.amount / small.raise + 15, 'hard AI retain different value-bet size habits');
+  state.legal.canRaise = false;
+  for (const profile of [caller, pressure, tricky, tight]) assert.deepEqual(decideBotAction(state, 'me', 'easy', weak, profile, random(2)), { type: 'check' });
+});
 
 test('preflop simulations distinguish premium and weak hands and include all seven opponents', () => {
   const aces = estimateBotEquity(view(), 'me', { trials: 1000, random: random(42) });
@@ -71,10 +133,11 @@ test('AI decisions obey real raise rights and short stacks through complete 2–
     const rng = random(seed), chips = Array.from({ length: count }, (_, seat) => 35 + seat * 37);
     const hand = new PokerHand({ players: chips.map((chips, seat) => ({ id: `p${seat}`, seat, chips })),
       button: 0, smallBlind: 5, bigBlind: 10, deck: shuffledDeck(rng) });
+    const personalities = createBotPersonalities(hand.players.map(p => p.id), rng);
     let actions = 0;
     while (!hand.done && actions < 200) {
       const player = hand.players.find(player => player.seat === hand.actor);
-      const action = chooseBotAction(hand.snapshot(player.id), player.id, ['easy', 'normal', 'hard'][actions++ % 3], rng);
+      const action = chooseBotAction(hand.snapshot(player.id), player.id, ['easy', 'normal', 'hard'][actions++ % 3], rng, personalities.get(player.id));
       assert.doesNotThrow(() => hand.act(player.id, action.type, action.amount));
     }
     assert.equal(hand.done, true);

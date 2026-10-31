@@ -6,7 +6,7 @@ import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from 
 import { networkInterfaces } from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
-import { chooseBotAction } from './bot.js';
+import { chooseBotAction, createBotPersonalities } from './bot.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
 import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing.js';
 
@@ -230,7 +230,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     if (limit || isBot) room.timer = setTimeout(() => {
       let action;
       try {
-        action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
+        action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty, randomInt, room.botPersonalities?.get(p.id)) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
       } catch (error) {
         console.error('Room decision:', room.code, error.message);
         const legal = room.hand.legal(p.id);
@@ -363,7 +363,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         }
         if (msg.type === 'reset') {
           if (!host || room.phase !== 'finished') fail('仅房主可在结算后重新开场');
-          room.phase = 'lobby'; room.hand = null; room.players = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.opening = null; room.openingPlayers = null; room.deal = null; room.finishing = false; broadcast(room); return;
+          room.phase = 'lobby'; room.hand = null; room.players = null; room.botPersonalities = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.opening = null; room.openingPlayers = null; room.deal = null; room.finishing = false; broadcast(room); return;
         }
         if (room.phase !== 'lobby') fail('比赛已开始，下一场才能调整座位与规则');
         if (msg.type === 'seat') {
@@ -389,6 +389,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
           if (occupied.length < 2) fail('至少需要两人；可点击空位添加 AI');
           if (room.config.actionSeconds === 0 && occupied.filter(p => p.kind === 'human').length > 1) fail('多人比赛请选择行动时限');
           room.players = occupied.map(p => ({ id: p.id, name: p.name, seat: p.seat, bot: p.kind === 'ai', chips: room.config.startingChips }));
+          room.botPersonalities = createBotPersonalities(room.players.filter(p => p.bot).map(p => p.id));
           room.button = occupied[randomInt(occupied.length)].seat;
           room.phase = 'playing'; room.handNumber = 0; room.stopAfterHand = false;
           deal(room); return;

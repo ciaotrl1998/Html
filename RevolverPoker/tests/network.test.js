@@ -234,6 +234,36 @@ async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15, gam
   return { app, host, guest, url };
 }
 
+test('AI profiles stay server-only across hands and reconnects and are rerolled only for a new match', async t => {
+  const { app, host, url } = await dealingRoom(t, { botDelay: 20, dealDelay: 120, nextDelay: 80 }, true, 15, { difficulty: 'easy' });
+  const internal = app.rooms.get(host.state.code), profiles = internal.botPersonalities;
+  assert.equal(profiles.size, 1);
+  const ai = internal.players.find(player => player.bot), profile = profiles.get(ai.id);
+  assert.equal(Object.isFrozen(profile), true);
+  const finishCurrentHand = async () => {
+    await host.until(c => c.state.hand.done || (!c.state.dealing && c.state.hand.actor === 0));
+    if (!host.state.hand.done) host.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: `profile-fold-${host.state.handNumber}`, action: 'fold' });
+    await host.until(c => c.state.hand.done);
+  };
+  await finishCurrentHand();
+  await host.until(c => c.state.handNumber >= 2);
+  assert.equal(internal.botPersonalities, profiles);
+  assert.equal(internal.botPersonalities.get(ai.id), profile, 'new hands retain the same behavioral habits');
+  host.send('stop'); await host.until(c => c.messages.some(message => message.type === 'state' && message.room.stopAfterHand));
+  await finishCurrentHand(); await host.until(c => c.state.phase === 'finished');
+  const reconnect = await client(url, '房主', host.session.token); await reconnect.until(c => !!c.state);
+  assert.equal(internal.botPersonalities, profiles, 'reconnection never rerolls the AI');
+  reconnect.send('reset'); await reconnect.until(c => c.state.phase === 'lobby');
+  assert.equal(internal.botPersonalities, null);
+  reconnect.send('start'); await reconnect.until(c => c.state.phase === 'playing');
+  assert.notEqual(internal.botPersonalities, profiles);
+  assert.notEqual(internal.botPersonalities.get(ai.id), profile);
+  for (const message of [...host.messages, ...reconnect.messages]) if (message.type === 'state') {
+    assert.doesNotMatch(JSON.stringify(message), /botPersonalities|personality|discipline|looseness|aggression|calling|bluffing|riskTolerance|volatility|betScale/);
+  }
+  assert.equal((await fetch(url.replace('ws:', 'http:').replace('/ws', '/server/bot.js'))).status, 404);
+});
+
 test('the default three-second opening posts small and big blinds in order, blocks play and preserves progress on reconnect', async t => {
   const { app, host, guest, url } = await dealingRoom(t, { openingDelay: undefined, dealDelay: 100 });
   const first = host.state, timeline = first.opening;

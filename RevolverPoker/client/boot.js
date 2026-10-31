@@ -85,7 +85,7 @@
     error.retry.textContent = '重新加载';
     error.retry.onclick = function () { location.reload(); };
   }
-  window.RevolverPokerBoot = { ready: function () { ready = true; } };
+  window.RevolverPokerBoot = { ready: function () { ready = true; }, fitViewport: fitViewport };
   window.addEventListener('error', function (event) {
     if (event.message) fail('启动失败：' + event.message);
   });

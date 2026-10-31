@@ -4,6 +4,7 @@ import { renderWinnerResult } from './winner-display.js';
 import { PlayerRoster } from './player-roster.js';
 import { normalizeQuality } from './render-budget.js';
 import { loadCardArtwork, cardArtURL } from './card-artwork.js';
+import { FullscreenControl } from './fullscreen.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -20,6 +21,9 @@ let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
 let audio;
+new FullscreenControl({ button: $('fullscreen-button'), status: $('fullscreen-state'), change: () => {
+  scene?.cancelViewInput(); window.RevolverPokerBoot?.fitViewport?.(); scene?.resize();
+} });
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 function sound(type) {
   if (!soundOn) return;
