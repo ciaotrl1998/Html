@@ -39,7 +39,22 @@ export function potStops(context) {
   }).filter(stop => stop.amount <= maximumBet(context) && stagedAction(context, stop.amount));
 }
 
-export function amountAtRatio(context, ratio) {
+export function sliderStops(context) {
+  if (!context) return [];
+  const kinds = { '1/4池': 'quarter', '半池': 'half', '满池': 'full' };
+  const stops = potStops(context).map(stop => ({ ...stop, kind: kinds[stop.label] }));
+  const { legal, player } = context;
+  if (legal.callAmount > 0) {
+    const minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
+    const limits = [{ kind: 'call', amount: legal.callAmount, label: `跟注至少 ${legal.callAmount.toLocaleString('zh-CN')}` }];
+    if (legal.canRaise && minimum > legal.callAmount) limits.push({ kind: 'raise', amount: minimum, label: `加注至少 ${minimum.toLocaleString('zh-CN')}` });
+    // Prefer the legal-limit label when a limit shares a position with a pot preset.
+    stops.unshift(...limits.map(stop => ({ ...stop, ratio: ratioForAmount(context, stop.amount) })));
+  }
+  return stops;
+}
+
+export function amountAtRatio(context, ratio, preview = false) {
   const { legal, player } = context, r = clamp(ratio, 0, 1), maximum = maximumBet(context);
   if (r <= 0 || maximum <= 0) return 0;
   if (!legal.canRaise) return legal.callAmount;
@@ -48,20 +63,28 @@ export function amountAtRatio(context, ratio) {
   const exact = potStops(context).find(stop => Math.abs(stop.amount - raw) < 1e-7);
   if (exact) return exact.amount;
   const minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
-  if (legal.callAmount > 0 && raw < minimum) return legal.callAmount;
+  if (legal.callAmount > 0 && raw <= legal.callAmount + 1e-7) return legal.callAmount;
   const step = amountStep(context, raw), minimumStep = amountStep(context, minimum);
   const [low, high] = bandBounds(context, raw);
   const firstRaise = Math.min(bandBounds(context, minimum)[1], Math.ceil(minimum / minimumStep) * minimumStep);
-  return Math.min(player.chips, Math.max(firstRaise, clamp(Math.round(raw / step) * step, low, high)));
+  const floor = preview && legal.callAmount > 0 ? legal.callAmount : firstRaise;
+  return Math.min(player.chips, Math.max(floor, clamp(Math.round(raw / step) * step, low, high)));
 }
 
 export function selectionAtRatio(context, ratio, travel = 320) {
-  const r = clamp(ratio, 0, 1), stops = potStops(context);
+  const r = clamp(ratio, 0, 1), stops = sliderStops(context);
   const nearest = stops.reduce((found, stop) => Math.abs(stop.ratio - r) < Math.abs((found?.ratio ?? Infinity) - r) ? stop : found, null);
   const raw = rawAmount(context, r);
-  // Keep magnets within one CSS pixel and less than half a chip, including above the pot.
-  const snapped = nearest && Math.abs(nearest.ratio - r) <= 1 / Math.max(1, travel) &&
-    Math.abs(nearest.amount - raw) <= .49;
-  const amount = snapped ? nearest.amount : amountAtRatio(context, r);
-  return { amount, ratio: ratioForAmount(context, amount), preset: stops.find(stop => stop.amount === amount)?.label || '' };
+  // Use a physical four-pixel radius while keeping zero and ALL IN reachable.
+  const snapped = r > 0 && r < 1 && nearest && Math.abs(nearest.ratio - r) <= 4 / Math.max(1, travel);
+  // Show the actual scale during a hold; legal raise sizing is applied when staging.
+  const amount = snapped ? nearest.amount : amountAtRatio(context, r, true);
+  const { legal, player } = context, minimum = Math.min(legal.minTo, legal.maxTo) - player.bet;
+  const value = snapped ? nearest.amount : raw;
+  const hint = amount <= 0 ? '' : legal.callAmount > 0
+    ? value <= legal.callAmount + 1e-7 ? `跟注至少 ${legal.callAmount.toLocaleString('zh-CN')}`
+      : legal.canRaise && value <= minimum + 1e-7 ? `加注至少 ${minimum.toLocaleString('zh-CN')}` : ''
+    : raw < minimum ? '最低下注' : '';
+  // Legal minimums and integer rounding constrain the wager, not the drag position.
+  return { amount, ratio: snapped ? nearest.ratio : r, preset: snapped ? nearest.label : '', hint };
 }

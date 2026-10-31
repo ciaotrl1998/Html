@@ -134,12 +134,12 @@ test('snapping preserves exact calls and odd all-ins while rounding raises up to
   assert.equal(amountAtRatio(short.actions.context, .05), 20); assert.equal(ratioForAmount(short.actions.context, 57), 1);
 });
 
-test('the thumb snaps to the selected amount and uses the displayed slider height without drift', () => {
+test('the thumb follows the drag while chip rounding uses the displayed slider height without drift', () => {
   const f = fixture(); f.actions.sliderTravel = () => 240;
   f.actions.begin({ chipRole: 'bank' }, point, 0);
   const rawRatio = ratioForAmount(f.actions.context, 232), end = { x: point.x, y: point.y - (rawRatio - f.actions.gesture.initialRatio) * 240 };
   f.actions.move(end, 400);
-  assert.equal(f.states.at(-1).selected, 230); assert.equal(f.states.at(-1).ratio, ratioForAmount(f.actions.context, 230));
+  assert.equal(f.states.at(-1).selected, 230); assert.ok(Math.abs(f.states.at(-1).ratio - rawRatio) < 1e-12);
   f.actions.move(end, 450); assert.equal(f.states.at(-1).selected, 230); assert.equal(f.actions.pending, 0);
   f.actions.release(end, 500); assert.equal(f.actions.pending, 230); assert.equal(f.sent.length, 0);
 });

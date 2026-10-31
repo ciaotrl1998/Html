@@ -14,12 +14,13 @@ export class ChipSlider {
     this.root = document.createElement('div'); this.root.className = 'chip-selector'; this.root.hidden = true;
     this.root.setAttribute('role', 'slider'); this.root.setAttribute('aria-label', '预下筹码');
     this.root.setAttribute('aria-orientation', 'vertical'); this.root.setAttribute('aria-readonly', 'true');
-    this.root.innerHTML = '<div class="chip-selector-label"><small class="chip-selector-preset" hidden></small><strong class="chip-selector-value"></strong></div><div class="chip-selector-track"><i></i><em class="chip-stop-quarter"></em><em class="chip-stop-half"></em><em class="chip-stop-full"></em><b></b></div><span class="chip-selector-max"></span>';
+    this.root.innerHTML = '<div class="chip-selector-label"><small class="chip-selector-preset" hidden></small><strong class="chip-selector-value"></strong></div><div class="chip-selector-track"><i></i><em class="chip-stop-quarter"></em><em class="chip-stop-half"></em><em class="chip-stop-full"></em><em class="chip-stop-call"></em><em class="chip-stop-raise"></em><b></b></div><span class="chip-selector-max"></span>';
     this.host.appendChild(this.root);
     const query = selector => this.root.querySelector(selector);
     this.label = query('.chip-selector-label'); this.value = query('.chip-selector-value'); this.preset = query('.chip-selector-preset');
     this.fill = query('i'); this.thumb = query('b'); this.track = query('.chip-selector-track'); this.maximum = query('.chip-selector-max');
-    this.stops = ['quarter', 'half', 'full'].map(name => query(`.chip-stop-${name}`));
+    this.stopKinds = ['quarter', 'half', 'full', 'call', 'raise'];
+    this.stops = this.stopKinds.map(name => query(`.chip-stop-${name}`));
     this.resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { this.bounds = null; if (!this.root.hidden) this.layout(); }) : null;
     this.resizeObserver?.observe(container); if (this.header) this.resizeObserver?.observe(this.header);
 
@@ -29,7 +30,7 @@ export class ChipSlider {
     this.root.hidden = !active || !state.enabled || !state.selecting || state.inFlight || !(state.maximum > 0);
     if (this.root.hidden) return;
     const selected = state.selecting ? state.selected : state.pending, ratio = state.ratio || 0;
-    const preset = selected > 0 && selected === state.bankroll ? 'ALL IN' : state.preset || '';
+    const preset = selected > 0 && selected === state.bankroll ? 'ALL IN' : state.hint || state.preset || '';
     this.value.textContent = Number(selected || 0).toLocaleString('zh-CN');
     this.preset.textContent = preset; this.preset.hidden = !preset;
     this.fill.style.height = `${ratio * 100}%`; this.thumb.style.bottom = `${ratio * 100}%`;
@@ -37,9 +38,10 @@ export class ChipSlider {
     this.root.setAttribute('aria-valuemin', '0'); this.root.setAttribute('aria-valuemax', String(state.maximum));
     this.root.setAttribute('aria-valuenow', String(selected || 0)); this.root.setAttribute('aria-valuetext', `${preset} ${this.value.textContent}`.trim());
     for (let i = 0; i < this.stops.length; i++) {
-      const stop = (state.stops || []).find(item => item.label === ['1/4池', '半池', '满池'][i]), node = this.stops[i];
+      const kind = this.stopKinds[i];
+      const stop = (state.stops || []).find(item => item.kind === kind || item.label === ['1/4池', '半池', '满池'][i]), node = this.stops[i];
       node.hidden = !stop;
-      if (stop) { node.style.bottom = `${stop.ratio * 100}%`; node.className = `chip-selector-stop chip-stop-${['quarter', 'half', 'full'][i]}${selected === stop.amount ? ' snapped' : ''}`; }
+      if (stop) { node.style.bottom = `${stop.ratio * 100}%`; node.className = `chip-selector-stop chip-stop-${kind}${selected === stop.amount && Math.abs(ratio - stop.ratio) < 1e-9 ? ' snapped' : ''}`; }
     }
     this.layout(false);
   }

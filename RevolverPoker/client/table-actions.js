@@ -1,4 +1,4 @@
-import { ratioForAmount, stagedAction, selectionAtRatio, potStops, maximumBet } from './bet-sizing.js';
+import { amountAtRatio, ratioForAmount, stagedAction, selectionAtRatio, sliderStops, maximumBet } from './bet-sizing.js';
 export { amountAtRatio, ratioForAmount, stagedAction } from './bet-sizing.js';
 export const TABLE_GESTURES = { hold: 350, sliderTravel: 320, forward: 38, doubleTap: 320, tapSlop: 8 };
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -26,11 +26,11 @@ export class TableActions {
   }
   get enabled() { return !!this.context && !this.inFlight; }
   emit() {
-    const g = this.gesture;
+    const g = this.gesture, stops = sliderStops(this.context);
     this.change({ pending: this.pending, bankroll: this.bankroll, remaining: this.bankroll - this.pending,
       enabled: this.enabled, inFlight: this.inFlight, selecting: g?.kind === 'bank' || g?.kind === 'select',
-      selected: g?.selected ?? this.pending, ratio: g?.ratio ?? ratioForAmount(this.context, this.pending), preset: g?.preset ?? potStops(this.context).find(stop => stop.amount === this.pending)?.label ?? '', stops: potStops(this.context),
-      maximum: this.context ? maximumBet(this.context) : 0,
+      selected: g?.selected ?? this.pending, ratio: g?.ratio ?? ratioForAmount(this.context, this.pending), preset: g?.preset ?? stops.find(stop => stop.amount === this.pending)?.label ?? '', stops,
+      hint: g?.hint || '', maximum: this.context ? maximumBet(this.context) : 0,
       progress: g?.progress || 0, dragging: g?.kind === 'staged' ? 'chips' : g?.kind === 'hand' ? 'hand' : null });
   }
   begin(target, point, time) {
@@ -59,7 +59,7 @@ export class TableActions {
     const ratio = clamp(g.rawRatio + (g.lastY - g.point.y) / this.sliderTravel(), 0, 1);
     g.rawRatio = ratio; g.lastY = g.point.y;
     const selected = selectionAtRatio(this.context, ratio, this.sliderTravel());
-    g.selected = selected.amount; g.ratio = selected.ratio; g.preset = selected.preset; this.emit();
+    g.selected = selected.amount; g.ratio = selected.ratio; g.preset = selected.preset; g.hint = selected.hint; this.emit();
   }
   move(point, time) {
     const g = this.gesture;
@@ -79,7 +79,8 @@ export class TableActions {
     this.move(point, time);
     const g = this.gesture; this.gesture = null;
     if (!this.enabled || g.key !== this.context.key) { this.emit(); return; }
-    if (g.kind === 'select') this.pending = g.selected;
+    if (g.kind === 'select') this.pending = stagedAction(this.context, g.selected) ? g.selected
+      : amountAtRatio(this.context, ratioForAmount(this.context, g.selected));
     else if (g.kind === 'bank' && g.moved <= TABLE_GESTURES.tapSlop) this.pending = this.context.legal.callAmount;
     else if (g.kind === 'staged') {
       if (g.moved <= TABLE_GESTURES.tapSlop) this.pending = 0;
