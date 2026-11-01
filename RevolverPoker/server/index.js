@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
 import { chooseBotAction, createBotPersonalities, getBotBluff, shouldShowBotBluff } from './bot.js';
 import { transferChipGift } from './chip-gifts.js';
+import { botAngerLevel, reactToBluffReveal, settleBotAnger } from './bot-emotions.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
 import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing.js';
 
@@ -106,7 +107,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       deadline: room.deadline, turnDuration: room.turnDuration ?? null, serverTime: Date.now(), turnId: room.turnId, stopAfterHand: room.stopAfterHand,
       dealing: !!room.dealing, settling: !!room.settling, opening: room.opening || null, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay, supportsShowCards: true, supportsChipGifts: true,
       seats: room.seats.map((s, seat) => ({ ...s, seat, connected: s.kind === 'human' ? !!sessions.get(s.id)?.ws : true,
-        chips: room.players?.find(p => p.id === s.id)?.chips ?? null })),
+        chips: room.players?.find(p => p.id === s.id)?.chips ?? null, anger: s.kind === 'ai' ? botAngerLevel(room, s.id) : 0 })),
       members: [...room.members].map(id => { const s = sessions.get(id); return { id, name: s?.name, connected: !!s?.ws }; }),
       hand,
       standings: room.phase === 'finished' ? standings(room) : null } };
@@ -128,6 +129,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
   }
   function clearRoomTimer(room) { clearTimeout(room.timer); clearTimeout(room.botShowTimer); room.timer = null; room.botShowTimer = null; room.deadline = null; room.turnDuration = null; }
   function finish(room) {
+    settleBotAnger(room);
     clearRoomTimer(room); room.opening = null; room.openingPlayers = null; room.dealing = false; room.finishing = false; room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
   }
   function beginOpening(room) {
@@ -210,7 +212,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       if (winner && nextDelay > 0) room.botShowTimer = setTimeout(() => {
         room.botShowTimer = null;
         if (rooms.get(room.code) !== room || room.hand !== hand || room.dealing || winner.shown) return;
-        hand.showCards(winner.id); broadcast(room);
+        hand.showCards(winner.id); reactToBluffReveal(room, winner.id); broadcast(room);
       }, Math.min(900, nextDelay / 2));
       return;
     }
@@ -244,7 +246,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     if (limit || isBot) room.timer = setTimeout(() => {
       let action;
       try {
-        action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty, randomInt, room.botPersonalities?.get(p.id)) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
+        action = isBot ? chooseBotAction(room.hand.snapshot(p.id), p.id, room.config.difficulty, randomInt, room.botPersonalities?.get(p.id), botAngerLevel(room, p.id)) : { type: room.hand.legal(p.id).canCheck ? 'check' : 'fold' };
       } catch (error) {
         console.error('Room decision:', room.code, error.message);
         const legal = room.hand.legal(p.id);
@@ -259,6 +261,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
   }
   function deal(room) {
     clearRoomTimer(room);
+    settleBotAnger(room);
     room.finishing = false;
     const players = room.players.filter(p => p.chips > 0);
     if (players.length < 2) { finish(room); return; }
@@ -376,6 +379,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         if (msg.type === 'show-cards') {
           if (!['playing', 'finished'].includes(room.phase) || room.dealing || !room.hand?.done || msg.hand !== room.handNumber) fail('当前不能展示手牌');
           room.hand.showCards(session.id);
+          reactToBluffReveal(room, session.id);
           broadcast(room); return;
         }
         if (msg.type === 'action') {
@@ -399,7 +403,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         }
         if (msg.type === 'reset') {
           if (!host || room.phase !== 'finished') fail('仅房主可在结算后重新开场');
-          room.phase = 'lobby'; room.hand = null; room.players = null; room.botPersonalities = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.opening = null; room.openingPlayers = null; room.deal = null; room.finishing = false; broadcast(room); return;
+          room.phase = 'lobby'; room.hand = null; room.players = null; room.botPersonalities = null; room.botAnger = null; room.handNumber = 0; room.dealing = false; room.settling = false; room.opening = null; room.openingPlayers = null; room.deal = null; room.finishing = false; broadcast(room); return;
         }
         if (room.phase !== 'lobby') fail('比赛已开始，下一场才能调整座位与规则');
         if (msg.type === 'seat') {
@@ -426,6 +430,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
           if (room.config.actionSeconds === 0 && occupied.filter(p => p.kind === 'human').length > 1) fail('多人比赛请选择行动时限');
           room.players = occupied.map(p => ({ id: p.id, name: p.name, seat: p.seat, bot: p.kind === 'ai', chips: room.config.startingChips }));
           room.botPersonalities = createBotPersonalities(room.players.filter(p => p.bot).map(p => p.id));
+          room.botAnger = new Map();
           room.button = occupied[randomInt(occupied.length)].seat;
           room.phase = 'playing'; room.handNumber = 0; room.stopAfterHand = false;
           deal(room); return;

@@ -58,7 +58,7 @@ function surface() {
 
 test('player info opens a horizontal gift form, cancel sends nothing, and confirmation waits for one server receipt', () => {
   const f = surface(); assert.equal(f.info.show(0), false); assert.equal(f.info.show(1), true);
-  assert.match(f.info.summary.textContent, /玩家1.*剩余 95.*本轮投入 5/);
+  assert.match(f.info.summary.textContent, /玩家1.*剩余 95.*本手投入 5/);
   assert.equal(f.info.amountRow.hidden, true); f.info.gift.onclick(); assert.equal(f.info.amountRow.hidden, false);
   assert.equal(f.info.slider.max, '99'); f.info.slider.value = '27'; f.info.slider.oninput(); assert.equal(f.info.amount.textContent, '27');
   f.info.cancel.onclick(); assert.equal(f.root.hidden, true); assert.deepEqual(f.sent, []);

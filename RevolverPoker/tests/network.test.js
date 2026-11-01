@@ -451,15 +451,17 @@ test('chip gifts transfer once over real sockets, preserve betting state, surviv
 });
 
 test('an AI bluff winner shows after the result delay, keeps its plan private and preserves payouts and countdown', async t => {
-  const { app, host, guest } = await dealingRoom(t, { dealDelay: 50, botShowRandom: () => 0 });
+  const { app, host, guest } = await dealingRoom(t, { dealDelay: 50, botShowRandom: () => 0 }, false, 15, { smallBlind: 75, startingChips: 20000 });
   await host.until(c => !c.state.dealing);
   const internal = app.rooms.get(host.state.code), loser = internal.hand.actor === 0 ? host : guest, winner = loser === host ? guest : host;
   const loserSeat = loser === host ? 0 : 1, winnerSeat = winner === host ? 0 : 1;
-  const hand = new PokerHand({ players: internal.players.map(p => ({ ...p, bot: p.id === winner.session.id })), button: loserSeat, smallBlind: 10, bigBlind: 20, deck: Array.from({ length: 52 }, (_, i) => i), number: internal.handNumber });
+  const hand = new PokerHand({ players: internal.players.map(p => ({ ...p, bot: true })), button: loserSeat, smallBlind: 75, bigBlind: 150, deck: Array.from({ length: 52 }, (_, i) => i), number: internal.handNumber });
+  internal.seats[loserSeat].kind = 'ai';
   hand.players.find(p => p.id === winner.session.id).cards = [5, 13];
+  hand.players.find(p => p.id === loser.session.id).cards = [12, 25];
   hand.act(loser.session.id, 'call');
   const profile = { ...BOT_STYLES.tricky, discipline: .5 };
-  const decision = decideBotAction(hand.snapshot(winner.session.id), winner.session.id, 'hard', { equity: .05, callEquity: .05, eligiblePot: 40 }, profile, () => 0);
+  const decision = decideBotAction(hand.snapshot(winner.session.id), winner.session.id, 'hard', { equity: .05, callEquity: .05, eligiblePot: 300 }, profile, () => 0);
   assert.equal(decision.type, 'raise'); assert.ok(getBotBluff(decision));
   hand.act(winner.session.id, decision.type, decision.amount);
   internal.hand = hand; internal.botPersonalities = new Map([[winner.session.id, profile]]);
@@ -472,10 +474,40 @@ test('an AI bluff winner shows after the result delay, keeps its plan private an
   assert.ok(!JSON.stringify(first).includes('weakness')); assert.ok(!JSON.stringify(first).includes('botBluffs'));
   await loser.until(c => c.state.hand.players.some(p => p.id === winner.session.id && p.shown));
   assert.deepEqual(loser.state.hand.players.find(p => p.id === winner.session.id).cards, [5, 13]);
+  assert.equal(loser.state.seats[loserSeat].anger, 1, 'the AI victim reacts only after the bluff is publicly shown');
   assert.ok(loser.state.serverTime - first.serverTime >= 850);
   assert.equal(loser.state.deadline, first.deadline); assert.deepEqual(loser.state.hand.result, first.hand.result);
   assert.deepEqual(loser.state.hand.players.map(p => p.chips), first.hand.players.map(p => p.chips));
   assert.equal(loser.state.hand.actor, null); assert.equal(winnerSeat, hand.players.find(p => p.id === winner.session.id).seat);
+});
+
+test('a human exposed bluff angers the final AI folder, survives reconnects and a full next hand, then cools and resets', async t => {
+  const { app, host, guest, url } = await dealingRoom(t, { dealDelay: 50, nextDelay: 500, botDelay: 100000 }, false, 15, { smallBlind: 75 });
+  await host.until(c => !c.state.dealing);
+  const internal = app.rooms.get(host.state.code);
+  internal.players.find(p => p.id === guest.session.id).bot = true; internal.seats[1].kind = 'ai';
+  const hand = new PokerHand({ players: internal.players, button: 1, smallBlind: 75, bigBlind: 150, deck: Array.from({ length: 52 }, (_, i) => i), number: internal.handNumber });
+  hand.players.find(p => p.id === host.session.id).cards = [5, 13];
+  hand.players.find(p => p.id === guest.session.id).cards = [12, 25];
+  hand.act(guest.session.id, 'call'); hand.act(host.session.id, 'raise', 450); internal.hand = hand;
+  guest.send('sync'); await guest.until(c => c.state.hand.currentBet === 450);
+  guest.send('action', { hand: internal.handNumber, turnId: internal.turnId, requestId: 'anger-fold-1', action: 'fold' });
+  await host.until(c => c.state.hand.done); assert.equal(host.state.seats[1].anger, 0);
+  host.send('show-cards', { hand: internal.handNumber }); await host.until(c => c.state.seats[1].anger === 1);
+  const version = host.state.version; host.send('show-cards', { hand: internal.handNumber }); await host.until(c => c.state.version > version);
+  assert.equal(host.state.seats[1].anger, 1);
+  await host.until(c => c.state.handNumber === 2 && !c.state.dealing); assert.equal(host.state.seats[1].anger, 1);
+  const reconnect = await client(url, '重连生气的 AI', guest.session.token); t.after(() => reconnect.socket.close());
+  await reconnect.until(c => !!c.state); assert.equal(reconnect.state.seats[1].anger, 1);
+  assert.doesNotMatch(JSON.stringify(reconnect.state), /provokedHand|settledHand|botAnger|discipline/);
+  const actor = host.state.hand.actor === 0 ? host : reconnect;
+  actor.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'anger-quiet-2', action: 'fold' });
+  await host.until(c => c.state.handNumber === 3 && !c.state.dealing); assert.equal(host.state.seats[1].anger, 0);
+  host.send('stop'); await host.until(c => c.state.stopAfterHand);
+  const finalActor = host.state.hand.actor === 0 ? host : reconnect;
+  finalActor.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'anger-finish-3', action: 'fold' });
+  await host.until(c => c.state.phase === 'finished');
+  host.send('reset'); await host.until(c => c.state.phase === 'lobby'); assert.equal(host.state.seats[1].anger, 0);
 });
 
 test('a fold confirms immediately but withholds the winner and payout for half a second', async t => {

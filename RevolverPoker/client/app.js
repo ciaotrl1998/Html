@@ -324,7 +324,7 @@ try {
   await loadCardArtwork();
   connect();
   const { SaloonScene } = await import('/client/scene.js');
-  scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
+  scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onPortraitsChanged = portraits => playerRoster.setPortraits(portraits); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
   scene.setQuality(quality);
   scene.cards.prepareTextures(scene.renderer);

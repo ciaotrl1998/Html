@@ -22,7 +22,7 @@ export class PlayerInfo {
     this.reason = el('p', 'gift-reason'); this.reason.setAttribute('aria-live', 'polite');
     root.append(this.summary, this.gift, this.amountRow, this.actions, this.reason); root.hidden = true;
     this.gift.onclick = () => { if (!this.limit().reason) { this.mode = 'gift'; this.selected = 1; this.render(); } };
-    this.slider.oninput = () => { this.selected = Math.max(1, Math.min(this.limit().maximum, Number(this.slider.value))); this.amount.textContent = money(this.selected); };
+    this.slider.oninput = () => { const { maximum } = this.limit(); this.selected = Math.max(1, Math.min(maximum, Number(this.slider.value))); this.renderAmount(maximum); };
     this.cancel.onclick = () => this.close(); this.confirm.onclick = () => this.submit();
     doc.addEventListener('pointerdown', event => { if (!root.hidden && !root.contains(event.target)) this.close(); });
     doc.addEventListener('keydown', event => { if (!root.hidden && event.key === 'Escape') this.close(); });
@@ -51,13 +51,18 @@ export class PlayerInfo {
     const seat = this.room.seats.find(seat => seat.id === this.targetId), player = this.room.hand?.players.find(player => player.id === this.targetId);
     const { maximum, reason } = this.limit(), form = this.mode === 'gift';
     this.summary.hidden = this.gift.hidden = form; this.amountRow.hidden = this.actions.hidden = !form;
-    this.summary.textContent = `${seat.name} · ${seat.kind === 'ai' ? '电脑' : seat.connected === false ? '暂时断线' : '在线'} · 剩余 ${money(player?.chips ?? seat.chips ?? this.room.config.startingChips)} · 本轮投入 ${money(player?.bet)}`;
+    this.summary.textContent = `${seat.name} · ${seat.kind === 'ai' ? '电脑' : seat.connected === false ? '暂时断线' : '在线'} · 剩余 ${money(player?.chips ?? seat.chips ?? this.room.config.startingChips)} · 本手投入 ${money(player?.total)}`;
     this.gift.disabled = !!reason; this.reason.textContent = reason; this.reason.hidden = !reason;
     this.selected = Math.min(Math.max(1, this.selected || 1), maximum || 1);
     this.slider.max = String(maximum || 1); this.slider.value = String(this.selected);
-    this.slider.disabled = !!this.pending || !!reason; this.amount.textContent = maximum ? money(this.selected) : '0';
+    this.slider.disabled = !!this.pending || !!reason; this.renderAmount(maximum);
     this.confirm.disabled = !!this.pending || !!reason; this.cancel.disabled = !!this.pending;
     this.confirm.textContent = this.pending ? '赠送中…' : '确认';
+  }
+  renderAmount(maximum) {
+    this.amount.textContent = maximum ? money(this.selected) : '0';
+    this.amount.style?.setProperty('--gift-digits', String(money(maximum).length));
+    this.slider.style?.setProperty('--gift-fill', `${maximum > 1 ? (this.selected - 1) / (maximum - 1) * 100 : 0}%`);
   }
   submit() {
     const { maximum, reason } = this.limit();

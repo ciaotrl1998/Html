@@ -16,6 +16,7 @@ import { SeatActionLabels, paintSeatNameplate } from './seat-label.js';
 import { DealerButtons } from './dealer-buttons.js';
 import { dealKey } from '../shared/deal-timing.js';
 import { createPlayerPortraits } from './player-portraits.js';
+import { addAngryExpression, AngerFlames } from './character-anger.js';
 
 const COLORS = [0x4a4437, 0x5f3e2c, 0x3a4540, 0x57453c, 0x383c3e, 0x60503c, 0x434e42, 0x563b32];
 const OVERVIEW_EYE = [0, 8.8, 10.5];
@@ -64,15 +65,17 @@ function makePerson(index) {
   for (let k = 0; k < 3; k++) cylinder(root, .024, .024, .025, material(0x9d8350, { metalness: .6 }), .02, 2.32 - k * .18, .3).rotation.x = Math.PI / 2;
   cylinder(root, .15, .17, .24, skin, 0, 2.83, 0);
   const head = new THREE.Group(); head.position.y = 3.17; root.add(head);
-  const face = mesh(new THREE.SphereGeometry(.33, 10, 8), skin); face.scale.set(.85, 1.12, .87); head.add(face);
-  box(head, .08, .13, .11, skin, 0, -.01, .29);
+  const faceSkin = skin.clone(), neutralFace = new THREE.Group(); head.add(neutralFace);
+  const face = mesh(new THREE.SphereGeometry(.33, 10, 8), faceSkin); face.scale.set(.85, 1.12, .87); head.add(face);
+  box(head, .08, .13, .11, faceSkin, 0, -.01, .29);
   const eyes = material(0x171511);
   for (const side of [-1, 1]) {
-    box(head, .075, .024, .035, eyes, side * .115, .065, .258);
-    const brow = box(head, .10, .035, .035, dark, side * .12, .116, .26); brow.rotation.z = side * -.1;
-    const ear = mesh(new THREE.SphereGeometry(.078, 7, 5), skin, side * .28, -.015, 0); head.add(ear);
+    box(neutralFace, .075, .024, .035, eyes, side * .115, .065, .258);
+    const brow = box(neutralFace, .10, .035, .035, eyes, side * .12, .116, .26); brow.rotation.z = side * -.1;
+    const ear = mesh(new THREE.SphereGeometry(.078, 7, 5), faceSkin, side * .28, -.015, 0); head.add(ear);
   }
-  box(head, .12, .018, .025, dark, 0, -.16, .26);
+  box(neutralFace, .12, .018, .025, eyes, 0, -.16, .26);
+  root.userData.setAnger = addAngryExpression(head, neutralFace, faceSkin, eyes);
   if (index % 3 !== 1) {
     const beard = mesh(new THREE.SphereGeometry(.275, 8, 6), material(index % 2 ? 0x3a2a20 : 0x554b3d), 0, -.17, .03); beard.scale.set(.93, .62, 1); head.add(beard);
     box(head, .22, .045, .05, dark, 0, -.12, .28);
@@ -107,7 +110,7 @@ export class SaloonScene {
     this.frameClock = new FrameClock(frameRate); this.shadowClock = new FrameClock(30);
     this.renderBudget = new RenderBudget({ pixelRatio: devicePixelRatio, mobile: !!window.matchMedia?.('(pointer: coarse)').matches, editor });
     this.shadowDirty = true; this.lastShadowUpdate = -Infinity;
-    this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.focus = 0; this.seated = false;
+    this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.angerEffects = []; this.angerPortraits = new Map(); this.portraitAnger = new Map(); this.focus = 0; this.seated = false;
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
@@ -143,6 +146,7 @@ export class SaloonScene {
       const a = chair(this.wood); a.position.set(x * 1.07, 0, z * 1.07); a.rotation.y = Math.atan2(-x, -z); this.scene.add(a); this.chairs.push(a);
       a.userData.layout = { id: `chair-${i}`, label: `座位 ${i + 1} · 椅子`, category: '玩家与座位' };
       const model = makePerson(i); model.position.set(x, 0, z); model.rotation.y = Math.atan2(-x, -z); this.scene.add(model); this.models.push(model);
+      this.angerEffects.push(new AngerFlames(model.userData.head, i));
       model.userData.layout = { id: `person-${i}`, label: `座位 ${i + 1} · 人物`, category: '玩家与座位' };
       this.labels.push(this.makeSeatLabel());
       const pile = this.makeChips(i); pile.position.set(x * .70, 1.56, z * .70); this.scene.add(pile); this.piles.push(pile);
@@ -185,7 +189,7 @@ export class SaloonScene {
       });
     }
     if (!editor) {
-      try { this.portraits = createPlayerPortraits(this.renderer, makePerson); }
+      try { this.portraits = createPlayerPortraits(this.renderer, makePerson); this.basePortraits = [...this.portraits]; }
       catch (error) { console.warn('Player portraits:', error); this.portraits = []; }
     }
     this.showPreview();
@@ -466,6 +470,8 @@ export class SaloonScene {
   }
   showPreview() {
     this.shadowDirty = true;
+    this.models.forEach((model, i) => { model.userData.setAnger?.(0); model.userData.anger = 0; this.angerEffects?.[i]?.setLevel(0); });
+    if (this.portraitAnger?.size && this.basePortraits) { this.portraits = [...this.basePortraits]; this.portraitAnger.clear(); this.onPortraitsChanged?.(this.portraits); }
     this.dealerButtons?.update(null, 0);
     this.models.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
     this.piles.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
@@ -513,6 +519,18 @@ export class SaloonScene {
       this.models[i].visible = seat.kind !== 'open' && !own;
       this.models[i].userData.seat = seat.seat; this.chairs[i].userData.seat = seat.seat;
       this.models[i].userData.folded = !!p?.folded;
+      const anger = seat.kind === 'ai' ? seat.anger || 0 : 0;
+      this.models[i].userData.setAnger?.(anger); this.models[i].userData.anger = anger;
+      this.angerEffects?.[i]?.setLevel(anger, this.renderBudget.quality);
+      if (!this.editor && this.basePortraits && (this.portraitAnger.get(seat.seat) || 0) !== anger) {
+        const key = `${seat.seat}:${anger}`;
+        if (anger && !this.angerPortraits.has(key)) {
+          try { this.angerPortraits.set(key, createPlayerPortraits(this.renderer, makePerson, document, { seats: [seat.seat], anger })[0]); }
+          catch (error) { console.warn('Angry portrait:', error); }
+        }
+        this.portraits[seat.seat] = this.angerPortraits.get(key) || this.basePortraits[seat.seat];
+        this.portraitAnger.set(seat.seat, anger); this.onPortraitsChanged?.(this.portraits);
+      }
       this.piles[i].visible = seat.kind !== 'open' && (own || (p ? p.chips > 0 : true));
       this.piles[i].position.set(own ? -1.05 : POSITIONS[i][0] * .7, 1.56, own ? 3.75 : POSITIONS[i][1] * .7);
       this.markers[i].visible = !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing;
@@ -553,6 +571,7 @@ export class SaloonScene {
   setQuality(quality) {
     this.renderBudget.setQuality(quality);
     this.cards?.setQuality?.(this.renderBudget.quality);
+    this.angerEffects?.forEach(effect => effect.setLevel(effect.level, this.renderBudget.quality));
     const enabled = this.renderBudget.quality !== 'low', settings = this.renderBudget.settings;
     const shadow = this.keyLight?.shadow;
     if (shadow && (shadow.mapSize.x !== settings.shadowSize || !enabled)) {
@@ -613,8 +632,9 @@ export class SaloonScene {
     if (!this.editor) this.models.forEach((model, i) => {
       if (!model.visible) return;
       model.position.y = Math.sin(time * .0011 + i * 1.3) * .012;
-      model.userData.head.rotation.x = model.userData.folded ? .18 : Math.sin(time * .0004 + i) * .025;
+      model.userData.head.rotation.x = model.userData.anger ? -.025 + Math.sin(time * .001 + i) * .018 : model.userData.folded ? .18 : Math.sin(time * .0004 + i) * .025;
     });
+    this.angerEffects?.forEach(effect => effect.tick(time, this.camera, this.viewHeight, this.pixelRatio));
     // Keep nearby nameplates readable without letting them cover half a phone screen.
     // These remain depth-tested world-space Sprites; there is no screen-positioned UI.
     const labelLimit = Math.min(150, this.viewWidth * .42);

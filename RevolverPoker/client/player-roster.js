@@ -24,7 +24,7 @@ export class PlayerRosterState {
       const chips = player?.chips ?? seat.chips ?? room.config.startingChips;
       return { id: seat.id, seat: seat.seat, name: seat.name, mine: seat.id === viewerId, bot: seat.kind === 'ai',
         active: !!player && !settled && !room.dealing && !room.settling && hand.actor === seat.seat,
-        folded: !!player?.folded, eliminated, disconnected, settled, result,
+        folded: !!player?.folded, eliminated, disconnected, settled, result, anger: seat.kind === 'ai' ? Math.max(0, Math.min(3, seat.anger || 0)) : 0,
         chips, bet: player?.bet || 0,
         status: settled ? result.handName : eliminated ? '已出局' : compactAction(action) || seat.name,
         badge: hand?.button === seat.seat ? 'D' : hand?.sbSeat === seat.seat ? 'SB' : hand?.bbSeat === seat.seat ? 'BB' : '' };
@@ -41,7 +41,7 @@ export class PlayerRoster {
   }
   setPortraits(portraits) {
     this.portraits = portraits;
-    for (const entry of this.entries.values()) entry.image.src = portraits[entry.seat] || fallbackPortrait(entry.seat);
+    for (const entry of this.entries.values()) { const source = portraits[entry.seat] || fallbackPortrait(entry.seat); if (entry.image.src !== source) entry.image.src = source; }
   }
   updateLayout() {
     const count = this.entries.size, width = this.container.clientWidth;
@@ -79,7 +79,7 @@ export class PlayerRoster {
     this.container.style.setProperty('--player-count', Math.max(1, states.length));
     const roots = states.map(player => {
       const entry = this.entries.get(player.id) || this.create(player.id, player.seat);
-      entry.root.className = `player-status${player.active ? ' active' : ''}${player.mine ? ' mine' : ''}${player.folded || player.eliminated ? ' folded' : ''}${player.result?.winner ? ' winner' : ''}${player.disconnected ? ' disconnected' : ''}`;
+      entry.root.className = `player-status${player.active ? ' active' : ''}${player.mine ? ' mine' : ''}${player.folded || player.eliminated ? ' folded' : ''}${player.result?.winner ? ' winner' : ''}${player.disconnected ? ' disconnected' : ''}${player.anger ? ` anger-${player.anger}` : ''}`;
       entry.root.title = `${player.name}${player.bot ? '（AI）' : ''}${player.mine ? ' · 你' : ''}${player.disconnected ? ' · 暂时断线' : ''}${player.settled ? '' : ` · 总筹码 ${money(player.chips)} · 本轮下注 ${money(player.bet)}`}`;
       entry.root.setAttribute('aria-label', `${player.seat + 1} 号座位，${entry.root.title}，${player.status}${player.active ? '，正在行动' : ''}`);
       entry.identity.textContent = player.mine ? '你' : String(player.seat + 1).padStart(2, '0');

@@ -128,7 +128,7 @@ export function estimateBotEquity(view, id, { trials = 160, random = randomInt }
   return { equity: equity / weights, callEquity: eligiblePot ? winnings / weights / eligiblePot : equity / weights, eligiblePot };
 }
 
-export function chooseBotAction(view, id, difficulty = 'normal', random = randomInt, personality = DEFAULT_PERSONALITY) {
+export function chooseBotAction(view, id, difficulty = 'normal', random = randomInt, personality = DEFAULT_PERSONALITY, angerLevel = 0) {
   const me = view.players.find(player => player.id === id), legal = view.legal;
   if (!me || !legal) return null;
   if (view.board.length === 5) {
@@ -137,33 +137,38 @@ export function chooseBotAction(view, id, difficulty = 'normal', random = random
   }
   const level = LEVELS[difficulty] || LEVELS.normal;
   const analysis = estimateBotEquity(view, id, { trials: level.trials, random });
-  return decideBotAction(view, id, difficulty, analysis, personality, random);
+  return decideBotAction(view, id, difficulty, analysis, personality, random, angerLevel);
 }
 
 // Separate price/behavior decisions from Monte Carlo sampling so the same
 // public-information equity estimate can be evaluated without rerunning it.
-export function decideBotAction(view, id, difficulty, analysis, personality = DEFAULT_PERSONALITY, random = randomInt) {
+export function decideBotAction(view, id, difficulty, analysis, personality = DEFAULT_PERSONALITY, random = randomInt, angerLevel = 0) {
   const me = view.players.find(player => player.id === id), legal = view.legal;
   if (!me || !legal) return null;
   const level = LEVELS[difficulty] || LEVELS.normal;
   const profile = { ...DEFAULT_PERSONALITY, ...personality };
+  const anger = clamp(Math.floor(angerLevel) || 0, 0, 3);
+  if (anger) for (const [trait, increase] of Object.entries({ aggression: .12, looseness: .1, calling: .12, riskTolerance: .1, volatility: .12 })) profile[trait] = clamp(profile[trait] + anger * increase, 0, 1);
   const preflop = view.board.length === 0;
-  const reason = botRationality(difficulty, profile), impulse = 1 - reason;
+  const reason = botRationality(difficulty, profile) * (1 - anger * .15), impulse = 1 - reason;
   const opponents = view.players.filter(player => player.id !== id && !player.folded);
   const noise = (roll(random) - .5) * level.noise * (1 + profile.volatility * impulse);
   const equity = clamp(analysis.equity + noise, 0, 1), callEquity = clamp(analysis.callEquity + noise, 0, 1);
   const odds = legal.callAmount / Math.max(1, analysis.eligiblePot);
   const cost = legal.callAmount / Math.max(1, me.chips);
   const risk = cost * (.02 + .08 * reason) * (1 - profile.riskTolerance * .5);
-  const requiredEdge = level.margin + risk + (.5 - profile.looseness) * .22 * impulse;
+  const baseEdge = level.margin + risk + (.5 - profile.looseness) * .22 * impulse;
+  // Bad-price calls still pass through the mistake budget. Otherwise a tiny
+  // hard-mode noise range would make furious hard AI chase more than easy AI.
+  const requiredEdge = anger ? Math.max(.002, baseEdge - anger * .012) : baseEdge;
   const expectedCallValue = analysis.callEquity * analysis.eligiblePot - legal.callAmount;
   const trueEdge = expectedCallValue / Math.max(1, analysis.eligiblePot);
   // Do not let sampling noise alone justify committing most of a stack before
   // the flop. Loose personalities may still make mistakes, at a reduced rate.
   const pricedEquity = preflop && cost >= .5 ? analysis.callEquity : callEquity;
   if (!legal.canCheck && pricedEquity - odds < requiredEdge) {
-    const errorBudget = Math.min(level.lossLimit, impulse * (.5 + .6 * profile.calling));
-    const chaseChance = level.mistake * impulse * (.2 + .8 * profile.calling) *
+    const errorBudget = Math.min(level.lossLimit + anger * .045, impulse * (.5 + .6 * profile.calling));
+    const chaseChance = (level.mistake + anger * .03) * impulse * (.2 + .8 * profile.calling) *
       (.4 + .6 * profile.riskTolerance) * (1 - .35 * Math.min(1, cost) * reason) *
       (preflop ? cost >= .8 ? .15 : cost >= .25 ? .4 : 1 : 1);
     // Low discipline can pay a bad price to chase a weak hand. Stronger AI
@@ -175,21 +180,21 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
   const order = [me, ...opponents].sort((a, b) => ((a.seat - view.button + 7) % 8) - ((b.seat - view.button + 7) % 8));
   const position = order.indexOf(me) / Math.max(1, order.length - 1);
   const fair = 1 / (opponents.length + 1);
-  const threshold = Math.max(fair + .025, Math.max(fair * 1.35, fair + (opponents.length === 1 ? .12 : .08)) +
-    (.5 - profile.aggression) * (.1 + .12 * impulse));
+  const threshold = Math.max(fair + .01, Math.max(fair + .025, Math.max(fair * 1.35, fair + (opponents.length === 1 ? .12 : .08)) +
+    (.5 - profile.aggression) * (.1 + .12 * impulse)) - anger * .018);
   const quality = preflop ? preflopQuality(me.cards) : 0;
   const facingRaise = preflop && view.currentBet > view.bigBlind;
   const preflopRaises = (view.history || []).filter(action => action.street === 'preflop' && /^(加注|全下)/.test(action.action)).length;
   // Multiway equity alone is not a license to repeatedly raise before seeing
   // the board. Re-raises need stronger hole cards, especially in an escalated pot.
-  const raiseQuality = facingRaise ? preflopRaises >= 2 || view.currentBet >= view.bigBlind * 10 ? .90 : .76 : .58 - position * .08;
+  const raiseQuality = (facingRaise ? preflopRaises >= 2 || view.currentBet >= view.bigBlind * 10 ? .90 : .76 : .58 - position * .08) - anger * .025;
   const premium = preflop && quality >= .81 && equity > fair + .04;
   const opening = preflop && view.currentBet <= view.bigBlind && quality > .70 - position * .12 - (profile.looseness - .5) * .18 * impulse && equity > fair;
   const bluff = opponents.length <= 2 && opponents.every(player => player.chips > 0) &&
     (legal.canCheck || preflop && view.currentBet <= view.bigBlind) &&
-    roll(random) < level.bluff * (.2 + 2 * profile.bluffing) * (position > .5 ? 1 : .5) * (preflop ? .2 : 1);
+    roll(random) < level.bluff * (.2 + 2 * profile.bluffing) * (position > .5 ? 1 : .5) * (preflop ? .2 : 1) * (1 + anger * .15);
   const valueRaise = preflop ? quality >= raiseQuality && (equity > threshold || !facingRaise && (premium || opening)) : equity > threshold;
-  const raiseChance = facingRaise ? .20 + .35 * profile.aggression : .55 + .35 * profile.aggression;
+  const raiseChance = Math.min(.98, (facingRaise ? .20 + .35 * profile.aggression : .55 + .35 * profile.aggression) + anger * .055);
   if (legal.canRaise && (valueRaise || bluff) && (!preflop || roll(random) < raiseChance)) {
     let target;
     if (preflop) {

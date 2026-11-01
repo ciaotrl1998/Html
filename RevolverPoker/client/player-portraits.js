@@ -2,7 +2,7 @@ import * as THREE from '/vendor/three.js';
 
 // Render the actual table characters once. Portraits stay attached to absolute
 // seats, independent of the viewer's camera or the table's edited arrangement.
-export function createPlayerPortraits(renderer, createCharacter, doc = document) {
+export function createPlayerPortraits(renderer, createCharacter, doc = document, { seats = [0, 1, 2, 3, 4, 5, 6, 7], anger = 0 } = {}) {
   const width = 128, height = 160, target = new THREE.WebGLRenderTarget(width, height);
   target.texture.colorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x282218);
@@ -16,8 +16,9 @@ export function createPlayerPortraits(renderer, createCharacter, doc = document)
   const portraits = [];
   try {
     renderer.shadowMap.enabled = false;
-    for (let seat = 0; seat < 8; seat++) {
+    for (const seat of seats) {
       const character = createCharacter(seat); scene.add(character);
+      character.userData.setAnger?.(anger);
       try {
         renderer.setRenderTarget(target); renderer.render(scene, camera);
         renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
