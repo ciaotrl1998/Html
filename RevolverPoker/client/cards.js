@@ -127,16 +127,18 @@ export class TableCards {
       card.back.material = this.factory.backMaterial;
     }
   }
-  place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true, dealing = false } = {}) {
+  place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true, dealing = false, fromCurrent = false } = {}) {
     const changed = card.identity !== identity;
     card.value = value; card.front.material = this.factory.front(value); card.root.scale.setScalar(scale);
     if (changed) {
       card.identity = identity;
       if (animate) {
-        card.root.position.copy(DECK);
-        card.root.quaternion.copy(quaternion);
-        if (flip) card.root.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(X_AXIS, Math.PI));
-        card.animation = { kind: dealing ? 'deal' : 'reveal', start: (dealing && this.dealStart !== null ? this.dealStart : performance.now()) + delay, duration: DEAL_TIMING.card, from: card.root.position.clone(), to: position.clone(), fromQ: card.root.quaternion.clone(), toQ: quaternion.clone(), lift: .35 };
+        if (!fromCurrent) {
+          card.root.position.copy(DECK);
+          card.root.quaternion.copy(quaternion);
+          if (flip) card.root.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(X_AXIS, Math.PI));
+        }
+        card.animation = { kind: dealing ? 'deal' : 'reveal', start: (dealing && this.dealStart !== null ? this.dealStart : performance.now()) + delay, duration: fromCurrent ? 360 : DEAL_TIMING.card, from: card.root.position.clone(), to: position.clone(), fromQ: card.root.quaternion.clone(), toQ: quaternion.clone(), lift: fromCurrent ? .12 : .35 };
       } else { card.animation = null; card.root.position.copy(position); card.root.quaternion.copy(quaternion); }
     }
     card.root.visible = true;
@@ -159,7 +161,7 @@ export class TableCards {
   update(room, viewerId, positions, focus) {
     const hand = room?.hand, newKey = hand ? `${room.code}:${hand.number}` : null;
     const freshHand = newKey !== this.handKey;
-    if (freshHand || !hand) { this.peeking = false; this.boardPresentation.reset(); }
+    if (freshHand || !hand) { this.peeking = false; this.shown = false; this.boardPresentation.reset(); }
     const allowAnimation = this.seenState && this.animate;
     if (freshHand || !hand) for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; card.peekPending = false; }
     this.handKey = newKey; this.seenState = true;
@@ -176,7 +178,8 @@ export class TableCards {
     }
     const me = hand.players.find(p => p.id === viewerId);
     this.folded = !me || me.folded;
-    if (this.folded) this.peeking = false;
+    this.shown = !!me?.shown;
+    if (this.folded || this.shown) this.peeking = false;
     for (let i = 0; i < 2; i++) {
       if (me?.folded) {
         this.placeDiscard(this.ownDiscard[i], this.hole[i], this.ownDiscardGroup, `${newKey}:own-discard:${me.id}:${i}`,
@@ -186,8 +189,8 @@ export class TableCards {
       this.ownDiscard[i].root.visible = false; this.ownDiscard[i].animation = null;
       if (!me || me.cards[i] === null) { this.hole[i].root.visible = false; continue; }
       const side = i ? 1 : -1;
-      const position = new THREE.Vector3(side * .145, TABLE_Y + i * .004, 3.95 + i * .005);
-      this.place(this.hole[i], me.cards[i], `${newKey}:own:${i}:false`, position, rotation(this.peeking ? -Math.PI / 2 : Math.PI / 2, 0, side * .1), { animate: allowAnimation, delay: i * DEAL_TIMING.holeGap, scale: .65, flip: false, dealing: !hand.done });
+      const position = new THREE.Vector3(side * (this.shown ? .23 : .145), TABLE_Y + i * .004, (this.shown ? 3.15 : 3.95) + i * .005);
+      this.place(this.hole[i], me.cards[i], `${newKey}:own:${i}:${this.shown}`, position, rotation(this.peeking || this.shown ? -Math.PI / 2 : Math.PI / 2, 0, side * .1), { animate: allowAnimation, fromCurrent: this.shown && !freshHand, delay: this.shown ? 0 : i * DEAL_TIMING.holeGap, scale: .65, flip: false, dealing: !hand.done });
     }
     for (let local = 0; local < 8; local++) {
       const seat = (local + focus) % 8, player = hand.players.find(p => p.seat === seat);
@@ -203,10 +206,11 @@ export class TableCards {
         } else { discarded.root.visible = false; discarded.animation = null; }
         if (!player || player.id === viewerId || player.folded) { card.root.visible = false; card.animation = null; continue; }
         const known = player.cards[i] !== null;
-        const position = new THREE.Vector3(x * .59, TABLE_Y + i * .003, z * .59).addScaledVector(sideways, (i ? 1 : -1) * .14);
+        const reach = player.shown ? .47 : .59;
+        const position = new THREE.Vector3(x * reach, TABLE_Y + i * .003, z * reach).addScaledVector(sideways, (i ? 1 : -1) * .14);
         const q = new THREE.Quaternion().setFromAxisAngle(Y_AXIS, yaw).multiply(rotation(known ? -Math.PI / 2 : Math.PI / 2, 0, i ? .08 : -.08));
         card.root.userData.seat = seat;
-        this.place(card, player.cards[i], `${newKey}:other:${player.id}:${i}:${known}`, position, q, { animate: allowAnimation, delay: local * DEAL_TIMING.seatGap + i * DEAL_TIMING.opponentGap, scale: .65, dealing: !hand.done });
+        this.place(card, player.cards[i], `${newKey}:other:${player.id}:${i}:${known}`, position, q, { animate: allowAnimation, fromCurrent: player.shown && !freshHand, delay: player.shown ? 0 : local * DEAL_TIMING.seatGap + i * DEAL_TIMING.opponentGap, scale: .65, dealing: !hand.done });
       }
     }
     if (room.dealing === false) this.finishDealing();
@@ -232,7 +236,7 @@ export class TableCards {
     });
   }
   setPeeking(peeking) {
-    peeking = !!peeking && !this.folded;
+    peeking = !!peeking && !this.folded && !this.shown;
     if (this.peeking === peeking) return;
     this.peeking = peeking;
     for (let i = 0; i < 2; i++) {
@@ -262,7 +266,7 @@ export class TableCards {
     this.boardPresentation.tick(now, camera);
     for (const card of this.hole) {
       card.display.matrix.identity();
-      if (this.handDrag > 0 && !this.folded) {
+      if (this.handDrag > 0 && !this.folded && !this.shown) {
         const world = card.root.getWorldPosition(new THREE.Vector3());
         const direction = this.boardAnchor.getWorldPosition(new THREE.Vector3()).sub(world); direction.y = 0; direction.normalize();
         const desired = world.clone().addScaledVector(direction, this.handDrag * .45); desired.y += this.handDrag * .06;

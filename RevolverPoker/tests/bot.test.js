@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
-import { estimateBotEquity, chooseBotAction, decideBotAction, createBotPersonality, createBotPersonalities, botRationality } from '../server/bot.js';
+import { estimateBotEquity, chooseBotAction, decideBotAction, createBotPersonality, createBotPersonalities, botRationality, getBotBluff, botBluffShowChance, shouldShowBotBluff } from '../server/bot.js';
 
 const card = (rank, suit = 0) => suit * 13 + rank - 2;
 function random(seed = 123) {
@@ -14,6 +14,42 @@ function view(cards = [card(14), card(14, 1)], board = [], count = 2) {
     legal: { toCall: 0, callAmount: 0, canCheck: true, canRaise: true, minTo: 120, maxTo: 1100, canAllIn: true } };
 }
 const royal = [10, 11, 12, 13, 14].map(rank => card(rank, 3));
+
+test('only an actual bluff decision carries private reveal intent and lower hole cards increase the show chance', () => {
+  const board = [card(2, 2), card(5, 1), card(9, 3)], profile = createBotPersonality(random(12), 'tricky');
+  const weak = view([card(7), card(2, 1)], board), strong = view([card(14), card(13, 1)], board);
+  const analysis = { equity: .1, callEquity: .1, eligiblePot: 200 };
+  const bluff = decideBotAction(weak, 'me', 'hard', analysis, profile, () => 0);
+  const higher = decideBotAction(strong, 'me', 'hard', analysis, profile, () => 0);
+  assert.equal(bluff.type, 'raise'); assert.ok(getBotBluff(bluff));
+  assert.deepEqual(Object.keys(bluff).sort(), ['amount', 'type'], 'intent and personality cannot enter action JSON');
+  assert.ok(getBotBluff(bluff).weakness > getBotBluff(higher).weakness);
+  assert.ok(botBluffShowChance(getBotBluff(bluff).weakness, profile) > botBluffShowChance(getBotBluff(higher).weakness, profile));
+  const value = decideBotAction(weak, 'me', 'hard', { ...analysis, equity: .95, callEquity: .95 }, profile, () => 0);
+  assert.equal(value.type, 'raise'); assert.equal(getBotBluff(value), null, 'a value bet is not mislabeled because a bluff roll also succeeded');
+});
+
+test('personality and card weakness change bluff-show rates; only the winning final aggression can be revealed', t => {
+  const hand = view([card(7), card(2, 1)]); hand.done = true; hand.players[0].bot = true;
+  hand.result = { showdown: false, pots: [{ awards: [{ id: 'me', amount: 200 }] }] };
+  hand.history = [{ seat: 0, street: 'preflop', action: '加注至 100' }, { seat: 1, street: 'preflop', action: '弃牌' }];
+  const bluff = { index: 0, street: 'preflop', weakness: .9 };
+  const styles = ['tight', 'balanced', 'caller', 'aggressive', 'tricky'];
+  const counts = styles.map(style => {
+    const profile = createBotPersonality(random(12), style), rng = random(42); let shows = 0;
+    for (let i = 0; i < 4000; i++) shows += shouldShowBotBluff(hand, 'me', bluff, profile, rng);
+    return shows;
+  });
+  assert.ok(counts[4] > counts[3] && counts[3] > counts[1] && counts[1] > counts[2] && counts[2] > counts[0]);
+  const low = { ...bluff, weakness: .2 }, tricky = createBotPersonality(random(12), 'tricky');
+  assert.ok(botBluffShowChance(low.weakness, tricky) < botBluffShowChance(bluff.weakness, tricky));
+  for (const mutate of [h => { h.done = false; }, h => { h.result.showdown = true; }, h => { h.players[0].bot = false; }, h => { h.players[0].folded = true; }, h => { h.players[0].shown = true; }, h => { h.street = 'flop'; }, h => { h.result.pots[0].awards[0].id = 'p1'; }, h => { h.history.push({ seat: 1, street: 'preflop', action: '加注至 200' }); }]) {
+    const invalid = structuredClone(hand); mutate(invalid); assert.equal(shouldShowBotBluff(invalid, 'me', bluff, tricky, () => 0), false);
+  }
+  assert.equal(shouldShowBotBluff(hand, 'me', null, tricky, () => 0), false);
+  assert.equal(shouldShowBotBluff(hand, 'me', bluff, tricky, () => 9999), false);
+  t.diagnostic(`Weak bluff-show rates (tight/balanced/caller/aggressive/tricky): ${counts.map(n => (n / 40).toFixed(1) + '%').join(' / ')}`);
+});
 
 test('match profiles are random, immutable and varied, with strictly higher rationality ranges at higher difficulty', () => {
   const ids = Array.from({ length: 7 }, (_, i) => `ai-${i}`);

@@ -1,8 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
+import { canShowWinningCards } from '../shared/poker.js';
 import { TableActions, TABLE_GESTURES, amountAtRatio, ratioForAmount, stagedAction, tableTurnKey } from '../client/table-actions.js';
 
 const point = { x: 200, y: 300 };
+test('the client explains an old running server instead of sending an unsupported reveal into seat configuration handling', async () => {
+  const source = await readFile(new URL('../client/app.js', import.meta.url), 'utf8');
+  const action = source.slice(source.indexOf('function act('), source.indexOf("$('my-cards').onclick"));
+  for (const supported of [undefined, false, true]) {
+    const state = room(); state.handNumber = 1; state.supportsShowCards = supported;
+    state.hand.done = true; state.hand.result = { showdown: false, pots: [{ awards: [{ id: 'me', amount: 30 }] }] };
+    const sent = [], messages = [];
+    const context = vm.createContext({ connected: true, room: state, scene: {}, sessionId: 'me', tableTurnKey, canShowWinningCards,
+      send: (...args) => { sent.push(args); return true; }, toast: message => messages.push(message) });
+    vm.runInContext(action, context);
+    const result = context.act('show-cards', undefined, tableTurnKey(state));
+    assert.equal(result, supported === true);
+    if (supported === true) { assert.equal(sent[0][0], 'show-cards'); assert.equal(sent[0][1].hand, 1); assert.deepEqual(messages, []); }
+    else { assert.deepEqual(sent, []); assert.match(messages[0], /重启 CMD 游戏服务器/); }
+  }
+});
 function room(options = {}) {
   const player = { id: 'me', seat: 0, bet: 0, chips: 1000, folded: false, ...options.player };
   return { code: '123456', phase: 'playing', turnId: 'turn-1', hand: { number: 1, actor: 0, done: false, currentBet: 20,
@@ -25,6 +44,30 @@ function fixture(input = room()) {
   };
   return { actions, sent, states, commits, tap, push, select };
 }
+
+test('a fold-win only accepts a deliberate forward hand push to show cards, with chips and betting kept disabled', () => {
+  const state = room(); state.hand.done = true; state.hand.actor = null; state.hand.legal = null;
+  state.hand.result = { showdown: false, pots: [{ awards: [{ id: 'me', amount: 30 }] }] };
+  const f = fixture(state);
+  assert.equal(f.states.at(-1).enabled, false, 'settlement never reopens betting');
+  for (const target of [{ chipRole: 'bank' }, { chipRole: 'staged' }, { tableSurface: true }]) assert.equal(f.actions.begin(target, point, 0), false);
+  f.tap({ cardRole: 'hand' }); assert.deepEqual(f.sent, []);
+  f.push({ cardRole: 'hand' }, 500, { x: 200, y: 280 }); assert.deepEqual(f.sent, []);
+  f.actions.begin({ cardRole: 'hand' }, point, 700); f.actions.move({ x: 200, y: 250 }, 750); f.actions.cancel();
+  assert.deepEqual(f.sent, []);
+  f.push({ cardRole: 'hand' });
+  assert.deepEqual(f.sent, [{ type: 'show-cards', amount: undefined, key: tableTurnKey(state) }]);
+  assert.deepEqual(f.commits, [], 'showing cards cannot transfer chips');
+  f.push({ cardRole: 'hand' }); assert.equal(f.sent.length, 1);
+  state.hand.players[0].shown = true; f.actions.sync(state, 'me');
+  assert.equal(f.actions.begin({ cardRole: 'hand' }, point, 3000), false);
+  for (const mutation of [s => { s.hand.result.showdown = true; }, s => { s.hand.players[0].folded = true; }, s => { s.dealing = true; }, s => { s.hand.result.pots[0].awards[0].id = 'other'; }]) {
+    const input = structuredClone(state); input.hand.players[0].shown = false; mutation(input);
+    assert.equal(fixture(input).actions.begin({ cardRole: 'hand' }, point, 0), false);
+  }
+  const disconnected = structuredClone(state); disconnected.hand.players[0].shown = false;
+  f.actions.sync(disconnected, 'me', false); assert.equal(f.actions.begin({ cardRole: 'hand' }, point, 0), false);
+});
 
 test('one chip-bank click stages a call; only pushing the staged chips commits it once', () => {
   const f = fixture(); f.tap({ chipRole: 'bank' });

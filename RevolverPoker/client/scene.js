@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.js';
+import { canShowWinningCards } from '../shared/poker.js';
 import SAVED_SCENE from './scene-layout.js';
 import { FrameClock } from './frame-clock.js';
 import { RenderBudget } from './render-budget.js';
@@ -368,7 +369,8 @@ export class SaloonScene {
     if (this.editor || !this.firstPerson || this.room.phase !== 'playing' || !hand) return null;
     const pose = playerCameraPose(this.playerCamera);
     if (this.dealing) return { key: `deal:${dealKey(this.room)}`, ...pose };
-    if (hand.done || !Number.isInteger(hand.actor)) return null;
+    if (hand.done) return canShowWinningCards(hand, this.viewerId) ? { key: `show:${this.room.code}:${hand.number}`, ...pose } : null;
+    if (!Number.isInteger(hand.actor)) return null;
     const actor = hand.players.find(player => player.seat === hand.actor);
     if (!actor) return null;
     const key = `${this.room.code}:${hand.number}:${hand.actor}`;
@@ -417,7 +419,7 @@ export class SaloonScene {
   beginCardPeek(kind) {
     if (this.peekActive || this.room?.opening || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand || (this.dealing && kind !== 'hand')) return false;
     const me = this.room.hand.players.find(p => p.id === this.viewerId);
-    if (kind === 'hand' && (!me || me.folded)) return false;
+    if (kind === 'hand' && (!me || me.folded || me.shown)) return false;
     if (kind === 'board' && !this.room.hand.board.length) return false;
     this.peekActive = true; this.peekHandKey = `${this.room.code}:${this.room.hand.number}`;
     this.inspectMode = kind; this.cardPeekClosing = null; this.viewTransition = null;
@@ -431,7 +433,7 @@ export class SaloonScene {
     const kind = this.inspectMode;
     this.peekActive = false; this.cards.setPeeking(false); this.cards.setBoardPeeking(false); this.inspectMode = null;
     this.viewTransition = null; this.cardPeekClosing = kind;
-    this.renderer.domElement.setAttribute('aria-description', kind === 'hand' ? '正在盖回底牌' : '正在放回公共牌');
+    this.renderer.domElement.setAttribute('aria-description', kind === 'hand' ? this.cards.shown ? '底牌已公开展示' : '正在盖回底牌' : '正在放回公共牌');
   }
   applyView() {
     this.camera.quaternion.setFromEuler(new THREE.Euler(this.pitch, this.yaw, this.roll, 'YXZ'));
@@ -605,7 +607,7 @@ export class SaloonScene {
       if (this.inspectMode === 'board' && this.cards.boardRaised) this.renderer.domElement.setAttribute('aria-description', '公共牌已立起，松开放回桌面');
       if (this.inspectMode === 'hand' && this.cards.hole.every(card => !card.animation)) this.renderer.domElement.setAttribute('aria-description', '底牌已翻开，松开盖住');
     } else if (this.cardPeekClosing && (this.cardPeekClosing === 'board' ? this.cards.boardResting : this.cards.hole.every(card => !card.animation))) {
-      this.renderer.domElement.setAttribute('aria-description', this.cardPeekClosing === 'board' ? '公共牌已放回桌面，保持当前视角' : '底牌已盖住，保持当前视角');
+      this.renderer.domElement.setAttribute('aria-description', this.cardPeekClosing === 'board' ? '公共牌已放回桌面，保持当前视角' : this.cards.shown ? '底牌已公开展示' : '底牌已盖住，保持当前视角');
       this.cardPeekClosing = null;
     }
     if (!this.editor) this.models.forEach((model, i) => {

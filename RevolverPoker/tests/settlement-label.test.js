@@ -26,6 +26,13 @@ test('WIN does not reveal cards that were not publicly shown', () => {
     { cards: [null, null], handName: '未公开', winner: true });
 });
 
+test('a voluntary show exposes just the winning hole cards without inventing an incomplete board hand', () => {
+  const foldedWin = { ...hand, board: [], result: { ...hand.result, showdown: false } };
+  assert.deepEqual(settlementLabel(foldedWin, { ...player, shown: true }), { cards: [...player.cards], handName: '已亮牌', winner: true });
+  assert.deepEqual(settlementLabel(foldedWin, { ...player, cards: [null, null] }), { cards: [null, null], handName: '未摊牌', winner: true });
+  assert.deepEqual(settlementLabel(foldedWin, { ...player, shown: true, folded: true }), { cards: [null, null], handName: '已弃牌' });
+});
+
 function drawing() {
   const calls = [], state = {};
   const ctx = new Proxy(state, { get(target, key) {

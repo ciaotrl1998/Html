@@ -1,10 +1,11 @@
-import { evaluate, handName } from '/shared/poker.js';
+import { evaluate, handName, canShowWinningCards } from '/shared/poker.js';
 import { tableTurnKey } from './table-actions.js';
 import { renderWinnerResult } from './winner-display.js';
 import { PlayerRoster } from './player-roster.js';
 import { normalizeQuality } from './render-budget.js';
 import { loadCardArtwork, cardArtURL } from './card-artwork.js';
 import { FullscreenControl } from './fullscreen.js';
+import { PlayerInfo } from './player-info.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -21,6 +22,10 @@ let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
 let audio;
+const playerInfo = new PlayerInfo($('player-info'), { send, notify: toast, open: () => {
+  scene?.cancelViewInput(); clearTimeout(toastTimer); $('toast').hidden = true;
+} });
+playerRoster.onSelect = handleSeatClick;
 new FullscreenControl({ button: $('fullscreen-button'), status: $('fullscreen-state'), change: () => {
   scene?.cancelViewInput(); window.RevolverPokerBoot?.fitViewport?.(); scene?.resize();
 } });
@@ -42,6 +47,7 @@ function send(type, data = {}) {
 function setConnection(value) {
   connected = value;
   scene?.setActionConnection(value);
+  playerInfo.update(room, sessionId, value);
   $('connection').classList.toggle('offline', !value);
   $('connection').innerHTML = `<i></i> ${value ? '已连接' : '重连中'}`;
   $('create-button').disabled = !value;
@@ -71,7 +77,8 @@ function connect() {
       if (room.phase === 'finished' && (previous?.phase !== 'finished' || finishKey !== `${room.code}:${room.handNumber}`)) {
         finishKey = `${room.code}:${room.handNumber}`; showFinish();
       }
-    } else if (data.type === 'error') { scene?.rejectTableAction(); toast(data.message); }
+    } else if (data.type === 'gift-sent') { playerInfo.accept(data); }
+    else if (data.type === 'error') { if (!playerInfo.reject(data)) { scene?.rejectTableAction(); toast(data.message); } }
     else if (data.type === 'left') { returnToMenu(); }
     else if (data.type === 'room-closed') {
       const host = room?.hostId === sessionId;
@@ -101,7 +108,7 @@ function returnToMenu() {
   closeDialogs(); render();
   history.replaceState(null, '', location.pathname);
 }
-function showDialog(id) { scene?.cancelViewInput(); closeDialogs(); $(id).showModal(); }
+function showDialog(id) { playerInfo.close(); scene?.cancelViewInput(); closeDialogs(); $(id).showModal(); }
 document.querySelectorAll('.close-dialog').forEach(b => b.onclick = () => b.closest('dialog').close());
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } }));
 
@@ -116,6 +123,7 @@ function handleSeatClick(i) {
     if (s.kind === 'ai' && room.hostId !== sessionId) toast('这是 AI 座位，请选择开放空座');
     else send('seat', { seat: i });
   } else if (s.kind === 'human' || s.kind === 'ai') {
+    if (s.id !== sessionId && playerInfo.show(i)) return;
     const p = room.hand?.players.find(p => p.id === s.id);
     toast(`${s.name}${s.id === sessionId ? '（你）' : ''} · ${s.kind === 'ai' ? '电脑' : s.connected ? '在线' : '暂时断线'}${p ? ` · 剩余 ${money(p.chips)} · 本轮投入 ${money(p.bet)}` : ''}`);
   } else toast('比赛进行中，下一场可入座');
@@ -153,7 +161,7 @@ function renderSeats() {
       let action = p?.action || '';
       if (s.kind === 'human' && !s.connected) action = '断线';
       if (p?.chips === 0 && !h.done && !p.folded) action = '全下';
-      const cards = h?.done && h.result.showdown && p && !p.folded ? `<div class="tiny-cards">${p.cards.map(cardHTML).join('')}</div>` : '';
+      const cards = h?.done && (h.result.showdown || p?.shown) && p && !p.folded ? `<div class="tiny-cards">${p.cards.map(cardHTML).join('')}</div>` : '';
       b.innerHTML = `${markers}<span class="seat-name">${s.kind === 'ai' ? '<span class="seat-number">AI</span>' : ''}${esc(s.name)}</span><span class="seat-value">${esc(state)}</span>${cards}${action ? `<span class="seat-action">${esc(action)}</span>` : ''}`;
       b.setAttribute('aria-label', `${i + 1} 号座位，${s.name}，${state}`);
     }
@@ -161,6 +169,7 @@ function renderSeats() {
   positionFallbackSeats();
 }
 function render() {
+  playerInfo.update(room, sessionId, connected);
   $('entry').hidden = !!room; $('table-ui').hidden = !room;
   $('room-header').hidden = !room;
   $('player-roster').hidden = !room;
@@ -210,6 +219,7 @@ function renderControls() {
     const dealing = !!room.dealing || !!scene?.dealing;
     const mineTurn = !!legal && connected && room.phase === 'playing' && !dealing;
     $('turn-label').textContent = dealing ? room.opening ? ({ markers: '放置庄家与盲位标记', smallBlind: '小盲下注', bigBlind: '大盲下注' }[room.opening.stage] || '准备开局') : room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
+    if (!dealing && connected && canShowWinningCards(h, sessionId)) $('turn-label').textContent = room.supportsShowCards ? '推出底牌可展示手牌' : '亮牌需先重启 CMD 游戏服务器';
     $('action-prompt').hidden = !mineTurn;
     $('action-prompt').textContent = mineTurn ? legal.toCall ? `需跟注 ${money(legal.callAmount)}` : '可以过牌或下注' : '';
   }
@@ -277,6 +287,11 @@ $('follow-players-button').onclick = () => {
   scene?.setFollowOtherPlayers(followOtherPlayers); renderFollowSetting();
 };
 function act(type, amount, expectedKey) {
+  if (type === 'show-cards') {
+    if (!connected || room?.dealing || scene?.dealing || expectedKey !== tableTurnKey(room) || !canShowWinningCards(room?.hand, sessionId)) return false;
+    if (room.supportsShowCards !== true) { toast('当前服务器仍是旧版本，请重启 CMD 游戏服务器后再亮牌'); return false; }
+    return send('show-cards', { hand: room.handNumber });
+  }
   if (!connected || room?.phase !== 'playing' || room.dealing || scene?.dealing || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
   const bytes = new Uint32Array(4); crypto.getRandomValues(bytes);
   return send('action', { hand: room.handNumber, turnId: room.turnId, requestId: [...bytes].map(n => n.toString(16)).join('-'), action: type, amount });

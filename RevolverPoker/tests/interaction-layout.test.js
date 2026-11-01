@@ -33,6 +33,30 @@ function createGame(editor = false) {
   return game;
 }
 
+test('a voluntary show pushes and flips both own cards, stays face-up after release and reconnect, and resets next hand', t => {
+  fakeDocument(t); const { cards } = createGame();
+  const room = { code: 'SHOW', phase: 'playing', dealing: false, hand: { number: 1, board: [], done: true,
+    result: { showdown: false, pots: [{ awards: [{ id: 'me', amount: 30 }] }] },
+    players: [{ id: 'me', seat: 0, cards: [12, 25], folded: false, shown: false }, { id: 'other', seat: 1, cards: [null, null], folded: true }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const closed = cards.hole[0].root.position.clone(), closedQ = cards.hole[0].root.quaternion.clone();
+  room.hand.players[0].shown = true; cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const animation = cards.hole[0].animation;
+  close(animation.from, closed); assert.ok(animation.to.z < closed.z - .5);
+  cards.tick(animation.start + 500, new THREE.PerspectiveCamera());
+  assert.ok(cards.hole[0].root.quaternion.angleTo(closedQ) > 3);
+  const exposed = cards.hole[0].root.quaternion.clone();
+  cards.setPeeking(true); cards.setPeeking(false); cards.tick(animation.start + 1000, new THREE.PerspectiveCamera());
+  assert.ok(cards.hole[0].root.quaternion.angleTo(exposed) < 1e-6);
+  const reconnect = createGame().cards; reconnect.update(room, 'me', TABLE_POSITIONS, 0);
+  close(reconnect.hole[0].root.position, cards.hole[0].root.position);
+  assert.ok(reconnect.hole[0].root.quaternion.angleTo(exposed) < 1e-6);
+  room.hand.number++; room.hand.done = false; room.hand.result = null; room.hand.players[0].shown = false;
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  cards.tick(performance.now() + 5000, new THREE.PerspectiveCamera());
+  assert.equal(cards.shown, false); assert.ok(cards.hole[0].root.quaternion.angleTo(closedQ) < 1e-6);
+});
+
 test('printed cards retain fixed brightness, full textures and materials across qualities without resetting a peek', t => {
   fakeDocument(t);
   const { cards } = createGame(); cards.animate = false;

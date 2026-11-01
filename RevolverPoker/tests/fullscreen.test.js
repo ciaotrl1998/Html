@@ -26,8 +26,15 @@ function surface(stored = null, mode = 'standard') {
   return { control, doc, root, button, status, calls, saved, table, emit, allow: () => { allowed = true; } };
 }
 
-test('fullscreen is enabled by default, retries on the first gesture, and settings exit persists', async t => {
-  const s = surface(); t.after(() => s.control.dispose()); await flush();
+test('fullscreen defaults off and stays off through game gestures until explicitly enabled', async t => {
+  const s = surface(); t.after(() => s.control.dispose()); await flush(); s.allow();
+  assert.equal(s.control.enabled, false); assert.equal(s.calls.enter, 0); assert.equal(s.status.textContent, '关闭');
+  s.emit('pointerup'); s.emit('keydown', { key: 'Enter' }); await flush(); assert.equal(s.calls.enter, 0);
+  s.button.onclick(); await flush(); assert.equal(s.control.active, true); assert.equal(s.saved.get('rp-fullscreen'), 'on');
+});
+
+test('a saved fullscreen-on preference retries on the first gesture and settings exit persists', async t => {
+  const s = surface('on'); t.after(() => s.control.dispose()); await flush();
   assert.equal(s.calls.enter, 1); assert.equal(s.control.enabled, true);
   assert.equal(s.status.textContent, '待进入'); assert.equal(s.button.attributes['aria-checked'], 'true');
   s.allow(); s.emit('pointerup'); await flush();
@@ -49,7 +56,7 @@ test('saved-off mode can be enabled from settings without its pointer event caus
 });
 
 test('typing, input focus, Escape and synthetic input never trigger automatic fullscreen', async t => {
-  const s = surface(); t.after(() => s.control.dispose()); await flush(); s.allow(); const before = s.calls.enter;
+  const s = surface('on'); t.after(() => s.control.dispose()); await flush(); s.allow(); const before = s.calls.enter;
   for (const tagName of ['INPUT', 'TEXTAREA', 'SELECT']) s.emit('pointerup', { target: { tagName } });
   s.emit('pointerup', { target: { isContentEditable: true } });
   s.doc.activeElement = { tagName: 'INPUT' }; s.emit('pointerup'); s.doc.activeElement = null;
@@ -59,7 +66,7 @@ test('typing, input focus, Escape and synthetic input never trigger automatic fu
 });
 
 test('manual browser exit is respected; background suspension keeps the preference for the next interaction', async t => {
-  const s = surface(); t.after(() => s.control.dispose()); await flush(); s.allow(); s.emit('pointerup'); await flush();
+  const s = surface('on'); t.after(() => s.control.dispose()); await flush(); s.allow(); s.emit('pointerup'); await flush();
   s.doc.hidden = true; s.doc.fullscreenElement = null; s.emit('fullscreenchange');
   assert.equal(s.control.enabled, true);
   s.doc.hidden = false; s.emit('pointerup'); await flush(); assert.equal(s.control.active, true);
@@ -71,7 +78,7 @@ test('manual browser exit is respected; background suspension keeps the preferen
 test('WebKit-prefixed hosts work and unsupported/restricted hosts leave the game usable', async t => {
   const safari = surface('off', 'webkit'); t.after(() => safari.control.dispose()); safari.allow(); safari.button.onclick(); await flush();
   assert.equal(safari.control.active, true); safari.button.onclick(); await flush(); assert.equal(safari.calls.exit, 1);
-  const unsupported = surface(null, 'unsupported'); t.after(() => unsupported.control.dispose());
+  const unsupported = surface('on', 'unsupported'); t.after(() => unsupported.control.dispose());
   assert.equal(unsupported.status.textContent, '浏览器限制'); unsupported.emit('pointerup');
   unsupported.button.onclick(); assert.equal(unsupported.status.textContent, '关闭'); assert.equal(unsupported.calls.enter, 0);
   const restricted = surface('off'); t.after(() => restricted.control.dispose()); restricted.doc.fullscreenEnabled = false;
@@ -89,7 +96,7 @@ test('disabling fullscreen while an entry is pending also exits a late browser e
 });
 
 test('a host that refuses trusted entry is not retried on every gesture and can be retried from settings', async t => {
-  const s = surface(); t.after(() => s.control.dispose()); await flush();
+  const s = surface('on'); t.after(() => s.control.dispose()); await flush();
   s.emit('pointerup'); await flush(); assert.equal(s.status.textContent, '浏览器限制');
   const before = s.calls.enter;
   for (let i = 0; i < 20; i++) s.emit('pointerup');

@@ -403,6 +403,10 @@ test('turn aiming uses the acting seat and edited world-space character position
   assert.notEqual(ownTarget.key, target.key, 'own turn starts a fresh return to the initial camera pose');
   close(camera.position, position); assert.ok(camera.quaternion.angleTo(orientation) < 1e-7, 'target selection does not snap the camera');
   game.room.hand.actor = 6; game.room.hand.done = true; assert.equal(game.getTurnLookTarget(), null);
+  game.room.hand.result = { showdown: false, pots: [{ awards: [{ id: 'me', amount: 30 }] }] };
+  game.followOtherPlayers = false;
+  close(game.getTurnLookTarget().position, initialPose.position, 'a fold winner returns to their own cards even with opponent follow disabled');
+  game.room.hand.players.find(p => p.id === 'me').shown = true; assert.equal(game.getTurnLookTarget(), null);
   game.room.hand.done = false; game.room.phase = 'lobby'; assert.equal(game.getTurnLookTarget(), null);
   game.room.phase = 'finished'; assert.equal(game.getTurnLookTarget(), null);
   game.room.phase = 'playing'; game.editor = true; assert.equal(game.getTurnLookTarget(), null);

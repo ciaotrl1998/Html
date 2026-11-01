@@ -6,7 +6,8 @@ import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from 
 import { networkInterfaces } from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
-import { chooseBotAction, createBotPersonalities } from './bot.js';
+import { chooseBotAction, createBotPersonalities, getBotBluff, shouldShowBotBluff } from './bot.js';
+import { transferChipGift } from './chip-gifts.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
 import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing.js';
 
@@ -28,7 +29,7 @@ function config(input = {}) {
   return c;
 }
 
-export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay = null, openingDelay = OPENING_TIMING.duration, phaseDelay = DEAL_TIMING.pause, layoutFile = path.join(ROOT, 'client/scene-layout.js') } = {}) {
+export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay = null, openingDelay = OPENING_TIMING.duration, phaseDelay = DEAL_TIMING.pause, layoutFile = path.join(ROOT, 'client/scene-layout.js'), botShowRandom = randomInt } = {}) {
   const rooms = new Map(), sessions = new Map();
   const layouts = sceneStore(layoutFile);
   const server = http.createServer(async (req, res) => {
@@ -103,7 +104,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     return { type: 'state', you: session.id, room: { code: room.code, name: room.name, hostId: room.hostId,
       phase: room.phase, config: room.config, version: room.version, handNumber: room.handNumber,
       deadline: room.deadline, turnDuration: room.turnDuration ?? null, serverTime: Date.now(), turnId: room.turnId, stopAfterHand: room.stopAfterHand,
-      dealing: !!room.dealing, settling: !!room.settling, opening: room.opening || null, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay,
+      dealing: !!room.dealing, settling: !!room.settling, opening: room.opening || null, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay, supportsShowCards: true, supportsChipGifts: true,
       seats: room.seats.map((s, seat) => ({ ...s, seat, connected: s.kind === 'human' ? !!sessions.get(s.id)?.ws : true,
         chips: room.players?.find(p => p.id === s.id)?.chips ?? null })),
       members: [...room.members].map(id => { const s = sessions.get(id); return { id, name: s?.name, connected: !!s?.ws }; }),
@@ -125,7 +126,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     room.touched = Date.now();
     for (const id of room.members) { const s = sessions.get(id); if (s) send(s.ws, view(room, s)); }
   }
-  function clearRoomTimer(room) { clearTimeout(room.timer); room.timer = null; room.deadline = null; room.turnDuration = null; }
+  function clearRoomTimer(room) { clearTimeout(room.timer); clearTimeout(room.botShowTimer); room.timer = null; room.botShowTimer = null; room.deadline = null; room.turnDuration = null; }
   function finish(room) {
     clearRoomTimer(room); room.opening = null; room.openingPlayers = null; room.dealing = false; room.finishing = false; room.phase = 'finished'; room.turnId = null; room.stopAfterHand = false; broadcast(room);
   }
@@ -203,7 +204,15 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       room.finishing = room.stopAfterHand || room.players.filter(p => p.chips > 0).length <= 1;
       room.deadline = Date.now() + nextDelay;
       room.timer = setTimeout(() => { if (room.finishing) finish(room); else deal(room); }, nextDelay);
-      broadcast(room); return;
+      broadcast(room);
+      const hand = room.hand;
+      const winner = hand.players.find(player => shouldShowBotBluff(hand, player.id, room.botBluffs?.get(player.id), room.botPersonalities?.get(player.id), botShowRandom));
+      if (winner && nextDelay > 0) room.botShowTimer = setTimeout(() => {
+        room.botShowTimer = null;
+        if (rooms.get(room.code) !== room || room.hand !== hand || room.dealing || winner.shown) return;
+        hand.showCards(winner.id); broadcast(room);
+      }, Math.min(900, nextDelay / 2));
+      return;
     }
     const p = room.hand.players.find(p => p.seat === room.hand.actor);
     const isBot = p.bot;
@@ -220,6 +229,11 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       try {
         const previousBoard = room.hand.board.length;
         room.hand.act(p.id, action.type, action.amount);
+        if (isBot) {
+          const bluff = getBotBluff(action);
+          if (bluff) room.botBluffs.set(p.id, { ...bluff, index: room.hand.history.length - 1 });
+          else room.botBluffs.delete(p.id);
+        }
         afterAction(room, previousBoard);
       } catch (error) {
         console.error('Room action:', room.code, error.message);
@@ -252,6 +266,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
       for (let off = 1; off <= 8; off++) if (players.some(p => p.seat === (room.button + off) % 8)) { room.button = (room.button + off) % 8; break; }
     }
     room.handNumber++;
+    room.botBluffs = new Map();
     const levels = room.config.raiseEvery ? Math.floor((room.handNumber - 1) / room.config.raiseEvery) : 0;
     const sb = Math.min(room.config.smallBlind * 2 ** Math.min(20, levels), 1000000);
     room.hand = new PokerHand({ players, button: room.button, smallBlind: sb, bigBlind: sb * 2,
@@ -286,10 +301,12 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
     ws.alive = true;
     ws.on('pong', () => { ws.alive = true; });
     ws.on('message', raw => {
+      let giftRequestId;
       try {
         if (Date.now() - lastWindow > 10000) { lastWindow = Date.now(); count = 0; }
         if (++count > 120) fail('操作太快，请稍后再试');
         const msg = JSON.parse(raw.toString());
+        if (msg?.type === 'gift-chips' && typeof msg.requestId === 'string') giftRequestId = msg.requestId;
         if (!msg || typeof msg !== 'object') fail('消息无效');
         if (msg.type === 'hello') {
           if (session) fail('已经连接');
@@ -342,6 +359,25 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
           closeRoom(room); return;
         }
         if (msg.type === 'leave') { leave(session); send(ws, { type: 'left' }); return; }
+        if (msg.type === 'gift-chips') {
+          if (typeof msg.requestId !== 'string' || !msg.requestId.length || msg.requestId.length > 80) fail('请求编号无效');
+          session.giftReceipts ||= new Map();
+          const cached = session.giftReceipts.get(msg.requestId);
+          if (cached) {
+            if (cached.code !== room.code || cached.hand !== msg.hand || cached.turnId !== msg.turnId || cached.targetId !== msg.targetId || cached.amount !== msg.amount) fail('赠送请求编号已使用');
+            send(ws, { type: 'gift-sent', ...cached }); send(ws, view(room, session)); return;
+          }
+          if (msg.hand !== room.handNumber || msg.turnId !== room.turnId) fail('牌局已更新，请重新选择赠送金额');
+          const receipt = { ...transferChipGift(room, session.id, msg.targetId, msg.amount), requestId: msg.requestId, code: room.code, hand: msg.hand, turnId: msg.turnId };
+          session.giftReceipts.set(msg.requestId, receipt);
+          if (session.giftReceipts.size > 128) session.giftReceipts.delete(session.giftReceipts.keys().next().value);
+          broadcast(room); send(ws, { type: 'gift-sent', ...receipt }); return;
+        }
+        if (msg.type === 'show-cards') {
+          if (!['playing', 'finished'].includes(room.phase) || room.dealing || !room.hand?.done || msg.hand !== room.handNumber) fail('当前不能展示手牌');
+          room.hand.showCards(session.id);
+          broadcast(room); return;
+        }
         if (msg.type === 'action') {
           if (typeof msg.requestId !== 'string' || msg.requestId.length > 80) fail('请求编号无效');
           if (session.seen.has(msg.requestId)) { send(ws, view(room, session)); return; }
@@ -396,7 +432,7 @@ export function createPokerServer({ botDelay = null, nextDelay = 6500, dealDelay
         } else fail('不支持的操作');
         broadcast(room);
       } catch (error) {
-        send(ws, { type: 'error', message: error.message });
+        send(ws, { type: 'error', message: error.message, ...(giftRequestId ? { requestId: giftRequestId } : {}) });
         const room = session && rooms.get(session.roomCode);
         if (room) send(ws, view(room, session));
       }

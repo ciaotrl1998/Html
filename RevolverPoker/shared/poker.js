@@ -2,6 +2,11 @@
 export const HAND_NAMES = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺'];
 export const cardRank = card => card % 13 + 2;
 export const cardSuit = card => Math.floor(card / 13);
+export function canShowWinningCards(hand, id) {
+  const player = hand?.players?.find(player => player.id === id);
+  return !!(hand?.done && hand.result && !hand.result.showdown && player && !player.folded && !player.shown &&
+    hand.result.pots.some(pot => pot.awards.some(award => award.id === id && award.amount > 0)));
+}
 export function compareHands(a, b) {
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
     const diff = (a[i] ?? 0) - (b[i] ?? 0);
@@ -59,7 +64,7 @@ export function handName(score) {
 export class PokerHand {
   constructor({ players, button, smallBlind, bigBlind, ante = 0, deck, number = 1 }) {
     if (players.length < 2 || players.length > 8) throw new Error('需要 2–8 名玩家');
-    this.players = players.map(p => ({ ...p, cards: [], folded: false, bet: 0, total: 0, lastActBet: null, action: '' }));
+    this.players = players.map(p => ({ ...p, cards: [], folded: false, shown: false, bet: 0, total: 0, lastActBet: null, action: '' }));
     this.button = button;
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
@@ -228,6 +233,12 @@ export class PokerHand {
     this.actor = null;
     this.result = { showdown, pots, refund: refund > 0 && !sorted[0].folded ? { id: sorted[0].id, amount: refund } : null };
   }
+  showCards(id) {
+    const player = this.players.find(player => player.id === id);
+    if (player?.shown) return;
+    if (!canShowWinningCards(this, id)) throw new Error('只有其他玩家弃牌后获胜的玩家可以展示手牌');
+    player.shown = true;
+  }
   snapshot(viewerId) {
     const reveal = this.done && this.result.showdown;
     return { number: this.number, button: this.button, sbSeat: this.sbSeat, bbSeat: this.bbSeat,
@@ -235,6 +246,6 @@ export class PokerHand {
       currentBet: this.currentBet, pot: this.players.reduce((s, p) => s + p.total, 0),
       actor: this.actor, done: this.done, result: this.result, history: this.history.slice(-16),
       legal: this.legal(viewerId), players: this.players.map(({ lastActBet, cards, ...p }) => ({ ...p,
-        cards: p.id === viewerId || (reveal && !p.folded) ? [...cards] : [null, null] })) };
+        cards: p.id === viewerId || (reveal && !p.folded) || p.shown ? [...cards] : [null, null] })) };
   }
 }

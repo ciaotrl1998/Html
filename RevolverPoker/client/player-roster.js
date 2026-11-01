@@ -58,6 +58,8 @@ export class PlayerRoster {
     cards.width = 340; cards.height = 225; cards.setAttribute('role', 'img');
     root.append(portrait, chips, bet, cards, status);
     const entry = { root, image, identity, badge, offline, chips, bet, status, cards, seat };
+    root.tabIndex = 0; root.onclick = () => this.onSelect?.(entry.seat);
+    root.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.onSelect?.(entry.seat); } };
     this.entries.set(id, entry); return entry;
   }
   fitAmounts() {

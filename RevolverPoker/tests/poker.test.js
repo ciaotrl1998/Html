@@ -5,6 +5,23 @@ import { PokerHand, evaluate, compareHands, shuffledDeck, handName } from '../sh
 
 const c = (rank, suit = 0) => suit * 13 + rank - 2;
 const make = (chips = [200, 200, 200], extra = {}) => new PokerHand({ players: chips.map((chips, seat) => ({ id: `p${seat}`, name: `P${seat}`, seat, chips })), button: 0, smallBlind: 5, bigBlind: 10, deck: shuffledDeck(randomInt), ...extra });
+test('only a fold winner can voluntarily reveal, with no payout changes or disclosure carried into the next hand', () => {
+  const hand = make([200, 200]);
+  assert.throws(() => hand.showCards('p1'));
+  hand.act('p0', 'fold');
+  assert.equal(hand.result.showdown, false);
+  const before = JSON.stringify({ result: hand.result, chips: hand.players.map(p => p.chips), history: hand.history, board: hand.board });
+  assert.ok(hand.snapshot('observer').players.every(p => p.cards.every(card => card === null)));
+  assert.throws(() => hand.showCards('p0')); assert.throws(() => hand.showCards('observer'));
+  hand.showCards('p1'); hand.showCards('p1');
+  const publicView = hand.snapshot('observer');
+  assert.deepEqual(publicView.players[1].cards, hand.players[1].cards); assert.equal(publicView.players[1].shown, true);
+  assert.deepEqual(publicView.players[0].cards, [null, null]);
+  assert.equal(JSON.stringify({ result: hand.result, chips: hand.players.map(p => p.chips), history: hand.history, board: hand.board }), before);
+  const next = new PokerHand({ players: hand.players, button: 1, smallBlind: 5, bigBlind: 10, deck: shuffledDeck(randomInt), number: 2 });
+  assert.ok(next.snapshot('observer').players.every(p => !p.shown && p.cards.every(card => card === null)));
+  assert.throws(() => next.showCards('p1'));
+});
 function doAction(hand, type = 'call', amount) {
   const p = hand.players.find(p => p.seat === hand.actor);
   if (type === 'call' && hand.legal(p.id).canCheck) type = 'check';

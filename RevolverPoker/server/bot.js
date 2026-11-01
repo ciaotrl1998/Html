@@ -18,6 +18,25 @@ export const BOT_STYLES = {
 };
 const DEFAULT_PERSONALITY = { ...BOT_STYLES.balanced, discipline: .5 };
 const roll = random => random(10000) / 10000;
+const bluffDecisions = new WeakMap();
+// Intent stays attached to the server's decision object, never to public players,
+// action JSON, history or the reconnect snapshot.
+export const getBotBluff = action => bluffDecisions.get(action) || null;
+
+export function botBluffShowChance(weakness, personality = DEFAULT_PERSONALITY) {
+  const p = { ...DEFAULT_PERSONALITY, ...personality };
+  const exhibition = clamp(.02 + .45 * p.bluffing + .15 * p.aggression + .05 * p.volatility - .1 * p.discipline - .05 * (1 - p.looseness), 0, .65);
+  return exhibition * (.15 + .85 * clamp(weakness, 0, 1) ** 1.4);
+}
+
+export function shouldShowBotBluff(hand, id, bluff, personality = DEFAULT_PERSONALITY, random = randomInt) {
+  const player = hand?.players.find(player => player.id === id);
+  if (!player?.bot || !hand.done || hand.result?.showdown || player.folded || player.shown || !bluff || bluff.street !== hand.street) return false;
+  if (!hand.result?.pots.some(pot => pot.awards.some(award => award.id === id && award.amount > 0))) return false;
+  const lastRaise = hand.history.findLastIndex(entry => entry.street === hand.street && /^(加注|全下)/.test(entry.action));
+  if (lastRaise !== bluff.index || hand.history[lastRaise]?.seat !== player.seat) return false;
+  return roll(random) < botBluffShowChance(bluff.weakness, personality);
+}
 
 export function createBotPersonality(random = randomInt, style = null) {
   const styles = Object.keys(BOT_STYLES);
@@ -203,7 +222,16 @@ export function decideBotAction(view, id, difficulty, analysis, personality = DE
         if (target < legal.minTo) return { type: legal.canCheck ? 'check' : 'call' };
       }
     } else if (potCommitted) target = maximum;
-    if (target >= legal.minTo || target === legal.maxTo && !bluff) return { type: 'raise', amount: target };
+    if (target >= legal.minTo || target === legal.maxTo && !bluff) {
+      const action = { type: 'raise', amount: target };
+      if (bluff && !valueRaise) {
+        const made = view.board.length >= 3 ? evaluate([...me.cards, ...view.board])[0] : 0;
+        const madeStrength = [0, .35, .55, .7, .9, .9, .95, .98, 1][made];
+        const weakness = (1 - preflopQuality(me.cards)) * (1 - madeStrength);
+        bluffDecisions.set(action, Object.freeze({ street: view.street, weakness }));
+      }
+      return action;
+    }
   }
   return { type: legal.canCheck ? 'check' : 'call' };
 }

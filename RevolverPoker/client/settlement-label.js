@@ -9,8 +9,9 @@ export function settlementLabel(hand, player) {
   if (player.folded) return { cards: [null, null], handName: '已弃牌' };
   const winner = typeof player.id === 'string' && !!hand.result?.pots?.some(pot => pot.awards?.some(award => award.id === player.id && award.amount > 0));
   const label = (cards, name) => ({ cards, handName: name, ...(winner ? { winner: true } : {}) });
-  if (!hand.result?.showdown) return label([null, null], '未摊牌');
+  if (!hand.result?.showdown && !player.shown) return label([null, null], '未摊牌');
   const cards = player.cards;
+  if (player.shown && Array.isArray(cards) && cards.length === 2 && cards.every(validCard) && hand.board?.length < 3) return label([...cards], '已亮牌');
   if (!Array.isArray(cards) || cards.length !== 2 || !cards.every(validCard) || !Array.isArray(hand.board) || hand.board.length < 3 || hand.board.length > 5 || !hand.board.every(validCard)) return label([null, null], '未公开');
   return label([...cards], handName(evaluate([...cards, ...hand.board])));
 }

@@ -5,7 +5,7 @@ export class FullscreenControl {
   constructor({ doc = document, storage = localStorage, button, status, change = () => {} } = {}) {
     this.doc = doc; this.target = doc.documentElement; this.storage = storage;
     this.button = button; this.status = status; this.change = change;
-    this.enabled = storage.getItem('rp-fullscreen') !== 'off'; this.pending = false; this.blocked = false; this.wasActive = this.active;
+    this.enabled = storage.getItem('rp-fullscreen') === 'on'; this.pending = false; this.blocked = false; this.wasActive = this.active;
     this.gesture = event => {
       if (event.isTrusted === false || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.key === 'Escape' ||
           this.button?.contains(event.target) || editable(event.target) || editable(doc.activeElement)) return;
