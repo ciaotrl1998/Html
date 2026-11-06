@@ -6,6 +6,7 @@ import { TableActions } from '../client/table-actions.js';
 import { PokerHand } from '../shared/poker.js';
 import { dealDuration } from '../shared/deal-timing.js';
 import { decideBotAction, getBotBluff, BOT_STYLES } from '../server/bot.js';
+import { ACTION_TIMING } from '../shared/action-timing.js';
 
 async function client(url, name, token) {
   const socket = new WebSocket(url);
@@ -31,7 +32,7 @@ async function client(url, name, token) {
   return c;
 }
 test('real WebSockets: eight seats, authority, races, hidden cards, duplicate action and reconnection', async t => {
-  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, botDelay: 10, nextDelay: 50, dealDelay: 0 });
+  const app = createPokerServer({ actionDelay: 0, actionPause: 0, openingDelay: 0, phaseDelay: 0, botDelay: 10, nextDelay: 50, dealDelay: 0 });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   t.after(() => app.close());
   const port = app.server.address().port, url = `ws://127.0.0.1:${port}/ws`;
@@ -90,7 +91,7 @@ test('real WebSockets: eight seats, authority, races, hidden cards, duplicate ac
 });
 
 test('one human + seven AI can finish a hand, stop and retain seat setup for a new match', async t => {
-  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, botDelay: 2, nextDelay: 20, dealDelay: 0 });
+  const app = createPokerServer({ actionDelay: 0, actionPause: 0, openingDelay: 0, phaseDelay: 0, botDelay: 2, nextDelay: 20, dealDelay: 0 });
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   t.after(() => app.close());
   const h = await client(`ws://127.0.0.1:${app.server.address().port}/ws`, '旅客');
@@ -118,7 +119,7 @@ test('one human + seven AI can finish a hand, stop and retain seat setup for a n
 });
 
 test('physical chip gestures stage locally, then submit exactly one valid call over a real socket', async t => {
-  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, dealDelay: 0 });
+  const app = createPokerServer({ actionDelay: 0, actionPause: 0, openingDelay: 0, phaseDelay: 0, dealDelay: 0 });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve)); t.after(() => app.close());
   const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
   const host = await client(url, '房主'), guest = await client(url, '朋友');
@@ -155,7 +156,7 @@ test('physical chip gestures stage locally, then submit exactly one valid call o
 
 for (const phase of ['lobby', 'dealing', 'playing', 'between-hands', 'final-result', 'finished']) {
   test(`host closes room immediately during ${phase}; members can return and create or join again`, async t => {
-    const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, nextDelay: phase === 'finished' ? 40 : 10000, dealDelay: phase === 'dealing' ? 10000 : 0 });
+    const app = createPokerServer({ actionDelay: 0, actionPause: 0, openingDelay: 0, phaseDelay: 0, nextDelay: phase === 'finished' ? 40 : 10000, dealDelay: phase === 'dealing' ? 10000 : 0 });
     await new Promise(r => app.server.listen(0, '127.0.0.1', r));
     t.after(() => app.close());
     const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
@@ -218,7 +219,7 @@ for (const phase of ['lobby', 'dealing', 'playing', 'between-hands', 'final-resu
 }
 
 async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15, gameConfig = {}) {
-  const app = createPokerServer({ openingDelay: 0, phaseDelay: 0, nextDelay: 10000, ...options });
+  const app = createPokerServer({ actionDelay: 0, actionPause: 0, openingDelay: 0, phaseDelay: 0, nextDelay: 10000, ...options });
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   t.after(() => app.close());
   const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
@@ -234,6 +235,95 @@ async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15, gam
   host.send('start'); await host.until(c => c.state.dealing);
   return { app, host, guest, url };
 }
+
+test('a confirmed human action keeps the outgoing actor through its animation and a full 500ms pause', async t => {
+  const { app, host, guest, url } = await dealingRoom(t, { dealDelay: 10, actionDelay: ACTION_TIMING.duration, actionPause: ACTION_TIMING.pause });
+  await host.until(c => !c.state.dealing);
+  const state = host.state, actor = state.hand.actor === 0 ? host : guest, other = actor === host ? guest : host;
+  await actor.until(c => c.state.turnId === state.turnId);
+  const message = { hand: state.handNumber, turnId: state.turnId, requestId: 'animated-call', action: 'call' };
+  actor.send('action', message);
+  await host.until(c => !!c.state.actionPresentation);
+  const pending = host.state, action = pending.actionPresentation;
+  assert.equal(action.type, 'call'); assert.equal(action.amount, state.hand.currentBet - state.hand.players.find(p => p.id === actor.session.id).bet);
+  assert.equal(action.endsAt - action.startedAt, 900); assert.equal(action.resumeAt - action.endsAt, 500);
+  assert.equal(pending.hand.actor, state.hand.actor); assert.equal(pending.hand.legal, null);
+  assert.equal(pending.turnId, null); assert.equal(pending.deadline, null);
+  assert.equal(pending.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0), 4000);
+  actor.send('action', message);
+  other.send('action', { ...message, requestId: 'too-early' });
+  await other.until(c => c.errors.some(error => error.includes('行动动画')));
+  assert.equal(app.rooms.get(state.code).hand.history.length, 1);
+  const reconnect = await client(url, '重连玩家', actor.session.token); await reconnect.until(c => !!c.state);
+  assert.deepEqual(reconnect.state.actionPresentation, action);
+  assert.equal(reconnect.state.hand.legal, null, 'reconnection cannot reopen the next actor early');
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, action.endsAt + 200 - Date.now())));
+  assert.equal(reconnect.state.hand.actor, state.hand.actor); assert.ok(reconnect.state.actionPresentation, 'the outgoing seat stays visible after its animation ends');
+  await reconnect.until(c => !c.state.actionPresentation);
+  assert.ok(reconnect.state.serverTime >= action.resumeAt - 2);
+  assert.notEqual(reconnect.state.hand.actor, state.hand.actor);
+  assert.equal(reconnect.errors.length, 0);
+});
+
+for (const type of ['check', 'fold']) {
+  test(`${type} finishes its action and pause before revealing a new street or settlement`, async t => {
+    const { host, guest } = await dealingRoom(t, { dealDelay: 10, phaseDelay: 30, actionDelay: 150, actionPause: 500 });
+    await host.until(c => !c.state.dealing);
+    if (type === 'check') {
+      const first = host.state.hand.actor === 0 ? host : guest;
+      await first.until(c => c.state.turnId === host.state.turnId);
+      first.send('action', { hand: first.state.handNumber, turnId: first.state.turnId, requestId: 'pre-check-call', action: 'call' });
+      await host.until(c => !c.state.actionPresentation && c.state.hand.history.length === 1);
+    }
+    const state = host.state, actor = state.hand.actor === 0 ? host : guest;
+    await actor.until(c => c.state.turnId === state.turnId);
+    actor.send('action', { hand: state.handNumber, turnId: state.turnId, requestId: `animated-${type}`, action: type });
+    await host.until(c => c.state.actionPresentation?.type === type);
+    const pending = host.state;
+    assert.equal(pending.hand.done, false); assert.equal(pending.hand.result, null);
+    assert.equal(pending.hand.board.length, 0); assert.equal(pending.hand.actor, state.hand.actor);
+    assert.equal(pending.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0), 4000);
+    await host.until(c => type === 'check' ? c.state.hand.board.length === 3 : c.state.hand.done);
+    assert.ok(host.state.serverTime >= pending.actionPresentation.resumeAt - 2);
+    assert.equal(host.state.actionPresentation, null);
+  });
+}
+
+test('automated AI actions use the same confirmed presentation and room closure cancels the handoff', async t => {
+  const { app, host } = await dealingRoom(t, { dealDelay: 10, botDelay: 100, actionDelay: 150, actionPause: 500 }, true);
+  await host.until(c => !c.state.dealing);
+  if (host.state.hand.actor === 0) {
+    host.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'reach-animated-ai', action: 'call' });
+  }
+  await host.until(c => c.state.actionPresentation?.seat === 1);
+  const pending = host.state, internal = app.rooms.get(pending.code);
+  assert.equal(pending.hand.actor, 1); assert.equal(pending.hand.legal, null);
+  assert.equal(pending.actionPresentation.resumeAt - pending.actionPresentation.endsAt, 500);
+  host.send('close-room'); await host.until(c => c.messages.some(message => message.type === 'room-closed'));
+  assert.equal(internal.timer, null); assert.equal(internal.actionPresentation, null);
+  assert.equal(app.rooms.has(pending.code), false);
+});
+
+test('all-ins and stack-exhausting calls present both arms, with payouts and runout hidden until the pause ends', async t => {
+  const { host, guest } = await dealingRoom(t, { dealDelay: 10, actionDelay: 150, actionPause: 500 }, false, 15, { startingChips: 30, smallBlind: 10 });
+  await host.until(c => !c.state.dealing);
+  for (const [index, type] of ['allin', 'call'].entries()) {
+    const state = host.state, actor = state.hand.actor === 0 ? host : guest;
+    await actor.until(c => c.state.turnId === state.turnId);
+    const player = state.hand.players.find(player => player.id === actor.session.id);
+    actor.send('action', { hand: state.handNumber, turnId: state.turnId, requestId: `allin-${index}`, action: type });
+    await host.until(c => c.state.actionPresentation?.playerId === actor.session.id);
+    const pending = host.state;
+    assert.equal(pending.actionPresentation.type, 'allin', 'a call using the last chips also gets the two-arm shove');
+    assert.equal(pending.actionPresentation.amount, player.chips);
+    assert.equal(pending.hand.done, false); assert.equal(pending.hand.result, null); assert.equal(pending.hand.board.length, 0);
+    assert.equal(pending.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0), 60);
+    await host.until(c => !c.state.actionPresentation);
+    assert.ok(host.state.serverTime >= pending.actionPresentation.resumeAt - 2);
+  }
+  await host.until(c => c.state.hand.done);
+  assert.equal(host.state.hand.players.reduce((sum, p) => sum + p.chips, 0), 60);
+});
 
 test('AI profiles stay server-only across hands and reconnects and are rerolled only for a new match', async t => {
   const { app, host, url } = await dealingRoom(t, { botDelay: 20, dealDelay: 120, nextDelay: 80 }, true, 15, { difficulty: 'easy' });
@@ -481,7 +571,7 @@ test('an AI bluff winner shows after the result delay, keeps its plan private an
   assert.equal(loser.state.hand.actor, null); assert.equal(winnerSeat, hand.players.find(p => p.id === winner.session.id).seat);
 });
 
-test('a human exposed bluff angers the final AI folder, survives reconnects and a full next hand, then cools and resets', async t => {
+test('a human exposed bluff angers the final AI folder for three hands, survives reconnects, then cools and resets', async t => {
   const { app, host, guest, url } = await dealingRoom(t, { dealDelay: 50, nextDelay: 500, botDelay: 100000 }, false, 15, { smallBlind: 75 });
   await host.until(c => !c.state.dealing);
   const internal = app.rooms.get(host.state.code);
@@ -499,15 +589,57 @@ test('a human exposed bluff angers the final AI folder, survives reconnects and 
   await host.until(c => c.state.handNumber === 2 && !c.state.dealing); assert.equal(host.state.seats[1].anger, 1);
   const reconnect = await client(url, '重连生气的 AI', guest.session.token); t.after(() => reconnect.socket.close());
   await reconnect.until(c => !!c.state); assert.equal(reconnect.state.seats[1].anger, 1);
-  assert.doesNotMatch(JSON.stringify(reconnect.state), /provokedHand|settledHand|botAnger|discipline/);
-  const actor = host.state.hand.actor === 0 ? host : reconnect;
-  actor.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'anger-quiet-2', action: 'fold' });
-  await host.until(c => c.state.handNumber === 3 && !c.state.dealing); assert.equal(host.state.seats[1].anger, 0);
+  assert.doesNotMatch(JSON.stringify(reconnect.state), /provokedHand|settledHand|remainingHands|botAnger|discipline/);
+  for (let number = 2; number <= 4; number++) {
+    // Let the angry AI lose each hand so only duration, not a win, cools it.
+    if (host.state.hand.actor === 0) {
+      host.send('action', { hand: number, turnId: host.state.turnId, requestId: `anger-call-${number}`, action: 'call' });
+      await host.until(c => c.state.hand.actor === 1);
+    }
+    await reconnect.until(c => c.state.turnId === host.state.turnId);
+    reconnect.send('action', { hand: number, turnId: reconnect.state.turnId, requestId: `anger-quiet-${number}`, action: 'fold' });
+    await host.until(c => c.state.handNumber === number + 1 && !c.state.dealing);
+    assert.equal(host.state.seats[1].anger, number < 4 ? 1 : 0);
+    assert.equal(internal.botAnger.get(guest.session.id).remainingHands, Math.max(0, 4 - number));
+  }
   host.send('stop'); await host.until(c => c.state.stopAfterHand);
   const finalActor = host.state.hand.actor === 0 ? host : reconnect;
-  finalActor.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'anger-finish-3', action: 'fold' });
+  await finalActor.until(c => c.state.turnId === host.state.turnId);
+  finalActor.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'anger-finish-5', action: 'fold' });
   await host.until(c => c.state.phase === 'finished');
   host.send('reset'); await host.until(c => c.state.phase === 'lobby'); assert.equal(host.state.seats[1].anger, 0);
+});
+
+test('an angry AI pot winner cools once after the result window, preserving payout, countdown and reconnect state', async t => {
+  const { app, host, guest, url } = await dealingRoom(t, { dealDelay: 50, nextDelay: 400, botDelay: 100000 });
+  await host.until(c => !c.state.dealing);
+  const internal = app.rooms.get(host.state.code), aiId = guest.session.id;
+  internal.players.find(player => player.id === aiId).bot = true;
+  internal.hand.players.find(player => player.id === aiId).bot = true; internal.seats[1].kind = 'ai';
+  internal.botAnger = new Map([[aiId, { level: 2, remainingHands: 5, provokedHand: 0, settledHand: 0 }]]);
+  host.send('sync'); await host.until(c => c.state.seats[1].anger === 2);
+  if (host.state.hand.actor === 1) {
+    await guest.until(c => c.state.turnId === host.state.turnId);
+    guest.send('action', { hand: host.state.handNumber, turnId: guest.state.turnId, requestId: 'angry-ai-call', action: 'call' });
+    await host.until(c => c.state.hand.actor === 0);
+  }
+  host.send('stop'); await host.until(c => c.state.stopAfterHand);
+  host.send('action', { hand: host.state.handNumber, turnId: host.state.turnId, requestId: 'angry-ai-win', action: 'fold' });
+  await host.until(c => c.state.hand.done);
+  const result = structuredClone(host.state);
+  assert.ok(result.hand.result.pots.some(pot => pot.awards.some(award => award.id === aiId && award.amount > 0)));
+  assert.equal(result.seats[1].anger, 2, 'the existing level remains until the result display ends');
+  const reconnect = await client(url, '获胜的 AI', guest.session.token); await reconnect.until(c => !!c.state);
+  assert.equal(reconnect.state.seats[1].anger, 2); assert.equal(reconnect.state.deadline, result.deadline);
+  assert.doesNotMatch(JSON.stringify(reconnect.state), /remainingHands|provokedHand|settledHand|botAnger/);
+  await reconnect.until(c => c.state.phase === 'finished');
+  assert.equal(reconnect.state.seats[1].anger, 1); assert.equal(internal.botAnger.get(aiId).remainingHands, 3);
+  assert.deepEqual(reconnect.state.hand.result, result.hand.result);
+  assert.deepEqual(reconnect.state.hand.players.map(player => player.chips), result.hand.players.map(player => player.chips));
+  const state = { ...internal.botAnger.get(aiId) };
+  reconnect.send('sync'); reconnect.send('sync'); await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(internal.botAnger.get(aiId), state, 'repeated result sync cannot consume a new hand or cool twice');
+  assert.equal(host.errors.length, 0); assert.equal(reconnect.errors.length, 0);
 });
 
 test('a fold confirms immediately but withholds the winner and payout for half a second', async t => {
@@ -586,7 +718,7 @@ test('AI with zero thinking delay still cannot act during the deal', async t => 
   assert.equal(host.errors.length, 0);
 });
 
-test('production AI retains its turn for 1.5 seconds, including reconnects, so the camera can finish following', async t => {
+test('production AI thinks for 2.5 to 4 seconds, including reconnects, so the camera can finish following', async t => {
   const { app, host, url } = await dealingRoom(t, { dealDelay: 30 }, true);
   await host.until(c => !c.state.dealing);
   if (!host.state.hand.history.some(action => action.seat === 1) && host.state.hand.actor === 0) {
@@ -610,8 +742,8 @@ test('production AI retains its turn for 1.5 seconds, including reconnects, so t
   assert.equal(state.turnDuration, state.config.actionSeconds * 1000);
   assert.equal(state.turnDuration, 15000);
   assert.ok(Math.abs(state.deadline - state.serverTime - state.turnDuration) < 50);
-  assert.ok(acted.serverTime - state.serverTime >= 1490, 'an AI cannot submit before the 1.5-second minimum');
-  assert.ok(acted.serverTime - state.serverTime < 2500, 'reconnection must not add another minimum wait');
+  assert.ok(acted.serverTime - state.serverTime >= 2490, 'an AI cannot submit before the 2.5-second minimum');
+  assert.ok(acted.serverTime - state.serverTime < 4500, 'reconnection must not add another minimum wait');
   assert.equal(reconnect.errors.length, 0);
   const internal = app.rooms.get(state.code);
   reconnect.send('close-room'); await reconnect.until(c => c.messages.some(message => message.type === 'room-closed'));

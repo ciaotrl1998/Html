@@ -21,10 +21,87 @@ test('shown human bluffs anger only AI folded to that final bet, once per hand, 
   for (let hand = 2; hand <= 4; hand++) { room.hand.number = hand; reactToBluffReveal(room, 'winner'); }
   assert.equal(botAngerLevel(room, 'ai1'), 3);
   settleBotAnger(room); settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 3, 'the provocation hand never immediately cools');
-  room.hand.number++; settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 2);
-  settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 2, 'reconnections or repeated settling cannot cool twice');
-  room.hand.number++; settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 1);
-  room.hand.number++; settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 0);
+  assert.equal(room.botAnger.get('ai1').remainingHands, 5);
+  room.hand.number++; settleBotAnger(room); assert.equal(botAngerLevel(room, 'ai1'), 3);
+  assert.equal(room.botAnger.get('ai1').remainingHands, 4);
+  settleBotAnger(room); assert.equal(room.botAnger.get('ai1').remainingHands, 4, 'reconnections or repeated settling cannot consume another hand');
+});
+
+for (const [level, duration] of [[1, 3], [2, 5], [3, 5]]) {
+  test(`anger level ${level} persists for ${duration} complete following hands, then cools one level`, () => {
+    const room = bluffRoom();
+    room.botAnger = new Map([['ai1', { level, remainingHands: duration, provokedHand: 1, settledHand: 0 }]]);
+    const state = room.botAnger.get('ai1');
+    settleBotAnger(room); assert.equal(state.remainingHands, duration, 'the provoking hand does not count');
+    for (let hand = 1; hand <= duration; hand++) {
+      room.hand.number++;
+      settleBotAnger(room);
+      assert.equal(state.level, hand < duration ? level : level - 1);
+      assert.equal(state.remainingHands, hand < duration ? duration - hand : [0, 3, 5, 5][level - 1]);
+      const snapshot = { ...state };
+      settleBotAnger(room); assert.deepEqual(state, snapshot);
+    }
+  });
+}
+
+test('cooling starts a full countdown at each lower anger level until calm', () => {
+  const room = bluffRoom(), state = { level: 3, remainingHands: 5, provokedHand: 1, settledHand: 1 };
+  room.botAnger = new Map([['ai1', state]]);
+  for (let hand = 2; hand <= 14; hand++) {
+    room.hand.number = hand; settleBotAnger(room);
+    assert.equal(state.level, hand < 6 ? 3 : hand < 11 ? 2 : hand < 14 ? 1 : 0);
+  }
+  assert.equal(state.remainingHands, 0);
+  room.hand.number++; settleBotAnger(room); assert.equal(state.level, 0);
+});
+
+test('another exposed bluff upgrades and resets duration, including a fresh five hands at the cap', () => {
+  const room = bluffRoom();
+  reactToBluffReveal(room, 'winner'); settleBotAnger(room);
+  room.hand.number = 2; settleBotAnger(room);
+  assert.equal(room.botAnger.get('ai1').remainingHands, 2);
+  room.hand.number = 3; reactToBluffReveal(room, 'winner'); settleBotAnger(room);
+  assert.equal(botAngerLevel(room, 'ai1'), 2); assert.equal(room.botAnger.get('ai1').remainingHands, 5);
+  const state = { ...room.botAnger.get('ai1') };
+  reactToBluffReveal(room, 'winner'); assert.deepEqual(room.botAnger.get('ai1'), state, 'the same reveal cannot reset duration twice');
+  room.hand.number = 4; reactToBluffReveal(room, 'winner'); settleBotAnger(room);
+  room.hand.number = 5; settleBotAnger(room); assert.equal(room.botAnger.get('ai1').remainingHands, 4);
+  room.hand.number = 6; reactToBluffReveal(room, 'winner'); settleBotAnger(room);
+  assert.equal(botAngerLevel(room, 'ai1'), 3); assert.equal(room.botAnger.get('ai1').remainingHands, 5);
+});
+
+for (const level of [1, 2, 3]) {
+  test(`winning a pot immediately cools level ${level} once at settlement, without a second drop on expiry`, () => {
+    const room = bluffRoom(), state = { level, remainingHands: 1, provokedHand: 1, settledHand: 1 };
+    room.botAnger = new Map([['ai1', state]]);
+    room.hand.number = 2; room.hand.players[1].folded = false;
+    room.hand.result.pots = [{ awards: [{ id: 'ai1', amount: 150 }] }, { awards: [{ id: 'ai1', amount: 80 }] }];
+    room.hand.done = false; settleBotAnger(room); assert.equal(state.level, level, 'unfinished hands never cool');
+    room.hand.done = true; settleBotAnger(room);
+    assert.equal(state.level, level - 1); assert.equal(state.remainingHands, [0, 3, 5, 5][level - 1]);
+    const snapshot = { ...state }; settleBotAnger(room); assert.deepEqual(state, snapshot);
+  });
+}
+
+test('a side-pot or split-pot win can cool early, but an unmatched refund or zero award cannot', () => {
+  const room = bluffRoom();
+  room.hand.number = 2;
+  room.botAnger = new Map(['ai1', 'ai2', 'early'].map(id => [id, { level: 2, remainingHands: 5, provokedHand: 1, settledHand: 1 }]));
+  room.hand.result.pots = [
+    { awards: [{ id: 'winner', amount: 100 }] },
+    { awards: [{ id: 'ai1', amount: 40 }, { id: 'ai2', amount: 40 }, { id: 'early', amount: 0 }] }
+  ];
+  room.hand.result.refund = { id: 'early', amount: 200 };
+  settleBotAnger(room);
+  assert.equal(botAngerLevel(room, 'ai1'), 1); assert.equal(botAngerLevel(room, 'ai2'), 1);
+  assert.equal(room.botAnger.get('ai1').remainingHands, 3); assert.equal(room.botAnger.get('ai2').remainingHands, 3);
+  assert.equal(botAngerLevel(room, 'early'), 2); assert.equal(room.botAnger.get('early').remainingHands, 4);
+});
+
+test('older in-memory anger records receive the current level duration without cooling early', () => {
+  const room = bluffRoom(), state = { level: 2, provokedHand: 1, settledHand: 1 };
+  room.botAnger = new Map([['ai1', state]]); room.hand.number = 2;
+  settleBotAnger(room); assert.equal(state.level, 2); assert.equal(state.remainingHands, 4);
 });
 
 test('hidden hands, value reveals and earlier-street folds do not cause anger; AI reveals need actual private bluff intent', () => {

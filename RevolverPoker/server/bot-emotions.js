@@ -1,5 +1,6 @@
 import { compareHands, evaluate } from '../shared/poker.js';
 
+const ANGER_HANDS = [0, 3, 5, 5];
 export const botAngerLevel = (room, id) => room.botAnger?.get(id)?.level || 0;
 
 // Compare only the AI's own remembered cards, the exposed winner and the board
@@ -48,20 +49,28 @@ export function reactToBluffReveal(room, winnerId) {
     const previous = room.botAnger.get(player.id);
     if (previous?.provokedHand === hand.number) continue;
     if (!foldedHandHasHigherEquity(player.cards, winner.cards, hand.board)) continue;
-    const state = { level: Math.min(3, (previous?.level || 0) + 1), provokedHand: hand.number, settledHand: previous?.settledHand ?? hand.number - 1 };
+    const level = Math.min(3, (previous?.level || 0) + 1);
+    const state = { level, remainingHands: ANGER_HANDS[level], provokedHand: hand.number, settledHand: previous?.settledHand ?? hand.number - 1 };
     room.botAnger.set(player.id, state); changed.push(player.id);
   }
   return changed;
 }
 
-// Wait until the result window ends, allowing a winner to show first. The anger
-// then survives a full following hand, and cools one level after a quiet hand.
+// Settle after the reveal window. The provoking hand does not consume duration;
+// a pot win or expired duration cools once, then starts the lower level's timer.
 export function settleBotAnger(room) {
   const hand = room.hand;
   if (!hand?.done) return;
-  for (const state of room.botAnger?.values() || []) {
+  const winners = new Set((hand.result?.pots || []).flatMap(pot => pot.awards.filter(award => award.amount > 0).map(award => award.id)));
+  for (const [id, state] of room.botAnger || []) {
     if (state.settledHand >= hand.number) continue;
-    if (state.provokedHand !== hand.number) state.level = Math.max(0, state.level - 1);
+    if (state.level > 0 && state.provokedHand !== hand.number) {
+      state.remainingHands = Math.max(0, (state.remainingHands ?? ANGER_HANDS[state.level]) - 1);
+      if (winners.has(id) || state.remainingHands === 0) {
+        state.level--;
+        state.remainingHands = ANGER_HANDS[state.level];
+      }
+    }
     state.settledHand = hand.number;
   }
 }

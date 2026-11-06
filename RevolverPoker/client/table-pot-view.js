@@ -1,5 +1,6 @@
 import * as THREE from '/vendor/three.js';
 import { NUMBER_FONT } from './typography.js';
+import { presentationTiming } from '../shared/action-timing.js';
 
 const money = value => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
@@ -54,12 +55,12 @@ export class TablePotView {
     this.settlement = null; this.paid = false; this.root.visible = false; this.active = false; this.players = null; this.key = null;
     this.renderBanks();
   }
-  flight({ id, amount, incoming, from, group, quaternion, scale, duration = 650 }, now) {
+  flight({ id, amount, incoming, from, group, quaternion, scale, duration = 650, delay = 0 }, now) {
     if (!amount) return;
     group ||= new THREE.Group(); if (!group.children.length) this.chips.fill(group, amount);
     group.position.copy(from); group.quaternion.copy(quaternion || new THREE.Quaternion()); group.scale.copy(scale || new THREE.Vector3(1, 1, 1));
     group.userData.amount = amount; this.saloon.scene.add(group);
-    const flight = { id, amount, incoming, group, from: from.clone(), quaternion: group.quaternion.clone(), scale: group.scale.clone(), start: now, duration };
+    const flight = { id, amount, incoming, group, from: from.clone(), quaternion: group.quaternion.clone(), scale: group.scale.clone(), start: now + delay, duration };
     if (duration === 0) { this.land(flight); return; }
     this.flights.push(flight);
   }
@@ -112,7 +113,8 @@ export class TablePotView {
         const adopted = player.id === you && this.chips.active ? this.chips.takeCommitted(amount, now) : null;
         if (player.id === you && this.chips.active && !adopted) this.chips.resetDraft();
         const bank = this.playerBank(player.id);
-        if (animate && bank) this.flight({ id: player.id, amount, incoming: true, from: bank.pile.getWorldPosition(new THREE.Vector3()), quaternion: bank.pile.getWorldQuaternion(new THREE.Quaternion()), scale: bank.pile.getWorldScale(new THREE.Vector3()), ...adopted }, now);
+        const timing = room.actionPresentation?.playerId === player.id ? presentationTiming(room.actionPresentation, room.serverTime) : {};
+        if (animate && bank) this.flight({ id: player.id, amount, incoming: true, from: bank.pile.getWorldPosition(new THREE.Vector3()), quaternion: bank.pile.getWorldQuaternion(new THREE.Quaternion()), scale: bank.pile.getWorldScale(new THREE.Vector3()), ...adopted, ...timing }, now);
         else { const coins = new THREE.Group(); this.chips.fill(coins, amount); this.land({ incoming: true, amount, group: coins }); }
       }
       this.records.set(player.id, paid);

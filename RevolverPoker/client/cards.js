@@ -2,6 +2,7 @@ import * as THREE from '/vendor/three.js';
 import { BoardPresentation } from './board-presentation.js';
 import { DEAL_TIMING } from '../shared/deal-timing.js';
 import { cardArtImage } from './card-artwork.js';
+import { presentationTiming } from '../shared/action-timing.js';
 
 const WIDTH = .5, HEIGHT = .73, THICKNESS = .014;
 const DECK = new THREE.Vector3(-1.65, 1.80, -.25);
@@ -143,7 +144,7 @@ export class TableCards {
     }
     card.root.visible = true;
   }
-  placeDiscard(card, source, group, identity, position, quaternion, animate) {
+  placeDiscard(card, source, group, identity, position, quaternion, animate, timing = {}) {
     if (card.identity !== identity) {
       let from = null;
       if (source.root.visible && animate) { source.root.updateWorldMatrix(true, true); from = source.display.matrixWorld.clone(); }
@@ -153,7 +154,7 @@ export class TableCards {
         const fromPosition = new THREE.Vector3(), fromQ = new THREE.Quaternion(), fromScale = new THREE.Vector3();
         from.premultiply(group.matrixWorld.clone().invert()).decompose(fromPosition, fromQ, fromScale);
         card.root.position.copy(fromPosition); card.root.quaternion.copy(fromQ); card.root.scale.copy(fromScale);
-        card.animation = { start: performance.now(), duration: 440, from: fromPosition, to: position, fromQ, toQ: quaternion, fromScale, toScale: new THREE.Vector3(.65, .65, .65), lift: .12 };
+        card.animation = { kind: 'discard', start: performance.now() + (timing.delay || 0), duration: timing.duration ?? 440, from: fromPosition, to: position, fromQ, toQ: quaternion, fromScale, toScale: new THREE.Vector3(.65, .65, .65), lift: .12 };
       }
     }
     card.root.visible = true;
@@ -177,13 +178,14 @@ export class TableCards {
       this.place(this.board[i], hand.board[i], `${newKey}:board:${i}`, new THREE.Vector3((i - 2) * .56, TABLE_Y, BOARD_CENTER_Z), rotation(-Math.PI / 2, 0, (i % 2 ? 1 : -1) * .006), { animate: allowAnimation, delay: (i < 3 ? i : 0) * DEAL_TIMING.flopGap, dealing: !hand.done });
     }
     const me = hand.players.find(p => p.id === viewerId);
+    const discardTiming = id => room.actionPresentation?.playerId === id ? presentationTiming(room.actionPresentation, room.serverTime) : {};
     this.folded = !me || me.folded;
     this.shown = !!me?.shown;
     if (this.folded || this.shown) this.peeking = false;
     for (let i = 0; i < 2; i++) {
       if (me?.folded) {
         this.placeDiscard(this.ownDiscard[i], this.hole[i], this.ownDiscardGroup, `${newKey}:own-discard:${me.id}:${i}`,
-          new THREE.Vector3(i * .13, i * .005, 0), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .1), allowAnimation && !freshHand);
+          new THREE.Vector3(i * .13, i * .005, 0), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .1), allowAnimation && !freshHand, discardTiming(me.id));
         this.hole[i].root.visible = false; this.hole[i].animation = null; this.hole[i].identity = ''; continue;
       }
       this.ownDiscard[i].root.visible = false; this.ownDiscard[i].animation = null;
@@ -202,7 +204,7 @@ export class TableCards {
         const discarded = this.discards[local][i];
         if (player && player.id !== viewerId && player.folded) {
           this.placeDiscard(discarded, card, this.discardGroups[local], `${newKey}:discard:${player.id}:${i}`,
-            new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18), allowAnimation && !freshHand);
+            new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18), allowAnimation && !freshHand, discardTiming(player.id));
         } else { discarded.root.visible = false; discarded.animation = null; }
         if (!player || player.id === viewerId || player.folded) { card.root.visible = false; card.animation = null; continue; }
         const known = player.cards[i] !== null;
@@ -253,7 +255,7 @@ export class TableCards {
   tick(now, camera) {
     for (const card of this.all) {
       const a = card.animation; if (!a) continue;
-      if (now < a.start) { card.root.visible = false; continue; }
+      if (now < a.start) { card.root.visible = a.kind === 'discard'; continue; }
       card.root.visible = true;
       const t = Math.min(1, (now - a.start) / a.duration), ease = 1 - (1 - t) ** 3;
       card.root.position.lerpVectors(a.from, a.to, ease);

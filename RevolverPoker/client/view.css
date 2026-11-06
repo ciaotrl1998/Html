@@ -71,6 +71,11 @@
 .dock button, .dock input, .dock select { pointer-events: auto; }
 .dock.in-game { top: auto; bottom: 28px; bottom: var(--dock-bottom, 28px); }
 .timer-track { position: relative; }
+.timer-track::after { content: ''; position: absolute; inset: -2px 0; border: 1px solid #ffe4a5; box-shadow: 0 0 5px #fff1c8, 0 0 14px #e5bb6fcc; opacity: 0; pointer-events: none; }
+.timer-track.my-turn::after { animation: turn-edge-glow 1s ease-in-out infinite; }
+.timer-track.my-turn > i { background: #ffe1a0; box-shadow: 0 0 7px #f4cb82aa; }
+@keyframes turn-edge-glow { 0%, 100% { opacity: 1; } 50% { opacity: .18; } }
+@media (prefers-reduced-motion: reduce) { .timer-track.my-turn::after { animation: none; opacity: .8; } }
 .action-prompt { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); font-size: 18px; font-weight: 600; line-height: 1.4; white-space: nowrap; color: #f0d8a6; text-shadow: 0 0 3px #000, 0 1px 6px #000; pointer-events: none; }
 .chip-selector { position: absolute; z-index: 14; right: 8%; width: 44px; color: #f2d18b; pointer-events: none; text-shadow: 0 1px 4px #000; contain: layout style; }
 .chip-selector-label { position: absolute; top: 0; right: calc(100% + 10px); display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; text-align: right; will-change: transform; transition: none; }

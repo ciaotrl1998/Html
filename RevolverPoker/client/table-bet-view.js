@@ -1,6 +1,7 @@
 import * as THREE from '/vendor/three.js';
 import { ChipSlider } from './chip-slider.js';
 import { NUMBER_FONT } from './typography.js';
+import { ACTION_TIMING } from '../shared/action-timing.js';
 
 const VALUES = [1000000, 100000, 10000, 1000, 100, 25, 5, 1];
 export const STAGED_TOUCH_RADIUS = .25;
@@ -184,13 +185,14 @@ export class TableBetView {
     if (['fold', 'check'].includes(type)) { this.transfer(amount, true); this.cancelFlight(); return; }
     if (!['call', 'raise', 'allin'].includes(type) || !amount) return;
     this.anchors(); this.committedAmount = amount;
-    this.flight = { start: performance.now(), amount, from: this.stage.getWorldPosition(new THREE.Vector3()), to: this.saloon.potView?.target() || this.saloon.cards.boardAnchor.getWorldPosition(new THREE.Vector3()) };
+    this.flight = { start: performance.now() + ACTION_TIMING.release, amount, from: this.stage.getWorldPosition(new THREE.Vector3()), to: this.saloon.potView?.target() || this.saloon.cards.boardAnchor.getWorldPosition(new THREE.Vector3()) };
     this.number.visible = false;
   }
   takeCommitted(amount, now) {
     if (!this.flight || this.flight.amount !== amount) return null;
     const group = new THREE.Group(); for (const coin of [...this.stageCoins.children]) group.add(coin);
-    const adopted = { group, from: this.stage.getWorldPosition(new THREE.Vector3()), quaternion: this.stage.getWorldQuaternion(new THREE.Quaternion()), scale: this.stage.getWorldScale(new THREE.Vector3()), duration: Math.max(0, 480 - (now - this.flight.start)) };
+    const adopted = { group, from: this.stage.getWorldPosition(new THREE.Vector3()), quaternion: this.stage.getWorldQuaternion(new THREE.Quaternion()), scale: this.stage.getWorldScale(new THREE.Vector3()),
+      delay: Math.max(0, this.flight.start - now), duration: Math.max(0, ACTION_TIMING.flight - Math.max(0, now - this.flight.start)) };
     this.cancelFlight(); this.stage.visible = false; return adopted;
   }
   cancelFlight() { this.flight = null; this.committedAmount = 0; this.lastStage = -1; }
@@ -213,7 +215,7 @@ export class TableBetView {
     if (this.active) {
       if (this.flight || this.stage.visible) this.anchors();
       if (this.flight) {
-        const t = Math.min(1, (time - this.flight.start) / 480);
+        const t = Math.max(0, Math.min(1, (time - this.flight.start) / ACTION_TIMING.flight));
         const destination = this.saloon.potView?.target() || this.flight.to;
         const position = new THREE.Vector3().lerpVectors(this.flight.from, destination, 1 - (1 - t) ** 3); position.y += Math.sin(Math.PI * t) * .65;
         this.stage.position.copy(this.stageAnchor.worldToLocal(position));

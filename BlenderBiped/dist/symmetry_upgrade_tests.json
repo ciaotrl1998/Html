@@ -1,0 +1,29 @@
+{
+  "version": "5.2.0 LTS",
+  "checks": 23,
+  "passed": [
+    "LR inside a word automatically pairs real counterparts",
+    "middle Biped side markers automatically pair",
+    "unpaired letters are not treated as symmetry",
+    "native edit-mode G moves the selected joint",
+    "native X Mirror moves the corresponding other-side joint automatically",
+    "native mirror actually moves the unselected opposite joint",
+    "old file mesh bound before migration",
+    "one-click migration on real 1.1.1 file",
+    "animation action retained during naming repair",
+    "all 55 unused standard Rigify DEF bones and collection removed",
+    "standard Biped export names preserved",
+    "migrated actual bone names work with Blender flip-name function",
+    "bound mesh vertex groups follow renamed bones",
+    "weighted mesh deformation preserved after migration and DEF deletion",
+    "animation evaluated pose retained at frame 1",
+    "animation evaluated pose retained at frame 24",
+    "animation evaluated pose retained at frame 48",
+    "native copy pose accepts selected Rigify controller",
+    "native paste-flipped runs successfully",
+    "native flipped pose reaches the correct opposite hand",
+    "IK metadata and constraints remain valid after repair",
+    "referenced DEF helper is retained",
+    "DEF helper removed after final dependency removed"
+  ]
+}

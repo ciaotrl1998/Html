@@ -1,5 +1,6 @@
 import { evaluate, handName, canShowWinningCards } from '/shared/poker.js';
 import { tableTurnKey } from './table-actions.js';
+import { hasLocalTurn } from './turn-highlight.js';
 import { renderWinnerResult } from './winner-display.js';
 import { PlayerRoster } from './player-roster.js';
 import { normalizeQuality } from './render-budget.js';
@@ -201,6 +202,7 @@ function render() {
   }
 }
 function renderControls() {
+  $('timer-fill').parentElement.classList.toggle('my-turn', hasLocalTurn(room, sessionId, connected, !!scene?.dealing));
   if (!room) return;
   const me = room.seats.find(s => s.id === sessionId), host = room.hostId === sessionId;
   const h = room.hand, p = h?.players.find(p => p.id === sessionId), lobby = room.phase === 'lobby';
@@ -217,8 +219,8 @@ function renderControls() {
   } else {
     const legal = h?.legal, actor = h?.players.find(p => p.seat === h.actor);
     const dealing = !!room.dealing || !!scene?.dealing;
-    const mineTurn = !!legal && connected && room.phase === 'playing' && !dealing;
-    $('turn-label').textContent = dealing ? room.opening ? ({ markers: '放置庄家与盲位标记', smallBlind: '小盲下注', bigBlind: '大盲下注' }[room.opening.stage] || '准备开局') : room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
+    const mineTurn = hasLocalTurn(room, sessionId, connected, dealing);
+    $('turn-label').textContent = room.actionPresentation ? `${actor?.name || '玩家'}${({ check: '过牌', fold: '弃牌', allin: '全下', call: '跟注', raise: '下注' })[room.actionPresentation.type] || '行动'}` : dealing ? room.opening ? ({ markers: '放置庄家与盲位标记', smallBlind: '小盲下注', bigBlind: '大盲下注' }[room.opening.stage] || '准备开局') : room.settling ? '等待结算' : '正在发牌' : room.phase === 'finished' ? '本场已结束 · 可在菜单查看结果' : h?.done ? room.finishing ? '本手已结算 · 等待最终结算' : '本手已结算 · 等待下一手' : room.stopAfterHand ? '本手结束后结算本场' : mineTurn ? '轮到你行动' : p?.folded ? `已弃牌 · 等待${actor?.name || ''}行动` : p?.chips === 0 ? `你已全下 · 等待摊牌` : `等待${actor?.name || '其他玩家'}行动`;
     if (!dealing && connected && canShowWinningCards(h, sessionId)) $('turn-label').textContent = room.supportsShowCards ? '推出底牌可展示手牌' : '亮牌需先重启 CMD 游戏服务器';
     $('action-prompt').hidden = !mineTurn;
     $('action-prompt').textContent = mineTurn ? legal.toCall ? `需跟注 ${money(legal.callAmount)}` : '可以过牌或下注' : '';
@@ -292,7 +294,7 @@ function act(type, amount, expectedKey) {
     if (room.supportsShowCards !== true) { toast('当前服务器仍是旧版本，请重启 CMD 游戏服务器后再亮牌'); return false; }
     return send('show-cards', { hand: room.handNumber });
   }
-  if (!connected || room?.phase !== 'playing' || room.dealing || scene?.dealing || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
+  if (!connected || room?.phase !== 'playing' || room.dealing || room.actionPresentation || scene?.dealing || room.hand?.done || !room.hand?.legal || expectedKey !== tableTurnKey(room)) return false;
   const bytes = new Uint32Array(4); crypto.getRandomValues(bytes);
   return send('action', { hand: room.handNumber, turnId: room.turnId, requestId: [...bytes].map(n => n.toString(16)).join('-'), action: type, amount });
 }
@@ -305,7 +307,9 @@ function showFinish() {
 }
 $('again-button').onclick = () => { send('reset'); closeDialogs(); };
 setInterval(() => {
+  $('timer-fill').parentElement.classList.toggle('my-turn', hasLocalTurn(room, sessionId, connected, !!scene?.dealing));
   if (!room?.hand) return;
+  if (room.actionPresentation) { $('countdown').textContent = '稍候'; $('timer-fill').style.width = '100%'; return; }
   if (room.phase === 'finished') { $('countdown').textContent = ''; $('timer-fill').style.width = '0%'; return; }
   if (room.dealing || scene?.dealing) {
     $('countdown').textContent = room.settling ? '结算前稍候' : '发牌中';

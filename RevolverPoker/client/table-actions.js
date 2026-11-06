@@ -17,9 +17,9 @@ export class TableActions {
   }
   sync(room, you, connected = true) {
     const hand = room?.hand, player = hand?.players.find(p => p.id === you);
-    const context = connected && room?.phase === 'playing' && !room.dealing && !hand?.done && hand?.legal && player?.seat === hand.actor
+    const context = connected && room?.phase === 'playing' && !room.dealing && !room.actionPresentation && !hand?.done && hand?.legal && player?.seat === hand.actor
       ? { key: tableTurnKey(room), legal: hand.legal, player, currentBet: hand.currentBet, pot: hand.pot || 0 } : null;
-    const revealKey = connected && !room?.dealing && ['playing', 'finished'].includes(room?.phase) && canShowWinningCards(hand, you) ? tableTurnKey(room) : null;
+    const revealKey = connected && !room?.dealing && !room?.actionPresentation && ['playing', 'finished'].includes(room?.phase) && canShowWinningCards(hand, you) ? tableTurnKey(room) : null;
     const signature = context ? JSON.stringify([context.key, context.legal, player.bet, player.chips, context.pot]) : revealKey ? `show:${revealKey}` : null;
     if (signature !== this.signature) {
       this.pending = 0; this.gesture = null; this.lastTap = null; this.inFlight = false; this.signature = signature;

@@ -17,6 +17,7 @@ import { DealerButtons } from './dealer-buttons.js';
 import { dealKey } from '../shared/deal-timing.js';
 import { createPlayerPortraits } from './player-portraits.js';
 import { addAngryExpression, AngerFlames } from './character-anger.js';
+import { CharacterActions, createCharacterArms } from './character-actions.js';
 
 const COLORS = [0x4a4437, 0x5f3e2c, 0x3a4540, 0x57453c, 0x383c3e, 0x60503c, 0x434e42, 0x563b32];
 const OVERVIEW_EYE = [0, 8.8, 10.5];
@@ -83,11 +84,7 @@ function makePerson(index) {
   const brim = cylinder(head, .59, .59, .055, hatMat, 0, .28, 0, 12); brim.scale.z = .8;
   cylinder(head, .29, .34, .38, hatMat, 0, .47, 0, 10);
   cylinder(head, .335, .35, .075, dark, 0, .32, 0, 10);
-  for (const side of [-1, 1]) {
-    const upper = cylinder(root, .14, .16, .68, coat, side * .5, 2.17, .16, 8); upper.rotation.z = side * .26; upper.rotation.x = -.6;
-    const fore = cylinder(root, .12, .14, .7, coat, side * .47, 1.8, .61, 8); fore.rotation.x = Math.PI / 2;
-    const hand = mesh(new THREE.SphereGeometry(.14, 8, 6), skin, side * .47, 1.8, .96); hand.scale.set(1.1, .55, 1.4); root.add(hand);
-  }
+  createCharacterArms(root, coat, skin);
   root.userData.head = head;
   root.userData.meshBatching = batchStaticMeshes(root);
   return root;
@@ -172,6 +169,7 @@ export class SaloonScene {
     };
     this.betView = new TableBetView(this);
     this.potView = new TablePotView(this, this.betView);
+    this.characterActions = new CharacterActions(this);
     // Register every anchor, including chips and pot labels, before applying
     // the saved scene synchronously. No frame or layout request precedes it.
     this.layout.apply(SAVED_SCENE);
@@ -312,6 +310,7 @@ export class SaloonScene {
   buildHands() {
     // Arms rest on the rail in world space. Looking around moves only the head.
     this.hands = new THREE.Group(); this.hands.position.set(0, 1.79, 3.65); this.scene.add(this.hands, this.camera);
+    this.hands.userData.arms = {};
     const skin = material(0xbf936e), sleeve = material(0x65553e);
     for (const side of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(side * .6, 0, 0); g.rotation.y = side * -.13;
@@ -320,6 +319,7 @@ export class SaloonScene {
       for (let j = 0; j < 4; j++) box(g, .05, .055, .22, skin, (j - 1.5) * .067, .01, -.38);
       const thumb = box(g, .09, .07, .19, skin, -side * .15, .015, -.19); thumb.rotation.y = side * .4;
       this.hands.add(g);
+      this.hands.userData.arms[side > 0 ? 'right' : 'left'] = { group: g, position: g.position.clone(), quaternion: g.quaternion.clone() };
     }
     this.hands.visible = false;
     this.hands.userData.meshBatching = batchStaticMeshes(this.hands);
@@ -483,6 +483,7 @@ export class SaloonScene {
     const wasFirstPerson = this.firstPerson;
     const freshDeal = !!dealKey(room) && dealKey(room) !== dealKey(this.room);
     this.room = room; this.viewerId = you;
+    this.characterActions?.sync(room);
     this.seatActions ||= new SeatActionLabels(); this.seatActions.update(room);
     if (this.peekActive && (!room?.hand || this.peekHandKey !== `${room.code}:${room.hand.number}` ||
       (this.inspectMode === 'hand' && !room.hand.players.some(p => p.id === you && !p.folded)))) this.endCardPeek();
@@ -531,7 +532,7 @@ export class SaloonScene {
         this.portraits[seat.seat] = this.angerPortraits.get(key) || this.basePortraits[seat.seat];
         this.portraitAnger.set(seat.seat, anger); this.onPortraitsChanged?.(this.portraits);
       }
-      this.piles[i].visible = seat.kind !== 'open' && (own || (p ? p.chips > 0 : true));
+      this.piles[i].visible = seat.kind !== 'open' && (own || (p ? p.chips > 0 : seat.chips !== 0));
       this.piles[i].position.set(own ? -1.05 : POSITIONS[i][0] * .7, 1.56, own ? 3.75 : POSITIONS[i][1] * .7);
       this.markers[i].visible = !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing;
       const label = this.labels[i], lobby = room.phase === 'lobby';
@@ -594,6 +595,7 @@ export class SaloonScene {
   setFrameRate(fps) { this.frameClock.setRate(fps); this.renderBudget.reset(); }
   get shadowMotion() {
     return !!(this.cards.all.some(card => card.animation) || this.cards.boardPresentation.motion || this.cards.boardPresentation.progress > 0 || this.cards.handDrag > 0 ||
+      this.characterActions?.moving ||
       this.dealerButtons?.placement || this.potView?.flights.length || this.potView?.settlement || this.betView?.flight || this.betView?.transfers.length || this.betView?.state.dragging);
   }
   tick(time) {
@@ -634,6 +636,7 @@ export class SaloonScene {
       model.position.y = Math.sin(time * .0011 + i * 1.3) * .012;
       model.userData.head.rotation.x = model.userData.anger ? -.025 + Math.sin(time * .001 + i) * .018 : model.userData.folded ? .18 : Math.sin(time * .0004 + i) * .025;
     });
+    if (!this.editor) this.characterActions?.tick(time);
     this.angerEffects?.forEach(effect => effect.tick(time, this.camera, this.viewHeight, this.pixelRatio));
     // Keep nearby nameplates readable without letting them cover half a phone screen.
     // These remain depth-tested world-space Sprites; there is no screen-positioned UI.

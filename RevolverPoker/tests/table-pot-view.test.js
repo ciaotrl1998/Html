@@ -66,6 +66,26 @@ test('the table pot amount follows confirmed wagers and has an independent edita
   sync(null); assert.equal(pot.root.visible, false);
 });
 
+test('confirmed action coins wait for the arm release, land before the action ends and never replay on sync', t => {
+  const { game, sync, tick, visible } = fixture(t, 'spectator'), h = hand();
+  sync(h, 1000); tick(2000);
+  const before = game.potView.amount;
+  h.act('p0', 'raise', 100);
+  const room = { code: 'TABLE', phase: 'playing', serverTime: 3000, hand: h.snapshot('spectator'),
+    actionPresentation: { id: 'push', playerId: 'p0', type: 'raise', startedAt: 3000, endsAt: 3900 } };
+  game.potView.sync(room, 'spectator', 0, 3000);
+  const flight = game.potView.flights.find(flight => flight.id === 'p0');
+  assert.equal(flight.start, 3180); assert.equal(flight.duration, 540);
+  const origin = flight.group.position.clone();
+  tick(3179); close(flight.group.position, origin); assert.equal(visible(), 6000);
+  tick(3400); assert.ok(flight.group.position.distanceTo(origin) > .1);
+  room.serverTime = 3400; game.potView.sync(room, 'spectator', 0, 3400);
+  assert.equal(game.potView.flights.length, 1); assert.equal(flight.start, 3180, 'state sync cannot restart the chip throw');
+  tick(3720);
+  assert.equal(game.potView.amount, before + 100); assert.equal(game.potView.flights.length, 0);
+  assert.equal(visible(), 6000);
+});
+
 test('the default amount fits between the pot circle and public cards in the saved player view', t => {
   const { game, sync } = fixture(t), h = hand([2000, 2000]);
   game.cards = new TableCards(game.scene, { animate: false });

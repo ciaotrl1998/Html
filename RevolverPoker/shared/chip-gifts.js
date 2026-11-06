@@ -7,6 +7,7 @@ export function chipGiftLimit(room, fromId, toId) {
   const to = room.hand.players.find(player => player.id === toId);
   if (!from) return unavailable('入座参赛后才能送礼');
   if (!to) return unavailable('该玩家已出局，不能接收筹码');
+  if (room.actionPresentation) return unavailable('请等待当前玩家行动结束');
   if (room.dealing || room.opening || room.settling) return unavailable('请等待发牌或结算完成');
   if (!room.hand.done && to.chips === 0) return unavailable('全下玩家需在本手结算后接收筹码');
   const reserve = !room.hand.done && !from.folded ? 1 : 0;
