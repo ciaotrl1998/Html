@@ -15,7 +15,7 @@ test('many chips requires an amount strictly above both the pot and 100', () => 
   }
 });
 
-function fixture(random = Math.random) {
+function fixture(random = Math.random, volume = 1) {
   const started = [], bankLoads = [], stopped = [];
   const keys = Object.keys(SOUND_FILES);
   const node = () => ({ connect(target) { return target; }, disconnect() {} });
@@ -27,7 +27,7 @@ function fixture(random = Math.random) {
     createBufferSource: () => ({ ...node(), start(time) { started.push({ name: this.buffer.name, time }); },
       stop() { stopped.push(this); this.onended?.(); } }),
   };
-  const audio = new GameAudio({ random, createContext: () => context, now: () => 1000, visible: () => true,
+  const audio = new GameAudio({ random, volume, createContext: () => context, now: () => 1000, visible: () => true,
     loadBank: async () => { bankLoads.push(true); return Object.fromEntries(keys.map((key, i) => [key, btoa(String.fromCharCode(i))])); } });
   return { audio, context, started, bankLoads, stopped };
 }
@@ -55,6 +55,41 @@ test('muting cancels scheduled and loading sounds, and disabled sounds never rep
   assert.equal(f.started.length, 1);
   f.audio.play('stage', { amount: 500, pot: 600 }); await flush();
   assert.equal(f.started.at(-1).name, 'stageSmall');
+});
+
+test('master volume restores the chosen level and updates active sounds without reloading', async () => {
+  const f = fixture(undefined, .4); await f.audio.unlock();
+  assert.equal(f.audio.master.gain.value, .72 * .4);
+  f.audio.play('fold'); await flush();
+  f.audio.setVolume(.75); await flush();
+  assert.equal(f.audio.master.gain.value, .72 * .75);
+  assert.equal(f.started.length, 1); assert.equal(f.stopped.length, 0);
+  assert.equal(f.bankLoads.length, 1);
+  f.audio.setVolume(2); assert.equal(f.audio.master.gain.value, .72);
+});
+
+test('zero volume cancels scheduled and pending sounds without replaying them when raised', async () => {
+  const f = fixture(); await f.audio.unlock();
+  f.audio.play('push', { delay: .18 }); await flush();
+  f.audio.play('fold'); f.audio.setVolume(0); await flush();
+  assert.equal(f.audio.master.gain.value, 0);
+  assert.equal(f.started.length, 1); assert.equal(f.stopped.length, 1);
+  assert.equal(await f.audio.unlock(), false);
+  assert.equal(f.audio.play('check'), false);
+  f.audio.setVolume(.35); await flush();
+  assert.equal(f.started.length, 1); assert.equal(f.bankLoads.length, 1);
+  f.audio.play('check'); await flush();
+  assert.equal(f.started.at(-1).name, 'check');
+});
+
+test('a saved muted volume defers audio loading until the slider is raised', async () => {
+  const f = fixture(undefined, 0);
+  assert.equal(await f.audio.unlock(), false);
+  assert.equal(f.audio.context, undefined); assert.equal(f.bankLoads.length, 0);
+  assert.equal(f.audio.play('fold'), false);
+  f.audio.setVolume(.5); await flush();
+  assert.equal(f.audio.master.gain.value, .72 * .5);
+  assert.equal(f.bankLoads.length, 1); assert.equal(f.started.length, 0);
 });
 
 test('blocked contexts and unavailable files remain optional', async () => {

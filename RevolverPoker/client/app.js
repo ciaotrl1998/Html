@@ -19,11 +19,13 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, finishKey = '';
-let soundOn = localStorage.getItem('rp-sound') !== 'off';
+const savedSoundVolume = Number(localStorage.getItem('rp-volume') ?? NaN);
+let soundVolume = Number.isFinite(savedSoundVolume) ? Math.round(Math.max(0, Math.min(100, savedSoundVolume)))
+  : localStorage.getItem('rp-sound') === 'off' ? 0 : 50;
 let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
-const tableAudio = new GameAudio({ enabled: soundOn });
+const tableAudio = new GameAudio({ volume: soundVolume / 100 });
 for (const event of ['pointerdown', 'keydown']) document.addEventListener(event, () => { void tableAudio.unlock(); }, { capture: true, passive: true });
 const playerInfo = new PlayerInfo($('player-info'), { send, notify: toast, open: () => {
   scene?.cancelViewInput(); clearTimeout(toastTimer); $('toast').hidden = true;
@@ -252,8 +254,17 @@ $('leave-button').onclick = () => { send('leave'); closeDialogs(); };
 $('close-room-button').onclick = () => { if (send('close-room')) closeDialogs(); };
 $('stop-button').onclick = () => { send('stop'); closeDialogs(); toast('将在本手结束后结算，当前底池继续正常进行'); };
 $('help-button').onclick = () => showDialog('help-dialog');
-$('sound-state').textContent = soundOn ? '开启' : '关闭';
-$('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; tableAudio.setEnabled(soundOn); };
+function renderSoundSetting() {
+  $('sound-volume').value = String(soundVolume);
+  $('sound-state').textContent = soundVolume ? `${soundVolume}%` : '静音';
+  $('sound-volume').setAttribute('aria-valuetext', soundVolume ? `${soundVolume}%` : '静音');
+}
+renderSoundSetting();
+$('sound-volume').oninput = event => {
+  soundVolume = Number(event.target.value);
+  tableAudio.setVolume(soundVolume / 100); renderSoundSetting();
+  localStorage.setItem('rp-volume', String(soundVolume));
+};
 const qualityLabels = { high: '高', medium: '中', low: '低' };
 $('quality-state').textContent = qualityLabels[quality];
 $('quality-button').onclick = () => {

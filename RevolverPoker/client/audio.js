@@ -16,11 +16,12 @@ export function stagedChipSound(amount, pot) {
 
 // One shared, gesture-unlocked context. Audio failures never interrupt play.
 export class GameAudio {
-  constructor({ enabled = true, random = Math.random,
+  constructor({ enabled = true, volume = 1, random = Math.random,
     loadBank = () => import('./audio-bank.js').then(module => module.SOUND_DATA),
     createContext = () => new (window.AudioContext || window.webkitAudioContext)(),
     now = () => performance.now(), visible = () => !globalThis.document?.hidden } = {}) {
-    this.enabled = enabled; this.random = random; this.loadBank = loadBank;
+    this.enabled = enabled; this.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+    this.random = random; this.loadBank = loadBank;
     this.createContext = createContext; this.now = now; this.visible = visible;
     this.buffers = new Map(); this.active = new Set(); this.generation = 0;
     this.handKey = null; this.actionId = null; this.openingStage = null;
@@ -30,12 +31,18 @@ export class GameAudio {
     if (!enabled) this.stop();
     else void this.unlock();
   }
+  setVolume(volume) {
+    this.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+    if (this.master) this.master.gain.value = .72 * this.volume;
+    if (!this.volume) this.stop();
+    else if (this.enabled) void this.unlock();
+  }
   async unlock() {
-    if (!this.enabled) return false;
+    if (!this.enabled || !this.volume) return false;
     try {
       if (!this.context) {
         this.context = this.createContext();
-        this.master = this.context.createGain(); this.master.gain.value = .72;
+        this.master = this.context.createGain(); this.master.gain.value = .72 * this.volume;
         const limiter = this.context.createDynamicsCompressor();
         limiter.threshold.value = -8; limiter.knee.value = 12; limiter.ratio.value = 4;
         limiter.attack.value = .003; limiter.release.value = .10;
@@ -63,14 +70,14 @@ export class GameAudio {
     return this.buffers.get(name);
   }
   play(type, { amount = 0, pot = 0, delay = 0, volume = 1 } = {}) {
-    if (!this.enabled || !this.visible() || this.context?.state !== 'running') return false;
+    if (!this.enabled || !this.volume || !this.visible() || this.context?.state !== 'running') return false;
     const name = type === 'deal' ? this.random() < .5 ? 'deal1' : 'deal2'
       : type === 'stage' ? stagedChipSound(amount, pot) : type;
     if (!SOUND_FILES[name]) return false;
     const generation = this.generation, at = this.now() + delay * 1000;
     void this.load(name).then(buffer => {
       // Never play stale actions after loading, unmuting, or leaving a room.
-      if (!buffer || !this.enabled || !this.visible() || generation !== this.generation ||
+      if (!buffer || !this.enabled || !this.volume || !this.visible() || generation !== this.generation ||
           this.context.state !== 'running' || this.now() - at > 120) return;
       const source = this.context.createBufferSource(), gain = this.context.createGain();
       source.buffer = buffer; gain.gain.value = Math.max(0, Math.min(1, volume));
