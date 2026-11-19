@@ -15,8 +15,15 @@ import { ACTION_TIMING } from '../shared/action-timing.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
+const BOT_CHARACTERS = [
+  { name: '科尔', gender: 'male' }, { name: '罗斯', gender: 'male' },
+  { name: '杰西', gender: 'male' }, { name: '薇拉', gender: 'female' },
+  { name: '亨利', gender: 'male' }, { name: '玛吉', gender: 'female' },
+  { name: '沃尔特', gender: 'male' }, { name: '露西', gender: 'female' },
+];
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.wav': 'audio/wav' };
 const cleanName = (value, fallback) => String(value || '').replace(/[\x00-\x1f<>]/g, '').trim().slice(0, 20) || fallback;
+const cleanGender = (value, fallback = 'male') => value === 'male' || value === 'female' ? value : fallback;
 const fail = message => { throw new Error(message); };
 const send = (ws, data) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); };
 function config(input = {}) {
@@ -49,7 +56,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
       if (relative === 'vendor/three.core.js' || relative === 'vendor/three.core.min.js') relative = 'client/vendor/three.core.min.js';
       if (relative === 'vendor/OrbitControls.js') relative = 'node_modules/three/examples/jsm/controls/OrbitControls.js';
       if (relative === 'vendor/TransformControls.js') relative = 'node_modules/three/examples/jsm/controls/TransformControls.js';
-      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || /^client\/assets\/audio\/[a-z0-9-]+\.wav$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
+      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || /^client\/assets\/audio\/[A-Za-z0-9-]+\.wav$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
       const full = path.resolve(ROOT, relative);
       if (!allowed || !full.startsWith(ROOT) || relative.includes('..')) { res.writeHead(404); res.end('Not found'); return; }
       let file;
@@ -209,9 +216,14 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
     clearRoomTimer(room);
     room.turnId = null;
     const startedAt = Date.now();
-    room.actionPresentation = { id, hand: room.handNumber, playerId: player.id, seat: player.seat,
-      type: player.action === '全下' ? 'allin' : type, amount, boardCount: previousBoard,
+    const actionType = player.action === '全下' ? 'allin' : type;
+    room.actionPresentation = { id, hand: room.handNumber, playerId: player.id, seat: player.seat, gender: player.gender,
+      type: actionType, amount, boardCount: previousBoard,
       startedAt, endsAt: startedAt + actionDelay, resumeAt: startedAt + actionDelay + actionPause };
+    if (actionType === 'allin') {
+      const firstAllIn = hand.history.findIndex(entry => entry.action === '全下');
+      room.actionPresentation.allInVoice = firstAllIn === hand.history.length - 1 ? 'first' : 'follow';
+    }
     if (actionDelay + actionPause <= 0) { advance(); return; }
     room.timer = setTimeout(() => {
       if (rooms.get(room.code) === room && room.hand === hand && room.phase === 'playing') advance();
@@ -349,7 +361,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
           if (session && session.token !== msg.token) session = null;
           if (!session) {
             const id = randomUUID(), token = randomBytes(32).toString('hex');
-            session = { id, token, name: cleanName(msg.name, '玩家'), roomCode: null, ws: null, seen: new Set() };
+            session = { id, token, name: cleanName(msg.name, '玩家'), gender: cleanGender(msg.gender), roomCode: null, ws: null, seen: new Set() };
             sessions.set(token, session); sessions.set(id, session);
           }
           if (session.ws) session.ws.close(4001, 'New connection');
@@ -382,6 +394,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
             if (room.members.size >= 16) fail('房间人数已满');
             if (room.passwordHash && !timingSafeEqual(room.passwordHash, scryptSync(String(msg.password || '').slice(0, 40), room.salt, 32))) fail('房间密码不正确');
           }
+          session.gender = cleanGender(msg.gender, session.gender);
           room.members.add(session.id); session.roomCode = room.code; broadcast(room); return;
         }
         const room = rooms.get(session.roomCode);
@@ -445,10 +458,12 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
           const seat = room.seats[msg.seat];
           if (!seated) {
             if (seat.kind !== 'open') fail('该座位已被占用');
-            room.seats[msg.seat] = { kind: 'human', id: session.id, name: session.name };
+            room.seats[msg.seat] = { kind: 'human', id: session.id, name: session.name, gender: session.gender };
           } else if (host) {
             if (seat.kind === 'human') fail('不能替换已入座玩家');
-            room.seats[msg.seat] = seat.kind === 'open' ? { kind: 'ai', id: `ai-${room.code}-${msg.seat}`, name: ['科尔', '罗斯', '杰西', '薇拉', '亨利', '玛吉', '沃尔特', '露西'][msg.seat] } : { kind: 'open' };
+            room.seats[msg.seat] = seat.kind === 'open'
+              ? { kind: 'ai', id: `ai-${room.code}-${msg.seat}`, ...BOT_CHARACTERS[msg.seat] }
+              : { kind: 'open' };
           } else fail('你已入座；只有房主可切换空位');
         } else if (msg.type === 'stand') {
           const index = room.seats.findIndex(s => s.id === session.id);
@@ -466,7 +481,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
           const occupied = room.seats.map((s, seat) => ({ ...s, seat })).filter(s => s.kind !== 'open');
           if (occupied.length < 2) fail('至少需要两人；可点击空位添加 AI');
           if (room.config.actionSeconds === 0 && occupied.filter(p => p.kind === 'human').length > 1) fail('多人比赛请选择行动时限');
-          const players = occupied.map(p => ({ id: p.id, name: p.name, seat: p.seat, bot: p.kind === 'ai', chips: lobbyChips(room, p.id) }));
+          const players = occupied.map(p => ({ id: p.id, name: p.name, gender: p.gender, seat: p.seat, bot: p.kind === 'ai', chips: lobbyChips(room, p.id) }));
           const funded = players.filter(player => player.chips > 0);
           if (funded.length < 2) fail('至少需要两位有筹码的玩家才能开局');
           room.players = players;

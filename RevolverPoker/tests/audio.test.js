@@ -120,18 +120,27 @@ test('the script bank matches every production WAV without separate media reques
   assert.doesNotMatch(source, /\bfetch\s*\(/);
 });
 
-test('confirmed actions and blinds play once; reconnects, old actions and All in have no voice', () => {
+test('confirmed all-ins play the matching gender and order once; reconnects and old actions stay silent', () => {
   const f = fixture(), played = [];
   f.audio.play = (type, options) => played.push({ type, options });
   const room = { code: 'A', serverTime: 1000, hand: { number: 1 } };
   f.audio.sync(room);
-  room.actionPresentation = { id: 'a', type: 'allin', startedAt: 1000, endsAt: 1900 };
-  f.audio.sync(room); f.audio.sync(room);
-  assert.deepEqual(played, [{ type: 'push', options: { delay: .18 } }]);
+  for (const [id, gender, allInVoice] of [
+    ['a1', 'male', 'first'], ['a2', 'female', 'follow'],
+    ['a3', 'female', 'first'], ['a4', 'male', 'follow'],
+  ]) {
+    room.actionPresentation = { id, type: 'allin', gender, allInVoice, startedAt: 1000, endsAt: 1900 };
+    f.audio.sync(room); f.audio.sync(room);
+  }
+  assert.deepEqual(played.map(sound => sound.type), [
+    'push', 'allInMaleFirst', 'push', 'allInFemaleFollow',
+    'push', 'allInFemaleFirst', 'push', 'allInMaleFollow',
+  ]);
+  assert.ok(played.every(sound => sound.options.delay === .18));
   room.actionPresentation = { id: 'b', type: 'fold', startedAt: 100, endsAt: 900 };
-  f.audio.sync(room); assert.equal(played.length, 1);
-  f.audio.sync(null); room.actionPresentation = { id: 'c', type: 'check', startedAt: 1000, endsAt: 1900 };
-  f.audio.sync(room); assert.equal(played.length, 1, 'first reconnect snapshot is silent');
+  f.audio.sync(room); assert.equal(played.length, 8);
+  f.audio.sync(null); room.actionPresentation = { id: 'c', type: 'allin', gender: 'female', allInVoice: 'follow', startedAt: 1000, endsAt: 1900 };
+  f.audio.sync(room); assert.equal(played.length, 8, 'first reconnect snapshot is silent');
   room.actionPresentation = { id: 'd', type: 'check', startedAt: 1000, endsAt: 1900 };
   f.audio.sync(room); assert.equal(played.at(-1).type, 'check');
   room.actionPresentation = null;
@@ -142,7 +151,7 @@ test('confirmed actions and blinds play once; reconnects, old actions and All in
   assert.equal(played.filter(sound => sound.options.volume === .8).length, 2);
 });
 
-test('all seven production assets serve as 48 kHz mono PCM WAV; originals stay private', async t => {
+test('all production assets serve as 48 kHz mono PCM WAV; originals stay private', async t => {
   const app = createPokerServer();
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   t.after(() => app.close());

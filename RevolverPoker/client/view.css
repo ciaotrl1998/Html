@@ -7,6 +7,23 @@
 #game input, #game textarea, #game [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 /* iOS focuses fields smaller than 16px by zooming the whole page. */
 #game input, #game select, #game textarea { font-size: 16px; }
+.nickname-field { position: relative; }
+.nickname-field input { padding-inline-end: 52px; }
+#gender-button {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--gold);
+  font: 24px/1 'Segoe UI Symbol', sans-serif;
+}
+#gender-button:hover { color: var(--cream); }
+#gender-button:focus-visible { outline-offset: -4px; }
 #game { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 #game a, #game img { -webkit-user-drag: none; }
 #scene canvas { touch-action: none; cursor: grab; outline: none; }

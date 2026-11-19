@@ -23,7 +23,7 @@ if not "%audioExitCode%"=="0" (
 )
 
 echo.
-echo 音频更新完成！
+echo 音频更新完成，已同步游戏音效和四段全下语音！
 echo 已打开的游戏请刷新页面，无需重启服务器；仍是旧声音时可按 Ctrl+F5。
 echo 手机版请重新打包并导入游戏盒。
 pause

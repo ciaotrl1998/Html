@@ -42,9 +42,10 @@ test('real WebSockets: eight seats, authority, races, hidden cards, duplicate ac
   const code = host.state.code;
   host.send('seat', { seat: 0 }); await host.until(c => c.state.seats[0].id === c.session.id);
   host.send('seat', { seat: 7 }); await host.until(c => c.state.seats[7].kind === 'ai');
+  assert.equal(host.state.seats[7].name, '露西'); assert.equal(host.state.seats[7].gender, 'female');
   host.send('seat', { seat: 7 }); await host.until(c => c.state.seats[7].kind === 'open');
   const guests = await Promise.all(Array.from({ length: 8 }, (_, i) => client(url, `朋友${i + 1}`)));
-  for (const g of guests) { g.send('join', { code }); await g.until(c => !!c.state); }
+  for (const g of guests) { g.send('join', { code, gender: 'female' }); await g.until(c => !!c.state); }
   // Two independent sockets racing for a seat must never both acquire it.
   guests[0].send('seat', { seat: 1 }); guests[1].send('seat', { seat: 1 });
   await host.until(c => c.state.seats[1].kind === 'human');
@@ -85,6 +86,7 @@ test('real WebSockets: eight seats, authority, races, hidden cards, duplicate ac
   await reconnect.until(c => !!c.state);
   assert.equal(reconnect.session.id, id);
   assert.equal(reconnect.state.seats.find(s => s.id === id).kind, 'human');
+  assert.equal(reconnect.state.seats.find(s => s.id === id).gender, 'female');
   assert.equal(reconnect.state.hand.players.filter(p => p.cards.every(v => v !== null)).length, 1);
   const httpResponse = await fetch(`http://127.0.0.1:${port}/server/index.js`);
   assert.equal(httpResponse.status, 404);
@@ -224,7 +226,7 @@ async function dealingRoom(t, options = {}, bot = false, actionSeconds = 15, gam
   t.after(() => app.close());
   const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
   const host = await client(url, '房主');
-  host.send('create', { config: { actionSeconds, ...gameConfig } }); await host.until(c => !!c.state);
+  host.send('create', { gender: 'female', config: { actionSeconds, ...gameConfig } }); await host.until(c => !!c.state);
   host.send('seat', { seat: 0 }); await host.until(c => c.state.seats[0].kind === 'human');
   let guest;
   if (bot) { host.send('seat', { seat: 1 }); await host.until(c => c.state.seats[1].kind === 'ai'); }
@@ -342,6 +344,7 @@ test('automated AI actions use the same confirmed presentation and room closure 
   await host.until(c => c.state.actionPresentation?.seat === 1);
   const pending = host.state, internal = app.rooms.get(pending.code);
   assert.equal(pending.hand.actor, 1); assert.equal(pending.hand.legal, null);
+  assert.equal(pending.actionPresentation.gender, 'male', '罗斯 uses the voice assigned to his NPC name');
   assert.equal(pending.actionPresentation.resumeAt - pending.actionPresentation.endsAt, 500);
   host.send('close-room'); await host.until(c => c.messages.some(message => message.type === 'room-closed'));
   assert.equal(internal.timer, null); assert.equal(internal.actionPresentation, null);
@@ -359,6 +362,8 @@ test('all-ins and stack-exhausting calls present both arms, with payouts and run
     await host.until(c => c.state.actionPresentation?.playerId === actor.session.id);
     const pending = host.state;
     assert.equal(pending.actionPresentation.type, 'allin', 'a call using the last chips also gets the two-arm shove');
+    assert.equal(pending.actionPresentation.gender, actor === host ? 'female' : 'male');
+    assert.equal(pending.actionPresentation.allInVoice, index === 0 ? 'first' : 'follow');
     assert.equal(pending.actionPresentation.amount, player.chips);
     assert.equal(pending.hand.done, false); assert.equal(pending.hand.result, null); assert.equal(pending.hand.board.length, 0);
     assert.equal(pending.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0), 60);

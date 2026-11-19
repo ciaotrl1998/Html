@@ -30,7 +30,7 @@ try {
             $pokerCardName = 'RevolverPoker/client/assets/cards/{0:D2}.png' -f $pokerCard
             if (-not $pokerZip.GetEntry($pokerCardName)) { throw ('游戏包缺少固定牌面：' + $pokerCardName) }
         }
-        foreach ($pokerSound in @('card-deal-01', 'card-deal-02', 'card-fold', 'table-check', 'chips-push', 'chips-stage-small', 'chips-stage-large')) {
+        foreach ($pokerSound in @('card-deal-01', 'card-deal-02', 'card-fold', 'table-check', 'chips-push', 'chips-stage-small', 'chips-stage-large', 'all-in-male-01', 'all-in-male-02', 'all-in-female-01', 'all-in-female-02')) {
             $pokerSoundName = 'RevolverPoker/client/assets/audio/' + $pokerSound + '.wav'
             if (-not $pokerZip.GetEntry($pokerSoundName)) { throw ('游戏包缺少音效：' + $pokerSoundName) }
         }

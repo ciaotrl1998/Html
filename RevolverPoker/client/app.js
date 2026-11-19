@@ -19,6 +19,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, finishKey = '';
+let characterGender = localStorage.getItem('rp-character-gender') === 'female' ? 'female' : 'male';
 const savedSoundVolume = Number(localStorage.getItem('rp-volume') ?? NaN);
 let soundVolume = Number.isFinite(savedSoundVolume) ? Math.round(Math.max(0, Math.min(100, savedSoundVolume)))
   : localStorage.getItem('rp-sound') === 'off' ? 0 : 50;
@@ -52,7 +53,7 @@ function setConnection(value) {
 function connect() {
   if (superseded) return;
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
-  ws.onopen = () => ws.send(JSON.stringify({ type: 'hello', token: sessionStorage.getItem('rp-token'), name: $('nickname').value }));
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'hello', token: sessionStorage.getItem('rp-token'), name: $('nickname').value, gender: characterGender }));
   ws.onmessage = event => {
     const data = JSON.parse(event.data);
     if (data.type === 'session') {
@@ -224,10 +225,28 @@ function renderControls() {
 }
 
 $('nickname').value = localStorage.getItem('rp-name') || `玩家${Math.floor(Math.random() * 900 + 100)}`;
+const genderButton = $('gender-button');
+function renderCharacterGender() {
+  const female = characterGender === 'female';
+  genderButton.textContent = female ? '♀' : '♂';
+  genderButton.setAttribute('aria-pressed', String(female));
+  genderButton.title = `当前为${female ? '女性' : '男性'}角色，点击切换`;
+}
+renderCharacterGender();
+genderButton.onclick = () => {
+  characterGender = characterGender === 'female' ? 'male' : 'female';
+  localStorage.setItem('rp-character-gender', characterGender);
+  renderCharacterGender();
+};
 function saveName() { const name = $('nickname').value.trim() || '玩家'; localStorage.setItem('rp-name', name); return name; }
-$('create-button').onclick = () => send('create', { name: saveName(), password: $('create-password').value });
+$('create-button').onclick = () => send('create', { name: saveName(), gender: characterGender, password: $('create-password').value });
 $('join-toggle').onclick = () => { $('join-form').hidden = !$('join-form').hidden; if (!$('join-form').hidden) $('room-code').focus(); };
-$('join-form').onsubmit = e => { e.preventDefault(); if (!/^\d{6}$/.test($('room-code').value.trim())) { toast('请输入六位房间码'); return; } send('join', { code: $('room-code').value.trim(), name: saveName(), password: $('join-password').value }); };
+$('join-form').onsubmit = e => {
+  e.preventDefault();
+  const code = $('room-code').value.trim();
+  if (!/^\d{6}$/.test(code)) { toast('请输入六位房间码'); return; }
+  send('join', { code, name: saveName(), gender: characterGender, password: $('join-password').value });
+};
 $('start-button').onclick = () => send('start');
 $('reset-view').onclick = () => scene?.resetView();
 function releaseCardHolds() { scene?.endCardPeek(); }

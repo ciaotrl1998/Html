@@ -8,7 +8,16 @@ export const SOUND_FILES = Object.freeze({
   push: '/client/assets/audio/chips-push.wav',
   stageSmall: '/client/assets/audio/chips-stage-small.wav',
   stageLarge: '/client/assets/audio/chips-stage-large.wav',
+  allInMaleFirst: '/client/assets/audio/all-in-male-01.wav',
+  allInMaleFollow: '/client/assets/audio/all-in-male-02.wav',
+  allInFemaleFirst: '/client/assets/audio/all-in-female-01.wav',
+  allInFemaleFollow: '/client/assets/audio/all-in-female-02.wav',
 });
+
+const ALL_IN_VOICES = {
+  male: { first: 'allInMaleFirst', follow: 'allInMaleFollow' },
+  female: { first: 'allInFemaleFirst', follow: 'allInFemaleFollow' },
+};
 
 export function stagedChipSound(amount, pot) {
   return amount > 100 && amount > Math.max(0, Number(pot) || 0) ? 'stageLarge' : 'stageSmall';
@@ -109,7 +118,12 @@ export class GameAudio {
     const type = { check: 'check', fold: 'fold', call: 'push', raise: 'push', allin: 'push' }[action.type];
     const at = action.startedAt + ACTION_TIMING.release;
     if (type && room.serverTime <= at + 120 && room.serverTime < action.endsAt) {
-      this.play(type, { delay: Math.max(0, at - room.serverTime) / 1000 });
+      const delay = Math.max(0, at - room.serverTime) / 1000;
+      this.play(type, { delay });
+      if (action.type === 'allin') {
+        const voice = ALL_IN_VOICES[action.gender]?.[action.allInVoice];
+        if (voice) this.play(voice, { delay });
+      }
     }
   }
   stop() {

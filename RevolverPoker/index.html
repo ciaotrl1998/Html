@@ -31,7 +31,10 @@
         <div class="entry-card">
           <div class="section-heading"><span>创建或加入房间</span><span class="tiny">2–8 人 · 支持 AI</span></div>
           <label class="field-label" for="nickname">昵称</label>
-          <input id="nickname" maxlength="20" autocomplete="nickname" placeholder="输入昵称" value="玩家">
+          <div class="nickname-field">
+            <input id="nickname" maxlength="20" autocomplete="nickname" placeholder="输入昵称" value="玩家">
+            <button id="gender-button" type="button" aria-label="女性角色" aria-pressed="false" title="当前为男性角色，点击切换">♂</button>
+          </div>
           <details class="password-option"><summary>设置房间密码（可选）</summary><input id="create-password" type="password" maxlength="40" placeholder="留空则无需密码" aria-label="创建房间密码"></details>
           <button id="create-button" class="button primary full">创建房间 <span>↗</span></button>
           <button id="join-toggle" class="button subtle full">输入房间码加入 <span>＋</span></button>
