@@ -79,6 +79,7 @@ export class PokerHand {
     this.done = false;
     this.result = null;
     this.history = [];
+    this.closedStreetBets = new Map();
     const dealer = this.players.find(p => p.seat === button);
     if (!dealer) throw new Error('庄家座位无效');
     const sb = this.players.length === 2 ? dealer : this.next(button);
@@ -184,6 +185,10 @@ export class PokerHand {
     if (this.actor === null) throw new Error('行动顺序异常');
   }
   advanceStreet() {
+    this.closedStreetBets.set(this.board.length, {
+      currentBet: this.currentBet,
+      byPlayer: new Map(this.players.map(player => [player.id, player.bet])),
+    });
     this.burned.push(this.draw());
     if (this.street === 'preflop') { this.street = 'flop'; this.board.push(this.draw(), this.draw(), this.draw()); }
     else if (this.street === 'flop') { this.street = 'turn'; this.board.push(this.draw()); }

@@ -289,6 +289,50 @@ for (const type of ['check', 'fold']) {
   });
 }
 
+test('a closing call keeps the outgoing betting round visible until the next cards finish dealing', async t => {
+  const { host, guest, url } = await dealingRoom(t, { dealDelay: 300, phaseDelay: 100, actionDelay: 50, actionPause: 100 });
+  const betAmounts = state => state.hand.players.map(player => player.bet);
+  const act = async (action, amount) => {
+    const { hand, handNumber, turnId } = host.state;
+    const actor = hand.actor === 0 ? host : guest;
+    await actor.until(c => c.state.turnId === turnId);
+    actor.send('action', { hand: handNumber, turnId, requestId: turnId, action, amount });
+  };
+
+  await host.until(c => !c.state.dealing);
+  await act('raise', 60);
+  await host.until(c => !c.state.actionPresentation && c.state.hand.history.length === 1);
+  await act('call');
+  await host.until(c => c.state.actionPresentation?.type === 'call');
+  const call = host.state;
+  assert.equal(call.actionPresentation.amount, 40);
+  assert.deepEqual(betAmounts(call), [60, 60]);
+  await host.until(c => c.state.dealing && c.state.hand.board.length === 3);
+  const duringDeal = host.state;
+  const reconnected = await client(url, '朋友', guest.session.token);
+  await reconnected.until(c => !!c.state);
+  assert.equal(reconnected.state.dealing, true);
+  assert.equal(reconnected.state.hand.street, 'preflop');
+  assert.deepEqual(betAmounts(reconnected.state), [60, 60]);
+
+  await host.until(c => !c.state.dealing && c.state.hand.street === 'flop');
+  const next = host.state;
+  const outgoing = host.messages.filter(message => message.type === 'state')
+    .map(message => message.room).filter(state => state.version >= call.version && state.version < next.version);
+  assert.ok(outgoing.some(state => state.dealing && !state.hand.board.length), 'the pre-deal pause keeps the final bets');
+  for (const state of outgoing) {
+    assert.equal(state.hand.street, 'preflop');
+    assert.deepEqual(betAmounts(state), [60, 60]);
+    assert.equal(state.hand.currentBet, 60);
+    assert.equal(state.hand.legal, null);
+  }
+  assert.ok(next.serverTime >= duringDeal.deal.endsAt - 2);
+  assert.deepEqual(betAmounts(next), [0, 0]);
+  assert.equal(next.hand.currentBet, 0);
+  assert.equal(next.hand.pot, 120);
+  assert.ok(next.turnId, 'players can only act once the new betting round begins');
+});
+
 test('automated AI actions use the same confirmed presentation and room closure cancels the handoff', async t => {
   const { app, host } = await dealingRoom(t, { dealDelay: 10, botDelay: 100, actionDelay: 150, actionPause: 500 }, true);
   await host.until(c => !c.state.dealing);
@@ -523,7 +567,7 @@ test('chip gifts transfer once over real sockets, preserve betting state, surviv
   await reconnect.until(c => c.messages.some(m => m.type === 'gift-sent'));
   assert.equal(reconnect.state.hand.players.find(p => p.id === host.session.id).chips, own.chips - 50);
   const invalid = [
-    { amount: -1 }, { amount: 1.5 }, { amount: own.chips }, { targetId: host.session.id }, { hand: 0 }, { turnId: 'old-turn' },
+    { amount: -1 }, { amount: 1.5 }, { amount: own.chips }, { targetId: host.session.id }, { hand: 0 },
     { requestId: request.requestId, amount: 51 }
   ];
   for (let i = 0; i < invalid.length; i++) {
@@ -538,6 +582,56 @@ test('chip gifts transfer once over real sockets, preserve betting state, surviv
   await reconnect.until(c => c.messages.some(m => m.type === 'error' && m.requestId === 'gift-overdraw'));
   assert.equal(reconnect.state.hand.players.find(p => p.id === host.session.id).chips, 1);
   assert.equal(reconnect.state.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0), initial.hand.players.reduce((sum, p) => sum + p.chips + p.total, 0));
+});
+
+test('lobby and animation gifts are accepted, and a funded player rejoins only on the next hand', async t => {
+  const app = createPokerServer({ openingDelay: 450, dealDelay: 200, phaseDelay: 60, actionDelay: 250, actionPause: 100, nextDelay: 80 });
+  await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
+  t.after(() => app.close());
+  const url = `ws://127.0.0.1:${app.server.address().port}/ws`;
+  const host = await client(url, '房主'), guest = await client(url, '朋友'), out = await client(url, '回归玩家');
+  host.send('create', { config: { startingChips: 100, smallBlind: 5 } });
+  await host.until(c => !!c.state);
+  for (const [seat, peer] of [host, guest, out].entries()) {
+    if (seat) { peer.send('join', { code: host.state.code }); await peer.until(c => !!c.state); }
+    peer.send('seat', { seat }); await host.until(c => c.state.seats[seat].id === peer.session.id);
+  }
+  const gift = async (from, to, amount, requestId) => {
+    from.send('gift-chips', { targetId: to.session.id, amount, requestId, hand: host.state.handNumber, turnId: 'previous-turn' });
+    await from.until(c => c.messages.some(m => m.type === 'gift-sent' && m.requestId === requestId));
+  };
+  const stack = peer => host.state.hand.players.find(player => player.id === peer.session.id);
+
+  await gift(out, host, 100, 'lobby-gift');
+  await host.until(c => c.state.seats[2].chips === 0);
+  assert.equal(host.state.seats[0].chips, 200);
+  host.send('start'); await host.until(c => c.state.opening?.stage === 'markers');
+  assert.equal(stack(out), undefined);
+  await gift(host, out, 30, 'opening-gift');
+  await host.until(c => c.state.dealing && !!c.state.deal);
+  await gift(guest, out, 5, 'dealing-gift');
+  await host.until(c => !c.state.dealing);
+  assert.equal(stack(out), undefined);
+
+  const act = async action => {
+    const { hand, turnId, handNumber } = host.state;
+    const actor = hand.actor === 0 ? host : guest;
+    await actor.until(c => c.state.turnId === turnId);
+    actor.send('action', { hand: handNumber, turnId, requestId: turnId, action });
+  };
+  await act('call'); await host.until(c => c.state.actionPresentation?.type === 'call');
+  const pot = host.state.hand.pot;
+  await gift(host, out, 10, 'action-gift');
+  assert.equal(host.state.actionPresentation?.type, 'call');
+  assert.equal(host.state.hand.pot, pot);
+  assert.equal(host.state.seats[2].chips, 45);
+  assert.equal(stack(out), undefined);
+
+  await host.until(c => !c.state.actionPresentation);
+  await act('fold');
+  await host.until(c => c.state.handNumber === 2 && !c.state.dealing);
+  assert.equal(stack(out).chips + stack(out).total, 45);
+  assert.equal(host.state.hand.players.reduce((sum, player) => sum + player.chips + player.total, 0), 300);
 });
 
 test('an AI bluff winner shows after the result delay, keeps its plan private and preserves payouts and countdown', async t => {

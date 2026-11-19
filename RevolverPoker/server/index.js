@@ -7,7 +7,7 @@ import { networkInterfaces } from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
 import { PokerHand, shuffledDeck } from '../shared/poker.js';
 import { chooseBotAction, createBotPersonalities, getBotBluff, shouldShowBotBluff } from './bot.js';
-import { transferChipGift } from './chip-gifts.js';
+import { giftSeatState, lobbyChips, settleChipGifts, transferChipGift, unshownPayout } from './chip-gifts.js';
 import { botAngerLevel, reactToBluffReveal, settleBotAnger } from './bot-emotions.js';
 import { sceneStore, handleSceneRequest } from './scene-store.js';
 import { DEAL_TIMING, OPENING_TIMING, dealDuration } from '../shared/deal-timing.js';
@@ -15,7 +15,7 @@ import { ACTION_TIMING } from '../shared/action-timing.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.wav': 'audio/wav' };
 const cleanName = (value, fallback) => String(value || '').replace(/[\x00-\x1f<>]/g, '').trim().slice(0, 20) || fallback;
 const fail = message => { throw new Error(message); };
 const send = (ws, data) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); };
@@ -49,7 +49,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
       if (relative === 'vendor/three.core.js' || relative === 'vendor/three.core.min.js') relative = 'client/vendor/three.core.min.js';
       if (relative === 'vendor/OrbitControls.js') relative = 'node_modules/three/examples/jsm/controls/OrbitControls.js';
       if (relative === 'vendor/TransformControls.js') relative = 'node_modules/three/examples/jsm/controls/TransformControls.js';
-      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
+      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || /^client\/assets\/audio\/[a-z0-9-]+\.wav$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
       const full = path.resolve(ROOT, relative);
       if (!allowed || !full.startsWith(ROOT) || relative.includes('..')) { res.writeHead(404); res.end('Not found'); return; }
       let file;
@@ -80,12 +80,20 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
       // Keep the public pre-settlement balances until the cards have landed.
       if (hand.done) for (const player of hand.players) {
         const refund = hand.result.refund?.id === player.id ? hand.result.refund.amount : 0;
-        const awards = hand.result.pots.flatMap(pot => pot.awards).filter(award => award.id === player.id).reduce((sum, award) => sum + award.amount, 0);
-        player.chips -= awards + refund; player.total += refund;
+        player.chips -= unshownPayout(hand, player.id); player.total += refund;
       }
       hand.pot = hand.players.reduce((sum, player) => sum + player.total, 0);
-      hand.board = hand.board.slice(0, room.actionPresentation?.boardCount ?? room.visibleBoard ?? hand.board.length);
-      hand.street = ['preflop', 'preflop', 'preflop', 'flop', 'turn', 'river'][hand.board.length];
+      const actionBoard = room.actionPresentation?.boardCount;
+      const visibleBoard = actionBoard ?? room.visibleBoard ?? hand.board.length;
+      hand.board = hand.board.slice(0, visibleBoard);
+      // The new cards can be visible while the outgoing betting round is still on display.
+      const bettingBoard = actionBoard ?? room.deal?.previousBoard ?? visibleBoard;
+      hand.street = ['preflop', 'preflop', 'preflop', 'flop', 'turn', 'river'][bettingBoard];
+      const closedBets = room.hand.closedStreetBets.get(bettingBoard);
+      if (closedBets) {
+        hand.currentBet = closedBets.currentBet;
+        for (const player of hand.players) player.bet = closedBets.byPlayer.get(player.id);
+      }
       hand.actor = room.actionPresentation?.seat ?? null; hand.legal = null; hand.done = false; hand.result = null;
       for (const player of hand.players) if (player.id !== session.id) player.cards = [null, null];
     }
@@ -109,13 +117,14 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
       dealing: !!room.dealing, settling: !!room.settling, opening: room.opening || null, deal: room.deal || null, finishing: !!room.finishing, resultDuration: nextDelay, supportsShowCards: true, supportsChipGifts: true,
       actionPresentation: room.actionPresentation || null,
       seats: room.seats.map((s, seat) => ({ ...s, seat, connected: s.kind === 'human' ? !!sessions.get(s.id)?.ws : true,
-        chips: room.players?.find(p => p.id === s.id)?.chips ?? null, anger: s.kind === 'ai' ? botAngerLevel(room, s.id) : 0 })),
+        chips: room.phase === 'lobby' && s.id ? lobbyChips(room, s.id) : room.players?.find(p => p.id === s.id)?.chips ?? null,
+        anger: s.kind === 'ai' ? botAngerLevel(room, s.id) : 0, ...giftSeatState(room, s) })),
       members: [...room.members].map(id => { const s = sessions.get(id); return { id, name: s?.name, connected: !!s?.ws }; }),
       hand,
       standings: room.phase === 'finished' ? standings(room) : null } };
   }
   function standings(room) {
-    const sorted = [...(room.players || [])].sort((a, b) => b.chips - a.chips || (b.eliminatedAt || Infinity) - (a.eliminatedAt || Infinity) || (b.beforeBust || 0) - (a.beforeBust || 0));
+    const sorted = [...(room.players || [])].sort((a, b) => b.chips - a.chips || (b.eliminatedAt ?? 0) - (a.eliminatedAt ?? 0) || (b.beforeBust || 0) - (a.beforeBust || 0));
     let previousKey = '', rank = 0;
     return sorted.map((p, i) => {
       const key = p.chips > 0 ? `live:${p.chips}` : `out:${p.eliminatedAt}:${p.beforeBust}`;
@@ -165,7 +174,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
     // Run out all-ins one street at a time, with the same pauses as normal play.
     const boardCount = initial ? 0 : Math.min(room.hand.board.length, previousBoard < 3 ? 3 : previousBoard + 1);
     const duration = dealDelay ?? dealDuration(initial, previousBoard, boardCount), startedAt = Date.now() + phaseDelay;
-    room.deal = { hand: room.handNumber, boardCount, startedAt, endsAt: startedAt + duration };
+    room.deal = { hand: room.handNumber, previousBoard, boardCount, startedAt, endsAt: startedAt + duration };
     room.dealing = true; room.settling = false; room.turnId = null; room.visibleBoard = previousBoard;
     const complete = () => {
       if (boardCount < room.hand.board.length) beginDealing(room, false, boardCount);
@@ -220,6 +229,7 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
     room.dealing = false; room.settling = false; room.visibleBoard = null;
     room.turnId = randomUUID();
     if (room.hand.done) {
+      settleChipGifts(room);
       for (const p of room.hand.players) {
         const record = room.players.find(o => o.id === p.id);
         if (p.chips === 0 && !record.eliminatedAt) { record.eliminatedAt = room.handNumber; record.beforeBust = record.chips; }
@@ -389,11 +399,11 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
           session.giftReceipts ||= new Map();
           const cached = session.giftReceipts.get(msg.requestId);
           if (cached) {
-            if (cached.code !== room.code || cached.hand !== msg.hand || cached.turnId !== msg.turnId || cached.targetId !== msg.targetId || cached.amount !== msg.amount) fail('赠送请求编号已使用');
+            if (cached.code !== room.code || cached.hand !== msg.hand || cached.targetId !== msg.targetId || cached.amount !== msg.amount) fail('赠送请求编号已使用');
             send(ws, { type: 'gift-sent', ...cached }); send(ws, view(room, session)); return;
           }
-          if (msg.hand !== room.handNumber || msg.turnId !== room.turnId) fail('牌局已更新，请重新选择赠送金额');
-          const receipt = { ...transferChipGift(room, session.id, msg.targetId, msg.amount), requestId: msg.requestId, code: room.code, hand: msg.hand, turnId: msg.turnId };
+          if (msg.hand !== room.handNumber) fail('牌局已更新，请重新选择赠送金额');
+          const receipt = { ...transferChipGift(room, session.id, msg.targetId, msg.amount), requestId: msg.requestId, code: room.code, hand: msg.hand };
           session.giftReceipts.set(msg.requestId, receipt);
           if (session.giftReceipts.size > 128) session.giftReceipts.delete(session.giftReceipts.keys().next().value);
           broadcast(room); send(ws, { type: 'gift-sent', ...receipt }); return;
@@ -446,16 +456,24 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
           room.seats[index] = { kind: 'open' };
         } else if (msg.type === 'configure') {
           if (!host) fail('仅房主可设置规则');
-          room.config = config({ ...room.config, ...msg.config });
+          const nextConfig = config({ ...room.config, ...msg.config });
+          if (room.lobbyChipAdjustments && [...room.lobbyChipAdjustments.values()].some(delta => nextConfig.startingChips + delta < 0)) {
+            fail('初始筹码不能低于已送出的净额');
+          }
+          room.config = nextConfig;
         } else if (msg.type === 'start') {
           if (!host || !seated) fail('房主需要先坐下再开始');
           const occupied = room.seats.map((s, seat) => ({ ...s, seat })).filter(s => s.kind !== 'open');
           if (occupied.length < 2) fail('至少需要两人；可点击空位添加 AI');
           if (room.config.actionSeconds === 0 && occupied.filter(p => p.kind === 'human').length > 1) fail('多人比赛请选择行动时限');
-          room.players = occupied.map(p => ({ id: p.id, name: p.name, seat: p.seat, bot: p.kind === 'ai', chips: room.config.startingChips }));
+          const players = occupied.map(p => ({ id: p.id, name: p.name, seat: p.seat, bot: p.kind === 'ai', chips: lobbyChips(room, p.id) }));
+          const funded = players.filter(player => player.chips > 0);
+          if (funded.length < 2) fail('至少需要两位有筹码的玩家才能开局');
+          room.players = players;
+          room.lobbyChipAdjustments = null;
           room.botPersonalities = createBotPersonalities(room.players.filter(p => p.bot).map(p => p.id));
           room.botAnger = new Map();
-          room.button = occupied[randomInt(occupied.length)].seat;
+          room.button = funded[randomInt(funded.length)].seat;
           room.phase = 'playing'; room.handNumber = 0; room.stopAfterHand = false;
           deal(room); return;
         } else fail('不支持的操作');

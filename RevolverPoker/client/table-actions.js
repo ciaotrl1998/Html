@@ -6,8 +6,8 @@ const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 export const tableTurnKey = room => room?.hand ? `${room.code}:${room.hand.number}:${room.turnId}` : null;
 
 export class TableActions {
-  constructor({ send = () => false, change = () => {}, commit = () => {}, forward, sliderTravel = () => TABLE_GESTURES.sliderTravel } = {}) {
-    this.send = send; this.change = change; this.commit = commit;
+  constructor({ send = () => false, change = () => {}, commit = () => {}, stage = () => {}, forward, sliderTravel = () => TABLE_GESTURES.sliderTravel } = {}) {
+    this.send = send; this.change = change; this.commit = commit; this.stage = stage;
     this.sliderTravel = sliderTravel;
     this.forward = forward || ((start, point) => {
       const dy = start.y - point.y, dx = Math.abs(start.x - point.x);
@@ -83,7 +83,7 @@ export class TableActions {
   release(point, time) {
     if (!this.gesture) return;
     this.move(point, time);
-    const g = this.gesture; this.gesture = null;
+    const g = this.gesture, previous = this.pending; this.gesture = null;
     if (!this.enabled || g.key !== this.key) { this.emit(); return; }
     if (g.kind === 'select') this.pending = stagedAction(this.context, g.selected) ? g.selected
       : amountAtRatio(this.context, ratioForAmount(this.context, g.selected));
@@ -101,6 +101,9 @@ export class TableActions {
         this.lastTap = null;
         if (this.context.legal.canCheck) this.submit({ type: 'check' });
       } else this.lastTap = { ...point, time };
+    }
+    if (['bank', 'select'].includes(g.kind) && this.pending > 0 && this.pending !== previous) {
+      this.stage({ amount: this.pending, pot: this.context.pot });
     }
     this.emit();
   }

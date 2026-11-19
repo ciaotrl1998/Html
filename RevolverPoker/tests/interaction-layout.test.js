@@ -33,6 +33,46 @@ function createGame(editor = false) {
   return game;
 }
 
+test('each card emits one deal sound at its own animation start; late frames and state refreshes stay silent', t => {
+  fakeDocument(t); const { cards } = createGame(); let sounds = 0;
+  cards.onDeal = () => { sounds++; };
+  const room = { code: 'AUDIO', phase: 'playing', dealing: true, serverTime: 1000,
+    deal: { hand: 1, boardCount: 0, startedAt: 1000 }, hand: { number: 1, board: [], done: false,
+      players: [{ id: 'me', seat: 0, cards: [0, 13] }, { id: 'other', seat: 1, cards: [null, null] }] } };
+  cards.update(null, 'me', TABLE_POSITIONS, 0);
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const starts = cards.all.filter(card => card.animation?.kind === 'deal').map(card => card.animation.start).sort((a, b) => a - b);
+  assert.equal(starts.length, 4);
+  const camera = new THREE.PerspectiveCamera();
+  cards.tick(starts[0] - 1, camera); assert.equal(sounds, 0);
+  for (let i = 0; i < starts.length; i++) {
+    cards.tick(starts[i] + 1, camera); assert.equal(sounds, i + 1);
+    cards.tick(starts[i] + 2, camera); assert.equal(sounds, i + 1);
+  }
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  cards.tick(starts.at(-1) + 3, camera); assert.equal(sounds, 4);
+  room.hand.number = 2; room.deal.hand = 2;
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  const last = Math.max(...cards.all.filter(card => card.animation).map(card => card.animation.start));
+  cards.tick(last + 1000, camera); assert.equal(sounds, 4, 'returning from a hidden tab does not replay old cards');
+});
+
+test('an all-in runout still emits one deal sound for each newly dealt community card', t => {
+  fakeDocument(t); const { cards } = createGame(); let sounds = 0;
+  cards.onDeal = () => { sounds++; };
+  const room = { code: 'RUNOUT', phase: 'playing', dealing: false, hand: { number: 1, board: [], done: false,
+    players: [{ id: 'me', seat: 0, cards: [0, 13] }, { id: 'other', seat: 1, cards: [null, null] }] } };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  room.hand.done = true; room.hand.board = [2, 3, 4]; room.dealing = true; room.serverTime = 1000;
+  room.deal = { hand: 1, boardCount: 3, startedAt: 1000 };
+  cards.update(room, 'me', TABLE_POSITIONS, 0);
+  for (const card of cards.board.slice(0, 3)) {
+    assert.equal(card.animation.kind, 'deal');
+    cards.tick(card.animation.start + 1, new THREE.PerspectiveCamera());
+  }
+  assert.equal(sounds, 3);
+});
+
 test('a voluntary show pushes and flips both own cards, stays face-up after release and reconnect, and resets next hand', t => {
   fakeDocument(t); const { cards } = createGame();
   const room = { code: 'SHOW', phase: 'playing', dealing: false, hand: { number: 1, board: [], done: true,

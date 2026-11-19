@@ -101,8 +101,9 @@ function chair(wood) {
 }
 
 export class SaloonScene {
-  constructor(container, { editor = false, followOtherPlayers = true, frameRate = 60 } = {}) {
+  constructor(container, { editor = false, followOtherPlayers = true, frameRate = 60, onSound = () => {} } = {}) {
     this.editor = editor;
+    this.onSound = editor ? () => {} : onSound;
     this.followOtherPlayers = followOtherPlayers;
     this.frameClock = new FrameClock(frameRate); this.shadowClock = new FrameClock(30);
     this.renderBudget = new RenderBudget({ pixelRatio: devicePixelRatio, mobile: !!window.matchMedia?.('(pointer: coarse)').matches, editor });
@@ -137,7 +138,7 @@ export class SaloonScene {
     this.buildTable(); this.tagEditables(start, 'table', '牌桌与道具');
     this.dealerButtons = new DealerButtons(this, this.dealer);
     this.buildHands(); this.hands.userData.layout = { id: 'player-hands', label: '自己的双臂', category: '玩家与座位' };
-    this.cards = new TableCards(this.scene, { animate: !editor });
+    this.cards = new TableCards(this.scene, { animate: !editor, onDeal: () => this.onSound('deal') });
     for (let i = 0; i < 8; i++) {
       const [x, z] = POSITIONS[i];
       const a = chair(this.wood); a.position.set(x * 1.07, 0, z * 1.07); a.rotation.y = Math.atan2(-x, -z); this.scene.add(a); this.chairs.push(a);
@@ -182,6 +183,7 @@ export class SaloonScene {
           this.betView.setState(state);
           if (['pending', 'remaining', 'inFlight'].some(key => state[key] !== previous[key])) this.shadowDirty = true;
         }, commit: action => this.betView.commit(action),
+        stage: details => this.onSound('stage', details),
         forward: (start, point) => this.betView.measureForward(start, point),
         sliderTravel: () => this.betView.sliderHeight()
       });
@@ -539,7 +541,12 @@ export class SaloonScene {
       label.sprite.userData.seat = seat.seat;
       label.sprite.visible = !own && (lobby || seat.kind !== 'open') && (!room.hand?.done || !!p);
       if (seat.kind === 'open') { this.chairs[i].add(label.sprite); label.sprite.position.set(0, 3.45, 0); }
-      else { this.models[i].userData.head.add(label.sprite); label.sprite.position.set(0, 1, 0); }
+      else {
+        // The closest players' labels rise into the roster when looking to either side.
+        const adjacent = this.firstPerson && (i === 1 || i === this.labels.length - 1);
+        this.models[i].userData.head.add(label.sprite);
+        label.sprite.position.set(0, adjacent ? .82 : 1, 0);
+      }
       const canConfigure = lobby && room.hostId === you && !!mine;
       this.paintSeatLabel(label, { seat: seat.seat, open: seat.kind === 'open', bot: seat.kind === 'ai',
         name: seat.kind === 'open' ? '开放' : seat.name,

@@ -7,6 +7,7 @@ import { normalizeQuality } from './render-budget.js';
 import { loadCardArtwork, cardArtURL } from './card-artwork.js';
 import { FullscreenControl } from './fullscreen.js';
 import { PlayerInfo } from './player-info.js';
+import { GameAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -17,36 +18,28 @@ const money = n => Number(n || 0).toLocaleString('zh-CN');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
-let toastTimer, clockOffset = 0, lastHandKey = '', lastActionCount = 0, finishKey = '';
-let soundOn = localStorage.getItem('rp-sound') === 'on';
+let toastTimer, clockOffset = 0, finishKey = '';
+let soundOn = localStorage.getItem('rp-sound') !== 'off';
 let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
-let audio;
+const tableAudio = new GameAudio({ enabled: soundOn });
+for (const event of ['pointerdown', 'keydown']) document.addEventListener(event, () => { void tableAudio.unlock(); }, { capture: true, passive: true });
 const playerInfo = new PlayerInfo($('player-info'), { send, notify: toast, open: () => {
   scene?.cancelViewInput(); clearTimeout(toastTimer); $('toast').hidden = true;
 } });
-playerRoster.onSelect = handleSeatClick;
+playerRoster.onSelect = seat => { if (!playerInfo.show(seat)) handleSeatClick(seat); };
 new FullscreenControl({ button: $('fullscreen-button'), status: $('fullscreen-state'), change: () => {
   scene?.cancelViewInput(); window.RevolverPokerBoot?.fitViewport?.(); scene?.resize();
 } });
 function toast(text) { $('toast').textContent = text; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
-function sound(type) {
-  if (!soundOn) return;
-  try {
-    audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume();
-    const t = audio.currentTime, osc = audio.createOscillator(), gain = audio.createGain();
-    osc.type = type === 'card' ? 'triangle' : 'sine'; osc.frequency.setValueAtTime(type === 'card' ? 320 : 920, t); osc.frequency.exponentialRampToValueAtTime(type === 'card' ? 120 : 360, t + .09);
-    gain.gain.setValueAtTime(.045, t); gain.gain.exponentialRampToValueAtTime(.001, t + .14);
-    osc.connect(gain); gain.connect(audio.destination); osc.start(t); osc.stop(t + .15);
-  } catch { /* Sound is optional; blocked audio must never block a poker action. */ }
-}
 function send(type, data = {}) {
   if (!connected || ws?.readyState !== WebSocket.OPEN) { toast('正在连接服务器，请稍等'); return false; }
   ws.send(JSON.stringify({ type, ...data })); return true;
 }
 function setConnection(value) {
   connected = value;
+  if (!value) tableAudio.sync(null);
   scene?.setActionConnection(value);
   playerInfo.update(room, sessionId, value);
   $('connection').classList.toggle('offline', !value);
@@ -69,12 +62,7 @@ function connect() {
       clockOffset = room.serverTime - Date.now();
       render();
       if (previous?.phase === 'finished' && room.phase === 'lobby') $('finish-dialog').close();
-      if (room.hand) {
-        const key = `${room.code}:${room.hand.number}:${room.hand.board.length}`;
-        if (lastHandKey && key !== lastHandKey) sound('card');
-        if (room.hand.history.length !== lastActionCount) sound('chip');
-        lastHandKey = key; lastActionCount = room.hand.history.length;
-      }
+      tableAudio.sync(room);
       if (room.phase === 'finished' && (previous?.phase !== 'finished' || finishKey !== `${room.code}:${room.handNumber}`)) {
         finishKey = `${room.code}:${room.handNumber}`; showFinish();
       }
@@ -96,7 +84,7 @@ function connect() {
 }
 setInterval(() => { if (connected) send('ping'); }, 20000);
 window.addEventListener('online', () => { if (ws?.readyState === WebSocket.CLOSED && !superseded) connect(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && connected && room) send('sync'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) tableAudio.stop(); else if (connected && room) send('sync'); });
 function cardHTML(card) {
   const label = card === null ? '未公开底牌' : `${suits[Math.floor(card / 13)]}${ranks[card % 13].replace('T', '10')}`;
   return `<span class="card bitmap"><img src="${cardArtURL(card)}" alt="${label}" draggable="false"></span>`;
@@ -105,7 +93,7 @@ function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d =>
 function returnToMenu() {
   scene?.cancelViewInput();
   releaseCardHolds();
-  room = null; lastHandKey = ''; lastActionCount = 0; finishKey = '';
+  room = null; tableAudio.sync(null); finishKey = '';
   closeDialogs(); render();
   history.replaceState(null, '', location.pathname);
 }
@@ -179,7 +167,7 @@ function render() {
   $('look-controls').hidden = !scene || !room;
   $('game').classList.toggle('table-ui-small', $('game').clientWidth < 380);
   scene?.update(room, sessionId);
-  if (!room) { renderWinnerResult($('result-banner'), null); lastHandKey = ''; return; }
+  if (!room) { renderWinnerResult($('result-banner'), null); return; }
   $('room-code-display').textContent = room.code;
   const h = room.hand;
   renderWinnerResult($('result-banner'), h, { nextHand: room.phase === 'playing' && !room.finishing });
@@ -207,7 +195,7 @@ function renderControls() {
   const me = room.seats.find(s => s.id === sessionId), host = room.hostId === sessionId;
   const h = room.hand, p = h?.players.find(p => p.id === sessionId), lobby = room.phase === 'lobby';
   $('dock').classList.toggle('in-game', !lobby);
-  $('my-chips').textContent = me ? money(p?.chips ?? (lobby ? room.config.startingChips : me.chips)) : '—';
+  $('my-chips').textContent = me ? money(p?.chips ?? me.chips ?? (lobby ? room.config.startingChips : 0)) : '—';
   $('lobby-controls').hidden = !lobby; $('play-controls').hidden = lobby;
   if (lobby) {
     const n = room.seats.filter(s => s.kind !== 'open').length;
@@ -265,7 +253,7 @@ $('close-room-button').onclick = () => { if (send('close-room')) closeDialogs();
 $('stop-button').onclick = () => { send('stop'); closeDialogs(); toast('将在本手结束后结算，当前底池继续正常进行'); };
 $('help-button').onclick = () => showDialog('help-dialog');
 $('sound-state').textContent = soundOn ? '开启' : '关闭';
-$('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; sound('chip'); };
+$('sound-button').onclick = () => { soundOn = !soundOn; localStorage.setItem('rp-sound', soundOn ? 'on' : 'off'); $('sound-state').textContent = soundOn ? '开启' : '关闭'; tableAudio.setEnabled(soundOn); };
 const qualityLabels = { high: '高', medium: '中', low: '低' };
 $('quality-state').textContent = qualityLabels[quality];
 $('quality-button').onclick = () => {
@@ -328,7 +316,7 @@ try {
   await loadCardArtwork();
   connect();
   const { SaloonScene } = await import('/client/scene.js');
-  scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate }); scene.onPortraitsChanged = portraits => playerRoster.setPortraits(portraits); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
+  scene = new SaloonScene($('scene'), { followOtherPlayers, frameRate, onSound: (type, options) => tableAudio.play(type, options) }); scene.onPortraitsChanged = portraits => playerRoster.setPortraits(portraits); scene.onSeatSelect = handleSeatClick; scene.onPokerAction = act; scene.onDealFinished = renderControls; scene.setActionConnection(connected);
   playerRoster.setPortraits(scene.portraits);
   scene.setQuality(quality);
   scene.cards.prepareTextures(scene.renderer);

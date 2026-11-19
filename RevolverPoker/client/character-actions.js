@@ -82,6 +82,7 @@ export function applyCharacterPose(model, pose) {
 }
 
 export function applyFirstPersonPose(hands, pose) {
+  // The head-cover reaction belongs to the visible character model.
   for (const [side, arm] of Object.entries(hands.userData.arms || {})) {
     const push = side === 'right' ? pose.rightPush : pose.leftPush;
     arm.group.position.copy(arm.position); arm.group.quaternion.copy(arm.quaternion);
@@ -91,11 +92,6 @@ export function applyFirstPersonPose(hands, pose) {
     if (side === 'left') {
       arm.group.position.y += pose.check * (-.13 + pose.tap * .16);
       arm.group.rotation.x -= pose.check * .12;
-    }
-    if (pose.cover) {
-      arm.group.position.set(arm.position.x * .55, 1.0 + pose.sway * .035, .20);
-      arm.group.rotation.x = -1.12 + pose.sway * .035;
-      arm.group.rotation.z = (side === 'right' ? 1 : -1) * -.23;
     }
   }
 }

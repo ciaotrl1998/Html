@@ -35,7 +35,13 @@
 .roster-identity { position: absolute; z-index: 1; top: -3px; left: -5px; color: #ead6aa; font: 8px/13px var(--number-font); min-width: 13px; text-align: center; background: #241d13ed; border: 1px solid #a88b5144; }
 .roster-badge { position: absolute; z-index: 1; right: -5px; bottom: -2px; min-width: 14px; padding: 0 2px; color: #241a0c; background: #bda16a; border: 1px solid #dfc08788; font: 700 7px/12px Georgia, serif; text-align: center; text-shadow: none; }
 .roster-offline { position: absolute; z-index: 2; top: 1px; right: 1px; width: 5px; height: 5px; border-radius: 50%; background: #ad6650; box-shadow: 0 0 0 1px #25170b; }
-.roster-stack { display: block; flex: none; width: 100%; min-height: 22px; color: #eeddb7; font: 600 19px/22px var(--number-font); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; transform-origin: center; }
+.roster-stack {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-self: center;
+  flex: none; width: calc(100% / var(--roster-stack-scale, 1)); min-height: 22px; color: #eeddb7;
+  font: 600 var(--roster-stack-size, 19px)/1.15 var(--number-font);
+  font-variant-numeric: tabular-nums; text-align: center; overflow-wrap: anywhere; text-wrap: balance;
+  transform: scaleX(var(--roster-stack-scale, 1)); transform-origin: center;
+}
 .roster-bet { display: block; width: 100%; color: #ac9c7d; font: 12px/15px var(--number-font); white-space: nowrap; text-align: center; transform-origin: center; }
 .roster-status { display: block; width: 100%; margin-top: 1px; color: #d0c2a3; font-size: 10px; line-height: 14px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roster-cards { display: block; flex: none; width: 100%; max-width: 64px; height: auto; margin: 0 auto; }
@@ -51,7 +57,7 @@
 .player-strip:not(.crowded) { grid-template-columns: repeat(var(--player-count, 1), minmax(0, 160px)); }
 .player-strip:not(.crowded) .player-status { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 8px; align-content: center; justify-items: start; min-height: 65px; padding: 5px 6px; }
 .player-strip:not(.crowded) .roster-portrait { grid-column: 1; grid-row: 1 / span 3; width: 34px; height: 46px; margin: 0; }
-.player-strip:not(.crowded) .roster-stack { grid-column: 2; grid-row: 1; text-align: left; transform-origin: left center; }
+.player-strip:not(.crowded) .roster-stack { grid-column: 2; grid-row: 1; }
 .player-strip:not(.crowded) .roster-bet { grid-column: 2; grid-row: 2; text-align: left; transform-origin: left center; }
 .player-strip:not(.crowded) .roster-status { grid-column: 2; grid-row: 3; text-align: left; }
 .player-strip:not(.crowded) .roster-cards { grid-column: 2; grid-row: 1 / span 2; max-width: 60px; margin: 0; }

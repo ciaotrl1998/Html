@@ -20,8 +20,8 @@ export class PlayerInfo {
     this.confirm = el('button', 'gift-confirm', '确认'); this.cancel = el('button', 'gift-cancel', '取消');
     this.confirm.type = this.cancel.type = 'button'; this.actions.append(this.confirm, this.cancel);
     this.reason = el('p', 'gift-reason'); this.reason.setAttribute('aria-live', 'polite');
-    root.append(this.summary, this.gift, this.amountRow, this.actions, this.reason); root.hidden = true;
-    this.gift.onclick = () => { if (!this.limit().reason) { this.mode = 'gift'; this.selected = 1; this.render(); } };
+    root.append(this.summary, this.gift, this.amountRow, this.actions, this.reason); this.close();
+    this.gift.onclick = () => { if (!root.hidden && !this.limit().reason) { this.mode = 'gift'; this.selected = 1; this.render(); } };
     this.slider.oninput = () => { const { maximum } = this.limit(); this.selected = Math.max(1, Math.min(maximum, Number(this.slider.value))); this.renderAmount(maximum); };
     this.cancel.onclick = () => this.close(); this.confirm.onclick = () => this.submit();
     doc.addEventListener('pointerdown', event => { if (!root.hidden && !root.contains(event.target)) this.close(); });
@@ -37,21 +37,24 @@ export class PlayerInfo {
     if (!connected) { this.pending = null; this.close(); return; }
     if (this.root.hidden) return;
     if (!room || room.code !== this.code || !room.seats.some(seat => seat.id === this.targetId)) { this.pending = null; this.close(); return; }
-    if (this.hand !== room.handNumber && !this.pending) { this.hand = room.handNumber; this.mode = 'info'; }
     this.render();
   }
   show(seatNumber) {
     const seat = this.room?.seats.find(seat => seat.seat === seatNumber && seat.kind !== 'open');
     if (!seat || seat.id === this.you) return false;
     if (this.pending) { this.notify('正在赠送，请稍候'); return true; }
-    this.targetId = seat.id; this.code = this.room.code; this.hand = this.room.handNumber;
+    this.targetId = seat.id; this.code = this.room.code;
     this.mode = 'info'; this.selected = 1; this.root.hidden = false; this.open(); this.render(); return true;
   }
   render() {
     const seat = this.room.seats.find(seat => seat.id === this.targetId), player = this.room.hand?.players.find(player => player.id === this.targetId);
     const { maximum, reason } = this.limit(), form = this.mode === 'gift';
     this.summary.hidden = this.gift.hidden = form; this.amountRow.hidden = this.actions.hidden = !form;
-    this.summary.textContent = `${seat.name} · ${seat.kind === 'ai' ? '电脑' : seat.connected === false ? '暂时断线' : '在线'} · 剩余 ${money(player?.chips ?? seat.chips ?? this.room.config.startingChips)} · 本手投入 ${money(player?.total)}`;
+    const connection = seat.kind === 'ai' ? '电脑' : seat.connected === false ? '暂时断线' : '在线';
+    const chips = player?.chips ?? seat.chips ?? this.room.config.startingChips;
+    const funds = this.room.phase === 'finished' ? `下场筹码 ${money(seat.nextMatchChips ?? this.room.config.startingChips)}`
+      : `剩余 ${money(chips)} · 本手投入 ${money(player?.total)}${seat.pendingGift ? ` · 待入账 ${money(seat.pendingGift)}` : ''}`;
+    this.summary.textContent = `${seat.name} · ${connection} · ${funds}`;
     this.gift.disabled = !!reason; this.reason.textContent = reason; this.reason.hidden = !reason;
     this.selected = Math.min(Math.max(1, this.selected || 1), maximum || 1);
     this.slider.max = String(maximum || 1); this.slider.value = String(this.selected);
@@ -65,16 +68,19 @@ export class PlayerInfo {
     this.slider.style?.setProperty('--gift-fill', `${maximum > 1 ? (this.selected - 1) / (maximum - 1) * 100 : 0}%`);
   }
   submit() {
+    if (this.root.hidden || this.mode !== 'gift') return;
     const { maximum, reason } = this.limit();
     if (this.pending || reason || !Number.isSafeInteger(this.selected) || this.selected < 1 || this.selected > maximum) { if (reason) this.notify(reason); return; }
     const seat = this.room.seats.find(seat => seat.id === this.targetId);
-    const pending = { requestId: this.makeId(), targetId: this.targetId, amount: this.selected, hand: this.room.handNumber, turnId: this.room.turnId, name: seat.name };
+    const pending = { requestId: this.makeId(), targetId: this.targetId, amount: this.selected, hand: this.room.handNumber, name: seat.name };
     if (this.send('gift-chips', pending) === false) return;
     this.pending = pending; this.render();
   }
   accept(receipt) {
     if (!this.pending || receipt.requestId !== this.pending.requestId) return;
-    const name = this.pending.name; this.pending = null; this.close(); this.notify(`已向${name}赠送 ${money(receipt.amount)} 筹码`);
+    const name = this.pending.name;
+    const timing = receipt.deferred ? '，本手结算后入账' : receipt.nextMatch ? '，下场开局时可用' : '';
+    this.pending = null; this.close(); this.notify(`已向${name}赠送 ${money(receipt.amount)} 筹码${timing}`);
   }
   reject(error) {
     if (!this.pending || error.requestId !== this.pending.requestId) return false;
@@ -82,5 +88,9 @@ export class PlayerInfo {
     if (!this.root.hidden) { this.render(); this.reason.textContent = error.message; this.reason.hidden = false; }
     return true;
   }
-  close() { this.root.hidden = true; }
+  close() {
+    this.root.hidden = true; this.mode = 'info'; this.selected = 1;
+    this.summary.hidden = this.gift.hidden = false; this.amountRow.hidden = this.actions.hidden = true;
+    this.slider.value = '1';
+  }
 }

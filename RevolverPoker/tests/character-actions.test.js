@@ -56,7 +56,7 @@ test('busted players cover their head and keep a smooth, nonstatic looping pain 
   assert.ok(hand.position.distanceTo(first) < 1e-9);
 });
 
-test('first-person arms express the same action, keep their editable base transforms and reset cleanly', () => {
+test('first-person arms act normally and stay at rest during the bust reaction', () => {
   const hands = new THREE.Group(); hands.userData.arms = {};
   for (const side of ['left', 'right']) {
     const group = new THREE.Group(); group.position.set(side === 'right' ? .6 : -.6, 0, 0); group.rotation.y = .1;
@@ -66,12 +66,12 @@ test('first-person arms express the same action, keep their editable base transf
   assert.ok(hands.userData.arms.right.group.position.z < -.6); assert.equal(hands.userData.arms.left.group.position.z, 0);
   applyFirstPersonPose(hands, actionPose('allin', 420));
   assert.ok(hands.userData.arms.left.group.position.z < -.6);
-  applyFirstPersonPose(hands, actionPose('bust', 450));
-  assert.ok(hands.userData.arms.right.group.position.y > 1);
-  applyFirstPersonPose(hands, actionPose('call', 900));
-  for (const arm of Object.values(hands.userData.arms)) {
-    assert.ok(arm.group.position.distanceTo(arm.position) < 1e-9);
-    assert.ok(arm.group.quaternion.angleTo(arm.quaternion) < 1e-7);
+  for (const pose of [actionPose('bust', 0), actionPose('bust', 450), actionPose('bust', 1800), actionPose('call', 900)]) {
+    applyFirstPersonPose(hands, pose);
+    for (const arm of Object.values(hands.userData.arms)) {
+      assert.ok(arm.group.position.distanceTo(arm.position) < 1e-9);
+      assert.ok(arm.group.quaternion.angleTo(arm.quaternion) < 1e-7);
+    }
   }
 });
 

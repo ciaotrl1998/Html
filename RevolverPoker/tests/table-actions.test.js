@@ -28,9 +28,9 @@ function room(options = {}) {
     players: [player], legal: { toCall: 20, callAmount: 20, canCheck: false, canRaise: true, minTo: 40, maxTo: player.bet + player.chips, canAllIn: true, ...options.legal } } };
 }
 function fixture(input = room()) {
-  const sent = [], states = [], commits = [];
+  const sent = [], states = [], commits = [], stages = [];
   const actions = new TableActions({ send: (type, amount, key) => { sent.push({ type, amount, key }); return true; },
-    change: state => states.push(state), commit: action => commits.push(action) });
+    change: state => states.push(state), commit: action => commits.push(action), stage: details => stages.push(details) });
   actions.sync(input, 'me');
   const tap = (target, time = 0) => { actions.begin(target, point, time); actions.release(point, time + 50); };
   const push = (target = { chipRole: 'staged' }, time = 2000, to = { x: 200, y: 250 }) => {
@@ -42,8 +42,24 @@ function fixture(input = room()) {
     const to = { x: point.x, y: point.y - (ratio - initial) * TABLE_GESTURES.sliderTravel };
     actions.move(to, time + 400); actions.release(to, time + 450);
   };
-  return { actions, sent, states, commits, tap, push, select };
+  return { actions, sent, states, commits, stages, tap, push, select };
 }
+
+test('staging sound receives the selected amount and live pot only on a completed placement', () => {
+  const input = room(); input.hand.pot = 150;
+  const f = fixture(input);
+  f.actions.begin({ chipRole: 'bank' }, point, 0);
+  f.actions.move({ x: 200, y: 200 }, 30);
+  assert.deepEqual(f.stages, [], 'slider preview is silent');
+  f.actions.cancel(); assert.deepEqual(f.stages, []);
+  f.tap({ chipRole: 'bank' });
+  assert.deepEqual(f.stages, [{ amount: 20, pot: 150 }]);
+  f.select(200);
+  assert.deepEqual(f.stages.at(-1), { amount: 200, pot: 150 });
+  f.tap({ chipRole: 'staged' });
+  assert.equal(f.stages.length, 2, 'returning draft chips does not place another wager');
+  f.actions.sync(input, 'me'); assert.equal(f.stages.length, 2, 'state refresh is silent');
+});
 
 test('a fold-win only accepts a deliberate forward hand push to show cards, with chips and betting kept disabled', () => {
   const state = room(); state.hand.done = true; state.hand.actor = null; state.hand.legal = null;

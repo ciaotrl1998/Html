@@ -28,10 +28,11 @@ export function paintSeatNameplate(ctx, data) {
   ctx.beginPath(); ctx.roundRect(7, 7, 498, 226, 12); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
 
   const seat = String(data.seat + 1).padStart(2, '0'), name = `${data.name}${data.bot ? '（AI）' : ''}`;
-  const gap = 10;
-  let nameSize = 34, seatSize, seatWidth, nameWidth;
+  const gap = 10, seatSize = 38;
+  ctx.font = `${seatSize}px ${NUMBER_FONT}`;
+  const seatWidth = ctx.measureText(seat).width;
+  let nameSize = 34, nameWidth;
   for (;;) {
-    seatSize = Math.round(nameSize * .8); ctx.font = `${seatSize}px ${NUMBER_FONT}`; seatWidth = ctx.measureText(seat).width;
     ctx.font = `600 ${nameSize}px "Microsoft YaHei", sans-serif`; nameWidth = ctx.measureText(name).width;
     if (seatWidth + gap + nameWidth <= 460 || nameSize <= 18) break;
     nameSize--;
@@ -42,8 +43,8 @@ export function paintSeatNameplate(ctx, data) {
   ctx.fillStyle = data.folded ? '#b0a58c' : '#f1e3c6'; ctx.font = `600 ${nameSize}px "Microsoft YaHei", sans-serif`; ctx.fillText(name, left + seatWidth + gap, 56, nameWidth);
 
   const action = data.action || '等待行动';
-  let actionSize = 74; ctx.font = `600 ${actionSize}px "Microsoft YaHei", sans-serif`;
+  let actionSize = 62; ctx.font = `600 ${actionSize}px "Microsoft YaHei", sans-serif`;
   while (ctx.measureText(action).width > 460 && actionSize > 36) ctx.font = `600 ${--actionSize}px "Microsoft YaHei", sans-serif`;
-  ctx.textAlign = 'center'; ctx.fillStyle = data.active ? '#f0cc86' : '#eee0bd'; ctx.fillText(action, 256, 153, 460);
+  ctx.textAlign = 'center'; ctx.fillStyle = data.active ? '#f0cc86' : '#eee0bd'; ctx.fillText(action, 256, 148, 460);
   ctx.fillStyle = '#b6ab91'; ctx.font = `30px ${NUMBER_FONT}`; ctx.fillText(data.value, 256, 210, 460);
 }

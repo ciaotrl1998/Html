@@ -65,8 +65,8 @@ class CardFactory {
 function rotation(x, y = 0, z = 0) { return new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)); }
 
 export class TableCards {
-  constructor(scene, { animate = true } = {}) {
-    this.animate = animate;
+  constructor(scene, { animate = true, onDeal = () => {} } = {}) {
+    this.animate = animate; this.onDeal = onDeal;
     this.factory = new CardFactory(); this.handKey = null; this.dealStart = null; this.seenState = false; this.peeking = false; this.folded = false;
     this.board = Array.from({ length: 5 }, () => this.factory.create('board'));
     this.boardPresentation = new BoardPresentation(this.board);
@@ -175,7 +175,7 @@ export class TableCards {
       ? performance.now() - (room.serverTime - room.deal.startedAt) : null;
     for (let i = 0; i < 5; i++) {
       if (i >= hand.board.length) { this.board[i].root.visible = false; continue; }
-      this.place(this.board[i], hand.board[i], `${newKey}:board:${i}`, new THREE.Vector3((i - 2) * .56, TABLE_Y, BOARD_CENTER_Z), rotation(-Math.PI / 2, 0, (i % 2 ? 1 : -1) * .006), { animate: allowAnimation, delay: (i < 3 ? i : 0) * DEAL_TIMING.flopGap, dealing: !hand.done });
+      this.place(this.board[i], hand.board[i], `${newKey}:board:${i}`, new THREE.Vector3((i - 2) * .56, TABLE_Y, BOARD_CENTER_Z), rotation(-Math.PI / 2, 0, (i % 2 ? 1 : -1) * .006), { animate: allowAnimation, delay: (i < 3 ? i : 0) * DEAL_TIMING.flopGap, dealing: !hand.done || !!room.deal && room.dealing === true });
     }
     const me = hand.players.find(p => p.id === viewerId);
     const discardTiming = id => room.actionPresentation?.playerId === id ? presentationTiming(room.actionPresentation, room.serverTime) : {};
@@ -256,6 +256,10 @@ export class TableCards {
     for (const card of this.all) {
       const a = card.animation; if (!a) continue;
       if (now < a.start) { card.root.visible = a.kind === 'discard'; continue; }
+      if (a.kind === 'deal' && !a.soundPlayed) {
+        a.soundPlayed = true;
+        if (now - a.start <= 120) this.onDeal();
+      }
       card.root.visible = true;
       const t = Math.min(1, (now - a.start) / a.duration), ease = 1 - (1 - t) ** 3;
       card.root.position.lerpVectors(a.from, a.to, ease);

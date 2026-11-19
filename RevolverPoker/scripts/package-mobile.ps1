@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 $pokerRoot = Split-Path -Parent $PSScriptRoot
 & node (Join-Path $PSScriptRoot 'sync-client-vendor.js')
 if ($LASTEXITCODE -ne 0) { throw '同步游戏引擎失败，请先在项目目录执行 npm ci。' }
+& node (Join-Path $PSScriptRoot 'build-audio-bank.js')
+if ($LASTEXITCODE -ne 0) { throw '生成音效数据失败，请检查 client/assets/audio 中的 WAV 文件。' }
 
 $pokerCache = [System.IO.Path]::GetFullPath((Join-Path $pokerRoot '.cache'))
 $pokerTemporary = Join-Path $pokerCache ('mobile-package-' + [guid]::NewGuid().ToString('N'))
@@ -27,6 +29,13 @@ try {
         foreach ($pokerCard in 0..51) {
             $pokerCardName = 'RevolverPoker/client/assets/cards/{0:D2}.png' -f $pokerCard
             if (-not $pokerZip.GetEntry($pokerCardName)) { throw ('游戏包缺少固定牌面：' + $pokerCardName) }
+        }
+        foreach ($pokerSound in @('card-deal-01', 'card-deal-02', 'card-fold', 'table-check', 'chips-push', 'chips-stage-small', 'chips-stage-large')) {
+            $pokerSoundName = 'RevolverPoker/client/assets/audio/' + $pokerSound + '.wav'
+            if (-not $pokerZip.GetEntry($pokerSoundName)) { throw ('游戏包缺少音效：' + $pokerSoundName) }
+        }
+        foreach ($pokerAudioModule in @('client/audio.js', 'client/audio-bank.js')) {
+            if (-not $pokerZip.GetEntry('RevolverPoker/' + $pokerAudioModule)) { throw ('游戏包缺少音效模块：' + $pokerAudioModule) }
         }
         $pokerLayoutStream = $pokerZip.GetEntry('RevolverPoker/client/scene-layout.js').Open()
         try { $pokerPackedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($pokerLayoutStream)) }

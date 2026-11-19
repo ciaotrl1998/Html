@@ -22,11 +22,12 @@ export class PlayerRosterState {
       const action = player?.folded ? '弃牌' : player?.chips === 0 ? '全下' : this.actions.get(seat.seat);
       const disconnected = seat.kind === 'human' && seat.connected === false;
       const chips = player?.chips ?? seat.chips ?? room.config.startingChips;
+      const absentStatus = chips > 0 ? '下手回归' : '已出局';
       return { id: seat.id, seat: seat.seat, name: seat.name, mine: seat.id === viewerId, bot: seat.kind === 'ai',
         active: !!player && !settled && !room.dealing && !room.settling && hand.actor === seat.seat,
         folded: !!player?.folded, eliminated, disconnected, settled, result, anger: seat.kind === 'ai' ? Math.max(0, Math.min(3, seat.anger || 0)) : 0,
         chips, bet: player?.bet || 0,
-        status: settled ? result.handName : eliminated ? '已出局' : compactAction(action) || seat.name,
+        status: eliminated ? absentStatus : settled ? result.handName : compactAction(action) || seat.name,
         badge: hand?.button === seat.seat ? 'D' : hand?.sbSeat === seat.seat ? 'SB' : hand?.bbSeat === seat.seat ? 'BB' : '' };
     });
   }
@@ -63,13 +64,23 @@ export class PlayerRoster {
     this.entries.set(id, entry); return entry;
   }
   fitAmounts() {
-    for (const { chips, bet } of this.entries.values()) if (!chips.hidden && chips.clientWidth) {
+    let stackWidth = Infinity;
+    for (const { bet } of this.entries.values()) {
+      // The bet row measures the column before any horizontal scaling.
+      if (!bet.hidden && bet.clientWidth) stackWidth = Math.min(stackWidth, bet.clientWidth);
+    }
+    if (Number.isFinite(stackWidth)) {
       this.measure.font = `600 19px ${NUMBER_FONT}`;
-      const width = this.measure.measureText(chips.textContent).width;
-      const size = Math.min(19, Math.max(13, 19 * chips.clientWidth / Math.max(1, width)));
-      chips.style.fontSize = `${size}px`;
-      chips.style.transform = `scaleX(${Math.min(1, chips.clientWidth / Math.max(1, width * size / 19))})`;
-      this.measure.font = `${this.container.classList.contains('crowded') ? 11 : 12}px ${NUMBER_FONT}`;
+      // Use the same four-digit reference even when a player's balance changes.
+      const availableWidth = stackWidth - .5; // clientWidth rounds to the nearest pixel.
+      const referenceWidth = Math.max(1, this.measure.measureText('0,000').width);
+      const size = Math.min(19, Math.max(13, 19 * availableWidth / referenceWidth));
+      const scale = Math.min(1, availableWidth / (referenceWidth * size / 19));
+      this.container.style.setProperty('--roster-stack-size', `${size}px`);
+      this.container.style.setProperty('--roster-stack-scale', String(scale));
+    }
+    this.measure.font = `${this.container.classList.contains('crowded') ? 11 : 12}px ${NUMBER_FONT}`;
+    for (const { bet } of this.entries.values()) if (!bet.hidden && bet.clientWidth) {
       bet.style.transform = `scaleX(${Math.min(1, bet.clientWidth / Math.max(1, this.measure.measureText(bet.textContent).width))})`;
     }
   }

@@ -40,13 +40,13 @@ function drawing() {
   return { ctx, calls };
 }
 
-test('nameplates use an inline small seat prefix, AI suffix, large centered action and small chips below', () => {
+test('nameplates keep the larger seat number inline with the name and center the action and chips', () => {
   for (const name of ['沃尔特', '这是一个长度达到二十个字的玩家自定义名称']) {
     const { ctx, calls } = drawing();
     paintSeatNameplate(ctx, { seat: 6, name, bot: true, action: '加注至 1000000', value: '2,655', badges: 'BB' });
     assert.deepEqual(calls.map(call => call.text), ['07', `${name}（AI）`, '加注至 1000000', '2,655']);
     const [seat, title, action, chips] = calls;
-    assert.ok(seat.size < title.size); assert.equal(seat.y, title.y); assert.ok(seat.x < title.x);
+    assert.ok(seat.size > title.size); assert.equal(seat.y, title.y); assert.ok(seat.x < title.x);
     assert.ok(action.size > title.size && action.size > chips.size); assert.equal(action.align, 'center'); assert.equal(action.x, 256);
     assert.ok(title.y < action.y && action.y < chips.y); assert.equal(chips.align, 'center'); assert.equal(chips.x, 256);
     for (const call of calls) {
@@ -55,5 +55,5 @@ test('nameplates use an inline small seat prefix, AI suffix, large centered acti
     }
   }
   const human = drawing(); paintSeatNameplate(human.ctx, { seat: 0, name: '玩家', value: '100', action: '大盲' });
-  assert.equal(human.calls[1].text, '玩家'); assert.equal(human.calls[2].size, 74);
+  assert.equal(human.calls[1].text, '玩家'); assert.equal(human.calls[2].size, 62);
 });
