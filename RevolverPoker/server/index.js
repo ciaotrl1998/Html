@@ -17,9 +17,9 @@ const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULTS = { startingChips: 2000, smallBlind: 10, ante: 0, raiseEvery: 0, actionSeconds: 30, difficulty: 'normal' };
 const BOT_CHARACTERS = [
   { name: '科尔', gender: 'male' }, { name: '罗斯', gender: 'male' },
-  { name: '杰西', gender: 'male' }, { name: '薇拉', gender: 'female' },
-  { name: '亨利', gender: 'male' }, { name: '玛吉', gender: 'female' },
-  { name: '沃尔特', gender: 'male' }, { name: '露西', gender: 'female' },
+  { name: '杰西', gender: 'male' }, { name: '薇拉', gender: 'female', hairstyle: 'swept' },
+  { name: '亨利', gender: 'male' }, { name: '玛吉', gender: 'female', hairstyle: 'bob' },
+  { name: '沃尔特', gender: 'male' }, { name: '露西', gender: 'female', hairstyle: 'braid' },
 ];
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.wav': 'audio/wav' };
 const cleanName = (value, fallback) => String(value || '').replace(/[\x00-\x1f<>]/g, '').trim().slice(0, 20) || fallback;

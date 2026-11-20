@@ -368,7 +368,9 @@ test('other players discard face down from their edited hands onto independent s
   cards.update(room, 'me', TABLE_POSITIONS, focus);
   cards.discards[local].forEach((card, i) => {
     assert.equal(cards.opponents[local][i].root.visible, false); assert.equal(card.root.visible, true);
-    assert.equal(card.front.material, cards.factory.back, 'folded cards never disclose their front faces');
+    assert.equal(card.value, null, 'other players’ folded cards never disclose their front faces');
+    assert.equal(card.front.material, cards.factory.grayBack); assert.equal(card.back.material, cards.factory.grayBack);
+    assert.equal(card.root.userData.cardRole, 'opponent-discard');
     close(card.root.getWorldPosition(new THREE.Vector3()), from[i]);
   });
   cards.tick(performance.now() + 1000, new THREE.PerspectiveCamera());
@@ -387,7 +389,7 @@ test('other players discard face down from their edited hands onto independent s
   assert.ok(cards.discards.flat().every(card => !card.root.visible), 'the next deal removes all previous discarded cards');
 });
 
-test('own folded cards fly from the dragged, edited hand onto an independently saved landing point', t => {
+test('own folded cards fly to the edited landing point and turn over there without dragging', t => {
   fakeDocument(t);
   const game = createGame(), cards = game.cards, focus = 5;
   const entry = game.layout.entries.get('hand-discard'), hand = game.layout.entries.get('hand-group');
@@ -403,19 +405,47 @@ test('own folded cards fly from the dragged, edited hand onto an independently s
   me.folded = true; cards.update(room, 'me', TABLE_POSITIONS, focus);
   cards.ownDiscard.forEach((card, i) => {
     assert.equal(cards.hole[i].root.visible, false); assert.equal(card.root.visible, true);
-    assert.equal(card.front.material, cards.factory.back); close(card.root.getWorldPosition(new THREE.Vector3()), from[i]);
+    assert.equal(card.front.material, cards.factory.front(me.cards[i], true));
+    assert.equal(card.front.material.map, cards.factory.front(me.cards[i]).map);
+    assert.equal(card.back.material, cards.factory.grayBack);
+    const shader = { fragmentShader: '#include <fog_fragment>' };
+    card.front.material.onBeforeCompile(shader);
+    assert.match(shader.fragmentShader, /gl_FragColor\.rgb = vec3\(dot/);
+    close(card.root.getWorldPosition(new THREE.Vector3()), from[i]);
   });
-  cards.tick(performance.now() + 600, new THREE.PerspectiveCamera());
+  assert.equal(cards.discardPeekable, false);
+  const landedAt = performance.now() + 600, camera = new THREE.PerspectiveCamera();
+  cards.tick(landedAt, camera);
   const landing = cards.ownDiscard.map((card, i) => {
     const expected = cards.ownDiscardGroup.localToWorld(new THREE.Vector3(i * .13, i * .005, 0));
     close(card.root.getWorldPosition(new THREE.Vector3()), expected); return expected;
   });
-  cards.setPeeking(true); assert.ok(cards.hole.every(card => !card.root.visible), 'discarded cards cannot be picked up by peeking');
+  cards.setPeeking(true); assert.ok(cards.hole.every(card => !card.root.visible), 'discard cannot bring the old hand back');
+  const checkDiscard = faceUp => cards.ownDiscard.forEach((card, i) => {
+    close(card.root.getWorldPosition(new THREE.Vector3()), landing[i]);
+    const front = new THREE.Vector3(0, 0, 1).applyQuaternion(card.root.getWorldQuaternion(new THREE.Quaternion()));
+    assert.ok(faceUp ? front.y > .99 : front.y < -.99);
+  });
+  assert.equal(cards.discardPeekable, true);
+  checkDiscard(false);
+  cards.setDiscardPeeking(true, landedAt);
+  cards.setHandDrag(1);
+  cards.tick(landedAt + 240, camera); checkDiscard(true);
+  cards.setQuality('low'); assert.equal(cards.ownDiscard[0].back.material, cards.factory.grayBack);
+  cards.update(room, 'me', TABLE_POSITIONS, focus); checkDiscard(true);
+  cards.setDiscardPeeking(false, landedAt + 260);
+  cards.tick(landedAt + 500, camera); checkDiscard(false);
+  cards.setDiscardPeeking(true, landedAt + 600);
+  cards.tick(landedAt + 640, camera);
+  cards.setDiscardPeeking(false, landedAt + 640);
+  cards.tick(landedAt + 880, camera); checkDiscard(false);
   const saved = game.layout.export(), preview = createGame(true); preview.layout.apply(saved); preview.cards.update(room, 'me', TABLE_POSITIONS, focus);
   preview.cards.ownDiscard.forEach((card, i) => { assert.equal(card.animation, null); close(card.root.getWorldPosition(new THREE.Vector3()), landing[i]); });
   hand.proxy.position.x += 2; game.layout.sync(hand); cards.update(room, 'me', TABLE_POSITIONS, focus);
   cards.ownDiscard.forEach((card, i) => close(card.root.getWorldPosition(new THREE.Vector3()), landing[i]));
+  cards.setDiscardPeeking(true, landedAt + 1000);
   me.folded = false; room.hand.number++; cards.setHandDrag(0); cards.update(room, 'me', TABLE_POSITIONS, focus);
+  assert.equal(cards.discardPeeking, false);
   assert.ok(cards.ownDiscard.every(card => !card.root.visible)); assert.ok(cards.hole.every(card => card.root.visible || card.animation));
 });
 
@@ -424,7 +454,8 @@ test('own discard preview can be toggled, reset and reloaded without showing hid
   const game = createGame(true), cards = game.cards, entry = game.layout.entries.get('hand-discard');
   const me = { id: 'me', seat: 0, cards: [null, null], folded: true }, room = { code: 'PREVIEW', hand: { number: 1, players: [me], board: [] } };
   cards.update(room, 'me', TABLE_POSITIONS, 0);
-  assert.ok(cards.ownDiscard.every(card => card.root.visible && card.front.material === cards.factory.back && !card.animation));
+  assert.ok(cards.ownDiscard.every(card => card.root.visible && card.front.material === cards.factory.grayBack && !card.animation));
+  assert.equal(cards.discardPeekable, false);
   entry.proxy.position.set(-.8, 1.6, 1.2); game.layout.sync(entry); const saved = game.layout.export();
   const point = cards.ownDiscard[0].root.getWorldPosition(new THREE.Vector3());
   me.folded = false; me.cards = [12, 11]; cards.update(room, 'me', TABLE_POSITIONS, 0);

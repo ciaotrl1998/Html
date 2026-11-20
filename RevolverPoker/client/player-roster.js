@@ -17,17 +17,18 @@ export class PlayerRosterState {
     for (const entry of hand?.history || []) if (entry.street === hand.street) this.actions.set(entry.seat, entry.action);
     return room.seats.filter(seat => seat.kind !== 'open').sort((a, b) => a.seat - b.seat).map(seat => {
       const player = hand?.players.find(player => player.id === seat.id), settled = !!hand?.done;
-      const eliminated = !!hand && !player;
-      const result = settled ? settlementLabel(hand, player) || { cards: [null, null], handName: '已出局' } : null;
+      const chips = player?.chips ?? seat.chips ?? room.config.startingChips;
+      const sittingOut = !!hand && !player;
+      const eliminated = chips === 0 && (settled || sittingOut);
+      const absentStatus = eliminated ? '已出局' : '下手回归';
+      const result = settled ? settlementLabel(hand, player) || { cards: [null, null], handName: absentStatus } : null;
       const action = player?.folded ? '弃牌' : player?.chips === 0 ? '全下' : this.actions.get(seat.seat);
       const disconnected = seat.kind === 'human' && seat.connected === false;
-      const chips = player?.chips ?? seat.chips ?? room.config.startingChips;
-      const absentStatus = chips > 0 ? '下手回归' : '已出局';
       return { id: seat.id, seat: seat.seat, name: seat.name, mine: seat.id === viewerId, bot: seat.kind === 'ai',
         active: !!player && !settled && !room.dealing && !room.settling && hand.actor === seat.seat,
-        folded: !!player?.folded, eliminated, disconnected, settled, result, anger: seat.kind === 'ai' ? Math.max(0, Math.min(3, seat.anger || 0)) : 0,
+        folded: !!player?.folded, sittingOut, eliminated, disconnected, settled, result, anger: seat.kind === 'ai' ? Math.max(0, Math.min(3, seat.anger || 0)) : 0,
         chips, bet: player?.bet || 0,
-        status: eliminated ? absentStatus : settled ? result.handName : compactAction(action) || seat.name,
+        status: sittingOut ? absentStatus : settled ? result.handName : compactAction(action) || seat.name,
         badge: hand?.button === seat.seat ? 'D' : hand?.sbSeat === seat.seat ? 'SB' : hand?.bbSeat === seat.seat ? 'BB' : '' };
     });
   }
@@ -90,7 +91,8 @@ export class PlayerRoster {
     this.container.style.setProperty('--player-count', Math.max(1, states.length));
     const roots = states.map(player => {
       const entry = this.entries.get(player.id) || this.create(player.id, player.seat);
-      entry.root.className = `player-status${player.active ? ' active' : ''}${player.mine ? ' mine' : ''}${player.folded || player.eliminated ? ' folded' : ''}${player.result?.winner ? ' winner' : ''}${player.disconnected ? ' disconnected' : ''}${player.anger ? ` anger-${player.anger}` : ''}`;
+      const dimmed = player.folded || player.sittingOut || player.eliminated;
+      entry.root.className = `player-status${player.active ? ' active' : ''}${player.mine ? ' mine' : ''}${dimmed ? ' folded' : ''}${player.eliminated ? ' eliminated' : ''}${player.result?.winner ? ' winner' : ''}${player.disconnected ? ' disconnected' : ''}${player.anger ? ` anger-${player.anger}` : ''}`;
       entry.root.title = `${player.name}${player.bot ? '（AI）' : ''}${player.mine ? ' · 你' : ''}${player.disconnected ? ' · 暂时断线' : ''}${player.settled ? '' : ` · 总筹码 ${money(player.chips)} · 本轮下注 ${money(player.bet)}`}`;
       entry.root.setAttribute('aria-label', `${player.seat + 1} 号座位，${entry.root.title}，${player.status}${player.active ? '，正在行动' : ''}`);
       entry.identity.textContent = player.mine ? '你' : String(player.seat + 1).padStart(2, '0');

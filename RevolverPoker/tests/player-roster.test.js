@@ -105,6 +105,33 @@ test('rendering swaps money for cards at settlement, restores it next hand, and 
   roster.render(null, 'p0'); assert.equal(roster.entries.size, 0); assert.equal(container.children.length, 0);
 });
 
+test('only confirmed eliminations select grayscale for the portrait', () => {
+  const { doc } = fakeDocument(), roster = new PlayerRoster(doc.createElement('div'));
+  const state = room(5);
+  state.seats[0].connected = false;
+  state.seats[1].anger = 2;
+  state.hand.players[1].folded = true;
+  state.hand.players[2].chips = 0;
+  state.hand.players.splice(3);
+  state.seats[3].chips = 0;
+  state.seats[4].chips = 30;
+  const grayscale = () => [...roster.entries].filter(([, entry]) => /\beliminated\b/.test(entry.root.className)).map(([id]) => id);
+
+  roster.render(state, 'p0');
+  assert.deepEqual(grayscale(), ['p3'], 'all-in, folded, disconnected and returning players keep color');
+  assert.equal(roster.entries.get('p4').status.textContent, '下手回归');
+  state.hand.done = true;
+  roster.render(state, 'p0');
+  assert.deepEqual(grayscale(), ['p2', 'p3'], 'losing an all-in grays the portrait at settlement');
+  state.seats[3].chips = 10;
+  roster.render(state, 'p0');
+  assert.deepEqual(grayscale(), ['p2'], 'a player funded by a gift regains color');
+
+  state.phase = 'lobby'; state.hand = null;
+  roster.render(state, 'p0');
+  assert.deepEqual(grayscale(), []);
+});
+
 test('portraits render all eight seat characters, flip GPU rows and restore the shared renderer even on failure', () => {
   const geometries = [], materials = [], scenes = [], created = [], targetBefore = { original: true };
   let target = targetBefore, images = 0;

@@ -375,3 +375,20 @@ test('hand gestures preserve peeking and submit a forward fold without rotating 
   event(f.canvas, 'pointerup', { clientY: 360 });
   assert.deepEqual(sent, ['fold']); assert.equal(f.scene.peekActive, false); assert.equal(f.looks, 0);
 });
+
+test('pressing and moving on a discard only peeks, with mouse or touch', () => {
+  for (const pointerType of ['mouse', 'touch']) {
+    const f = fixture(true), sent = [];
+    f.scene.tableActions = new TableActions({ send: type => { sent.push(type); return true; } });
+    f.scene.tableActions.sync({ code: 'TEST', phase: 'playing', turnId: '1', hand: { number: 1, done: false, actor: 0, currentBet: 0,
+      players: [{ id: 'me', seat: 0, bet: 0, chips: 1000 }], legal: { toCall: 0, canCheck: true } } }, 'me');
+    f.scene.target = { cardRole: 'discard' };
+    event(f.canvas, 'pointerdown', { pointerType });
+    assert.equal(f.scene.peekActive, true);
+    assert.equal(f.controls.drag.tableGesture, false);
+    event(f.canvas, 'pointermove', { pointerType, buttons: 1, clientX: 10, clientY: 110 });
+    assert.equal(f.looks, 0);
+    event(f.canvas, 'pointerup', { pointerType, clientX: 10, clientY: 110 });
+    assert.equal(f.scene.peekActive, false); assert.equal(f.releases, 1); assert.deepEqual(sent, []);
+  }
+});

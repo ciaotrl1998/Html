@@ -47,8 +47,7 @@
 .player-strip { display: grid; grid-template-columns: repeat(var(--player-count, 8), minmax(0, 72px)); gap: clamp(3px, 1vw, 8px); align-items: stretch; }
 .player-status { min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; padding: 4px 2px 5px; border-top: 1px solid #b69a5f16; border-bottom: 2px solid transparent; transition: opacity .2s, border-color .2s, background .2s; }
 .roster-portrait { width: 32px; height: 37px; position: relative; margin-bottom: 3px; border: 1px solid #ac936255; box-shadow: 0 1px 5px #0008; background: #30281c; }
-.roster-photo { display: block; width: 100%; height: 100%; object-fit: cover; filter: sepia(.72) saturate(.55) contrast(1.13) brightness(.94); }
-.roster-portrait::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(107deg, transparent 0 9px, #e5cf9d0b 9px 10px, transparent 10px 18px), radial-gradient(ellipse, transparent 25%, #170f0860); }
+.roster-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
 .roster-identity { position: absolute; z-index: 1; top: -3px; left: -5px; color: #ead6aa; font: 8px/13px var(--number-font); min-width: 13px; text-align: center; background: #241d13ed; border: 1px solid #a88b5144; }
 .roster-badge { position: absolute; z-index: 1; right: -5px; bottom: -2px; min-width: 14px; padding: 0 2px; color: #241a0c; background: #bda16a; border: 1px solid #dfc08788; font: 700 7px/12px Georgia, serif; text-align: center; text-shadow: none; }
 .roster-offline { position: absolute; z-index: 2; top: 1px; right: 1px; width: 5px; height: 5px; border-radius: 50%; background: #ad6650; box-shadow: 0 0 0 1px #25170b; }
@@ -66,8 +65,8 @@
 .player-status.active .roster-portrait { border-color: #dfc087; box-shadow: 0 0 0 1px #cba66b30, 0 0 11px #cba66b3d; }
 .player-status.active .roster-status, .player-status.winner .roster-status { color: #f0cf8c; }
 .player-status.mine .roster-identity { color: #281e0f; background: #cba66b; }
-.player-status.folded { opacity: .43; }
-.player-status.disconnected .roster-photo { filter: sepia(.8) saturate(0) brightness(.7); }
+.player-status.folded > :not(.roster-portrait) { opacity: .43; }
+.player-status.eliminated .roster-photo { filter: grayscale(1); }
 .player-status.winner .roster-portrait { border-color: #cba66b; }
 .player-strip.crowded .roster-status { font-size: 9px; }
 .player-strip.crowded .roster-bet { font-size: 11px; }
@@ -153,6 +152,5 @@ html[data-game-fullscreen='true'] #game .topbar { padding-top: 2px; padding-top:
 .player-popover .gift-confirm { border-color: #c7a56988; background: linear-gradient(#8f72433d, #6c542a24); color: #efd8a6; }
 .player-popover .gift-cancel { border-color: #b89a6233; background: transparent; color: #b9aa8d; }
 .gift-reason { position: absolute; top: calc(100% + 6px); left: 0; right: 0; margin: 0; padding: 6px 10px; border: 1px solid #b89a6244; border-radius: 2px; background: #241f17f5; color: #cabb9c; font-size: 11px; line-height: 1.6; }
-.player-status.anger-1 .roster-photo, .player-status.anger-2 .roster-photo, .player-status.anger-3 .roster-photo { filter: sepia(.12) saturate(1.05) contrast(1.08); }
-.player-status.folded.anger-1, .player-status.folded.anger-2, .player-status.folded.anger-3 { opacity: .76; }
+.player-status.folded.anger-1 > :not(.roster-portrait), .player-status.folded.anger-2 > :not(.roster-portrait), .player-status.folded.anger-3 > :not(.roster-portrait) { opacity: .76; }
 .player-status.anger-2 .roster-portrait, .player-status.anger-3 .roster-portrait { border-color: #d87845; box-shadow: 0 0 6px #d45d3144; }

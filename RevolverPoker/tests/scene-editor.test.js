@@ -307,9 +307,10 @@ test('taking a lobby seat keeps the overview and own avatar; starting enters fir
   game.update(null, 'me'); assert.equal(game.firstPerson, false);
 });
 
-test('own-card viewing is allowed during dealing and persists across street reveals, but folded hands cannot be viewed', () => {
-  const game = stateScene(); let flipped = false;
+test('private peeks survive street reveals and folded hands can be viewed at their discard spot', () => {
+  const game = stateScene(); let flipped = false, discardFlipped = false;
   game.cards.setPeeking = value => { flipped = value; };
+  game.cards.setDiscardPeeking = value => { discardFlipped = value; };
   const seats = Array.from({ length: 8 }, (_, seat) => ({ seat, id: seat ? `p${seat}` : 'me', name: `玩家${seat}`, kind: seat < 2 ? 'human' : 'open' }));
   const players = seats.slice(0, 2).map(seat => ({ ...seat, chips: 1000, folded: false, cards: seat.seat ? [null, null] : [12, 11] }));
   const room = { code: 'TEST', phase: 'playing', hostId: 'me', seats, dealing: true,
@@ -328,6 +329,14 @@ test('own-card viewing is allowed during dealing and persists across street reve
   const folded = { ...turn, hand: { ...turn.hand, players: players.map(player => ({ ...player, folded: player.id === 'me' })) } };
   game.update(folded, 'me'); assert.equal(game.peekActive, false); assert.equal(flipped, false);
   assert.equal(game.beginCardPeek('hand'), false);
+  assert.equal(game.beginCardPeek('discard'), false, 'the cards must land before a peek starts');
+  game.cards.discardPeekable = true;
+  assert.equal(game.beginCardPeek('opponent-discard'), false);
+  assert.equal(game.beginCardPeek('discard'), true); assert.equal(discardFlipped, true);
+  game.update({ ...folded, hand: { ...folded.hand, board: [0, 1, 2, 3, 4] } }, 'me');
+  assert.equal(game.peekActive, true); assert.equal(discardFlipped, true);
+  game.update({ ...turn, hand: { ...turn.hand, number: 2 } }, 'me');
+  assert.equal(game.peekActive, false); assert.equal(discardFlipped, false);
   game.update(turn, 'me'); assert.equal(game.beginCardPeek('hand'), true);
   game.update({ ...turn, hand: { ...turn.hand, number: 2 } }, 'me');
   assert.equal(game.peekActive, false); assert.equal(flipped, false, 'a new hand clears the old hold');

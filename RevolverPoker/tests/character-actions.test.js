@@ -4,11 +4,14 @@ import { registerHooks } from 'node:module';
 import * as THREE from 'three';
 import { ACTION_TIMING, presentationTiming } from '../shared/action-timing.js';
 import { hasLocalTurn } from '../client/turn-highlight.js';
+import { DEFAULT_VERA_APPEARANCE, veraAppearance } from '../client/vera-appearance.js';
+import VeraMeshes from '../client/vera-mesh-data.js';
 import { readFile } from 'node:fs/promises';
 
 registerHooks({ resolve(specifier, context, next) { return next(specifier === '/vendor/three.js' ? 'three' : specifier, context); } });
 const { actionPose, createCharacterArms, applyCharacterPose, applyFirstPersonPose, CharacterActions } = await import('../client/character-actions.js');
 const { batchStaticMeshes } = await import('../client/mesh-batching.js');
+const { createVera, createVeraHands } = await import('../client/vera-model.js');
 
 function model(seat = 0) {
   const root = new THREE.Group(); root.userData.seat = seat; root.userData.head = new THREE.Group(); root.add(root.userData.head);
@@ -54,6 +57,121 @@ test('busted players cover their head and keep a smooth, nonstatic looping pain 
   assert.ok(root.userData.head.rotation.x > head + .05);
   applyCharacterPose(root, actionPose('bust', 1800));
   assert.ok(hand.position.distanceTo(first) < 1e-9);
+});
+
+test('Vera fits the character geometry budget and reaches the table and head with both gloves', () => {
+  const vera = createVera();
+  let triangles = 0;
+  vera.traverseVisible(node => {
+    if (!node.isMesh) return;
+    triangles += (node.geometry.index?.count ?? node.geometry.attributes.position.count) / 3;
+    assert.equal(node.material.map, null);
+    assert.equal(node.geometry.hasAttribute('uv'), false);
+  });
+  assert.ok(triangles <= 4700);
+  assert.ok(createVeraHands(-1).geometry.index.count / 3 <= 300);
+  vera.updateMatrixWorld(true);
+  for (const arm of Object.values(vera.userData.arms)) {
+    const sleeveTop = new THREE.Box3().setFromObject(arm.upper, true).max.y;
+    assert.ok(sleeveTop >= vera.userData.head.position.y - .45, 'the sleeve cap reaches the raised shoulder line');
+    const handBounds = new THREE.Box3().setFromObject(arm.palm, true);
+    assert.ok(arm.side < 0 ? handBounds.max.x < 0 : handBounds.min.x > 0, 'the hand stays on its physical side');
+    assert.ok(handBounds.max.x - handBounds.min.x > .30, 'the edited hand scale was baked into the mesh');
+    assert.ok(handBounds.min.y < arm.rest.y && handBounds.max.y > arm.rest.y, 'the hand surrounds its wrist pivot');
+  }
+  const gloves = Object.values(vera.userData.arms).map(arm => arm.palm);
+  const rest = gloves.map(glove => glove.position.clone());
+  applyCharacterPose(vera, actionPose('allin', 420));
+  assert.ok(gloves.every((glove, i) => glove.position.z - rest[i].z > .25));
+  applyCharacterPose(vera, actionPose('bust', 450));
+  assert.ok(gloves.every(glove => glove.position.y > 3));
+  applyCharacterPose(vera, actionPose(null, 0));
+  assert.ok(gloves.every((glove, i) => glove.position.distanceTo(rest[i]) < 1e-9));
+});
+
+test('both of Vera’s expressions use the edited head and the two black eyes', () => {
+  const vera = createVera();
+  const [, neutral, angry] = vera.userData.head.children;
+  const eyeColor = new THREE.Color(0x18141a).toArray();
+  vera.userData.setAnger(2);
+  assert.equal(neutral.visible, false);
+  assert.equal(angry.visible, true);
+  assert.notDeepEqual(neutral.geometry.attributes.position.array, angry.geometry.attributes.position.array);
+  for (const { geometry } of [neutral, angry]) {
+    geometry.computeBoundingBox();
+    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+    assert.ok(geometry.boundingBox.getCenter(new THREE.Vector3()).length() < .12, 'the head is centered on its pivot');
+    assert.ok(size.z > .69, 'the imported head is deeper than the earlier ellipsoid');
+    const { index, attributes: { color } } = geometry;
+    let eyeTriangles = 0;
+    for (let i = 0; i < index.count; i += 3) {
+      const corners = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+      if (corners.every(vertex => eyeColor.every((value, axis) => Math.abs(color.getComponent(vertex, axis) - value) < .0001))) eyeTriangles++;
+    }
+    assert.equal(eyeTriangles, 4);
+  }
+});
+
+test('female player appearance varies by identity and remains stable across seat moves and reconnects', () => {
+  const players = Array.from({ length: 36 }, (_, i) => ({ kind: 'human', id: `player-${i}`, seat: i % 8 }));
+  const appearances = players.map(player => veraAppearance('ROOM', player));
+  assert.equal(new Set(appearances.map(appearance => appearance.hairstyle)).size, 3);
+  assert.ok(new Set(appearances.map(appearance => appearance.hairColor)).size > 1);
+  assert.ok(new Set(appearances.map(appearance => appearance.outfitColor)).size > 1);
+  assert.deepEqual(veraAppearance('ROOM', { ...players[0], seat: 7, connected: false }), appearances[0]);
+  assert.equal(veraAppearance('ROOM', { kind: 'ai', id: 'maggie', hairstyle: 'bob' }).hairstyle, 'bob');
+});
+
+test('hair swaps preserve earrings and cloth dye affects only the marked burgundy fabric', () => {
+  const vera = createVera();
+  const hair = vera.userData.head.children[0];
+  const accessoryComponents = atob(VeraMeshes.accessories.color).length / Float32Array.BYTES_PER_ELEMENT;
+  const baseAccessories = hair.geometry.attributes.color.array.slice(-accessoryComponents);
+  const { left, right } = vera.userData.arms;
+  const clothing = [vera.children.find(node => node.isMesh), left.upper, right.upper];
+  const source = clothing.map(part => part.geometry.attributes.color.array.slice());
+  const indices = [hair.geometry.index.count];
+  for (const hairstyle of ['bob', 'braid']) {
+    vera.userData.setAppearance({ hairstyle, hairColor: 0xbf965c, outfitColor: 0x316d67 });
+    assert.deepEqual(hair.geometry.attributes.color.array.slice(-accessoryComponents), baseAccessories);
+    indices.push(hair.geometry.index.count);
+    let triangles = 0;
+    vera.traverseVisible(node => { if (node.isMesh) triangles += node.geometry.index.count / 3; });
+    assert.ok(triangles <= 4700);
+  }
+  assert.equal(new Set(indices).size, 3);
+  for (const [i, part] of clothing.entries()) {
+    const { color, dye } = part.geometry.attributes;
+    let changed = 0, fixed = 0;
+    for (let v = 0; v < dye.count; v++) {
+      const before = source[i].slice(v * 3, v * 3 + 3), after = color.array.slice(v * 3, v * 3 + 3);
+      if (dye.getX(v)) {
+        assert.notDeepEqual(after, before);
+        changed++;
+      } else {
+        assert.deepEqual(after, before);
+        fixed++;
+      }
+    }
+    assert.ok(changed > 0 && fixed > 0);
+  }
+  vera.userData.setAppearance(DEFAULT_VERA_APPEARANCE);
+  assert.deepEqual(clothing.map(part => part.geometry.attributes.color.array), source);
+});
+
+test('braided hair covers the scalp behind both ears in profile', () => {
+  const vera = createVera({ ...DEFAULT_VERA_APPEARANCE, hairstyle: 'braid' });
+  vera.updateMatrixWorld(true);
+  const [hair, face] = vera.userData.head.children;
+  for (const side of [-1, 1]) {
+    for (const [y, z] of [[-.12, -.11], [-.17, -.18], [-.17, -.25]]) {
+      const origin = new THREE.Vector3(side, vera.userData.head.position.y + y, z);
+      const ray = new THREE.Raycaster(origin, new THREE.Vector3(-side, 0, 0));
+      const [scalp] = ray.intersectObject(face);
+      const [cover] = ray.intersectObject(hair);
+      assert.ok(scalp && cover && cover.distance < scalp.distance, `side ${side}, ${y}, ${z}`);
+    }
+  }
 });
 
 test('first-person arms act normally and stay at rest during the bust reaction', () => {

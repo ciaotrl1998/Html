@@ -27,18 +27,23 @@ export function actionPose(type, elapsed, duration = ACTION_TIMING.duration) {
   return pose;
 }
 
-export function createCharacterArms(root, coat, skin) {
+export function createCharacterArms(root, coat, skin, style) {
   const arms = {};
   for (const side of [-1, 1]) {
     const group = new THREE.Group(); root.add(group);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, UPPER_LENGTH, 8), coat);
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, FORE_LENGTH, 8), coat);
+    const { upper, fore, palm } = style ? style.parts(side) : {
+      upper: new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, UPPER_LENGTH, 8), coat),
+      fore: new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, FORE_LENGTH, 8), coat),
+      palm: new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), skin)
+    };
     for (const part of [upper, fore]) {
       part.castShadow = true; part.receiveShadow = true; part.userData.animatedArm = true; group.add(part);
     }
-    const palm = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), skin);
-    palm.scale.set(1.1, .55, 1.4); palm.castShadow = true; palm.userData.animatedArm = true; group.add(palm);
-    const arm = { upper, fore, palm, side, shoulder: new THREE.Vector3(side * .5, 2.47, -.03),
+    if (!style) palm.scale.set(1.1, .55, 1.4);
+    palm.castShadow = true; palm.userData.animatedArm = true; group.add(palm);
+    const arm = { upper, fore, palm, side, upperLength: style?.upperLength ?? UPPER_LENGTH,
+      foreLength: style?.foreLength ?? FORE_LENGTH,
+      shoulder: new THREE.Vector3(side * (style?.shoulderWidth ?? .5), style?.shoulderHeight ?? 2.47, style?.shoulderDepth ?? -.03),
       rest: new THREE.Vector3(side * .47, 1.8, .96), target: new THREE.Vector3(),
       direction: new THREE.Vector3(), bend: new THREE.Vector3(), elbow: new THREE.Vector3(), segment: new THREE.Vector3() };
     arms[side < 0 ? 'right' : 'left'] = arm;
@@ -49,12 +54,12 @@ export function createCharacterArms(root, coat, skin) {
 }
 
 function positionArm(arm, target) {
-  const { shoulder, direction, bend, elbow, segment } = arm;
+  const { shoulder, direction, bend, elbow, segment, upperLength, foreLength } = arm;
   direction.copy(target).sub(shoulder);
-  const distance = Math.max(.001, Math.min(UPPER_LENGTH + FORE_LENGTH - .001, direction.length()));
+  const distance = THREE.MathUtils.clamp(direction.length(), Math.abs(upperLength - foreLength) + .001, upperLength + foreLength - .001);
   direction.normalize();
-  const along = (UPPER_LENGTH ** 2 - FORE_LENGTH ** 2 + distance ** 2) / (2 * distance);
-  const height = Math.sqrt(Math.max(0, UPPER_LENGTH ** 2 - along ** 2));
+  const along = (upperLength ** 2 - foreLength ** 2 + distance ** 2) / (2 * distance);
+  const height = Math.sqrt(Math.max(0, upperLength ** 2 - along ** 2));
   bend.set(arm.side * .3, -1, -.3).addScaledVector(direction, -bend.dot(direction)).normalize();
   elbow.copy(shoulder).addScaledVector(direction, along).addScaledVector(bend, height);
   arm.target.copy(shoulder).addScaledVector(direction, distance);

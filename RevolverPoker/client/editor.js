@@ -147,8 +147,10 @@ try {
   scene = new SaloonScene($('editor-scene'), { editor: true }); layout = scene.layout;
   scene.cards.prepareTextures(scene.renderer);
   // Static, fully occupied sample: editing never joins or changes a real poker room.
-  const names = ['自己', '沃尔特', '艾达', '亨利', '玛吉', '查理', '比利', '罗斯'];
-  const seats = names.map((name, seat) => ({ id: `preview-${seat}`, name, seat, kind: seat ? 'ai' : 'human', connected: true, chips: 2000 }));
+  const names = ['自己', '沃尔特', '玛吉', '亨利', '薇拉', '查理', '露西', '罗斯'];
+  const hairstyles = { 2: 'bob', 4: 'swept', 6: 'braid' };
+  const seats = names.map((name, seat) => ({ id: `preview-${seat}`, name, seat, gender: hairstyles[seat] ? 'female' : 'male',
+    hairstyle: hairstyles[seat], kind: seat ? 'ai' : 'human', connected: true, chips: 2000 }));
   const sampleCards = [[12, 11], [13, 26], [14, 29], [40, 41], [25, 43], [22, 35], [10, 23], [45, 46]];
   updateSample = () => {
     const done = $('showdown-preview').checked;

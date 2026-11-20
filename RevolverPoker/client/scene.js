@@ -18,9 +18,12 @@ import { dealKey } from '../shared/deal-timing.js';
 import { createPlayerPortraits } from './player-portraits.js';
 import { addAngryExpression, AngerFlames } from './character-anger.js';
 import { CharacterActions, createCharacterArms } from './character-actions.js';
+import { createVera, createVeraHands } from './vera-model.js';
+import { veraAppearance, veraAppearanceKey } from './vera-appearance.js';
 
 const COLORS = [0x4a4437, 0x5f3e2c, 0x3a4540, 0x57453c, 0x383c3e, 0x60503c, 0x434e42, 0x563b32];
 const OVERVIEW_EYE = [0, 8.8, 10.5];
+const CARD_PEEK_ROLES = new Set(['hand', 'board', 'discard']);
 function texture(draw, size = 512) {
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
   draw(canvas.getContext('2d'), size);
@@ -108,7 +111,7 @@ export class SaloonScene {
     this.frameClock = new FrameClock(frameRate); this.shadowClock = new FrameClock(30);
     this.renderBudget = new RenderBudget({ pixelRatio: devicePixelRatio, mobile: !!window.matchMedia?.('(pointer: coarse)').matches, editor });
     this.shadowDirty = true; this.lastShadowUpdate = -Infinity;
-    this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.angerEffects = []; this.angerPortraits = new Map(); this.portraitAnger = new Map(); this.focus = 0; this.seated = false;
+    this.container = container; this.models = []; this.chairs = []; this.piles = []; this.markers = []; this.labels = []; this.angerEffects = []; this.expressionPortraits = new Map(); this.portraitStates = new Map(); this.focus = 0; this.seated = false;
     this.room = null; this.viewerId = null; this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.overviewPitch = Math.atan2(1.9 - OVERVIEW_EYE[1], OVERVIEW_EYE[2]);
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
@@ -143,7 +146,10 @@ export class SaloonScene {
       const [x, z] = POSITIONS[i];
       const a = chair(this.wood); a.position.set(x * 1.07, 0, z * 1.07); a.rotation.y = Math.atan2(-x, -z); this.scene.add(a); this.chairs.push(a);
       a.userData.layout = { id: `chair-${i}`, label: `座位 ${i + 1} · 椅子`, category: '玩家与座位' };
-      const model = makePerson(i); model.position.set(x, 0, z); model.rotation.y = Math.atan2(-x, -z); this.scene.add(model); this.models.push(model);
+      const male = makePerson(i), model = new THREE.Group();
+      model.add(male);
+      Object.assign(model.userData, male.userData, { appearances: { male }, gender: 'male' });
+      model.position.set(x, 0, z); model.rotation.y = Math.atan2(-x, -z); this.scene.add(model); this.models.push(model);
       this.angerEffects.push(new AngerFlames(model.userData.head, i));
       model.userData.layout = { id: `person-${i}`, label: `座位 ${i + 1} · 人物`, category: '玩家与座位' };
       this.labels.push(this.makeSeatLabel());
@@ -316,12 +322,14 @@ export class SaloonScene {
     const skin = material(0xbf936e), sleeve = material(0x65553e);
     for (const side of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(side * .6, 0, 0); g.rotation.y = side * -.13;
-      const arm = cylinder(g, .11, .15, 1.3, sleeve, side * .04, -.02, .55, 8); arm.rotation.x = Math.PI / 2;
-      const palm = mesh(new THREE.SphereGeometry(.16, 8, 6), skin, 0, .015, -.16); palm.scale.set(1, .48, 1.3); g.add(palm);
-      for (let j = 0; j < 4; j++) box(g, .05, .055, .22, skin, (j - 1.5) * .067, .01, -.38);
-      const thumb = box(g, .09, .07, .19, skin, -side * .15, .015, -.19); thumb.rotation.y = side * .4;
+      const male = new THREE.Group(), female = createVeraHands(side);
+      const arm = cylinder(male, .11, .15, 1.3, sleeve, side * .04, -.02, .55, 8); arm.rotation.x = Math.PI / 2;
+      const palm = mesh(new THREE.SphereGeometry(.16, 8, 6), skin, 0, .015, -.16); palm.scale.set(1, .48, 1.3); male.add(palm);
+      for (let j = 0; j < 4; j++) box(male, .05, .055, .22, skin, (j - 1.5) * .067, .01, -.38);
+      const thumb = box(male, .09, .07, .19, skin, -side * .15, .015, -.19); thumb.rotation.y = side * .4;
+      female.visible = false; g.add(male, female);
       this.hands.add(g);
-      this.hands.userData.arms[side > 0 ? 'right' : 'left'] = { group: g, position: g.position.clone(), quaternion: g.quaternion.clone() };
+      this.hands.userData.arms[side > 0 ? 'right' : 'left'] = { group: g, male, female, position: g.position.clone(), quaternion: g.quaternion.clone() };
     }
     this.hands.visible = false;
     this.hands.userData.meshBatching = batchStaticMeshes(this.hands);
@@ -408,6 +416,7 @@ export class SaloonScene {
     this.peekActive = false;
     this.cards?.setPeeking(false);
     this.cards?.setBoardPeeking(false);
+    if (this.inspectMode === 'discard') this.cards.setDiscardPeeking(false);
     this.cardPeekClosing = null;
     this.inspectMode = null;
     if (this.firstPerson) {
@@ -423,23 +432,27 @@ export class SaloonScene {
     this.renderer.domElement.setAttribute('aria-description', this.firstPerson ? '第一人称视角' : '俯视视角');
   }
   beginCardPeek(kind) {
-    if (this.peekActive || this.room?.opening || !['hand', 'board'].includes(kind) || !this.firstPerson || !this.room?.hand || (this.dealing && kind !== 'hand')) return false;
+    if (this.peekActive || this.room?.opening || !CARD_PEEK_ROLES.has(kind) || !this.firstPerson || !this.room?.hand) return false;
     const me = this.room.hand.players.find(p => p.id === this.viewerId);
     if (kind === 'hand' && (!me || me.folded || me.shown)) return false;
-    if (kind === 'board' && !this.room.hand.board.length) return false;
+    if (kind === 'board' && (this.dealing || !this.room.hand.board.length)) return false;
+    if (kind === 'discard' && (!me?.folded || !this.cards.discardPeekable)) return false;
     this.peekActive = true; this.peekHandKey = `${this.room.code}:${this.room.hand.number}`;
     this.inspectMode = kind; this.cardPeekClosing = null; this.viewTransition = null;
     this.cards.setPeeking(kind === 'hand');
     this.cards.setBoardPeeking(kind === 'board');
-    this.renderer.domElement.setAttribute('aria-description', kind === 'hand' ? '正在翻开底牌' : '正在立起公共牌');
+    if (kind === 'discard') this.cards.setDiscardPeeking(true);
+    this.renderer.domElement.setAttribute('aria-description', kind === 'discard' ? '正在翻开弃牌' : kind === 'hand' ? '正在翻开底牌' : '正在立起公共牌');
     return true;
   }
   endCardPeek() {
     if (!this.peekActive) return;
     const kind = this.inspectMode;
     this.peekActive = false; this.cards.setPeeking(false); this.cards.setBoardPeeking(false); this.inspectMode = null;
+    if (kind === 'discard') this.cards.setDiscardPeeking(false);
     this.viewTransition = null; this.cardPeekClosing = kind;
-    this.renderer.domElement.setAttribute('aria-description', kind === 'hand' ? this.cards.shown ? '底牌已公开展示' : '正在盖回底牌' : '正在放回公共牌');
+    this.renderer.domElement.setAttribute('aria-description', kind === 'discard' ? '正在盖回弃牌'
+      : kind === 'hand' ? this.cards.shown ? '底牌已公开展示' : '正在盖回底牌' : '正在放回公共牌');
   }
   applyView() {
     this.camera.quaternion.setFromEuler(new THREE.Euler(this.pitch, this.yaw, this.roll, 'YXZ'));
@@ -458,7 +471,7 @@ export class SaloonScene {
     let target = null;
     for (let o = hit?.object; o; o = o.parent) {
       if (o.userData.chipRole) { target = { chipRole: o.userData.chipRole }; break; }
-      if (o.userData.cardRole === 'hand' || o.userData.cardRole === 'board') { target = { cardRole: o.userData.cardRole }; break; }
+      if (CARD_PEEK_ROLES.has(o.userData.cardRole)) { target = { cardRole: o.userData.cardRole }; break; }
       if (o.userData.tableSurface) { target = { tableSurface: true }; break; }
       if (Number.isInteger(o.userData.seat)) { target = { seat: o.userData.seat }; break; }
     }
@@ -470,10 +483,45 @@ export class SaloonScene {
     const target = this.hitTarget(clientX, clientY);
     if (Number.isInteger(target?.seat)) this.onSeatSelect?.(target.seat);
   }
+  setCharacterGender(index, gender, appearance) {
+    const model = this.models[index], { appearances } = model.userData;
+    if (!appearances) return;
+    if (!appearances[gender]) {
+      appearances[gender] = createVera(appearance);
+      model.add(appearances[gender]);
+    }
+    const active = appearances[gender];
+    active.userData.setAppearance?.(appearance);
+    if (model.userData.gender === gender) return;
+    appearances[model.userData.gender].visible = false;
+    active.visible = true;
+    const { head, arms, setAnger, meshBatching } = active.userData;
+    Object.assign(model.userData, { head, arms, setAnger, meshBatching, gender });
+    active.userData.head.add(this.angerEffects[index].points);
+  }
+  setSeatPortrait(seat, appearance, anger) {
+    if (!this.basePortraits) return false;
+    const key = appearance ? `vera:${veraAppearanceKey(appearance)}:${anger}` : `${seat}:${anger}`;
+    if (this.portraitStates.get(seat) === key) return false;
+    if ((appearance || anger) && !this.expressionPortraits.has(key)) {
+      try {
+        const factory = appearance ? () => createVera(appearance) : makePerson;
+        const [portrait] = createPlayerPortraits(this.renderer, factory, document, { seats: [seat], anger });
+        this.expressionPortraits.set(key, portrait);
+      } catch (error) { console.warn('Player portrait:', error); }
+    }
+    this.portraits[seat] = this.expressionPortraits.get(key) || this.basePortraits[seat];
+    this.portraitStates.set(seat, key);
+    return true;
+  }
   showPreview() {
     this.shadowDirty = true;
-    this.models.forEach((model, i) => { model.userData.setAnger?.(0); model.userData.anger = 0; this.angerEffects?.[i]?.setLevel(0); });
-    if (this.portraitAnger?.size && this.basePortraits) { this.portraits = [...this.basePortraits]; this.portraitAnger.clear(); this.onPortraitsChanged?.(this.portraits); }
+    this.models.forEach((model, i) => {
+      this.setCharacterGender(i, i === 4 ? 'female' : 'male');
+      model.userData.setAnger?.(0); model.userData.anger = 0; this.angerEffects?.[i]?.setLevel(0);
+    });
+    if (this.portraitStates?.size) { this.portraits = [...this.basePortraits]; this.portraitStates.clear(); this.onPortraitsChanged?.(this.portraits); }
+    this.expressionPortraits?.clear();
     this.dealerButtons?.update(null, 0);
     this.models.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
     this.piles.forEach((p, i) => { p.visible = [2, 4, 6].includes(i); });
@@ -487,8 +535,12 @@ export class SaloonScene {
     this.room = room; this.viewerId = you;
     this.characterActions?.sync(room);
     this.seatActions ||= new SeatActionLabels(); this.seatActions.update(room);
-    if (this.peekActive && (!room?.hand || this.peekHandKey !== `${room.code}:${room.hand.number}` ||
-      (this.inspectMode === 'hand' && !room.hand.players.some(p => p.id === you && !p.folded)))) this.endCardPeek();
+    if (this.peekActive) {
+      const hand = room?.hand, player = hand?.players.find(p => p.id === you);
+      const invalidHand = this.inspectMode === 'hand' && (!player || player.folded);
+      const invalidDiscard = this.inspectMode === 'discard' && !player?.folded;
+      if (!hand || this.peekHandKey !== `${room.code}:${hand.number}` || invalidHand || invalidDiscard) this.endCardPeek();
+    }
     if (!room) {
       const changed = wasFirstPerson || this.focus !== 0; this.seated = false; this.focus = 0;
       this.showPreview(); this.hands.visible = false;
@@ -503,7 +555,10 @@ export class SaloonScene {
     const focus = this.firstPerson ? mine.seat : 0;
     const changed = this.focus !== focus || wasFirstPerson !== this.firstPerson;
     this.focus = focus; this.hands.visible = this.firstPerson;
-    if (freshDeal && !this.editor && !(this.peekActive && this.inspectMode === 'hand')) {
+    for (const { male, female } of Object.values(this.hands.userData.arms || {})) {
+      female.visible = mine?.gender === 'female'; male.visible = !female.visible;
+    }
+    if (freshDeal && !this.editor && !(this.peekActive && this.inspectMode !== 'board')) {
       this.peekActive = false; this.cardPeekClosing = null; this.inspectMode = null; this.viewTransition = null;
       this.cards.setPeeking(false); this.cards.setBoardPeeking(false);
     }
@@ -515,25 +570,21 @@ export class SaloonScene {
       } else this.resetView();
     }
     this.cards.update(room, you, POSITIONS, this.focus);
+    let portraitsChanged = false;
     for (let i = 0; i < 8; i++) {
       const seat = room.seats[(i + this.focus) % 8];
       const p = room.hand?.players.find(p => p.id === seat.id);
       const own = i === 0 && this.firstPerson;
+      const gender = seat.gender === 'female' ? 'female' : 'male';
+      const appearance = gender === 'female' ? veraAppearance(room.code, seat) : undefined;
+      if (seat.kind !== 'open') this.setCharacterGender(i, gender, appearance);
       this.models[i].visible = seat.kind !== 'open' && !own;
       this.models[i].userData.seat = seat.seat; this.chairs[i].userData.seat = seat.seat;
       this.models[i].userData.folded = !!p?.folded;
       const anger = seat.kind === 'ai' ? seat.anger || 0 : 0;
       this.models[i].userData.setAnger?.(anger); this.models[i].userData.anger = anger;
       this.angerEffects?.[i]?.setLevel(anger, this.renderBudget.quality);
-      if (!this.editor && this.basePortraits && (this.portraitAnger.get(seat.seat) || 0) !== anger) {
-        const key = `${seat.seat}:${anger}`;
-        if (anger && !this.angerPortraits.has(key)) {
-          try { this.angerPortraits.set(key, createPlayerPortraits(this.renderer, makePerson, document, { seats: [seat.seat], anger })[0]); }
-          catch (error) { console.warn('Angry portrait:', error); }
-        }
-        this.portraits[seat.seat] = this.angerPortraits.get(key) || this.basePortraits[seat.seat];
-        this.portraitAnger.set(seat.seat, anger); this.onPortraitsChanged?.(this.portraits);
-      }
+      if (!this.editor && this.setSeatPortrait(seat.seat, appearance, anger)) portraitsChanged = true;
       this.piles[i].visible = seat.kind !== 'open' && (own || (p ? p.chips > 0 : seat.chips !== 0));
       this.piles[i].position.set(own ? -1.05 : POSITIONS[i][0] * .7, 1.56, own ? 3.75 : POSITIONS[i][1] * .7);
       this.markers[i].visible = !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing;
@@ -555,6 +606,7 @@ export class SaloonScene {
         settlement: settlementLabel(room.hand, p),
         folded: !!p?.folded, active: !!p && room.hand.actor === p.seat && !room.hand.done && !this.dealing });
     }
+    if (portraitsChanged) this.onPortraitsChanged?.(this.portraits);
     this.dealerButtons?.update(room.hand?.button, this.focus, room.hand?.sbSeat, room.hand?.bbSeat, room.opening, room.serverTime);
     this.betView?.setActive(this.firstPerson);
     this.potView?.sync(room, you, this.focus);
@@ -620,7 +672,8 @@ export class SaloonScene {
       this.roll = THREE.MathUtils.lerp(v.rollFrom ?? this.roll, v.rollTo ?? this.roll, ease); this.applyView();
       if (t === 1) {
         this.viewTransition = null;
-        this.renderer.domElement.setAttribute('aria-description', this.peekActive ? this.inspectMode === 'hand' ? '底牌已翻开，松开盖住' : '正在查看公共牌，松开返回' : '正常坐姿视角');
+        this.renderer.domElement.setAttribute('aria-description', this.peekActive ? this.inspectMode === 'discard' ? '弃牌已翻开，松开盖住'
+          : this.inspectMode === 'hand' ? '底牌已翻开，松开盖住' : '正在查看公共牌，松开返回' : '正常坐姿视角');
       }
     }
     const wasDealing = this.dealing;
@@ -631,11 +684,14 @@ export class SaloonScene {
     }
     this.potView?.tick(time);
     this.betView?.tick(time);
+    const closing = this.cardPeekClosing;
     if (this.peekActive) {
       if (this.inspectMode === 'board' && this.cards.boardRaised) this.renderer.domElement.setAttribute('aria-description', '公共牌已立起，松开放回桌面');
       if (this.inspectMode === 'hand' && this.cards.hole.every(card => !card.animation)) this.renderer.domElement.setAttribute('aria-description', '底牌已翻开，松开盖住');
-    } else if (this.cardPeekClosing && (this.cardPeekClosing === 'board' ? this.cards.boardResting : this.cards.hole.every(card => !card.animation))) {
-      this.renderer.domElement.setAttribute('aria-description', this.cardPeekClosing === 'board' ? '公共牌已放回桌面，保持当前视角' : this.cards.shown ? '底牌已公开展示' : '底牌已盖住，保持当前视角');
+      if (this.inspectMode === 'discard' && this.cards.ownDiscard.every(card => !card.animation)) this.renderer.domElement.setAttribute('aria-description', '弃牌已翻开，松开盖住');
+    } else if (closing && (closing === 'board' ? this.cards.boardResting : (closing === 'discard' ? this.cards.ownDiscard : this.cards.hole).every(card => !card.animation))) {
+      this.renderer.domElement.setAttribute('aria-description', closing === 'discard' ? '弃牌已盖住，保持当前视角'
+        : closing === 'board' ? '公共牌已放回桌面，保持当前视角' : this.cards.shown ? '底牌已公开展示' : '底牌已盖住，保持当前视角');
       this.cardPeekClosing = null;
     }
     if (!this.editor) this.models.forEach((model, i) => {

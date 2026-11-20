@@ -43,6 +43,7 @@ test('real WebSockets: eight seats, authority, races, hidden cards, duplicate ac
   host.send('seat', { seat: 0 }); await host.until(c => c.state.seats[0].id === c.session.id);
   host.send('seat', { seat: 7 }); await host.until(c => c.state.seats[7].kind === 'ai');
   assert.equal(host.state.seats[7].name, '露西'); assert.equal(host.state.seats[7].gender, 'female');
+  assert.equal(host.state.seats[7].hairstyle, 'braid');
   host.send('seat', { seat: 7 }); await host.until(c => c.state.seats[7].kind === 'open');
   const guests = await Promise.all(Array.from({ length: 8 }, (_, i) => client(url, `朋友${i + 1}`)));
   for (const g of guests) { g.send('join', { code, gender: 'female' }); await g.until(c => !!c.state); }

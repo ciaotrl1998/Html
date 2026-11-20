@@ -30,6 +30,17 @@ function printedMaterial(map, color = 0xe6ddc6) {
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
 }
 
+function grayMaterial(material) {
+  // Share the original textures and desaturate the final lit color, including
+  // the paper edge, before it reaches the framebuffer.
+  const gray = material.clone();
+  gray.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace('#include <fog_fragment>', `#include <fog_fragment>
+      gl_FragColor.rgb = vec3(dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722)));`);
+  };
+  return gray;
+}
+
 class CardFactory {
   constructor() {
     const shape = roundedShape(WIDTH, HEIGHT, .025);
@@ -40,13 +51,18 @@ class CardFactory {
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / WIDTH + .5, pos.getY(i) / HEIGHT + .5);
     this.paper = new THREE.MeshStandardMaterial({ color: 0xd6c9ae, roughness: 1 });
     this.back = printedMaterial(cardMap(null), 0xffffff);
-    this.fronts = new Map(); this.lowQuality = false;
+    this.grayPaper = grayMaterial(this.paper); this.grayBack = grayMaterial(this.back);
+    this.fronts = new Map(); this.grayFronts = new Map(); this.lowQuality = false;
   }
   get backMaterial() {
     return this.back;
   }
-  front(card) {
-    if (card === null) return this.backMaterial;
+  front(card, discarded = false) {
+    if (card === null) return discarded ? this.grayBack : this.backMaterial;
+    if (discarded) {
+      if (!this.grayFronts.has(card)) this.grayFronts.set(card, grayMaterial(this.front(card)));
+      return this.grayFronts.get(card);
+    }
     // Printed ink keeps the same brightness while cards rotate and across all
     // qualities. Only the paper edge/body responds to the room's illumination.
     if (!this.fronts.has(card)) this.fronts.set(card, printedMaterial(cardMap(card)));
@@ -54,26 +70,36 @@ class CardFactory {
   }
   create(role) {
     const root = new THREE.Group(); root.userData.cardRole = role;
-    const body = new THREE.Mesh(this.bodyGeometry, this.paper); body.castShadow = true; body.receiveShadow = true;
-    const front = new THREE.Mesh(this.faceGeometry, this.backMaterial); front.position.z = THICKNESS / 2 + .006;
-    const back = new THREE.Mesh(this.faceGeometry, this.backMaterial); back.position.z = -THICKNESS / 2 - .006; back.rotation.y = Math.PI;
+    const discarded = role === 'discard' || role === 'opponent-discard';
+    const body = new THREE.Mesh(this.bodyGeometry, discarded ? this.grayPaper : this.paper); body.castShadow = true; body.receiveShadow = true;
+    const backing = this.front(null, discarded);
+    const front = new THREE.Mesh(this.faceGeometry, backing); front.position.z = THICKNESS / 2 + .006;
+    const back = new THREE.Mesh(this.faceGeometry, backing); back.position.z = -THICKNESS / 2 - .006; back.rotation.y = Math.PI;
     const display = new THREE.Group(); display.matrixAutoUpdate = false;
     display.add(body, front, back); root.add(display); root.visible = false;
-    return { root, display, front, back, value: null, identity: '', animation: null };
+    return { root, display, front, back, discarded, value: null, identity: '', animation: null };
   }
 }
 function rotation(x, y = 0, z = 0) { return new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)); }
+const ownDiscardPosition = i => new THREE.Vector3(i * .13, i * .005, 0);
+const privateCardRotation = (i, faceUp) => rotation(faceUp ? -Math.PI / 2 : Math.PI / 2, 0, (i ? 1 : -1) * .1);
+
+function flipCard(card, position, quaternion, now) {
+  card.root.visible = true;
+  card.animation = { start: now, duration: 240, from: card.root.position.clone(), to: position,
+    fromQ: card.root.quaternion.clone(), toQ: quaternion, lift: .27 };
+}
 
 export class TableCards {
   constructor(scene, { animate = true, onDeal = () => {} } = {}) {
     this.animate = animate; this.onDeal = onDeal;
-    this.factory = new CardFactory(); this.handKey = null; this.dealStart = null; this.seenState = false; this.peeking = false; this.folded = false;
+    this.factory = new CardFactory(); this.handKey = null; this.dealStart = null; this.seenState = false; this.peeking = false; this.discardPeeking = false; this.folded = false;
     this.board = Array.from({ length: 5 }, () => this.factory.create('board'));
     this.boardPresentation = new BoardPresentation(this.board);
     this.hole = Array.from({ length: 2 }, () => this.factory.create('hand'));
     this.ownDiscard = Array.from({ length: 2 }, () => this.factory.create('discard'));
     this.opponents = Array.from({ length: 8 }, () => Array.from({ length: 2 }, () => this.factory.create('opponent')));
-    this.discards = Array.from({ length: 8 }, () => Array.from({ length: 2 }, () => this.factory.create('discard')));
+    this.discards = Array.from({ length: 8 }, () => Array.from({ length: 2 }, () => this.factory.create('opponent-discard')));
     this.all = [...this.board, ...this.hole, ...this.ownDiscard, ...this.opponents.flat(), ...this.discards.flat()];
     this.boardGroup = new THREE.Group(); this.handGroup = new THREE.Group();
     this.boardGroup.userData.layout = { id: 'board-group', label: '公共牌（整排）', category: '筹码与扑克' };
@@ -124,13 +150,13 @@ export class TableCards {
     if (this.factory.lowQuality === low) return;
     this.factory.lowQuality = low;
     for (const card of [...this.all, this.deckCard]) {
-      card.front.material = this.factory.front(card.value);
-      card.back.material = this.factory.backMaterial;
+      card.front.material = this.factory.front(card.value, card.discarded);
+      card.back.material = this.factory.front(null, card.discarded);
     }
   }
   place(card, value, identity, position, quaternion, { animate = false, delay = 0, scale = 1, flip = true, dealing = false, fromCurrent = false } = {}) {
     const changed = card.identity !== identity;
-    card.value = value; card.front.material = this.factory.front(value); card.root.scale.setScalar(scale);
+    card.value = value; card.front.material = this.factory.front(value, card.discarded); card.root.scale.setScalar(scale);
     if (changed) {
       card.identity = identity;
       if (animate) {
@@ -144,11 +170,11 @@ export class TableCards {
     }
     card.root.visible = true;
   }
-  placeDiscard(card, source, group, identity, position, quaternion, animate, timing = {}) {
+  placeDiscard(card, source, group, identity, position, quaternion, { animate, timing, value = null }) {
     if (card.identity !== identity) {
       let from = null;
       if (source.root.visible && animate) { source.root.updateWorldMatrix(true, true); from = source.display.matrixWorld.clone(); }
-      this.place(card, null, identity, position, quaternion, { scale: .65, flip: false });
+      this.place(card, value, identity, position, quaternion, { scale: .65, flip: false });
       if (from) {
         group.updateWorldMatrix(true, false);
         const fromPosition = new THREE.Vector3(), fromQ = new THREE.Quaternion(), fromScale = new THREE.Vector3();
@@ -156,13 +182,15 @@ export class TableCards {
         card.root.position.copy(fromPosition); card.root.quaternion.copy(fromQ); card.root.scale.copy(fromScale);
         card.animation = { kind: 'discard', start: performance.now() + (timing.delay || 0), duration: timing.duration ?? 440, from: fromPosition, to: position, fromQ, toQ: quaternion, fromScale, toScale: new THREE.Vector3(.65, .65, .65), lift: .12 };
       }
+    } else if (card.value !== value) {
+      card.value = value; card.front.material = this.factory.front(value, true);
     }
     card.root.visible = true;
   }
   update(room, viewerId, positions, focus) {
     const hand = room?.hand, newKey = hand ? `${room.code}:${hand.number}` : null;
     const freshHand = newKey !== this.handKey;
-    if (freshHand || !hand) { this.peeking = false; this.shown = false; this.boardPresentation.reset(); }
+    if (freshHand || !hand) { this.peeking = false; this.discardPeeking = false; this.shown = false; this.boardPresentation.reset(); }
     const allowAnimation = this.seenState && this.animate;
     if (freshHand || !hand) for (const card of this.all) { card.root.visible = false; card.animation = null; card.identity = ''; card.peekPending = false; }
     this.handKey = newKey; this.seenState = true;
@@ -182,17 +210,19 @@ export class TableCards {
     this.folded = !me || me.folded;
     this.shown = !!me?.shown;
     if (this.folded || this.shown) this.peeking = false;
+    if (!me?.folded) this.discardPeeking = false;
     for (let i = 0; i < 2; i++) {
       if (me?.folded) {
         this.placeDiscard(this.ownDiscard[i], this.hole[i], this.ownDiscardGroup, `${newKey}:own-discard:${me.id}:${i}`,
-          new THREE.Vector3(i * .13, i * .005, 0), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .1), allowAnimation && !freshHand, discardTiming(me.id));
+          ownDiscardPosition(i), privateCardRotation(i, false),
+          { value: me.cards[i] ?? null, animate: allowAnimation && !freshHand, timing: discardTiming(me.id) });
         this.hole[i].root.visible = false; this.hole[i].animation = null; this.hole[i].identity = ''; continue;
       }
-      this.ownDiscard[i].root.visible = false; this.ownDiscard[i].animation = null;
+      this.ownDiscard[i].root.visible = false; this.ownDiscard[i].animation = null; this.ownDiscard[i].identity = '';
       if (!me || me.cards[i] === null) { this.hole[i].root.visible = false; continue; }
       const side = i ? 1 : -1;
       const position = new THREE.Vector3(side * (this.shown ? .23 : .145), TABLE_Y + i * .004, (this.shown ? 3.15 : 3.95) + i * .005);
-      this.place(this.hole[i], me.cards[i], `${newKey}:own:${i}:${this.shown}`, position, rotation(this.peeking || this.shown ? -Math.PI / 2 : Math.PI / 2, 0, side * .1), { animate: allowAnimation, fromCurrent: this.shown && !freshHand, delay: this.shown ? 0 : i * DEAL_TIMING.holeGap, scale: .65, flip: false, dealing: !hand.done });
+      this.place(this.hole[i], me.cards[i], `${newKey}:own:${i}:${this.shown}`, position, privateCardRotation(i, this.peeking || this.shown), { animate: allowAnimation, fromCurrent: this.shown && !freshHand, delay: this.shown ? 0 : i * DEAL_TIMING.holeGap, scale: .65, flip: false, dealing: !hand.done });
     }
     for (let local = 0; local < 8; local++) {
       const seat = (local + focus) % 8, player = hand.players.find(p => p.seat === seat);
@@ -204,7 +234,8 @@ export class TableCards {
         const discarded = this.discards[local][i];
         if (player && player.id !== viewerId && player.folded) {
           this.placeDiscard(discarded, card, this.discardGroups[local], `${newKey}:discard:${player.id}:${i}`,
-            new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18), allowAnimation && !freshHand, discardTiming(player.id));
+            new THREE.Vector3((i ? 1 : -1) * .065, i * .005, i * .025), rotation(Math.PI / 2, 0, (i ? 1 : -1) * .18),
+            { animate: allowAnimation && !freshHand, timing: discardTiming(player.id) });
         } else { discarded.root.visible = false; discarded.animation = null; }
         if (!player || player.id === viewerId || player.folded) { card.root.visible = false; card.animation = null; continue; }
         const known = player.cards[i] !== null;
@@ -225,10 +256,18 @@ export class TableCards {
     this.resolvePendingPeeks(performance.now());
   }
   flipHoleCard(card, index, now = performance.now()) {
-    card.root.visible = true;
-    card.animation = { start: now, duration: 240,
-      from: card.root.position.clone(), to: new THREE.Vector3((index ? 1 : -1) * .145, TABLE_Y + index * .004, 3.95 + index * .005),
-      fromQ: card.root.quaternion.clone(), toQ: rotation(this.peeking ? -Math.PI / 2 : Math.PI / 2, 0, (index ? 1 : -1) * .1), lift: .27 };
+    flipCard(card, new THREE.Vector3((index ? 1 : -1) * .145, TABLE_Y + index * .004, 3.95 + index * .005), privateCardRotation(index, this.peeking), now);
+  }
+  get discardPeekable() {
+    return this.ownDiscard.every(card => card.root.visible && card.value !== null && card.animation?.kind !== 'discard');
+  }
+  setDiscardPeeking(peeking, now = performance.now()) {
+    peeking = !!peeking && this.discardPeekable;
+    if (peeking === this.discardPeeking) return;
+    this.discardPeeking = peeking;
+    this.ownDiscard.forEach((card, i) => {
+      if (card.root.visible) flipCard(card, ownDiscardPosition(i), privateCardRotation(i, peeking), now);
+    });
   }
   resolvePendingPeeks(now) {
     this.hole.forEach((card, index) => {
