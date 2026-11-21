@@ -8,6 +8,7 @@ import { loadCardArtwork, cardArtURL } from './card-artwork.js';
 import { FullscreenControl } from './fullscreen.js';
 import { PlayerInfo } from './player-info.js';
 import { GameAudio } from './audio.js';
+import { GameMusic } from './music.js';
 
 const $ = id => document.getElementById(id);
 const playerRoster = new PlayerRoster($('player-strip'));
@@ -20,14 +21,25 @@ const ranks = '23456789TJQKA', suits = ['♣', '♦', '♥', '♠'];
 let ws, sessionId, room = null, scene = null, connected = false, superseded = false, retry = 0;
 let toastTimer, clockOffset = 0, finishKey = '';
 let characterGender = localStorage.getItem('rp-character-gender') === 'female' ? 'female' : 'male';
-const savedSoundVolume = Number(localStorage.getItem('rp-volume') ?? NaN);
-let soundVolume = Number.isFinite(savedSoundVolume) ? Math.round(Math.max(0, Math.min(100, savedSoundVolume)))
-  : localStorage.getItem('rp-sound') === 'off' ? 0 : 50;
+function savedVolume(key, fallback) {
+  const value = Number(localStorage.getItem(key) ?? NaN);
+  return Number.isFinite(value) ? Math.round(Math.max(0, Math.min(100, value))) : fallback;
+}
+const soundVolume = savedVolume('rp-volume', localStorage.getItem('rp-sound') === 'off' ? 0 : 50);
+const musicVolume = savedVolume('rp-music-volume', 25);
 let quality = normalizeQuality(localStorage.getItem('rp-quality'));
 let followOtherPlayers = localStorage.getItem('rp-follow-players') !== 'off';
 let frameRate = [30, 45, 60].includes(Number(localStorage.getItem('rp-frame-rate'))) ? Number(localStorage.getItem('rp-frame-rate')) : 60;
-const tableAudio = new GameAudio({ volume: soundVolume / 100 });
-for (const event of ['pointerdown', 'keydown']) document.addEventListener(event, () => { void tableAudio.unlock(); }, { capture: true, passive: true });
+let audioContext;
+const createContext = () => audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+const tableAudio = new GameAudio({ volume: soundVolume / 100, createContext });
+const music = new GameMusic({ volume: musicVolume / 100, createContext, visible: !document.hidden });
+for (const event of ['pointerdown', 'pointerup', 'keydown']) {
+  document.addEventListener(event, () => {
+    void tableAudio.unlock();
+    void music.unlock();
+  }, { capture: true, passive: true });
+}
 const playerInfo = new PlayerInfo($('player-info'), { send, notify: toast, open: () => {
   scene?.cancelViewInput(); clearTimeout(toastTimer); $('toast').hidden = true;
 } });
@@ -87,7 +99,11 @@ function connect() {
 }
 setInterval(() => { if (connected) send('ping'); }, 20000);
 window.addEventListener('online', () => { if (ws?.readyState === WebSocket.CLOSED && !superseded) connect(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) tableAudio.stop(); else if (connected && room) send('sync'); });
+document.addEventListener('visibilitychange', () => {
+  music.setVisible(!document.hidden);
+  if (document.hidden) tableAudio.stop();
+  else if (connected && room) send('sync');
+});
 function cardHTML(card) {
   const label = card === null ? '未公开底牌' : `${suits[Math.floor(card / 13)]}${ranks[card % 13].replace('T', '10')}`;
   return `<span class="card bitmap"><img src="${cardArtURL(card)}" alt="${label}" draggable="false"></span>`;
@@ -273,17 +289,24 @@ $('leave-button').onclick = () => { send('leave'); closeDialogs(); };
 $('close-room-button').onclick = () => { if (send('close-room')) closeDialogs(); };
 $('stop-button').onclick = () => { send('stop'); closeDialogs(); toast('将在本手结束后结算，当前底池继续正常进行'); };
 $('help-button').onclick = () => showDialog('help-dialog');
-function renderSoundSetting() {
-  $('sound-volume').value = String(soundVolume);
-  $('sound-state').textContent = soundVolume ? `${soundVolume}%` : '静音';
-  $('sound-volume').setAttribute('aria-valuetext', soundVolume ? `${soundVolume}%` : '静音');
+function bindVolumeSetting(name, storageKey, initialVolume, audio) {
+  const slider = $(`${name}-volume`), output = $(`${name}-state`);
+  function render(volume) {
+    const label = volume ? `${volume}%` : '静音';
+    slider.value = String(volume);
+    output.textContent = label;
+    slider.setAttribute('aria-valuetext', label);
+  }
+  render(initialVolume);
+  slider.oninput = () => {
+    const volume = Number(slider.value);
+    audio.setVolume(volume / 100);
+    render(volume);
+    localStorage.setItem(storageKey, String(volume));
+  };
 }
-renderSoundSetting();
-$('sound-volume').oninput = event => {
-  soundVolume = Number(event.target.value);
-  tableAudio.setVolume(soundVolume / 100); renderSoundSetting();
-  localStorage.setItem('rp-volume', String(soundVolume));
-};
+bindVolumeSetting('music', 'rp-music-volume', musicVolume, music);
+bindVolumeSetting('sound', 'rp-volume', soundVolume, tableAudio);
 const qualityLabels = { high: '高', medium: '中', low: '低' };
 $('quality-state').textContent = qualityLabels[quality];
 $('quality-button').onclick = () => {

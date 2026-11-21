@@ -37,6 +37,9 @@ try {
         foreach ($pokerAudioModule in @('client/audio.js', 'client/audio-bank.js')) {
             if (-not $pokerZip.GetEntry('RevolverPoker/' + $pokerAudioModule)) { throw ('游戏包缺少音效模块：' + $pokerAudioModule) }
         }
+        if (-not $pokerZip.GetEntry('RevolverPoker/client/music.js')) { throw '游戏包缺少背景音乐模块。' }
+        $pokerTrackName = 'RevolverPoker/client/assets/music/saloon-americana-01.mp3'
+        if (-not $pokerZip.GetEntry($pokerTrackName)) { throw ('游戏包缺少背景音乐：' + $pokerTrackName) }
         $pokerLayoutStream = $pokerZip.GetEntry('RevolverPoker/client/scene-layout.js').Open()
         try { $pokerPackedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($pokerLayoutStream)) }
         finally { $pokerLayoutStream.Dispose() }

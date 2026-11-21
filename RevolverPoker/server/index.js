@@ -56,7 +56,9 @@ export function createPokerServer({ botDelay = null, actionDelay = ACTION_TIMING
       if (relative === 'vendor/three.core.js' || relative === 'vendor/three.core.min.js') relative = 'client/vendor/three.core.min.js';
       if (relative === 'vendor/OrbitControls.js') relative = 'node_modules/three/examples/jsm/controls/OrbitControls.js';
       if (relative === 'vendor/TransformControls.js') relative = 'node_modules/three/examples/jsm/controls/TransformControls.js';
-      const allowed = /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || /^client\/assets\/audio\/[A-Za-z0-9-]+\.wav$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
+      const musicTrack = relative === 'client/assets/music/saloon-americana-01';
+      if (musicTrack) relative += '.mp3';
+      const allowed = musicTrack || /^client\/assets\/cards\/(?:[0-9]{2}|back|display)\.png$/.test(relative) || /^client\/assets\/audio\/[A-Za-z0-9-]+\.wav$/.test(relative) || relative === 'index.html' || relative === 'client/editor.html' || /^(client|shared)\/[\w./-]+\.(js|css|svg)$/.test(relative) || /^node_modules\/three\/build\/three\.(module|core)\.js$/.test(relative) || /^node_modules\/three\/examples\/jsm\/controls\/(OrbitControls|TransformControls)\.js$/.test(relative);
       const full = path.resolve(ROOT, relative);
       if (!allowed || !full.startsWith(ROOT) || relative.includes('..')) { res.writeHead(404); res.end('Not found'); return; }
       let file;

@@ -31,12 +31,11 @@ function printedMaterial(map, color = 0xe6ddc6) {
 }
 
 function grayMaterial(material) {
-  // Share the original textures and desaturate the final lit color, including
-  // the paper edge, before it reaches the framebuffer.
+  // Keep the original textures and darken the grayscale output, including the paper edge.
   const gray = material.clone();
   gray.onBeforeCompile = shader => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <fog_fragment>', `#include <fog_fragment>
-      gl_FragColor.rgb = vec3(dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722)));`);
+      gl_FragColor.rgb = vec3(dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722)) * 0.8);`);
   };
   return gray;
 }
