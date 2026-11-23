@@ -89,26 +89,32 @@ test('Vera fits the character geometry budget and reaches the table and head wit
   assert.ok(gloves.every((glove, i) => glove.position.distanceTo(rest[i]) < 1e-9));
 });
 
-test('both of Vera’s expressions use the edited head and the two black eyes', () => {
+test('both of Vera’s expressions keep the imported ears, visible eyes and brows, and red lips', () => {
   const vera = createVera();
   const [, neutral, angry] = vera.userData.head.children;
-  const eyeColor = new THREE.Color(0x18141a).toArray();
   vera.userData.setAnger(2);
   assert.equal(neutral.visible, false);
   assert.equal(angry.visible, true);
   assert.notDeepEqual(neutral.geometry.attributes.position.array, angry.geometry.attributes.position.array);
-  for (const { geometry } of [neutral, angry]) {
+  const ray = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, 0, -1));
+  const color = new THREE.Color();
+  for (const face of [neutral, angry]) {
+    const { geometry } = face;
     geometry.computeBoundingBox();
     const size = geometry.boundingBox.getSize(new THREE.Vector3());
     assert.ok(geometry.boundingBox.getCenter(new THREE.Vector3()).length() < .12, 'the head is centered on its pivot');
     assert.ok(size.z > .69, 'the imported head is deeper than the earlier ellipsoid');
-    const { index, attributes: { color } } = geometry;
-    let eyeTriangles = 0;
-    for (let i = 0; i < index.count; i += 3) {
-      const corners = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
-      if (corners.every(vertex => eyeColor.every((value, axis) => Math.abs(color.getComponent(vertex, axis) - value) < .0001))) eyeTriangles++;
+    assert.ok(size.x > .6, 'the head mesh includes both ears');
+    for (const [x, y, expected] of [
+      [-.111, .017, 0x18141a], [.111, .017, 0x18141a],
+      [-.118, .114, 0x472831], [.118, .114, 0x472831],
+      [.02, -.22, 0x8c2136],
+    ]) {
+      ray.ray.origin.set(x, y, 1);
+      const [hit] = ray.intersectObject(face);
+      assert.ok(hit, `expected a visible face at ${x}, ${y}`);
+      assert.equal(color.fromBufferAttribute(geometry.attributes.color, hit.face.a).getHex(), expected);
     }
-    assert.equal(eyeTriangles, 4);
   }
 });
 
@@ -164,7 +170,7 @@ test('braided hair covers the scalp behind both ears in profile', () => {
   vera.updateMatrixWorld(true);
   const [hair, face] = vera.userData.head.children;
   for (const side of [-1, 1]) {
-    for (const [y, z] of [[-.12, -.11], [-.17, -.18], [-.17, -.25]]) {
+    for (const [y, z] of [[-.12, -.11], [-.17, -.18], [-.17, -.22]]) {
       const origin = new THREE.Vector3(side, vera.userData.head.position.y + y, z);
       const ray = new THREE.Raycaster(origin, new THREE.Vector3(-side, 0, 0));
       const [scalp] = ray.intersectObject(face);

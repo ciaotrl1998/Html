@@ -110,8 +110,8 @@ export function createVera(appearance = DEFAULT_VERA_APPEARANCE) {
     if (appearance.outfitColor !== next.outfitColor) dyeClothing(next.outfitColor);
     appearance = next;
   };
-  // Seven outfit parts, three hair/accessory parts and a head plus the facial
+  // Seven outfit parts, two hair/accessory parts and a head plus the facial
   // marks for each of the two expressions are batched into four static meshes.
-  root.userData.meshBatching = { before: 14, after: 4 };
+  root.userData.meshBatching = { before: 13, after: 4 };
   return root;
 }

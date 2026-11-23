@@ -32,17 +32,19 @@ def geometry(parts, edit=None):
             raise ValueError(f'{obj.name} has no Vera_Color attribute')
         has_wine_fabric = obj.name in ('Bodice', 'Overskirt', 'Left_Upper_Arm', 'Right_Upper_Arm')
         for triangle in mesh.loop_triangles:
-            material = mesh.materials[triangle.material_index].name
+            material = mesh.materials[triangle.material_index]
+            # The lips are part of the head and share its skin vertex paint.
+            lip_color = material.diffuse_color[:3] if obj.name == 'Head' and material.name in ('Gem', 'Lip') else None
             for i in order:
                 vertex, corner = triangle.vertices[i], triangle.loops[i]
                 pos = transform @ mesh.vertices[vertex].co
                 norm = (normal_transform @ mesh.corner_normals[corner].vector).normalized()
-                rgb = paint.data[corner if paint.domain == 'CORNER' else vertex].color[:3]
+                rgb = lip_color or paint.data[corner if paint.domain == 'CORNER' else vertex].color[:3]
                 # Burgundy fabric has more blue than green. The adjacent skin
                 # and ivory are warm, even when they share the same mesh.
                 dye = has_wine_fabric and rgb[0] > rgb[2] > rgb[1]
                 if edit is not None:
-                    pos = edit(pos, material)
+                    pos = edit(pos, material.name)
                 key = tuple(round(value, 6) for value in (*pos, *norm, *rgb)) + (dye,)
                 index = seen.get(key)
                 if index is None:
@@ -112,10 +114,11 @@ def expression(point, material):
 
 
 marks = world('Face_Details', anchor=HEAD_PIVOT)
+accessories = ('Ears', 'Earrings') if 'Ears' in objects else ('Earrings',)
 assets = {
     'outfit': geometry(world('Bodice', 'Skirt', 'Overskirt', 'Waist_Clasp', 'Collar', 'Heart_Brooch', 'Boots')),
     'hair': geometry(world('Hair', anchor=HEAD_PIVOT)),
-    'accessories': geometry(world('Ears', 'Earrings', anchor=HEAD_PIVOT)),
+    'accessories': geometry(world(*accessories, anchor=HEAD_PIVOT)),
     'head': head,
     'neutral': geometry(marks),
     'angry': geometry(marks, expression),
